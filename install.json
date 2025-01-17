@@ -1,0 +1,5 @@
+{
+  "packageManager": "python",
+  "packageName": "fileglancer_frontend_ext",
+  "uninstallInstructions": "Use your Python package manager (pip, conda, etc.) to uninstall the package fileglancer_frontend_ext"
+}

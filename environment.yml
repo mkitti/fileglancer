@@ -1,0 +1,15 @@
+name: fileglancer-extension
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - jupyterlab >=4.3.0
+  - nodejs=22
+  - pytest
+  - pytest-check-links
+  - pytest-jupyter >=0.6.0
+  - python=3
+  - pip
+  - pip:
+      - copier~=9.2
+      - jinja2-time
