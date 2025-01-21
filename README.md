@@ -1,8 +1,7 @@
-# fileglancer_frontend_ext
+# Fileglancer frontend extension
 
 [![Github Actions Status](https://github.com/JaneliaSciComp/fileglancer/workflows/Build/badge.svg)](https://github.com/JaneliaSciComp/fileglancer/actions/workflows/build.yml)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/JaneliaSciComp/fileglancer/main?urlpath=lab)
-
 
 React-based frontend extension for the Fileglancer app.
 
@@ -12,11 +11,29 @@ React-based frontend extension for the Fileglancer app.
 
 ## Install
 
+Start the Conda or other environment in which you will install the extension. To install the extension for development, use the Conda environment in this repo:
+
+```bash
+git clone git@github.com:JaneliaSciComp/fileglancer.git
+cd fileglancer
+conda env create
+conda activate fileglancer-extension
+```
+
 To install the extension, execute:
 
 ```bash
 pip install fileglancer_frontend_ext
 ```
+
+To use the extension, launch Jupyter Lab:
+
+```bash
+jupyter lab
+```
+
+You should see the React Widget on the Launcher pane:
+![Screenshot of the JupyterLab Launcher panel. In the bottom section, titled "Other", the square tile with the title "React Widget" is circled](./assets/img/JupyterLab-launcher.png)
 
 ## Uninstall
 
