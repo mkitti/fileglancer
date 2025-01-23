@@ -3,3 +3,22 @@
 
     https://jupyterlab.readthedocs.io/en/stable/developer/css.html
 */
+
+.jp-react-widget {
+  color: var(--jp-ui-font-color1);
+  background: var(--jp-layout-color1);
+  font-size: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.jp-react-widget button {
+  padding: 8px 16px;
+  margin: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
