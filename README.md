@@ -1,9 +1,14 @@
-# Fileglancer frontend extension
+# fileglancer_server
 
 [![Github Actions Status](https://github.com/JaneliaSciComp/fileglancer/workflows/Build/badge.svg)](https://github.com/JaneliaSciComp/fileglancer/actions/workflows/build.yml)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/JaneliaSciComp/fileglancer/main?urlpath=lab)
 
-React-based frontend extension for the Fileglancer app.
+
+Browse, share, and publish files on the Janelia file system
+
+This extension is composed of a Python package named `fileglancer_server`
+for the server extension and a NPM package named `fileglancer-server`
+for the frontend extension.
 
 ## Requirements
 
@@ -11,36 +16,34 @@ React-based frontend extension for the Fileglancer app.
 
 ## Install
 
-Start the Conda or other environment in which you will install the extension. To install the extension for development, use the Conda environment in this repo:
-
-```bash
-git clone git@github.com:JaneliaSciComp/fileglancer.git
-cd fileglancer
-conda env create
-conda activate fileglancer-extension
-```
-
 To install the extension, execute:
 
 ```bash
-pip install fileglancer_frontend_ext
+pip install fileglancer_server
 ```
-
-To use the extension, launch Jupyter Lab:
-
-```bash
-jupyter lab
-```
-
-You should see the React Widget on the Launcher pane:
-![Screenshot of the JupyterLab Launcher panel. In the bottom section, titled "Other", the square tile with the title "React Widget" is circled](./assets/img/JupyterLab-launcher.png)
 
 ## Uninstall
 
 To remove the extension, execute:
 
 ```bash
-pip uninstall fileglancer_frontend_ext
+pip uninstall fileglancer_server
+```
+
+## Troubleshoot
+
+If you are seeing the frontend extension, but it is not working, check
+that the server extension is enabled:
+
+```bash
+jupyter server extension list
+```
+
+If the server extension is installed and enabled, but you are not seeing
+the frontend extension, check the frontend extension is installed:
+
+```bash
+jupyter labextension list
 ```
 
 ## Contributing
@@ -55,11 +58,13 @@ The `jlpm` command is JupyterLab's pinned version of
 
 ```bash
 # Clone the repo to your local environment
-# Change directory to the fileglancer_frontend_ext directory
+# Change directory to the fileglancer_server directory
 # Install package in development mode
-pip install -e "."
+pip install -e ".[test]"
 # Link your development version of the extension with JupyterLab
 jupyter labextension develop . --overwrite
+# Server extension must be manually installed in develop mode
+jupyter server extension enable fileglancer_server
 # Rebuild extension Typescript source after making changes
 jlpm build
 ```
@@ -84,14 +89,34 @@ jupyter lab build --minimize=False
 ### Development uninstall
 
 ```bash
-pip uninstall fileglancer_frontend_ext
+# Server extension must be manually disabled in develop mode
+jupyter server extension disable fileglancer_server
+pip uninstall fileglancer_server
 ```
 
 In development mode, you will also need to remove the symlink created by `jupyter labextension develop`
 command. To find its location, you can run `jupyter labextension list` to figure out where the `labextensions`
-folder is located. Then you can remove the symlink named `fileglancer-frontend-ext` within that folder.
+folder is located. Then you can remove the symlink named `fileglancer-server` within that folder.
 
 ### Testing the extension
+
+#### Server tests
+
+This extension is using [Pytest](https://docs.pytest.org/) for Python code testing.
+
+Install test dependencies (needed only once):
+
+```sh
+pip install -e ".[test]"
+# Each time you install the Python package, you need to restore the front-end extension link
+jupyter labextension develop . --overwrite
+```
+
+To execute them, run:
+
+```sh
+pytest -vv -r ap --cov fileglancer_server
+```
 
 #### Frontend tests
 

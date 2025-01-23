@@ -2,10 +2,12 @@ import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
+
 import { MainAreaWidget } from '@jupyterlab/apputils';
 import { ILauncher } from '@jupyterlab/launcher';
 import { reactIcon } from '@jupyterlab/ui-components';
 import { CounterWidget } from './widget';
+import { requestAPI } from './handler';
 
 /**
  * The command IDs used by the react-widget plugin.
@@ -15,15 +17,16 @@ namespace CommandIDs {
 }
 
 /**
- * Initialization data for the fileglancer-frontend-ext extension.
+ * Initialization data for the fileglancer-server extension.
  */
 const plugin: JupyterFrontEndPlugin<void> = {
-  id: 'fileglancer-frontend-ext:plugin',
-  description: 'React-based frontend extension for the Fileglancer app.',
+  id: 'fileglancer-server:plugin',
+  description: 'Browse, share, and publish files on the Janelia file system',
   autoStart: true,
   optional: [ILauncher],
   activate: (app: JupyterFrontEnd, launcher: ILauncher) => {
-    console.log('JupyterLab extension fileglancer-frontend-ext is activated!');
+    console.log('JupyterLab extension fileglancer-server is activated!');
+
     const { commands } = app;
     const command = CommandIDs.createReactWidget;
 
@@ -41,10 +44,18 @@ const plugin: JupyterFrontEndPlugin<void> = {
     });
 
     if (launcher) {
-      launcher.add({
-        command
-      });
+      launcher.add({ command });
     }
+
+    requestAPI<any>('get-example')
+      .then(data => {
+        console.log(data);
+      })
+      .catch(reason => {
+        console.error(
+          `The fileglancer_server server extension appears to be missing.\n${reason}`
+        );
+      });
   }
 };
 
