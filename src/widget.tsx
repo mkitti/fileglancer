@@ -2,6 +2,7 @@ import { ReactWidget } from '@jupyterlab/ui-components';
 
 import React, { useState } from 'react';
 import { Toggle } from './components/Toggle';
+import { FileBrowser } from './components/FileBrowser';
 
 /**
  * React component for a counter.
@@ -14,6 +15,7 @@ const CounterComponent = (): JSX.Element => {
   return (
     <div>
       <Toggle />
+      <FileBrowser />
       <p>You clicked {counter} times!</p>
       <button
         onClick={(): void => {
