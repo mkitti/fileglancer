@@ -8,10 +8,12 @@ import Checkbox from '@mui/material/Checkbox';
 import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutlined';
 import FolderIcon from '@mui/icons-material/Folder';
 
+import FileListCrumbs from './file-list/FileListCrumbs';
 import useFileList from '../hooks/useFileList';
 
 export const FileList = (): JSX.Element => {
-  const { checked, content, handleClick, getContents } = useFileList();
+  const { checked, content, currentPath, handleClick, getContents } =
+    useFileList();
 
   React.useEffect(() => {
     if (content.length === 0) {
@@ -22,6 +24,8 @@ export const FileList = (): JSX.Element => {
 
   return (
     <>
+      <FileListCrumbs currentPath={currentPath} getContents={getContents} />
+      {/* TODO: add breadcrumbs */}
       <List
         sx={{ width: '100%', maxWidth: 360, bgcolor: 'background.paper' }}
         dense

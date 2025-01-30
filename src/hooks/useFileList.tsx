@@ -18,22 +18,20 @@ export type Content = {
 export default function useFileList() {
   const [checked, setChecked] = React.useState<string[]>([]);
   const [content, setContent] = React.useState<Content[]>([]);
+  const [currentPath, setCurrentPath] = React.useState<string>('');
 
   // e = event
   const handleClick = (e: React.MouseEvent, item: Content) => {
     if (e.detail === 1) {
       const currentIndex = checked.indexOf(item.name);
       const newChecked = [...checked];
-
       if (currentIndex === -1) {
         newChecked.push(item.name);
       } else {
         newChecked.splice(currentIndex, 1);
       }
-
       setChecked(newChecked);
     } else if (e.detail === 2) {
-      console.log('double click', item.name);
       getContents(item.path);
     }
   };
@@ -48,6 +46,9 @@ export default function useFileList() {
       }
 
       data = await response.json();
+      if (data.path) {
+        setCurrentPath(data.path);
+      }
       if (data.content) {
         // display directories first, then files
         // within a type (directories or files), display alphabetically
@@ -71,6 +72,7 @@ export default function useFileList() {
   return {
     checked,
     content,
+    currentPath,
     handleClick,
     getContents
   };
