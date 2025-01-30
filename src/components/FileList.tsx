@@ -11,7 +11,7 @@ import FolderIcon from '@mui/icons-material/Folder';
 import useFileList from '../hooks/useFileList';
 
 export const FileList = (): JSX.Element => {
-  const { checked, content, handleToggle, getContents } = useFileList();
+  const { checked, content, handleClick, getContents } = useFileList();
 
   React.useEffect(() => {
     if (content.length === 0) {
@@ -34,7 +34,7 @@ export const FileList = (): JSX.Element => {
               <ListItem key={item.name} disablePadding disableGutters>
                 <ListItemButton
                   role={undefined}
-                  onClick={(e: React.MouseEvent) => handleToggle(e, item.name)}
+                  onClick={(e: React.MouseEvent) => handleClick(e, item)}
                   dense
                 >
                   <ListItemIcon>

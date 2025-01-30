@@ -20,25 +20,26 @@ export default function useFileList() {
   const [content, setContent] = React.useState<Content[]>([]);
 
   // e = event
-  const handleToggle = (e: React.MouseEvent, value: string) => {
+  const handleClick = (e: React.MouseEvent, item: Content) => {
     if (e.detail === 1) {
-      const currentIndex = checked.indexOf(value);
+      const currentIndex = checked.indexOf(item.name);
       const newChecked = [...checked];
 
       if (currentIndex === -1) {
-        newChecked.push(value);
+        newChecked.push(item.name);
       } else {
         newChecked.splice(currentIndex, 1);
       }
 
       setChecked(newChecked);
     } else if (e.detail === 2) {
-      console.log('double click', value);
+      console.log('double click', item.name);
+      getContents(item.path);
     }
   };
 
-  async function getContents(): Promise<void> {
-    const url = 'http://localhost:8888/api/contents/?content=1';
+  async function getContents(path?: Content['path']): Promise<void> {
+    const url = `http://localhost:8888/api/contents/${path ? path + '/' : ''}?content=1`;
     let data = [];
     try {
       const response = await fetch(url);
@@ -70,7 +71,7 @@ export default function useFileList() {
   return {
     checked,
     content,
-    handleToggle,
+    handleClick,
     getContents
   };
 }
