@@ -19,17 +19,22 @@ export default function useFileList() {
   const [checked, setChecked] = React.useState<string[]>([]);
   const [content, setContent] = React.useState<Content[]>([]);
 
-  const handleToggle = (value: string) => () => {
-    const currentIndex = checked.indexOf(value);
-    const newChecked = [...checked];
+  // e = event
+  const handleToggle = (e: React.MouseEvent, value: string) => {
+    if (e.detail === 1) {
+      const currentIndex = checked.indexOf(value);
+      const newChecked = [...checked];
 
-    if (currentIndex === -1) {
-      newChecked.push(value);
-    } else {
-      newChecked.splice(currentIndex, 1);
+      if (currentIndex === -1) {
+        newChecked.push(value);
+      } else {
+        newChecked.splice(currentIndex, 1);
+      }
+
+      setChecked(newChecked);
+    } else if (e.detail === 2) {
+      console.log('double click', value);
     }
-
-    setChecked(newChecked);
   };
 
   async function getContents(): Promise<void> {

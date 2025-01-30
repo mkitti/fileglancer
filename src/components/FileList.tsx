@@ -34,7 +34,7 @@ export const FileList = (): JSX.Element => {
               <ListItem key={item.name} disablePadding disableGutters>
                 <ListItemButton
                   role={undefined}
-                  onClick={handleToggle(item.name)}
+                  onClick={(e: React.MouseEvent) => handleToggle(e, item.name)}
                   dense
                 >
                   <ListItemIcon>
