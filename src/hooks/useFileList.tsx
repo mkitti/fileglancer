@@ -18,22 +18,26 @@ export type Content = {
 export default function useFileList() {
   const [checked, setChecked] = React.useState<string[]>([]);
   const [content, setContent] = React.useState<Content[]>([]);
+  const [currentPath, setCurrentPath] = React.useState<string>('');
 
-  const handleToggle = (value: string) => () => {
-    const currentIndex = checked.indexOf(value);
-    const newChecked = [...checked];
-
-    if (currentIndex === -1) {
-      newChecked.push(value);
-    } else {
-      newChecked.splice(currentIndex, 1);
+  // e = event
+  const handleClick = (e: React.MouseEvent, item: Content) => {
+    if (e.detail === 1) {
+      const currentIndex = checked.indexOf(item.name);
+      const newChecked = [...checked];
+      if (currentIndex === -1) {
+        newChecked.push(item.name);
+      } else {
+        newChecked.splice(currentIndex, 1);
+      }
+      setChecked(newChecked);
+    } else if (e.detail === 2) {
+      getContents(item.path);
     }
-
-    setChecked(newChecked);
   };
 
-  async function getContents(): Promise<void> {
-    const url = 'http://localhost:8888/api/contents/?content=1';
+  async function getContents(path?: Content['path']): Promise<void> {
+    const url = `http://localhost:8888/api/contents/${path ? path + '/' : ''}?content=1`;
     let data = [];
     try {
       const response = await fetch(url);
@@ -42,6 +46,9 @@ export default function useFileList() {
       }
 
       data = await response.json();
+      if (data.path) {
+        setCurrentPath(data.path);
+      }
       if (data.content) {
         // display directories first, then files
         // within a type (directories or files), display alphabetically
@@ -65,7 +72,8 @@ export default function useFileList() {
   return {
     checked,
     content,
-    handleToggle,
+    currentPath,
+    handleClick,
     getContents
   };
 }
