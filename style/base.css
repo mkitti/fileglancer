@@ -24,10 +24,3 @@
   padding: 0;
   box-sizing: border-box;
 }
-
-.jp-react-widget button {
-  padding: 8px 16px;
-  margin: 8px;
-  font-size: 14px;
-  cursor: pointer;
-}

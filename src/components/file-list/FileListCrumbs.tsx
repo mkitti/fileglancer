@@ -18,11 +18,20 @@ export default function FileListCrumbs({
   const dirArray = currentPath.split('/');
   const dirDepth = dirArray.length;
   return (
-    <Breadcrumbs aria-label="breadcrumb">
+    <Breadcrumbs
+      aria-label="breadcrumb"
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '2px',
+        padding: '16px'
+      }}
+    >
       <Link
         component="button"
         underline="hover"
         color="inherit"
+        sx={{ display: 'flex', alignItems: 'center' }}
         onClick={() => getContents('')}
       >
         <FolderIcon />
