@@ -28,8 +28,7 @@ class FilestoreHandler(APIHandler):
         self.log.info(f"Filestore initialized with root directory: {self.filestore.get_root_path()}")
 
 
-    # TODO: auth is disabled for development purposes. 
-    #@tornado.web.authenticated
+    @tornado.web.authenticated
     def get(self, path=""):
         """
         Handle GET requests to list directory contents or stream file contents
