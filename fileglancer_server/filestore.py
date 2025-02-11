@@ -64,8 +64,6 @@ class Filestore:
         full_path = os.path.abspath(os.path.join(self.root_path, path))
         if not full_path.startswith(self.root_path):
             raise ValueError(f"Path {path} attempts to access outside of root directory")
-        print(f"Path: {path}")
-        print(f"Full path: {full_path}")
         return full_path
 
 
@@ -141,8 +139,8 @@ class Filestore:
         Rename a file at the given old path to the new path.
 
         Args:
-            old_path (str): The path to the file to rename.
-            new_path (str): The new path for the file.
+            old_path (str): The relative path to the file to rename.
+            new_path (str): The new relative path for the file.
             
         Raises:
             ValueError: If either path attempts to escape root directory
@@ -167,3 +165,52 @@ class Filestore:
             os.rmdir(full_path)
         else:
             os.remove(full_path)
+
+
+    def create_dir(self, path: str):
+        """
+        Create a directory at the given path.
+
+        Args:
+            path (str): The relative path to the directory to create.
+        """
+        full_path = self._check_path_in_root(path)
+        os.makedirs(full_path)
+
+
+    def create_empty_file(self, path: str):
+        """
+        Create an empty file at the given path.
+
+        Args:
+            path (str): The relative path to the file to create.
+        """
+        full_path = self._check_path_in_root(path)
+        open(full_path, 'w').close()
+
+
+    def change_file_permissions(self, path: str, permissions: str):
+        """
+        Change the permissions of a file at the given path.
+
+        Args:
+            path (str): The relative path to the file to change the permissions of.
+            permissions (str): The new permissions to set for the file.
+                Must be a string of length 10, like '-rw-r--r--'.
+        """
+        full_path = self._check_path_in_root(path)
+        # Convert permission string (like '-rw-r--r--') to octal mode
+        mode = 0
+        # Owner permissions (positions 1-3)
+        if permissions[1] == 'r': mode |= stat.S_IRUSR
+        if permissions[2] == 'w': mode |= stat.S_IWUSR
+        if permissions[3] == 'x': mode |= stat.S_IXUSR
+        # Group permissions (positions 4-6)
+        if permissions[4] == 'r': mode |= stat.S_IRGRP
+        if permissions[5] == 'w': mode |= stat.S_IWGRP
+        if permissions[6] == 'x': mode |= stat.S_IXGRP
+        # Other permissions (positions 7-9)
+        if permissions[7] == 'r': mode |= stat.S_IROTH
+        if permissions[8] == 'w': mode |= stat.S_IWOTH
+        if permissions[9] == 'x': mode |= stat.S_IXOTH
+        os.chmod(full_path, mode)

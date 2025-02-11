@@ -1,4 +1,5 @@
 import os
+import stat
 import pytest
 import tempfile
 import shutil
@@ -113,3 +114,20 @@ def test_prevent_chroot_escape(filestore, test_dir):
         
     with pytest.raises(ValueError):
         filestore.delete_file_or_dir("../outside.txt")
+
+
+def test_create_dir(filestore, test_dir):
+    filestore.create_dir("newdir")
+    assert os.path.exists(os.path.join(test_dir, "newdir"))
+
+
+def test_create_empty_file(filestore, test_dir):
+    filestore.create_empty_file("newfile.txt")
+    assert os.path.exists(os.path.join(test_dir, "newfile.txt"))
+
+
+def test_change_file_permissions(filestore, test_dir):
+    filestore.change_file_permissions("test.txt", "-rw-r--r--")
+    fullpath = os.path.join(test_dir, "test.txt")
+    assert stat.S_IMODE(os.stat(fullpath).st_mode) == 0o644
+    
