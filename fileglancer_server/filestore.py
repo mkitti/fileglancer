@@ -134,7 +134,7 @@ class Filestore:
                 yield chunk
 
 
-    def rename_file(self, old_path: str, new_path: str):
+    def rename_file_or_dir(self, old_path: str, new_path: str):
         """
         Rename a file at the given old path to the new path.
 
@@ -198,6 +198,8 @@ class Filestore:
             permissions (str): The new permissions to set for the file.
                 Must be a string of length 10, like '-rw-r--r--'.
         """
+        if len(permissions) != 10:
+            raise ValueError("Permissions must be a string of length 10")
         full_path = self._check_path_in_root(path)
         # Convert permission string (like '-rw-r--r--') to octal mode
         mode = 0

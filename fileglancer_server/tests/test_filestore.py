@@ -79,9 +79,19 @@ def test_stream_file_contents(filestore):
 
 
 def test_rename_file(filestore, test_dir):
-    filestore.rename_file("test.txt", "renamed.txt")
+    filestore.rename_file_or_dir("test.txt", "renamed.txt")
     assert not os.path.exists(os.path.join(test_dir, "test.txt"))
     assert os.path.exists(os.path.join(test_dir, "renamed.txt"))
+
+
+def test_rename_file_or_dir_invalid_path(filestore):
+    with pytest.raises(FileNotFoundError):
+        filestore.rename_file_or_dir("nonexistent.txt", "new.txt")
+
+
+def test_rename_file_or_dir_invalid_new_path(filestore):
+    with pytest.raises(NotADirectoryError):
+        filestore.rename_file_or_dir("test.txt", "test.txt/subdir")
 
 
 def test_delete_file_or_dir(filestore, test_dir):
@@ -107,10 +117,10 @@ def test_prevent_chroot_escape(filestore, test_dir):
         next(filestore.stream_file_contents("../outside.txt"))
         
     with pytest.raises(ValueError): 
-        filestore.rename_file("../outside.txt", "inside.txt")
+        filestore.rename_file_or_dir("../outside.txt", "inside.txt")
         
     with pytest.raises(ValueError):
-        filestore.rename_file("test.txt", "../outside.txt")
+        filestore.rename_file_or_dir("test.txt", "../outside.txt")
         
     with pytest.raises(ValueError):
         filestore.delete_file_or_dir("../outside.txt")
@@ -131,3 +141,13 @@ def test_change_file_permissions(filestore, test_dir):
     fullpath = os.path.join(test_dir, "test.txt")
     assert stat.S_IMODE(os.stat(fullpath).st_mode) == 0o644
     
+
+def test_change_file_permissions_invalid_permissions(filestore):
+    with pytest.raises(ValueError):
+        filestore.change_file_permissions("test.txt", "invalid")
+
+
+def test_change_file_permissions_invalid_path(filestore):
+    with pytest.raises(ValueError):
+        filestore.change_file_permissions("nonexistent.txt", "rw-r--r--")
+

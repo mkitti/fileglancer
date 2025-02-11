@@ -3,7 +3,7 @@ import json
 
 from jupyter_server.base.handlers import APIHandler
 from jupyter_server.utils import url_path_join
-import tornado
+from tornado import web
 from .filestore import Filestore
 
 
@@ -11,7 +11,7 @@ class RouteHandler(APIHandler):
     # The following decorator should be present on all verb methods (head, get, post,
     # patch, put, delete, options) to ensure only authorized user can request the
     # Jupyter server
-    @tornado.web.authenticated
+    @web.authenticated
     def get(self):
         self.log.info("GET /fileglancer/get-example")
         self.finish(json.dumps({
@@ -32,7 +32,7 @@ class FilestoreHandler(APIHandler):
         self.log.info(f"Filestore initialized with root directory: {self.filestore.get_root_path()}")
 
 
-    @tornado.web.authenticated
+    @web.authenticated
     def get(self, path=""):
         """
         Handle GET requests to list directory contents or stream file contents
@@ -68,6 +68,35 @@ class FilestoreHandler(APIHandler):
         except PermissionError:
             self.set_status(403) 
             self.finish(json.dumps({"error": "Permission denied"}))
+
+
+    @web.authenticated
+    def patch(self, path=""):
+        """
+        Handle PATCH requests to rename or update file permissions.
+        """
+        self.log.info(f"PATCH /fileglancer/files/{path}")
+        file_info = self.get_json_body()
+        if file_info is None:
+            raise web.HTTPError(400, "JSON body missing")
+
+        old_file_info = self.filestore.get_file_info(path)
+        new_path = file_info.get("path")
+        new_permissions = file_info.get("permissions")
+        
+        try:
+            if new_path != old_file_info.path:
+                self.filestore.rename_file_or_dir(old_file_info.path, new_path)
+
+            if new_permissions != old_file_info.permissions:
+                self.filestore.change_file_permissions(new_path, new_permissions)
+
+        except OSError as e:
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
+        self.set_status(204)
+        self.finish()
 
 
 def setup_handlers(web_app):
