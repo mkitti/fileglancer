@@ -55,6 +55,7 @@ class Filestore:
         """
         self.root_path = os.path.abspath(root_path)
 
+
     def _check_path_in_root(self, path: str) -> str:
         """
         Check if a path is within the root directory and return the full path.
@@ -67,12 +68,14 @@ class Filestore:
         print(f"Full path: {full_path}")
         return full_path
 
+
     def get_root_path(self) -> str:
         """
         Get the root path of the Filestore.
         """
         return self.root_path
     
+
     def get_file_info(self, path: str) -> FileInfo:
         """
         Get the FileInfo for a file or directory at the given path.
@@ -87,9 +90,10 @@ class Filestore:
         stat_result = os.stat(full_path)
         return FileInfo.from_stat(full_path, stat_result)
     
-    def get_file_list(self, path: str) -> List[FileInfo]:
+
+    def yield_file_infos(self, path: str) -> Generator[FileInfo, None, None]:
         """
-        Get the list of FileInfo for files and directories at the given path.
+        Yield a FileInfo object for each child of the given path.
 
         Args:
             path (str): The relative path to the directory to list.
@@ -99,18 +103,17 @@ class Filestore:
         """
         full_path = self._check_path_in_root(path)
         try:
-            children = []
             for entry in os.listdir(full_path):
                 entry_path = os.path.join(full_path, entry)
                 try:
                     stat_result = os.stat(entry_path)
                     file_info = FileInfo.from_stat(entry_path, stat_result)
-                    children.append(file_info)
+                    yield file_info
                 except (FileNotFoundError, PermissionError):
                     continue
-            return children
         except (FileNotFoundError, PermissionError):
-            return []
+            return
+
 
     def stream_file_contents(self, path: str, buffer_size: int = DEFAULT_BUFFER_SIZE) -> Generator[bytes, None, None]:
         """
@@ -132,6 +135,7 @@ class Filestore:
                     break
                 yield chunk
 
+
     def rename_file(self, old_path: str, new_path: str):
         """
         Rename a file at the given old path to the new path.
@@ -146,6 +150,7 @@ class Filestore:
         full_old_path = self._check_path_in_root(old_path)
         full_new_path = self._check_path_in_root(new_path)
         os.rename(full_old_path, full_new_path)
+
 
     def delete_file_or_dir(self, path: str):
         """

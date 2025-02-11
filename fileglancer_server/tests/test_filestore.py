@@ -40,9 +40,9 @@ def test_get_root_path(filestore, test_dir):
     assert filestore.get_root_path() == test_dir
 
 
-def test_get_file_info(filestore, test_dir):
+def test_yield_file_infos(filestore, test_dir):
     # Test file info
-    file_info = filestore.get_file_info("test.txt")
+    file_info = next(filestore.yield_file_infos("test.txt"))
     assert isinstance(file_info, FileInfo)
     assert file_info.name == "test.txt"
     assert file_info.path == os.path.join(test_dir, "test.txt")
@@ -50,22 +50,22 @@ def test_get_file_info(filestore, test_dir):
     assert not file_info.is_dir
     
     # Test directory info
-    dir_info = filestore.get_file_info("subdir")
+    dir_info = next(filestore.yield_file_infos("subdir"))
     assert dir_info.name == "subdir"
     assert dir_info.is_dir
 
 
-def test_get_file_list(filestore):
-    files = filestore.get_file_list("")
+def test_yield_file_infos(filestore):
+    files = list(filestore.yield_file_infos(""))
     assert len(files) == 2
     
     # Test subdir listing
-    subdir_files = filestore.get_file_list("subdir")
+    subdir_files = list(filestore.yield_file_infos("subdir"))
     assert len(subdir_files) == 1
     assert subdir_files[0].name == "test2.txt"
     
     # Test nonexistent directory
-    assert filestore.get_file_list("nonexistent") == []
+    assert list(filestore.yield_file_infos("nonexistent")) == []
 
 
 def test_stream_file_contents(filestore):
@@ -100,7 +100,7 @@ def test_prevent_chroot_escape(filestore, test_dir):
         filestore.get_file_info("../outside.txt")
         
     with pytest.raises(ValueError):
-        filestore.get_file_list("../")
+        next(filestore.yield_file_infos("../"))
         
     with pytest.raises(ValueError):
         next(filestore.stream_file_contents("../outside.txt"))

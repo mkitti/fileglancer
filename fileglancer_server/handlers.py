@@ -20,6 +20,10 @@ class RouteHandler(APIHandler):
 
 
 class FilestoreHandler(APIHandler):
+    """
+    API handler for file access using the Filestore class
+    """
+
     def initialize(self):
         """
         Initialize the handler with a Filestore instance
@@ -40,19 +44,13 @@ class FilestoreHandler(APIHandler):
             file_info = self.filestore.get_file_info(path)
             
             if file_info.is_dir:
-                # List directory contents
-                files = self.filestore.get_file_list(path)
-
-                # Write JSON response   
+                # Write JSON response, streaming the files one by one
                 self.write("{\n")
                 self.write("\"files\": [\n")
-                for i, file in enumerate(files):
-                    dumped = json.dumps(file.model_dump(), indent=4)
-                    self.write(dumped)
-                    if i < len(files) - 1:
+                for i, file in enumerate(self.filestore.yield_file_infos(path)):
+                    if i > 0:
                         self.write(",\n")
-                    else:
-                        self.write("\n")
+                    self.write(json.dumps(file.model_dump(), indent=4))
                 self.write("]\n")
                 self.write("}\n")
             else:
