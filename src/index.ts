@@ -44,16 +44,32 @@ const plugin: JupyterFrontEndPlugin<void> = {
     });
 
     if (launcher) {
+      console.log("Adding command to launcher");
       launcher.add({ command });
     }
 
+    console.log("Calling get-example API...");
     requestAPI<any>('get-example')
       .then(data => {
+        console.log("get-example API call succeeded");
         console.log(data);
       })
       .catch(reason => {
         console.error(
-          `The fileglancer_server server extension appears to be missing.\n${reason}`
+          `The fileglancer_server extension appears to be missing.\n${reason}`
+        );
+      });
+
+
+    console.log("Calling listing API...");
+    requestAPI<any>('files/src')
+      .then(data => {
+        console.log("listing API call succeeded");
+        console.log(data);
+      })
+      .catch(reason => {
+        console.error(
+          `The fileglancer_server extension appears to be missing.\n${reason}`
         );
       });
   }
