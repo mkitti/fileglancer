@@ -30,9 +30,9 @@ class FilestoreHandler(APIHandler):
         """
         jupyter_root_dir = self.settings.get("server_root_dir", os.getcwd())
         self.log.debug(f"Jupyter root directory: {jupyter_root_dir}")
-        jupyter_abs_dir = os.path.abspath(jupyter_root_dir)
-        self.log.debug(f"Jupyter absolute directory: {jupyter_abs_dir}")
-        self.filestore = Filestore(jupyter_abs_dir)
+        jupyter_root_dir = os.path.abspath(os.path.expanduser(jupyter_root_dir))
+        self.log.debug(f"Jupyter absolute directory: {jupyter_root_dir}")
+        self.filestore = Filestore(jupyter_root_dir)
         self.log.info(f"Filestore initialized with root directory: {self.filestore.get_root_path()}")
 
 
