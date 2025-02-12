@@ -144,11 +144,10 @@ def setup_handlers(web_app):
     """ 
     Setup the URL handlers for the Fileglancer extension
     """
-
     base_url = web_app.settings["base_url"]
     handlers = [
         (url_path_join(base_url, "fileglancer", "get-example"), RouteHandler), 
-        (url_path_join(base_url, "fileglancer", "files", ".*"), FilestoreHandler),
+        (url_path_join(base_url, "fileglancer", "files", "(.*)"), FilestoreHandler),
         (url_path_join(base_url, "fileglancer", "files"), FilestoreHandler),
     ]
     web_app.add_handlers(".*$", handlers)
