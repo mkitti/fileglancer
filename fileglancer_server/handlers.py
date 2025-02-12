@@ -113,11 +113,13 @@ class FilestoreHandler(APIHandler):
         new_permissions = file_info.get("permissions")
         
         try:
-            if new_path != old_file_info.path:
-                self.filestore.rename_file_or_dir(old_file_info.path, new_path)
+            if new_permissions is not None and new_permissions != old_file_info.permissions:
+                self.log.info(f"Changing permissions of {path} to {new_permissions}")
+                self.filestore.change_file_permissions(path, new_permissions)
 
-            if new_permissions != old_file_info.permissions:
-                self.filestore.change_file_permissions(new_path, new_permissions)
+            if new_path is not None and new_path != old_file_info.path:
+                self.log.info(f"Renaming {old_file_info.path} to {new_path}")
+                self.filestore.rename_file_or_dir(old_file_info.path, new_path)
 
         except OSError as e:
             self.set_status(500)
