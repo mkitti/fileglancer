@@ -86,7 +86,7 @@ class Filestore:
         """
         full_path = self._check_path_in_root(path)
         stat_result = os.stat(full_path)
-        return FileInfo.from_stat(full_path, stat_result)
+        return FileInfo.from_stat(path, stat_result)
     
 
     def yield_file_infos(self, path: str) -> Generator[FileInfo, None, None]:
@@ -105,7 +105,8 @@ class Filestore:
                 entry_path = os.path.join(full_path, entry)
                 try:
                     stat_result = os.stat(entry_path)
-                    file_info = FileInfo.from_stat(entry_path, stat_result)
+                    rel_entry_path = os.path.relpath(entry_path, self.root_path)
+                    file_info = FileInfo.from_stat(rel_entry_path, stat_result)
                     yield file_info
                 except (FileNotFoundError, PermissionError):
                     continue
