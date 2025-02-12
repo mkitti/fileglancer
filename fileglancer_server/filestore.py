@@ -175,7 +175,7 @@ class Filestore:
             path (str): The relative path to the directory to create.
         """
         full_path = self._check_path_in_root(path)
-        os.makedirs(full_path)
+        os.mkdir(full_path)
 
 
     def create_empty_file(self, path: str):
