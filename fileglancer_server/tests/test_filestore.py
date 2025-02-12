@@ -94,14 +94,14 @@ def test_rename_file_or_dir_invalid_new_path(filestore):
         filestore.rename_file_or_dir("test.txt", "test.txt/subdir")
 
 
-def test_delete_file_or_dir(filestore, test_dir):
+def test_remove_file_or_dir(filestore, test_dir):
     # Test file deletion
-    filestore.delete_file_or_dir("test.txt")
+    filestore.remove_file_or_dir("test.txt")
     assert not os.path.exists(os.path.join(test_dir, "test.txt"))
     
     # Create empty dir and test directory deletion
     os.makedirs(os.path.join(test_dir, "empty_dir"))
-    filestore.delete_file_or_dir("empty_dir")
+    filestore.remove_file_or_dir("empty_dir")
     assert not os.path.exists(os.path.join(test_dir, "empty_dir"))
 
 
@@ -123,7 +123,7 @@ def test_prevent_chroot_escape(filestore, test_dir):
         filestore.rename_file_or_dir("test.txt", "../outside.txt")
         
     with pytest.raises(ValueError):
-        filestore.delete_file_or_dir("../outside.txt")
+        filestore.remove_file_or_dir("../outside.txt")
 
 
 def test_create_dir(filestore, test_dir):

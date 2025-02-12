@@ -150,7 +150,7 @@ class Filestore:
         os.rename(full_old_path, full_new_path)
 
 
-    def delete_file_or_dir(self, path: str):
+    def remove_file_or_dir(self, path: str):
         """
         Delete a file or (empty) directory at the given path.
 
