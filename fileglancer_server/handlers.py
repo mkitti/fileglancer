@@ -75,6 +75,30 @@ class FilestoreHandler(APIHandler):
 
 
     @web.authenticated
+    def post(self, path=""):
+        """
+        Handle POST requests to create a new file or directory
+        """
+        self.log.info(f"POST /fileglancer/files/{path}")
+        file_info = self.get_json_body()
+        if file_info is None:
+            raise web.HTTPError(400, "JSON body missing")
+        
+        file_type = file_info.get("type")
+        if file_type == "directory":
+            self.log.info(f"Creating {path} as a directory")
+            self.filestore.create_dir(path)
+        elif file_type == "file":
+            self.log.info(f"Creating {path} as a file")
+            self.filestore.create_empty_file(path)
+        else:
+            raise web.HTTPError(400, "Invalid file type")
+
+        self.set_status(201)
+        self.finish()
+
+
+    @web.authenticated
     def patch(self, path=""):
         """
         Handle PATCH requests to rename or update file permissions.
