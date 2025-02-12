@@ -129,6 +129,17 @@ class FilestoreHandler(APIHandler):
         self.finish()
 
 
+    @web.authenticated
+    def delete(self, path=""):
+        """
+        Handle DELETE requests to remove a file or (empty) directory.
+        """
+        self.log.info(f"DELETE /fileglancer/files/{path}")
+        self.filestore.remove_file_or_dir(path)
+        self.set_status(204)
+        self.finish()
+
+
 def setup_handlers(web_app):
     """ 
     Setup the URL handlers for the Fileglancer extension
