@@ -39,7 +39,7 @@ _(
     "server",
     "extension",
     "enable",
-    "fileglancer_server",
+    "fileglancer",
 )
 
 # verify the environment the extension didn't break anything

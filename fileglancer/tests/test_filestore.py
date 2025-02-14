@@ -3,7 +3,7 @@ import stat
 import pytest
 import tempfile
 import shutil
-from fileglancer_server.filestore import Filestore, FileInfo
+from fileglancer.filestore import Filestore, FileInfo
 
 
 @pytest.fixture
