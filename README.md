@@ -14,16 +14,16 @@ git clone git@github.com:JaneliaSciComp/fileglancer.git
 cd fileglancer
 ```
 
-Install package in development mode.
+If this is your first time installing the extension in dev mode, install package in development mode.
 
 ```bash
-pixi run pip-install-e
+pixi run dev-install
 ```
 
-Link your development version of the extension with JupyterLab
+If you've installed the extension in dev mode before, run the clean dev install command to clean up previous installation and remove the symlink to the old extension.
 
 ```bash
-pixi run enable-ext
+pixi run clean-dev-install
 ```
 
 Build the extension for development
@@ -44,21 +44,15 @@ If everything has worked so far, you should see the React Widget on the Launcher
 
 ![Screenshot of the JupyterLab Launcher panel. In the bottom section, titled "Other", the square tile with the title "React Widget" is circled](./assets/img/JupyterLab-launcher.png)
 
-By default, the `jlpm build` command generates the source maps for this extension to make it easier to debug using the browser dev tools. To also generate source maps for the JupyterLab core extensions, you can run the following command:
-
-```bash
-jupyter lab build --minimize=False
-```
-
 ### Development uninstall
 
 ```bash
-pip uninstall fileglancer_frontend_ext
+pixi run uninstall
 ```
 
 In development mode, you will also need to remove the symlink created by `jupyter labextension develop`
 command. To find its location, you can run `jupyter labextension list` to figure out where the `labextensions`
-folder is located. Then you can remove the symlink named `fileglancer-frontend-ext` within that folder.
+folder is located. Then you can remove the symlink named `fileglancer` within that folder.
 
 ### Testing the extension
 
