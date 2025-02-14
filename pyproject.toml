@@ -100,14 +100,16 @@ default = { solve-group = "default" }
 test = { features = ["test"], solve-group = "default" }
 
 [tool.pixi.tasks]
-pip-install-e = "pip install -e ."
-clean = "rm -rf node_modules && rm yarn.lock"
-clean-install = { cmd = "jlpm install", depends-on = ["clean"] }
+dev-install = "pip install -e ."
+clean = "rm -rf node_modules && rm yarn.lock && jupyter server extension disable fileglancer && pip uninstall fileglancer"
+initialize = "jlpm install"
+clean-dev-install = { depends-on = ["clean", "initialize", "dev-install"] }
 overwrite-ext = "jupyter labextension develop . --overwrite"
 enable-ext = { cmd = "jupyter server extension enable fileglancer", depends-on = ["overwrite-ext"] }
 build = "jlpm build"
-launch-dev = "jupyter lab --autoreload"
-build-dev = {cmd = "jlpm watch", depends-on = ["enable-ext"]}
+dev-launch = "jupyter lab --autoreload"
+dev-build = {cmd = "jlpm watch", depends-on = ["enable-ext"]}
+uninstall = "pip uninstall fileglancer"
 
 [tool.pixi.dependencies]
 copier = "~=9.2"
