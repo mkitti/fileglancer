@@ -4,7 +4,7 @@ import json
 from jupyter_server.base.handlers import APIHandler
 from jupyter_server.utils import url_path_join
 from tornado import web
-from .filestore import Filestore
+from fileglancer.filestore import Filestore
 
 
 class RouteHandler(APIHandler):
@@ -34,7 +34,6 @@ class FilestoreHandler(APIHandler):
         self.log.debug(f"Jupyter absolute directory: {jupyter_root_dir}")
         self.filestore = Filestore(jupyter_root_dir)
         self.log.info(f"Filestore initialized with root directory: {self.filestore.get_root_path()}")
-
 
     @web.authenticated
     def get(self, path=""):
