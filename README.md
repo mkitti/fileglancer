@@ -10,8 +10,9 @@ This extension is composed of a Python package named `fileglancer_server`
 for the server extension and a NPM package named `fileglancer-server`
 for the frontend extension.
 
-## Requirements
+## Development install
 
+<<<<<<< HEAD
 - JupyterLab >= 4.0.0
 
 ## Install
@@ -44,19 +45,39 @@ the frontend extension, check the frontend extension is installed:
 
 ```bash
 jupyter labextension list
-```
-
-## Contributing
-
-### Development install
-
-Note: You will need NodeJS to build the extension package.
-
-The `jlpm` command is JupyterLab's pinned version of
-[yarn](https://yarnpkg.com/) that is installed with JupyterLab. You may use
-`yarn` or `npm` in lieu of `jlpm` below.
+=======
+Clone the repo to your local environment and change directory to the new repo folder.
 
 ```bash
+git clone git@github.com:JaneliaSciComp/fileglancer.git
+cd fileglancer
+```
+
+Create and activate the Conda environment.
+
+```bash
+# This will use the environment.yml file in the repo
+conda env create
+conda activate fileglancer-extension
+```
+
+Install package in development mode.
+
+```bash
+pip install -e "."
+```
+
+Link your development version of the extension with JupyterLab
+
+```bash
+jupyter labextension develop . --overwrite
+>>>>>>> main
+```
+
+Rebuild extension Typescript source after making changes.
+
+```bash
+<<<<<<< HEAD
 # Clone the repo to your local environment
 # Change directory to the fileglancer_server directory
 # Install package in development mode
@@ -66,19 +87,30 @@ jupyter labextension develop . --overwrite
 # Server extension must be manually installed in develop mode
 jupyter server extension enable fileglancer_server
 # Rebuild extension Typescript source after making changes
+=======
+>>>>>>> main
 jlpm build
 ```
 
-You can watch the source directory and run JupyterLab at the same time in different terminals to watch for changes in the extension's source and automatically rebuild the extension.
+_Note:_ The `jlpm` command is JupyterLab's pinned version of
+[yarn](https://yarnpkg.com/) that is installed with JupyterLab. You may use
+`yarn` or `npm` in lieu of `jlpm` below.
+
+You can watch the source directory and run JupyterLab at the same time in different terminals to watch for changes in the extension's source and automatically rebuild the extension. With the watch command running, every saved change will immediately be built locally and available in your running JupyterLab. Refresh JupyterLab to load the change in your browser (you may need to wait several seconds for the extension to be rebuilt).
 
 ```bash
 # Watch the source directory in one terminal, automatically rebuilding when needed
 jlpm watch
+```
+
+```bash
 # Run JupyterLab in another terminal
 jupyter lab
 ```
 
-With the watch command running, every saved change will immediately be built locally and available in your running JupyterLab. Refresh JupyterLab to load the change in your browser (you may need to wait several seconds for the extension to be rebuilt).
+If everything has worked so far, you should see the React Widget on the Launcher pane:
+
+![Screenshot of the JupyterLab Launcher panel. In the bottom section, titled "Other", the square tile with the title "React Widget" is circled](./assets/img/JupyterLab-launcher.png)
 
 By default, the `jlpm build` command generates the source maps for this extension to make it easier to debug using the browser dev tools. To also generate source maps for the JupyterLab core extensions, you can run the following command:
 

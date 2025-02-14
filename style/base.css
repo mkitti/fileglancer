@@ -12,13 +12,15 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  width: 100% !important;
-  height: 100% !important;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  overflow: auto;
+  contain: none !important;
 }
 
-.jp-react-widget button {
-  padding: 8px 16px;
-  margin: 8px;
-  font-size: 14px;
-  cursor: pointer;
+.jp-react-widget > * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
