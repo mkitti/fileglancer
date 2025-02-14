@@ -122,4 +122,5 @@ pytest-check-links = ">=0.10.1,<0.11"
 pytest-jupyter = ">=0.10.1,<0.11"
 python = ">=3.13.2,<4"
 pip = ">=25.0.1,<26"
+pydantic = ">=2.10.6,<3"
 
