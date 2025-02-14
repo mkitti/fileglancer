@@ -17,15 +17,15 @@ namespace CommandIDs {
 }
 
 /**
- * Initialization data for the fileglancer-server extension.
+ * Initialization data for the fileglancer extension.
  */
 const plugin: JupyterFrontEndPlugin<void> = {
-  id: 'fileglancer-server:plugin',
+  id: 'fileglancer:plugin',
   description: 'Browse, share, and publish files on the Janelia file system',
   autoStart: true,
   optional: [ILauncher],
   activate: (app: JupyterFrontEnd, launcher: ILauncher) => {
-    console.log('JupyterLab extension fileglancer-server is activated!');
+    console.log('JupyterLab extension fileglancer is activated!');
 
     const { commands } = app;
     const command = CommandIDs.createReactWidget;
@@ -44,32 +44,31 @@ const plugin: JupyterFrontEndPlugin<void> = {
     });
 
     if (launcher) {
-      console.log("Adding command to launcher");
+      console.log('Adding command to launcher');
       launcher.add({ command });
     }
 
-    console.log("Calling get-example API...");
+    console.log('Calling get-example API...');
     requestAPI<any>('get-example')
       .then(data => {
-        console.log("get-example API call succeeded");
+        console.log('get-example API call succeeded');
         console.log(data);
       })
       .catch(reason => {
         console.error(
-          `The fileglancer_server extension appears to be missing.\n${reason}`
+          `The fileglancer server extension appears to be missing.\n${reason}`
         );
       });
 
-
-    console.log("Calling listing API...");
+    console.log('Calling listing API...');
     requestAPI<any>('files/src')
       .then(data => {
-        console.log("listing API call succeeded");
+        console.log('listing API call succeeded');
         console.log(data);
       })
       .catch(reason => {
         console.error(
-          `The fileglancer_server extension appears to be missing.\n${reason}`
+          `The fileglancer server extension appears to be missing.\n${reason}`
         );
       });
   }
