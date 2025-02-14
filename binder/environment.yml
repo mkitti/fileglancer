@@ -1,10 +1,10 @@
-# a mybinder.org-ready environment for demoing fileglancer_frontend_ext
+# a mybinder.org-ready environment for demoing fileglancer_server
 # this environment may also be used locally on Linux/MacOS/Windows, e.g.
 #
 #   conda env update --file binder/environment.yml
-#   conda activate fileglancer-frontend-ext-demo
+#   conda activate fileglancer-server-demo
 #
-name: fileglancer-frontend-ext-demo
+name: fileglancer-server-demo
 
 channels:
   - conda-forge

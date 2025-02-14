@@ -1,7 +1,7 @@
 {
-  "name": "fileglancer-frontend-ext-ui-tests",
+  "name": "fileglancer-ui-tests",
   "version": "1.0.0",
-  "description": "JupyterLab fileglancer-frontend-ext Integration Tests",
+  "description": "JupyterLab fileglancer Integration Tests",
   "private": true,
   "scripts": {
     "start": "jupyter lab --config jupyter_server_test_config.py",

@@ -2,9 +2,11 @@ import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
+
 import { MainAreaWidget } from '@jupyterlab/apputils';
 import { ILauncher } from '@jupyterlab/launcher';
 import { reactIcon } from '@jupyterlab/ui-components';
+import { requestAPI } from './handler';
 import { AppWidget } from './App';
 
 /**
@@ -15,15 +17,16 @@ namespace CommandIDs {
 }
 
 /**
- * Initialization data for the fileglancer-frontend-ext extension.
+ * Initialization data for the fileglancer extension.
  */
 const plugin: JupyterFrontEndPlugin<void> = {
-  id: 'fileglancer-frontend-ext:plugin',
-  description: 'React-based frontend extension for the Fileglancer app.',
+  id: 'fileglancer:plugin',
+  description: 'Browse, share, and publish files on the Janelia file system',
   autoStart: true,
   optional: [ILauncher],
   activate: (app: JupyterFrontEnd, launcher: ILauncher) => {
-    console.log('JupyterLab extension fileglancer-frontend-ext is activated!');
+    console.log('JupyterLab extension fileglancer is activated!');
+
     const { commands } = app;
     const command = CommandIDs.createReactWidget;
 
@@ -41,10 +44,33 @@ const plugin: JupyterFrontEndPlugin<void> = {
     });
 
     if (launcher) {
-      launcher.add({
-        command
-      });
+      console.log('Adding command to launcher');
+      launcher.add({ command });
     }
+
+    console.log('Calling get-example API...');
+    requestAPI<any>('get-example')
+      .then(data => {
+        console.log('get-example API call succeeded');
+        console.log(data);
+      })
+      .catch(reason => {
+        console.error(
+          `The fileglancer server extension appears to be missing.\n${reason}`
+        );
+      });
+
+    console.log('Calling listing API...');
+    requestAPI<any>('files/src')
+      .then(data => {
+        console.log('listing API call succeeded');
+        console.log(data);
+      })
+      .catch(reason => {
+        console.error(
+          `The fileglancer server extension appears to be missing.\n${reason}`
+        );
+      });
   }
 };
 

@@ -3,7 +3,7 @@ requires = ["hatchling>=1.5.0", "jupyterlab>=4.0.0,<5", "hatch-nodejs-version>=0
 build-backend = "hatchling.build"
 
 [project]
-name = "fileglancer_frontend_ext"
+name = "fileglancer"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.8"
@@ -23,8 +23,18 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
+    "jupyter_server>=2.4.0,<3"
 ]
 dynamic = ["version", "description", "authors", "urls", "keywords"]
+
+[project.optional-dependencies]
+test = [
+    "coverage",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "pytest-jupyter[server]>=0.6.0"
+]
 
 [tool.hatch.version]
 source = "nodejs"
@@ -33,24 +43,25 @@ source = "nodejs"
 fields = ["description", "authors", "urls", "keywords"]
 
 [tool.hatch.build.targets.sdist]
-artifacts = ["fileglancer_frontend_ext/labextension"]
+artifacts = ["fileglancer/labextension"]
 exclude = [".github", "binder"]
 
 [tool.hatch.build.targets.wheel.shared-data]
-"fileglancer_frontend_ext/labextension" = "share/jupyter/labextensions/fileglancer-frontend-ext"
-"install.json" = "share/jupyter/labextensions/fileglancer-frontend-ext/install.json"
+"fileglancer/labextension" = "share/jupyter/labextensions/fileglancer"
+"install.json" = "share/jupyter/labextensions/fileglancer/install.json"
+"jupyter-config/server-config" = "etc/jupyter/jupyter_server_config.d"
 
 [tool.hatch.build.hooks.version]
-path = "fileglancer_frontend_ext/_version.py"
+path = "fileglancer/_version.py"
 
 [tool.hatch.build.hooks.jupyter-builder]
 dependencies = ["hatch-jupyter-builder>=0.5"]
 build-function = "hatch_jupyter_builder.npm_builder"
 ensured-targets = [
-    "fileglancer_frontend_ext/labextension/static/style.js",
-    "fileglancer_frontend_ext/labextension/package.json",
+    "fileglancer/labextension/static/style.js",
+    "fileglancer/labextension/package.json",
 ]
-skip-if-exists = ["fileglancer_frontend_ext/labextension/static/style.js"]
+skip-if-exists = ["fileglancer/labextension/static/style.js"]
 
 [tool.hatch.build.hooks.jupyter-builder.build-kwargs]
 build_cmd = "build:prod"
@@ -60,7 +71,7 @@ npm = ["jlpm"]
 build_cmd = "install:extension"
 npm = ["jlpm"]
 source_dir = "src"
-build_dir = "fileglancer_frontend_ext/labextension"
+build_dir = "fileglancer/labextension"
 
 [tool.jupyter-releaser.options]
 version_cmd = "hatch version"
@@ -75,3 +86,39 @@ before-build-python = ["jlpm clean:all"]
 
 [tool.check-wheel-contents]
 ignore = ["W002"]
+
+
+[tool.pixi.project]
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "osx-64"]
+
+[tool.pixi.pypi-dependencies]
+fileglancer = { path = ".", editable = true }
+
+[tool.pixi.environments]
+default = { solve-group = "default" }
+test = { features = ["test"], solve-group = "default" }
+
+[tool.pixi.tasks]
+dev-install = "pip install -e ."
+clean = "rm -rf node_modules && rm yarn.lock && jupyter server extension disable fileglancer && pip uninstall fileglancer"
+initialize = "jlpm install"
+clean-dev-install = { depends-on = ["clean", "initialize", "dev-install"] }
+overwrite-ext = "jupyter labextension develop . --overwrite"
+enable-ext = { cmd = "jupyter server extension enable fileglancer", depends-on = ["overwrite-ext"] }
+build = "jlpm build"
+dev-launch = "jupyter lab --autoreload"
+dev-build = {cmd = "jlpm watch", depends-on = ["enable-ext"]}
+uninstall = "pip uninstall fileglancer"
+
+[tool.pixi.dependencies]
+copier = "~=9.2"
+jinja2-time = ">=0.2.0,<0.3"
+jupyterlab = ">=4.3.0"
+nodejs = ">=22.13.0,<23"
+pytest = ">=8.3.4,<9"
+pytest-check-links = ">=0.10.1,<0.11"
+pytest-jupyter = ">=0.10.1,<0.11"
+python = ">=3.13.2,<4"
+pip = ">=25.0.1,<26"
+

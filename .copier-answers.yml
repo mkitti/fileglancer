@@ -5,10 +5,10 @@ author_email: ''
 author_name: allison-truhlar
 has_binder: true
 has_settings: false
-kind: frontend
-labextension_name: fileglancer-frontend-ext
-project_short_description: React-based frontend extension for the Fileglancer app.
-python_name: fileglancer_frontend_ext
+kind: server
+labextension_name: fileglancer
+project_short_description: Browse, share, and publish files on the Janelia file system
+python_name: fileglancer
 repository: https://github.com/JaneliaSciComp/fileglancer
 test: true
 
