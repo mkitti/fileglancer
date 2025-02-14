@@ -1,5 +1,5 @@
 {
-    "name": "fileglancer-server",
+    "name": "fileglancer",
     "version": "0.1.0",
     "description": "Browse, share, and publish files on the Janelia file system",
     "keywords": [
@@ -35,7 +35,7 @@
         "clean": "jlpm clean:lib",
         "clean:lib": "rimraf lib tsconfig.tsbuildinfo",
         "clean:lintcache": "rimraf .eslintcache .stylelintcache",
-        "clean:labextension": "rimraf fileglancer_server/labextension fileglancer_server/_version.py",
+        "clean:labextension": "rimraf fileglancer/labextension fileglancer/_version.py",
         "clean:all": "jlpm clean:lib && jlpm clean:labextension && jlpm clean:lintcache",
         "eslint": "jlpm eslint:check --fix",
         "eslint:check": "eslint . --cache --ext .ts,.tsx",
@@ -103,12 +103,12 @@
                     "pip"
                 ],
                 "base": {
-                    "name": "fileglancer_server"
+                    "name": "fileglancer"
                 }
             }
         },
         "extension": true,
-        "outputDir": "fileglancer_server/labextension"
+        "outputDir": "fileglancer/labextension"
     },
     "eslintIgnore": [
         "node_modules",

@@ -3,7 +3,7 @@ requires = ["hatchling>=1.5.0", "jupyterlab>=4.0.0,<5", "hatch-nodejs-version>=0
 build-backend = "hatchling.build"
 
 [project]
-name = "fileglancer_server"
+name = "fileglancer"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.8"
@@ -43,25 +43,25 @@ source = "nodejs"
 fields = ["description", "authors", "urls", "keywords"]
 
 [tool.hatch.build.targets.sdist]
-artifacts = ["fileglancer_server/labextension"]
+artifacts = ["fileglancer/labextension"]
 exclude = [".github", "binder"]
 
 [tool.hatch.build.targets.wheel.shared-data]
-"fileglancer_server/labextension" = "share/jupyter/labextensions/fileglancer-server"
-"install.json" = "share/jupyter/labextensions/fileglancer-server/install.json"
+"fileglancer/labextension" = "share/jupyter/labextensions/fileglancer"
+"install.json" = "share/jupyter/labextensions/fileglancer/install.json"
 "jupyter-config/server-config" = "etc/jupyter/jupyter_server_config.d"
 
 [tool.hatch.build.hooks.version]
-path = "fileglancer_server/_version.py"
+path = "fileglancer/_version.py"
 
 [tool.hatch.build.hooks.jupyter-builder]
 dependencies = ["hatch-jupyter-builder>=0.5"]
 build-function = "hatch_jupyter_builder.npm_builder"
 ensured-targets = [
-    "fileglancer_server/labextension/static/style.js",
-    "fileglancer_server/labextension/package.json",
+    "fileglancer/labextension/static/style.js",
+    "fileglancer/labextension/package.json",
 ]
-skip-if-exists = ["fileglancer_server/labextension/static/style.js"]
+skip-if-exists = ["fileglancer/labextension/static/style.js"]
 
 [tool.hatch.build.hooks.jupyter-builder.build-kwargs]
 build_cmd = "build:prod"
@@ -71,7 +71,7 @@ npm = ["jlpm"]
 build_cmd = "install:extension"
 npm = ["jlpm"]
 source_dir = "src"
-build_dir = "fileglancer_server/labextension"
+build_dir = "fileglancer/labextension"
 
 [tool.jupyter-releaser.options]
 version_cmd = "hatch version"
