@@ -6,8 +6,8 @@ import {
 import { MainAreaWidget } from '@jupyterlab/apputils';
 import { ILauncher } from '@jupyterlab/launcher';
 import { reactIcon } from '@jupyterlab/ui-components';
-import { CounterWidget } from './widget';
 import { requestAPI } from './handler';
+import { AppWidget } from './App';
 
 /**
  * The command IDs used by the react-widget plugin.
@@ -35,8 +35,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       icon: reactIcon,
       execute: () => {
         console.log('Create React widget command executed');
-        const content = new CounterWidget();
-        const widget = new MainAreaWidget<CounterWidget>({ content });
+        const content = new AppWidget();
+        const widget = new MainAreaWidget<AppWidget>({ content });
         widget.title.label = 'React Widget';
         widget.title.icon = reactIcon;
         app.shell.add(widget, 'main');
