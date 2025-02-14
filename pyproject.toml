@@ -108,8 +108,8 @@ clean-dev-install = { depends-on = ["clean", "initialize", "dev-install"] }
 overwrite-ext = "jupyter labextension develop . --overwrite"
 enable-ext = { cmd = "jupyter server extension enable fileglancer", depends-on = ["overwrite-ext"] }
 build = "jlpm build"
-dev-launch = "jupyter lab --autoreload"
 dev-build = {cmd = "jlpm watch", depends-on = ["enable-ext"]}
+dev-launch = "jupyter lab --autoreload"
 uninstall = "pip uninstall fileglancer"
 
 [tool.pixi.dependencies]
