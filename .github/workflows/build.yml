@@ -83,7 +83,7 @@ jobs:
         sudo rm -rf $(which node)
         sudo rm -rf $(which node)
 
-        pip install "jupyterlab>=4.0.0,<5" fileglancer*.whl
+        pip install "jupyterlab>=4.0.0,<5" pydantic fileglancer*.whl
 
 
         jupyter server extension list
