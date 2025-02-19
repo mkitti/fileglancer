@@ -33,7 +33,8 @@ test = [
     "pytest",
     "pytest-asyncio",
     "pytest-cov",
-    "pytest-jupyter[server]>=0.6.0"
+    "pytest-jupyter[server]>=0.6.0",
+    "pydantic"
 ]
 
 [tool.hatch.version]
@@ -107,8 +108,8 @@ clean-dev-install = { depends-on = ["clean", "initialize", "dev-install"] }
 overwrite-ext = "jupyter labextension develop . --overwrite"
 enable-ext = { cmd = "jupyter server extension enable fileglancer", depends-on = ["overwrite-ext"] }
 build = "jlpm build"
-dev-launch = "jupyter lab --autoreload"
 dev-build = {cmd = "jlpm watch", depends-on = ["enable-ext"]}
+dev-launch = "jupyter lab --autoreload"
 uninstall = "pip uninstall fileglancer"
 
 [tool.pixi.dependencies]
@@ -121,4 +122,5 @@ pytest-check-links = ">=0.10.1,<0.11"
 pytest-jupyter = ">=0.10.1,<0.11"
 python = ">=3.13.2,<4"
 pip = ">=25.0.1,<26"
+pydantic = ">=2.10.6,<3"
 

@@ -1618,10 +1618,11 @@ packages:
   name: fileglancer
   version: 0.1.0
   path: .
-  sha256: 7bf9eeac887fc33f9beedf30f68091750baf8f1ea86b8697b1dbc8c0a1689428
+  sha256: f4d3ce4c2ec198665299c62ab2294229e28b687ea7668d17526c110a4bebec5d
   requires_dist:
   - jupyter-server<3,>=2.4.0
   - coverage ; extra == 'test'
+  - pydantic ; extra == 'test'
   - pytest ; extra == 'test'
   - pytest-asyncio ; extra == 'test'
   - pytest-cov ; extra == 'test'
