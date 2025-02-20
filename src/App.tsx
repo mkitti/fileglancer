@@ -1,7 +1,7 @@
 import { ReactWidget } from '@jupyterlab/ui-components';
 import React from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router';
-import { TestComponent } from './components/TestComponent';
+import Home from './Home';
 
 /**
  * React component for a counter.
@@ -12,7 +12,7 @@ const AppComponent = (): JSX.Element => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="lab/*" element={<TestComponent />} />
+        <Route path="lab/*" element={<Home />} />
       </Routes>
     </BrowserRouter>
   );
