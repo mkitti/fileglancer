@@ -12,7 +12,7 @@ const AppComponent = (): JSX.Element => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/lab" element={<TestComponent />} />
+        <Route path="lab/*" element={<TestComponent />} />
       </Routes>
     </BrowserRouter>
   );
