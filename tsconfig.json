@@ -19,7 +19,7 @@
     "strict": true,
     "strictNullChecks": true,
     "target": "ES2018",
-    "skipLibCheck": true
+    // "skipLibCheck": true
   },
   "include": ["src/**/*"]
 }
