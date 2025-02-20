@@ -1,8 +1,7 @@
 import { ReactWidget } from '@jupyterlab/ui-components';
-
 import React from 'react';
-import { Toggle } from './components/Toggle';
-import { FileList } from './components/FileList';
+import { BrowserRouter, Route, Routes } from 'react-router';
+import { TestComponent } from './components/TestComponent';
 
 /**
  * React component for a counter.
@@ -11,16 +10,11 @@ import { FileList } from './components/FileList';
  */
 const AppComponent = (): JSX.Element => {
   return (
-    <div
-      style={{
-        height: '100%',
-        width: '100%',
-        boxSizing: 'border-box'
-      }}
-    >
-      <Toggle />
-      <FileList />
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="lab/*" element={<TestComponent />} />
+      </Routes>
+    </BrowserRouter>
   );
 };
 
