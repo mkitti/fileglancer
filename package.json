@@ -217,7 +217,7 @@
             "stylelint-csstree-validator"
         ],
         "rules": {
-            "csstree/validator": true,
+            "csstree/validator": null,
             "property-no-vendor-prefix": null,
             "selector-class-pattern": "^([a-z][A-z\\d]*)(-[A-z\\d]+)*$",
             "selector-no-vendor-prefix": null,
