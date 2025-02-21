@@ -108,7 +108,7 @@ clean-dev-install = { depends-on = ["clean", "initialize", "dev-install"] }
 overwrite-ext = "jupyter labextension develop . --overwrite"
 enable-ext = { cmd = "jupyter server extension enable fileglancer", depends-on = ["overwrite-ext"] }
 build = "jlpm build"
-dev-build = {cmd = "jlpm watch", depends-on = ["enable-ext"]}
+dev-build = {cmd = "jlpm watch", depends-on = ["enable-ext"], inputs=['src/**/*.js', 'src/**/*.jsx', 'src/**/*.ts', 'src/**/*.tsx']}
 dev-launch = "jupyter lab --autoreload"
 uninstall = "pip uninstall fileglancer"
 
