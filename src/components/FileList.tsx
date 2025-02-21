@@ -35,7 +35,12 @@ export const FileList = (): JSX.Element => {
             const labelId = `checkbox-list-label-${item.name}`;
 
             return (
-              <ListItem key={item.name} disablePadding disableGutters>
+              <ListItem
+                key={item.name}
+                disablePadding
+                disableGutters
+                className="text-blue-500"
+              >
                 <ListItemButton
                   role={undefined}
                   onClick={(e: React.MouseEvent) => handleClick(e, item)}
