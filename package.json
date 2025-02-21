@@ -44,7 +44,7 @@
         "lint": "npm run stylelint && npm run prettier && npm run eslint",
         "lint:check": "npm run stylelint:check && npm run prettier:check && npm run eslint:check",
         "prettier": "npx prettier \"**/*{.ts,.tsx,.js,.jsx,.css,.json,.md}\" --write . --list-different",
-        "prettier:check": "npm prettier \"**/*{.ts,.tsx,.js,.jsx,.css,.json,.md}\" --check",
+        "prettier:check": "npx prettier \"**/*{.ts,.tsx,.js,.jsx,.css,.json,.md}\" --check",
         "stylelint": "npm run stylelint:check --fix",
         "stylelint:check": "stylelint --cache \"style/**/*.css\" --ignore-pattern \"style/tailwind_converted.css\"",
         "test": "jest --coverage",
