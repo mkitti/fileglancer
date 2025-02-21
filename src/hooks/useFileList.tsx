@@ -37,7 +37,7 @@ export default function useFileList() {
   };
 
   async function getContents(path?: Content['path']): Promise<void> {
-    const url = `http://localhost:8888/api/contents/${path ? path + '/' : ''}?content=1`;
+    const url = `/api/contents/${path ? path + '/' : ''}?content=1`;
     let data = [];
     try {
       const response = await fetch(url);
