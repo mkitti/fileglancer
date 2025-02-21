@@ -66,11 +66,9 @@ skip-if-exists = ["fileglancer/labextension/static/style.js"]
 
 [tool.hatch.build.hooks.jupyter-builder.build-kwargs]
 build_cmd = "build:prod"
-npm = ["jlpm"]
 
 [tool.hatch.build.hooks.jupyter-builder.editable-build-kwargs]
 build_cmd = "install:extension"
-npm = ["jlpm"]
 source_dir = "src"
 build_dir = "fileglancer/labextension"
 
@@ -80,10 +78,10 @@ version_cmd = "hatch version"
 [tool.jupyter-releaser.hooks]
 before-build-npm = [
     "python -m pip install 'jupyterlab>=4.0.0,<5'",
-    "jlpm",
-    "jlpm build:prod"
+    "npm install",
+    "npm run build:prod"
 ]
-before-build-python = ["jlpm clean:all"]
+before-build-python = ["npm run clean:all"]
 
 [tool.check-wheel-contents]
 ignore = ["W002"]
@@ -102,13 +100,13 @@ test = { features = ["test"], solve-group = "default" }
 
 [tool.pixi.tasks]
 dev-install = "pip install -e ."
-clean = "rm -rf node_modules && rm yarn.lock && jupyter server extension disable fileglancer && pip uninstall fileglancer"
-initialize = "jlpm install"
+clean = "rm -rf node_modules && jupyter server extension disable fileglancer && pip uninstall fileglancer"
+initialize = "npm install"
 clean-dev-install = { depends-on = ["clean", "initialize", "dev-install"] }
 overwrite-ext = "jupyter labextension develop . --overwrite"
 enable-ext = { cmd = "jupyter server extension enable fileglancer", depends-on = ["overwrite-ext"] }
-build = "jlpm build"
-dev-build = {cmd = "jlpm watch", depends-on = ["enable-ext"]}
+build = "npm run build"
+dev-build = {cmd = "npm run watch", depends-on = ["enable-ext"]}
 dev-launch = "jupyter lab --autoreload"
 uninstall = "pip uninstall fileglancer"
 

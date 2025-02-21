@@ -26,27 +26,27 @@
         "url": "https://github.com/JaneliaSciComp/fileglancer.git"
     },
     "scripts": {
-        "build": "jlpm build:lib && jlpm build:labextension:dev",
-        "build:prod": "jlpm clean && build:tailwind && jlpm build:lib:prod && jlpm build:labextension",
+        "build": "npm run build:lib && npm run build:labextension:dev",
+        "build:prod": "npm run clean && build:tailwind && npm run build:lib:prod && npm run build:labextension",
         "build:labextension": "jupyter labextension build .",
         "build:labextension:dev": "jupyter labextension build --development True .",
         "build:lib": "tsc --sourceMap",
         "build:lib:prod": "tsc",
         "build:tailwind": "tailwindcss -i ./style/tailwind.css -o ./style/tailwind_converted.css --minify",
-        "clean": "jlpm clean:lib",
+        "clean": "npm run clean:lib",
         "clean:lib": "rimraf lib tsconfig.tsbuildinfo",
         "clean:lintcache": "rimraf .eslintcache .stylelintcache",
         "clean:labextension": "rimraf fileglancer/labextension fileglancer/_version.py",
-        "clean:all": "jlpm clean:lib && jlpm clean:labextension && jlpm clean:lintcache",
-        "eslint": "jlpm eslint:check --fix",
+        "clean:all": "npm run clean:lib && npm run clean:labextension && npm run clean:lintcache",
+        "eslint": "npm run eslint:check --fix",
         "eslint:check": "eslint . --cache --ext .ts,.tsx",
-        "install:extension": "jlpm build",
-        "lint": "jlpm stylelint && jlpm prettier && jlpm eslint",
-        "lint:check": "jlpm stylelint:check && jlpm prettier:check && jlpm eslint:check",
-        "prettier": "jlpm prettier:base --write --list-different",
+        "install:extension": "npm run build",
+        "lint": "npm run stylelint && npm run prettier && npm run eslint",
+        "lint:check": "npm run stylelint:check && npm run prettier:check && npm run eslint:check",
+        "prettier": "npm run prettier:base --write --list-different",
         "prettier:base": "prettier \"**/*{.ts,.tsx,.js,.jsx,.css,.json,.md}\"",
-        "prettier:check": "jlpm prettier:base --check",
-        "stylelint": "jlpm stylelint:check --fix",
+        "prettier:check": "npm run prettier:base --check",
+        "stylelint": "npm run stylelint:check --fix",
         "stylelint:check": "stylelint --cache \"style/**/*.css\"",
         "test": "jest --coverage",
         "watch": "run-p watch:tailwind watch:src watch:labextension",
@@ -102,9 +102,11 @@
     },
     "resolutions": {
         "@lezer/markdown": "1.4.0",
-        "react": "^18.3.0",
-        "react-dom": "^18.3.0",
-        "@types/react": "^18.0.26"
+        "react": "18.3.0",
+        "react-dom": "18.3.0",
+        "@types/react": "^18.0.26",
+        "@jupyterlab/services": "^7.0.0",
+        "typescript": "~5.0.2"
     },
     "sideEffects": [
         "style/*.css",
@@ -224,11 +226,11 @@
                 true,
                 {
                     "ignoreAtRules": [
-                    "tailwind",
-                    "apply",
-                    "variants",
-                    "responsive",
-                    "screen"
+                        "tailwind",
+                        "apply",
+                        "variants",
+                        "responsive",
+                        "screen"
                     ]
                 }
             ]
