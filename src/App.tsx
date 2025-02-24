@@ -1,8 +1,18 @@
 import { ReactWidget } from '@jupyterlab/ui-components';
 import React from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router';
-import Home from './Home';
+import { TestComponent } from './components/TestComponent';
 
+function About() {
+  return <h2>About Page</h2>;
+}
+
+function CatchAll() {
+  return <h2>CatchAll Page</h2>;
+}
+function Test() {
+  return <h2>Test Page</h2>;
+}
 /**
  * React component for a counter.
  *
@@ -12,7 +22,11 @@ const AppComponent = (): JSX.Element => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="lab/*" element={<Home />} />
+        <Route path="/lab/about" element={<About />} />
+        <Route path="/lab/*" element={<TestComponent />}>
+          <Route path="test" element={<Test />} />
+          <Route path="*" element={<CatchAll />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );
