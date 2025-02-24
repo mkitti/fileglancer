@@ -1618,7 +1618,7 @@ packages:
   name: fileglancer
   version: 0.1.0
   path: .
-  sha256: f4d3ce4c2ec198665299c62ab2294229e28b687ea7668d17526c110a4bebec5d
+  sha256: c142d45c7e776be9991c1cb2f0e6b2c386484c5b8c703b24ff35869fb38d4365
   requires_dist:
   - jupyter-server<3,>=2.4.0
   - coverage ; extra == 'test'
