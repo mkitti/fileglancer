@@ -11,4 +11,3 @@ project_short_description: Browse, share, and publish files on the Janelia file 
 python_name: fileglancer
 repository: https://github.com/JaneliaSciComp/fileglancer
 test: true
-

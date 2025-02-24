@@ -11,6 +11,9 @@ export const TestComponent = () => {
         boxSizing: 'border-box'
       }}
     >
+      <div className="bg-green-500 text-white p-4 rounded-lg text-lg">
+        Hello from Tailwind CSS!
+      </div>
       <Toggle />
       <FileList />
     </div>

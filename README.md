@@ -7,7 +7,6 @@ React-based frontend extension for the Fileglancer app.
 
 ## Development install
 
-
 Clone the repo to your local environment and change directory to the new repo folder.
 
 ```bash
