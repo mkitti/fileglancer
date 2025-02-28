@@ -29,13 +29,13 @@ pixi run clean-dev-install
 Build the extension for development
 
 ```bash
-pixi run build-dev
+pixi run dev-build
 ```
 
 In new terminal, run Jupyter Lab in autoreload mode:
 
 ```bash
-pixi run launch-dev
+pixi run dev-launch
 ```
 
 Saved changes in your directory should now be automatically built locally and available in your running JupyterLab. Refresh JupyterLab to load the change in your browser (you may need to wait several seconds for the extension to be rebuilt).
