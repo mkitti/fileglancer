@@ -60,15 +60,27 @@ const plugin: JupyterFrontEndPlugin<void> = {
         );
       });
 
-    console.log('Calling listing API...');
-    requestAPI<any>('files/src')
+    console.log('Calling file share paths API...');
+    requestAPI<any>('file-share-paths')
       .then(data => {
-        console.log('listing API call succeeded');
+        console.log('File share paths:');
         console.log(data);
       })
       .catch(reason => {
         console.error(
-          `The fileglancer server extension appears to be missing.\n${reason}`
+          `Problem calling file-share-paths API:\n${reason}`
+        );
+      });
+      
+    console.log('Calling listing API...');
+    requestAPI<any>('files/src')
+      .then(data => {
+        console.log('File listing:');
+        console.log(data);
+      })
+      .catch(reason => {
+        console.error(
+          `Problem getting file listing:\n${reason}`
         );
       });
   }
