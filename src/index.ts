@@ -48,18 +48,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
       launcher.add({ command });
     }
 
-    console.log('Calling get-example API...');
-    requestAPI<any>('get-example')
-      .then(data => {
-        console.log('get-example API call succeeded');
-        console.log(data);
-      })
-      .catch(reason => {
-        console.error(
-          `The fileglancer server extension appears to be missing.\n${reason}`
-        );
-      });
-
     console.log('Calling file share paths API...');
     requestAPI<any>('file-share-paths')
       .then(data => {

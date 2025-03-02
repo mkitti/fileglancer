@@ -34,18 +34,6 @@ class StreamingProxy(APIHandler):
             }))
 
 
-class RouteHandler(APIHandler):
-    # The following decorator should be present on all verb methods (head, get, post,
-    # patch, put, delete, options) to ensure only authorized user can request the
-    # Jupyter server
-    @web.authenticated
-    def get(self):
-        self.log.info("GET /fileglancer/get-example")
-        self.finish(json.dumps({
-            "data": "This is /fileglancer/get-example endpoint!"
-        }))
-
-
 class FileSharePathsHandler(StreamingProxy):
     
     """
@@ -55,7 +43,6 @@ class FileSharePathsHandler(StreamingProxy):
     def get(self):
         self.log.info("GET /fileglancer/file-share-paths")
         self.stream_response(f"{CENTRAL_URL}/file-share-paths")
-
 
 
 class FilestoreHandler(APIHandler):
@@ -185,7 +172,6 @@ def setup_handlers(web_app):
     """
     base_url = web_app.settings["base_url"]
     handlers = [
-        (url_path_join(base_url, "fileglancer", "get-example"), RouteHandler), 
         (url_path_join(base_url, "fileglancer", "file-share-paths"), FileSharePathsHandler),
         (url_path_join(base_url, "fileglancer", "files", "(.*)"), FilestoreHandler),
         (url_path_join(base_url, "fileglancer", "files"), FilestoreHandler),
