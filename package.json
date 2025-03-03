@@ -135,7 +135,8 @@
         "**/*.d.ts",
         "tests",
         "**/__tests__",
-        "ui-tests"
+        "ui-tests",
+        "tailwind.config.ts"
     ],
     "eslintConfig": {
         "extends": [
