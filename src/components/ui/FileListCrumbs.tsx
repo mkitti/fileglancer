@@ -7,10 +7,10 @@ import {
 } from '@material-tailwind/react';
 import { NavArrowRight, Home } from 'iconoir-react';
 
-interface FileListCrumbsProps {
+type FileListCrumbsProps = {
   currentPath: string;
   getContents: (path?: string) => void;
-}
+};
 
 export default function FileListCrumbs({
   currentPath,

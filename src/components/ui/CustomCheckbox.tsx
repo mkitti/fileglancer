@@ -1,10 +1,10 @@
 import * as React from 'react';
 
-interface CustomCheckboxProps {
+type CustomCheckboxProps = {
   checked: boolean;
   id: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}
+};
 
 export function CustomCheckbox({ checked, id, onChange }: CustomCheckboxProps) {
   return (
