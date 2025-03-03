@@ -29,7 +29,7 @@ export default function FileListCrumbs({
         <BreadcrumbLink
           variant="text"
           className="flex items-center gap-1 p-1 rounded-md  hover:bg-blue-50/50 transition-colors"
-          onClick={() => getContents(undefined)}
+          onClick={() => getContents('')}
         >
           <Home className="h-4 w-4 text-blue-500" />
         </BreadcrumbLink>

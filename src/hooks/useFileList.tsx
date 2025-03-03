@@ -34,7 +34,13 @@ export default function useFileList() {
   };
 
   async function getContents(path?: Content['path']): Promise<void> {
-    const url = `/api/contents/${path ? path + '/' : ''}?content=1`;
+    let url = '/api/contents?content=1';
+
+    // Only append the path if it exists and is not empty
+    if (path && path.trim() !== '') {
+      url = `/api/contents/${path}?content=1`;
+    }
+
     let data = [];
     try {
       const response = await fetch(url);
@@ -43,7 +49,7 @@ export default function useFileList() {
       }
 
       data = await response.json();
-      if (data.path) {
+      if (data) {
         setCurrentPath(data.path);
       }
       if (data.content) {
