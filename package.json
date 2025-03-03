@@ -65,6 +65,12 @@
         "@jupyterlab/ui-components": "^4.3.4",
         "@mui/icons-material": "^6.4.1",
         "@mui/material": "^6.4.1",
+        "@radix-ui/react-dropdown-menu": "^2.1.6",
+        "@radix-ui/react-navigation-menu": "^1.2.5",
+        "@radix-ui/react-slot": "^1.1.2",
+        "class-variance-authority": "^0.7.1",
+        "iconoir-react": "^7.10.1",
+        "lucide-react": "^0.477.0",
         "react": "18.3.0",
         "react-dom": "18.3.0",
         "react-router": "^7.1.5"
