@@ -34,7 +34,7 @@ class Fileglancer(Configurable):
     """
     central_url = Unicode(
         help="The URL of the central server",
-        default_value="http://0.0.0.0:7878",
+        default_value="",
         config=True,
     )
 

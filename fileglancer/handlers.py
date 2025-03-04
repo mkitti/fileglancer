@@ -7,6 +7,21 @@ from tornado import web
 from fileglancer.filestore import Filestore
 
 
+class ServerRootMixin:
+    """
+    Mixin for getting the server root directory
+    """
+    def get_server_root_dir(self):
+        """
+        Get the server root directory
+        """
+        jupyter_root_dir = self.settings.get("server_root_dir", os.getcwd())
+        self.log.debug(f"Jupyter root directory: {jupyter_root_dir}")
+        jupyter_root_dir = os.path.abspath(os.path.expanduser(jupyter_root_dir))
+        self.log.debug(f"Jupyter absolute directory: {jupyter_root_dir}")
+        return jupyter_root_dir
+
+
 class StreamingProxy(APIHandler):
     """
     API handler for proxying responses from the central server
@@ -33,7 +48,7 @@ class StreamingProxy(APIHandler):
             }))
 
 
-class FileSharePathsHandler(StreamingProxy): 
+class FileSharePathsHandler(StreamingProxy, ServerRootMixin): 
     """
     API handler for file share paths
     """
@@ -41,11 +56,32 @@ class FileSharePathsHandler(StreamingProxy):
     def get(self):
         self.log.info("GET /fileglancer/file-share-paths")
         central_url = self.settings["fileglancer"].central_url
-        self.log.info(f"Central URL: {central_url}")
-        self.stream_response(f"{central_url}/file-share-paths")
+
+        if not central_url:
+            server_root_dir = self.get_server_root_dir()
+            self.log.error("No central URL found, using local path")
+            file_share_paths = [
+            {
+                "zone": "Local",
+                "group": "local",
+                "storage": "home",
+                "linux_path": server_root_dir
+                }
+            ]
+            self.set_header('Content-Type', 'application/json')
+            self.set_status(200)
+            self.write(json.dumps(file_share_paths))
+            self.finish()
+
+        else:
+            self.log.info(f"Central URL: {central_url}")
+            self.stream_response(f"{central_url}/file-share-paths")
 
 
-class FilestoreHandler(APIHandler):
+
+
+
+class FilestoreHandler(APIHandler, ServerRootMixin):
     """
     API handler for file access using the Filestore class
     """
@@ -54,11 +90,7 @@ class FilestoreHandler(APIHandler):
         """
         Initialize the handler with a Filestore instance
         """
-        jupyter_root_dir = self.settings.get("server_root_dir", os.getcwd())
-        self.log.debug(f"Jupyter root directory: {jupyter_root_dir}")
-        jupyter_root_dir = os.path.abspath(os.path.expanduser(jupyter_root_dir))
-        self.log.debug(f"Jupyter absolute directory: {jupyter_root_dir}")
-        self.filestore = Filestore(jupyter_root_dir)
+        self.filestore = Filestore(self.get_server_root_dir())
         self.log.info(f"Filestore initialized with root directory: {self.filestore.get_root_path()}")
 
 

@@ -47,20 +47,21 @@ If everything has worked so far, you should see the React Widget on the Launcher
 
 ## Configuration
 
-You can configure the URL of the [Fileglance Central](https://github.com/JaneliaSciComp/fileglancer-central) server with traitlets, in several ways:
+By default, no [Fileglance Central](https://github.com/JaneliaSciComp/fileglancer-central) server will be used. 
+You can configure the URL of a Fileglancer Central server with traitlets, in several ways:
 
 ### Command line
 
 ```bash
-pixi run dev-launch --Fileglancer.central_url=http://your-central-server:7000
+pixi run dev-launch --Fileglancer.central_url=http://0.0.0.0:7878
 ```
 
 ### Config file
 
-You can create a file at `~/.jupyter/jupyter_server_config.py` (or in any of the paths reported by `pixi run jupyter --paths`) and add your configuration there:
+You can create a file at `~/.jupyter/jupyter_server_config.py` (or in any of the paths reported by `pixi run jupyter --paths`) and add your configuration there, e.g.:
 
 ```python
-c.Fileglancer.central_url='http://your-central-server:7000'
+c.Fileglancer.central_url='http://0.0.0.0:7878'
 ```
 
 ## Development Uninstall
