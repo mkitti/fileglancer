@@ -63,7 +63,6 @@ You can create a file at `~/.jupyter/jupyter_server_config.py` (or in any of the
 c.Fileglancer.central_url='http://your-central-server:7000'
 ```
 
-
 ## Development Uninstall
 
 ```bash
@@ -74,26 +73,32 @@ In development mode, you will also need to remove the symlink created by `jupyte
 command. To find its location, you can run `jupyter labextension list` to figure out where the `labextensions`
 folder is located. Then you can remove the symlink named `fileglancer` within that folder.
 
-### Testing the extension
+## Testing 
 
-#### Frontend tests
+### Backend tests
+
+To run backend tests using pytest:
+
+```bash
+pixi run pytest
+```
+
+### Frontend tests
 
 This extension is using [Jest](https://jestjs.io/) for JavaScript code testing.
 
 To execute them, execute:
 
-```sh
-jlpm
-jlpm test
+```bash
+npm test
 ```
 
-#### Integration tests
+### Integration tests
 
 This extension uses [Playwright](https://playwright.dev/docs/intro) for the integration tests (aka user level tests).
 More precisely, the JupyterLab helper [Galata](https://github.com/jupyterlab/jupyterlab/tree/master/galata) is used to handle testing the extension in JupyterLab.
-
 More information are provided within the [ui-tests](./ui-tests/README.md) README.
 
-### Packaging the extension
+## Packaging and Releases
 
 See [RELEASE](RELEASE.md)
