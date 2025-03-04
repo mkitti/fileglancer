@@ -26,14 +26,14 @@ class StreamingProxy(APIHandler):
             self.finish()
 
         except requests.exceptions.RequestException as e:
+            self.log.error(f"Error fetching {url}: {str(e)}")
             self.set_status(500)
             self.finish(json.dumps({
-                "error": f"Error fetching {url}: {str(e)}"
+                "error": f"Error streaming response"
             }))
 
 
-class FileSharePathsHandler(StreamingProxy):
-    
+class FileSharePathsHandler(StreamingProxy): 
     """
     API handler for file share paths
     """
@@ -41,6 +41,7 @@ class FileSharePathsHandler(StreamingProxy):
     def get(self):
         self.log.info("GET /fileglancer/file-share-paths")
         central_url = self.settings["fileglancer"].central_url
+        self.log.info(f"Central URL: {central_url}")
         self.stream_response(f"{central_url}/file-share-paths")
 
 
