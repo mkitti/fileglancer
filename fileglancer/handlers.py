@@ -59,7 +59,7 @@ class FileSharePathsHandler(StreamingProxy, ServerRootMixin):
 
         if not central_url:
             server_root_dir = self.get_server_root_dir()
-            self.log.error("No central URL found, using local path")
+            self.log.warning("No central URL found, using local path")
             file_share_paths = [
             {
                 "zone": "Local",
