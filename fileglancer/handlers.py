@@ -6,8 +6,6 @@ from jupyter_server.utils import url_path_join
 from tornado import web
 from fileglancer.filestore import Filestore
 
-CENTRAL_URL = "http://0.0.0.0:7878"
-
 
 class StreamingProxy(APIHandler):
     """
@@ -42,7 +40,8 @@ class FileSharePathsHandler(StreamingProxy):
     @web.authenticated
     def get(self):
         self.log.info("GET /fileglancer/file-share-paths")
-        self.stream_response(f"{CENTRAL_URL}/file-share-paths")
+        central_url = self.settings["fileglancer"].central_url
+        self.stream_response(f"{central_url}/file-share-paths")
 
 
 class FilestoreHandler(APIHandler):

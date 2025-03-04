@@ -44,7 +44,27 @@ If everything has worked so far, you should see the React Widget on the Launcher
 
 ![Screenshot of the JupyterLab Launcher panel. In the bottom section, titled "Other", the square tile with the title "React Widget" is circled](./assets/img/JupyterLab-launcher.png)
 
-### Development uninstall
+
+## Configuration
+
+You can configure the URL of the [Fileglance Central](https://github.com/JaneliaSciComp/fileglancer-central) server with traitlets, in several ways:
+
+### Command line
+
+```bash
+pixi run dev-launch --Fileglancer.central_url=http://your-central-server:7000
+```
+
+### Config file
+
+You can create a file at `~/.jupyter/jupyter_server_config.py` (or in any of the paths reported by `pixi run jupyter --paths`) and add your configuration there:
+
+```python
+c.Fileglancer.central_url='http://your-central-server:7000'
+```
+
+
+## Development Uninstall
 
 ```bash
 pixi run uninstall
