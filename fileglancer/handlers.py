@@ -1,25 +1,87 @@
 import os
 import json
-
+import requests
 from jupyter_server.base.handlers import APIHandler
 from jupyter_server.utils import url_path_join
 from tornado import web
 from fileglancer.filestore import Filestore
 
 
-class RouteHandler(APIHandler):
-    # The following decorator should be present on all verb methods (head, get, post,
-    # patch, put, delete, options) to ensure only authorized user can request the
-    # Jupyter server
+class ServerRootMixin:
+    """
+    Mixin for getting the server root directory
+    """
+    def get_server_root_dir(self):
+        """
+        Get the server root directory
+        """
+        jupyter_root_dir = self.settings.get("server_root_dir", os.getcwd())
+        self.log.debug(f"Jupyter root directory: {jupyter_root_dir}")
+        jupyter_root_dir = os.path.abspath(os.path.expanduser(jupyter_root_dir))
+        self.log.debug(f"Jupyter absolute directory: {jupyter_root_dir}")
+        return jupyter_root_dir
+
+
+class StreamingProxy(APIHandler):
+    """
+    API handler for proxying responses from the central server
+    """
+    def stream_response(self, url):
+        """Stream response from central server back to client"""
+        try:
+            # Make request to central server
+            response = requests.get(url, stream=True)
+            response.raise_for_status()
+
+            # Stream the response back
+            self.set_header('Content-Type', response.headers.get('Content-Type', 'application/json'))
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    self.write(chunk)
+            self.finish()
+
+        except requests.exceptions.RequestException as e:
+            self.log.error(f"Error fetching {url}: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({
+                "error": f"Error streaming response"
+            }))
+
+
+class FileSharePathsHandler(StreamingProxy, ServerRootMixin): 
+    """
+    API handler for file share paths
+    """
     @web.authenticated
     def get(self):
-        self.log.info("GET /fileglancer/get-example")
-        self.finish(json.dumps({
-            "data": "This is /fileglancer/get-example endpoint!"
-        }))
+        self.log.info("GET /fileglancer/file-share-paths")
+        central_url = self.settings["fileglancer"].central_url
+
+        if not central_url:
+            server_root_dir = self.get_server_root_dir()
+            self.log.warning("No central URL found, using local path")
+            file_share_paths = [
+            {
+                "zone": "Local",
+                "group": "local",
+                "storage": "home",
+                "linux_path": server_root_dir
+                }
+            ]
+            self.set_header('Content-Type', 'application/json')
+            self.set_status(200)
+            self.write(json.dumps(file_share_paths))
+            self.finish()
+
+        else:
+            self.log.info(f"Central URL: {central_url}")
+            self.stream_response(f"{central_url}/file-share-paths")
 
 
-class FilestoreHandler(APIHandler):
+
+
+
+class FilestoreHandler(APIHandler, ServerRootMixin):
     """
     API handler for file access using the Filestore class
     """
@@ -28,12 +90,9 @@ class FilestoreHandler(APIHandler):
         """
         Initialize the handler with a Filestore instance
         """
-        jupyter_root_dir = self.settings.get("server_root_dir", os.getcwd())
-        self.log.debug(f"Jupyter root directory: {jupyter_root_dir}")
-        jupyter_root_dir = os.path.abspath(os.path.expanduser(jupyter_root_dir))
-        self.log.debug(f"Jupyter absolute directory: {jupyter_root_dir}")
-        self.filestore = Filestore(jupyter_root_dir)
+        self.filestore = Filestore(self.get_server_root_dir())
         self.log.info(f"Filestore initialized with root directory: {self.filestore.get_root_path()}")
+
 
     @web.authenticated
     def get(self, path=""):
@@ -145,7 +204,7 @@ def setup_handlers(web_app):
     """
     base_url = web_app.settings["base_url"]
     handlers = [
-        (url_path_join(base_url, "fileglancer", "get-example"), RouteHandler), 
+        (url_path_join(base_url, "fileglancer", "file-share-paths"), FileSharePathsHandler),
         (url_path_join(base_url, "fileglancer", "files", "(.*)"), FilestoreHandler),
         (url_path_join(base_url, "fileglancer", "files"), FilestoreHandler),
     ]
