@@ -7,8 +7,16 @@ import Files from './components/Files';
 import Help from './components/Help';
 import Jobs from './components/Jobs';
 
-function About() {
-  return <h2>About Page</h2>;
+function Login() {
+  return <h2>Login Page</h2>;
+}
+
+function Profile() {
+  return <h2>Profile Page</h2>;
+}
+
+function Preferences() {
+  return <h2>Preferences Page</h2>;
 }
 
 /**
@@ -20,11 +28,13 @@ const AppComponent = (): JSX.Element => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/lab/about" element={<About />} />
+        <Route path="/lab/login" element={<Login />} />
         <Route path="/lab/*" element={<MainLayout />}>
           <Route path="files" element={<Files />} />
           <Route path="jobs" element={<Jobs />} />
           <Route path="help" element={<Help />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="preferences" element={<Preferences />} />
           <Route path="*" element={<Home />} />
         </Route>
       </Routes>
