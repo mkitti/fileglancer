@@ -1,5 +1,6 @@
 import React from 'react';
+import FileList from '../components/ui/FileList';
 
 export default function Files() {
-  return <h2>Files Page</h2>;
+  return <FileList />;
 }
