@@ -9,12 +9,12 @@ import { NavArrowRight, Home } from 'iconoir-react';
 
 type FileListCrumbsProps = {
   currentPath: string;
-  getContents: (path?: string) => void;
+  getFiles: (path: string) => void;
 };
 
 export default function FileListCrumbs({
   currentPath,
-  getContents
+  getFiles
 }: FileListCrumbsProps): JSX.Element {
   const dirArray = currentPath.split('/');
   const dirDepth = dirArray.length;
@@ -29,7 +29,7 @@ export default function FileListCrumbs({
         <BreadcrumbLink
           variant="text"
           className="flex items-center gap-1 p-1 rounded-md  hover:bg-blue-50/50 transition-colors"
-          onClick={() => getContents('')}
+          onClick={() => getFiles('')}
         >
           <Home className="h-4 w-4 text-blue-500" />
         </BreadcrumbLink>
@@ -43,9 +43,7 @@ export default function FileListCrumbs({
               <BreadcrumbLink
                 variant="text"
                 className="p-1 rounded-md  hover:bg-blue-50/50 transition-colors"
-                onClick={() =>
-                  getContents(dirArray.slice(0, index + 1).join('/'))
-                }
+                onClick={() => getFiles(dirArray.slice(0, index + 1).join('/'))}
               >
                 <Typography
                   variant="small"
