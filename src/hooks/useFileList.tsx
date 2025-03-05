@@ -1,18 +1,21 @@
 import * as React from 'react';
 
-export type Content = {
-  content: string | Content[] | null;
-  created: string;
-  format: null | 'text' | 'base64' | 'json';
-  hash?: string;
-  hash_algorithm?: string;
-  last_modified: string;
-  mimetype: string | null;
+export type File = {
   name: string;
   path: string;
   size: number;
-  type: string;
-  writable: boolean;
+  is_dir: boolean;
+  permissions: string;
+  owner: string;
+  group: string;
+  last_modified: number;
+};
+
+export type FileSharePaths = {
+  zone: string;
+  group: string;
+  storage: string;
+  linux_path: string;
 };
 
 export default function useFileList() {
