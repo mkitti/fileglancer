@@ -17,10 +17,10 @@ export type Content = {
 
 export default function useFileList() {
   const [checked, setChecked] = React.useState<string[]>([]);
-  const [content, setContent] = React.useState<Content[]>([]);
-  const [currentPath, setCurrentPath] = React.useState<string>('');
+  const [files, setFiles] = React.useState<File[]>([]);
+  const [currentPath, setCurrentPath] = React.useState<File['path']>('');
 
-  const handleCheckboxToggle = (item: Content) => {
+  function handleCheckboxToggle(item: File) {
     const currentIndex = checked.indexOf(item.name);
     const newChecked = [...checked];
 
@@ -31,14 +31,14 @@ export default function useFileList() {
     }
 
     setChecked(newChecked);
-  };
+  }
 
-  async function getContents(path?: Content['path']): Promise<void> {
-    let url = '/api/contents?content=1';
+  async function getFiles(path: File['path']): Promise<void> {
+    let url = '/fileglancer/files/';
 
     // Only append the path if it exists and is not empty
     if (path && path.trim() !== '') {
-      url = `/api/contents/${path}?content=1`;
+      url = `/fileglancer/files/${path}`;
     }
 
     let data = [];
@@ -50,19 +50,39 @@ export default function useFileList() {
 
       data = await response.json();
       if (data) {
-        setCurrentPath(data.path);
+        setCurrentPath(path);
       }
-      if (data.content) {
+      if (data.files) {
         // display directories first, then files
         // within a type (directories or files), display alphabetically
-        data.content = data.content.sort((a: Content, b: Content) => {
-          if (a.type === b.type) {
+        data.files = data.files.sort((a: File, b: File) => {
+          if (a.is_dir === b.is_dir) {
             return a.name.localeCompare(b.name);
           }
-          return a.type === 'directory' ? -1 : 1;
+          return a.is_dir ? -1 : 1;
         });
-        setContent(data.content as Content[]);
+        setFiles(data.files as File[]);
       }
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error(error.message);
+      } else {
+        console.error('An unknown error occurred');
+      }
+    }
+  }
+
+  async function getFileSharePaths() {
+    const url = '/fileglancer/file-share-paths/';
+    let data: FileSharePaths[] = [];
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Response status: ${response.status}`);
+      }
+
+      data = await response.json();
+      console.log(data);
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error(error.message);
@@ -74,9 +94,10 @@ export default function useFileList() {
 
   return {
     checked,
-    content,
+    files,
     currentPath,
     handleCheckboxToggle,
-    getContents
+    getFiles,
+    getFileSharePaths
   };
 }
