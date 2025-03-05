@@ -3,10 +3,9 @@ import * as React from 'react';
 type CustomCheckboxProps = {
   checked: boolean;
   id: string;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
-export function CustomCheckbox({ checked, id, onChange }: CustomCheckboxProps) {
+export function CustomCheckbox({ checked, id }: CustomCheckboxProps) {
   return (
     <div className="relative inline-flex items-center justify-center w-5 h-5">
       <input type="checkbox" id={id} checked={checked} className="sr-only" />
