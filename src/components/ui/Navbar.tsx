@@ -95,7 +95,7 @@ export default function FileglancerNavbar() {
   }, []);
 
   return (
-    <Navbar className="mx-auto w-full">
+    <Navbar className="mx-auto w-full rounded-t-none">
       <div className="flex items-center justify-between">
         {/* Logo */}
         <Typography
