@@ -1,7 +1,23 @@
 import { ReactWidget } from '@jupyterlab/ui-components';
 import React from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router';
-import { TestComponent } from './components/TestComponent';
+import { MainLayout } from './layouts/MainLayout';
+import Home from './components/Home';
+import Files from './components/Files';
+import Help from './components/Help';
+import Jobs from './components/Jobs';
+
+function Login() {
+  return <h2>Login Page</h2>;
+}
+
+function Profile() {
+  return <h2>Profile Page</h2>;
+}
+
+function Preferences() {
+  return <h2>Preferences Page</h2>;
+}
 
 /**
  * React component for a counter.
@@ -12,7 +28,15 @@ const AppComponent = (): JSX.Element => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="lab/*" element={<TestComponent />} />
+        <Route path="/lab/login" element={<Login />} />
+        <Route path="/lab/*" element={<MainLayout />}>
+          <Route path="files" element={<Files />} />
+          <Route path="jobs" element={<Jobs />} />
+          <Route path="help" element={<Help />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="preferences" element={<Preferences />} />
+          <Route path="*" element={<Home />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );

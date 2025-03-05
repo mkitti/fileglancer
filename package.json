@@ -54,20 +54,18 @@
         "watch:tailwind": "tailwindcss -i ./style/tailwind.css -o ./style/tailwind_converted.css --minify --watch"
     },
     "dependencies": {
-        "@emotion/react": "^11.14.0",
-        "@emotion/styled": "^11.14.0",
-        "@fontsource/roboto": "^5.1.1",
         "@jupyterlab/application": "^4.0.0",
         "@jupyterlab/apputils": "^4.4.4",
         "@jupyterlab/coreutils": "^6.0.0",
         "@jupyterlab/launcher": "^4.3.4",
         "@jupyterlab/services": "^7.0.0",
         "@jupyterlab/ui-components": "^4.3.4",
-        "@mui/icons-material": "^6.4.1",
-        "@mui/material": "^6.4.1",
+        "@material-tailwind/react": "^3.0.0-beta.24",
+        "iconoir-react": "^7.10.1",
         "react": "18.3.0",
         "react-dom": "18.3.0",
-        "react-router": "^7.1.5"
+        "react-router": "^7.1.5",
+        "react-router-dom": "^7.2.0"
     },
     "devDependencies": {
         "@jupyterlab/builder": "^4.0.0",
@@ -137,7 +135,8 @@
         "**/*.d.ts",
         "tests",
         "**/__tests__",
-        "ui-tests"
+        "ui-tests",
+        "tailwind.config.ts"
     ],
     "eslintConfig": {
         "extends": [

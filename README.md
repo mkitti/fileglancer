@@ -20,13 +20,7 @@ If this is your first time installing the extension in dev mode, install package
 pixi run dev-install
 ```
 
-If you've installed the extension in dev mode before, run the clean dev install command to clean up previous installation and remove the symlink to the old extension.
-
-```bash
-pixi run clean-dev-install
-```
-
-Build the extension for development
+If you've installed the extension in dev mode before, you can build the extension in watch mode - it will automatically rebuild when there are file changes:
 
 ```bash
 pixi run dev-build
@@ -44,10 +38,19 @@ If everything has worked so far, you should see the React Widget on the Launcher
 
 ![Screenshot of the JupyterLab Launcher panel. In the bottom section, titled "Other", the square tile with the title "React Widget" is circled](./assets/img/JupyterLab-launcher.png)
 
+### Troubleshooting the extension
+
+Try running the clean-dev-install command to clean up previous installation and remove the symlink to the old extension.
+
+```bash
+pixi run clean-dev-install
+```
+
+If you're still having issues, try manually deleting the symlink at `.pixi/envs/share/jupyter/labextensions/fileglancer` inside the fileglancer repo directory. Then, reinstall the extension using `pixi run dev-install`, and follow the steps above from there.
 
 ## Configuration
 
-By default, no [Fileglance Central](https://github.com/JaneliaSciComp/fileglancer-central) server will be used. 
+By default, no [Fileglance Central](https://github.com/JaneliaSciComp/fileglancer-central) server will be used.
 You can configure the URL of a Fileglancer Central server with traitlets, in several ways:
 
 ### Command line
@@ -74,7 +77,7 @@ In development mode, you will also need to remove the symlink created by `jupyte
 command. To find its location, you can run `jupyter labextension list` to figure out where the `labextensions`
 folder is located. Then you can remove the symlink named `fileglancer` within that folder.
 
-## Testing 
+## Testing
 
 ### Backend tests
 

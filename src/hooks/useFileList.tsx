@@ -20,24 +20,27 @@ export default function useFileList() {
   const [content, setContent] = React.useState<Content[]>([]);
   const [currentPath, setCurrentPath] = React.useState<string>('');
 
-  // e = event
-  const handleClick = (e: React.MouseEvent, item: Content) => {
-    if (e.detail === 1) {
-      const currentIndex = checked.indexOf(item.name);
-      const newChecked = [...checked];
-      if (currentIndex === -1) {
-        newChecked.push(item.name);
-      } else {
-        newChecked.splice(currentIndex, 1);
-      }
-      setChecked(newChecked);
-    } else if (e.detail === 2) {
-      getContents(item.path);
+  const handleCheckboxToggle = (item: Content) => {
+    const currentIndex = checked.indexOf(item.name);
+    const newChecked = [...checked];
+
+    if (currentIndex === -1) {
+      newChecked.push(item.name);
+    } else {
+      newChecked.splice(currentIndex, 1);
     }
+
+    setChecked(newChecked);
   };
 
   async function getContents(path?: Content['path']): Promise<void> {
-    const url = `http://localhost:8888/api/contents/${path ? path + '/' : ''}?content=1`;
+    let url = '/api/contents?content=1';
+
+    // Only append the path if it exists and is not empty
+    if (path && path.trim() !== '') {
+      url = `/api/contents/${path}?content=1`;
+    }
+
     let data = [];
     try {
       const response = await fetch(url);
@@ -46,7 +49,7 @@ export default function useFileList() {
       }
 
       data = await response.json();
-      if (data.path) {
+      if (data) {
         setCurrentPath(data.path);
       }
       if (data.content) {
@@ -73,7 +76,7 @@ export default function useFileList() {
     checked,
     content,
     currentPath,
-    handleClick,
+    handleCheckboxToggle,
     getContents
   };
 }
