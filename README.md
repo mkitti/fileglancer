@@ -44,7 +44,27 @@ If everything has worked so far, you should see the React Widget on the Launcher
 
 ![Screenshot of the JupyterLab Launcher panel. In the bottom section, titled "Other", the square tile with the title "React Widget" is circled](./assets/img/JupyterLab-launcher.png)
 
-### Development uninstall
+
+## Configuration
+
+By default, no [Fileglance Central](https://github.com/JaneliaSciComp/fileglancer-central) server will be used. 
+You can configure the URL of a Fileglancer Central server with traitlets, in several ways:
+
+### Command line
+
+```bash
+pixi run dev-launch --Fileglancer.central_url=http://0.0.0.0:7878
+```
+
+### Config file
+
+You can create a file at `~/.jupyter/jupyter_server_config.py` (or in any of the paths reported by `pixi run jupyter --paths`) and add your configuration there, e.g.:
+
+```python
+c.Fileglancer.central_url='http://0.0.0.0:7878'
+```
+
+## Development Uninstall
 
 ```bash
 pixi run uninstall
@@ -54,26 +74,32 @@ In development mode, you will also need to remove the symlink created by `jupyte
 command. To find its location, you can run `jupyter labextension list` to figure out where the `labextensions`
 folder is located. Then you can remove the symlink named `fileglancer` within that folder.
 
-### Testing the extension
+## Testing 
 
-#### Frontend tests
+### Backend tests
+
+To run backend tests using pytest:
+
+```bash
+pixi run pytest
+```
+
+### Frontend tests
 
 This extension is using [Jest](https://jestjs.io/) for JavaScript code testing.
 
 To execute them, execute:
 
-```sh
-jlpm
-jlpm test
+```bash
+npm test
 ```
 
-#### Integration tests
+### Integration tests
 
 This extension uses [Playwright](https://playwright.dev/docs/intro) for the integration tests (aka user level tests).
 More precisely, the JupyterLab helper [Galata](https://github.com/jupyterlab/jupyterlab/tree/master/galata) is used to handle testing the extension in JupyterLab.
-
 More information are provided within the [ui-tests](./ui-tests/README.md) README.
 
-### Packaging the extension
+## Packaging and Releases
 
 See [RELEASE](RELEASE.md)
