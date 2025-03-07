@@ -204,8 +204,8 @@ def setup_handlers(web_app):
     """
     base_url = web_app.settings["base_url"]
     handlers = [
-        (url_path_join(base_url, "fileglancer", "file-share-paths"), FileSharePathsHandler),
-        (url_path_join(base_url, "fileglancer", "files", "(.*)"), FilestoreHandler),
-        (url_path_join(base_url, "fileglancer", "files"), FilestoreHandler),
+        (url_path_join(base_url, "api", "fileglancer", "file-share-paths"), FileSharePathsHandler),
+        (url_path_join(base_url, "api", "fileglancer", "files", "(.*)"), FilestoreHandler),
+        (url_path_join(base_url, "api", "fileglancer", "files"), FilestoreHandler),
     ]
     web_app.add_handlers(".*$", handlers)
