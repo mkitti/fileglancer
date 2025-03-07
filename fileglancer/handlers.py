@@ -39,7 +39,7 @@ class FileSharePathsHandler(StreamingProxy):
     """
     @web.authenticated
     def get(self):
-        self.log.info("GET /fileglancer/file-share-paths")
+        self.log.info("GET /api/fileglancer/file-share-paths")
         file_share_paths = get_fsp_manager(self.settings).get_file_share_paths()
         self.set_header('Content-Type', 'application/json')
         self.set_status(200)
@@ -72,8 +72,8 @@ class FileShareHandler(APIHandler):
         """
         Handle GET requests to list directory contents or stream file contents
         """
-        subpath = self.get_argument("subpath", None)
-        self.log.info(f"GET /fileglancer/files/{path} subpath={subpath}")
+        subpath = self.get_argument("subpath", '')
+        self.log.info(f"GET /api/fileglancer/files/{path} subpath={subpath}")
 
         filestore = self._get_filestore(path)
         if filestore is None:
@@ -115,8 +115,8 @@ class FileShareHandler(APIHandler):
         """
         Handle POST requests to create a new file or directory
         """
-        subpath = self.get_argument("subpath", None)
-        self.log.info(f"POST /fileglancer/files/{path} subpath={subpath}")
+        subpath = self.get_argument("subpath", '')
+        self.log.info(f"POST /api/fileglancer/files/{path} subpath={subpath}")
         filestore = self._get_filestore(path)
         if filestore is None:
             return
@@ -144,8 +144,8 @@ class FileShareHandler(APIHandler):
         """
         Handle PATCH requests to rename or update file permissions.
         """
-        subpath = self.get_argument("subpath", None)
-        self.log.info(f"PATCH /fileglancer/files/{path} subpath={subpath}")
+        subpath = self.get_argument("subpath", '')
+        self.log.info(f"PATCH /api/fileglancer/files/{path} subpath={subpath}")
         filestore = self._get_filestore(path)
         if filestore is None:
             return
@@ -180,8 +180,8 @@ class FileShareHandler(APIHandler):
         """
         Handle DELETE requests to remove a file or (empty) directory.
         """
-        subpath = self.get_argument("subpath", None)
-        self.log.info(f"DELETE /fileglancer/files/{path} subpath={subpath}")
+        subpath = self.get_argument("subpath", '')
+        self.log.info(f"DELETE /api/fileglancer/files/{path} subpath={subpath}")
         filestore = self._get_filestore(path)
         if filestore is None:
             return
