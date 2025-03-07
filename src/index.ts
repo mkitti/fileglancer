@@ -61,7 +61,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       });
       
     console.log('Calling listing API...');
-    requestAPI<any>('files/src')
+    requestAPI<any>('files/local?subpath=src')
       .then(data => {
         console.log('File listing:');
         console.log(data);
