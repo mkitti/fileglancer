@@ -4,7 +4,14 @@ import { CustomCheckbox } from './CustomCheckbox';
 import { EmptyPage, Folder, MoreVert } from 'iconoir-react';
 
 import FileListCrumbs from './FileListCrumbs';
-import useFileList from '../../hooks/useFileList';
+
+type FileListProps = {
+  files: File[];
+  currentPath: string;
+  checked: string[];
+  handleCheckboxToggle: (file: File) => void;
+  getFiles: (path: string) => void;
+};
 
 const formatFileSize = (sizeInBytes: number): string => {
   if (sizeInBytes < 1024) {
@@ -27,17 +34,13 @@ const formatDate = (timestamp: number): string => {
   });
 };
 
-export default function FileList(): JSX.Element {
-  const { checked, files, currentPath, handleCheckboxToggle, getFiles } =
-    useFileList();
-
-  React.useEffect(() => {
-    if (files.length === 0) {
-      getFiles('');
-    }
-  }, [getFiles]);
-  console.log('files:', files);
-
+export default function FileList({
+  files,
+  currentPath,
+  checked,
+  handleCheckboxToggle,
+  getFiles
+}: FileListProps): JSX.Element {
   return (
     <>
       <FileListCrumbs currentPath={currentPath} getFiles={getFiles} />
