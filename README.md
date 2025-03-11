@@ -50,7 +50,7 @@ If you're still having issues, try manually deleting the symlink at `.pixi/envs/
 
 ## Configuration
 
-By default, no [Fileglance Central](https://github.com/JaneliaSciComp/fileglancer-central) server will be used.
+By default, no [Fileglancer Central](https://github.com/JaneliaSciComp/fileglancer-central) server will be used.
 You can configure the URL of a Fileglancer Central server with traitlets, in several ways:
 
 ### Command line
