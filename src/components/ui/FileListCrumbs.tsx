@@ -16,7 +16,7 @@ export default function FileListCrumbs({
   currentPath,
   getFiles
 }: FileListCrumbsProps): JSX.Element {
-  const dirArray = currentPath.split('/');
+  const dirArray = currentPath.split('/').filter(item => item !== '');
   const dirDepth = dirArray.length;
 
   return (
@@ -38,6 +38,11 @@ export default function FileListCrumbs({
           // Render a breadcrumb link for each segment in the path
           return (
             <React.Fragment key={index}>
+              {index === 0 && (
+                <span className="inline-block mx-1 text-sm select-none pointer-events-none opacity-50 text-black dark:text-white">
+                  /
+                </span>
+              )}
               <BreadcrumbLink
                 variant="text"
                 className="rounded-md  hover:bg-blue-50/50 transition-colors"
