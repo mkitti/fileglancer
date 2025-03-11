@@ -173,6 +173,6 @@ export default function FileList({
             );
           })}
       </div>
-    </>
+    </div>
   );
 }

@@ -32,6 +32,8 @@ export default function Files() {
   const handlePathClick = (path: string) => {
     getFiles('');
   };
+  console.log('files in Files.tsx', files);
+  console.log('fileSharePaths in Files.tsx', fileSharePaths);
 
   return (
     <div className="flex h-full w-full">
