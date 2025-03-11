@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Typography } from '@material-tailwind/react';
+import { Link } from 'react-router-dom';
+import { Typography, Popover } from '@material-tailwind/react';
 import { CustomCheckbox } from './CustomCheckbox';
 import { EmptyPage, Folder, MoreVert } from 'iconoir-react';
 
@@ -35,6 +36,19 @@ const formatDate = (timestamp: number): string => {
     year: 'numeric'
   });
 };
+
+const fileOptionLinks = [
+  {
+    title: 'Rename',
+    href: '#'
+  },
+  {
+    title: 'Copy Path',
+    href: '#'
+  },
+  { title: 'Share', href: '#' },
+  { title: 'View', href: '#' }
+];
 
 export default function FileList({
   files,
@@ -135,9 +149,26 @@ export default function FileList({
                 </div>
 
                 {/* Actions column */}
-                <div className="flex items-center w-full gap-3 py-1 text-blue-500 cursor-pointer">
-                  <MoreVert />
-                </div>
+                <Popover placement="left">
+                  <Popover.Trigger>
+                    <MoreVert />
+                  </Popover.Trigger>
+
+                  <Popover.Content>
+                    <div className="flex flex-col gap-2">
+                      {fileOptionLinks.map((link, index) => (
+                        <Typography
+                          as={Link}
+                          to={link.href}
+                          key={index}
+                          className="text-sm p-1 cursor-pointer text-blue-500 hover:bg-blue-50/50 transition-colors"
+                        >
+                          {link.title}
+                        </Typography>
+                      ))}
+                    </div>
+                  </Popover.Content>
+                </Popover>
               </div>
             );
           })}
