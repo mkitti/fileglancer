@@ -58,7 +58,7 @@ export default function FileList({
   getFiles
 }: FileListProps): JSX.Element {
   return (
-    <>
+    <div className="mx-2">
       <FileListCrumbs currentPath={currentPath} getFiles={getFiles} />
       <div className="min-w-full bg-white">
         {/* Header row */}
