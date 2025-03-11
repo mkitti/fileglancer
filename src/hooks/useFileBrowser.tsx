@@ -11,17 +11,23 @@ export type File = {
   last_modified: number;
 };
 
-export type FileSharePaths = {
+export type FileSharePathItem = {
   zone: string;
   group: string;
   storage: string;
   linux_path: string;
 };
 
+export type FileSharePaths = Record<string, string[]>;
+
 export default function useFileList() {
   const [checked, setChecked] = React.useState<string[]>([]);
   const [files, setFiles] = React.useState<File[]>([]);
   const [currentPath, setCurrentPath] = React.useState<File['path']>('');
+  const [fileSharePaths, setFileSharePaths] = React.useState<FileSharePaths>(
+    {}
+  );
+  const [openZones, setOpenZones] = React.useState<Record<string, boolean>>({});
 
   function handleCheckboxToggle(item: File) {
     const currentIndex = checked.indexOf(item.name);
@@ -34,6 +40,13 @@ export default function useFileList() {
     }
 
     setChecked(newChecked);
+  }
+
+  function toggleZone(zone: string) {
+    setOpenZones(prev => ({
+      ...prev,
+      [zone]: !prev[zone]
+    }));
   }
 
   async function getFiles(path: File['path']): Promise<void> {
@@ -77,15 +90,42 @@ export default function useFileList() {
 
   async function getFileSharePaths() {
     const url = '/fileglancer/file-share-paths/';
-    let data: FileSharePaths[] = [];
+
     try {
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Response status: ${response.status}`);
       }
 
-      data = await response.json();
-      console.log(data);
+      const rawData: FileSharePathItem[] = await response.json();
+
+      const unsortedPaths: FileSharePaths = {};
+
+      rawData.forEach(item => {
+        if (!unsortedPaths[item.zone]) {
+          unsortedPaths[item.zone] = [];
+        }
+
+        if (!unsortedPaths[item.zone].includes(item.linux_path)) {
+          unsortedPaths[item.zone].push(item.linux_path);
+        }
+      });
+
+      // Sort the linux_paths for each zone alphabetically
+      Object.keys(unsortedPaths).forEach(zone => {
+        unsortedPaths[zone].sort();
+      });
+
+      // Create a new object with alphabetically sorted zone keys
+      const sortedPaths: FileSharePaths = {};
+      Object.keys(unsortedPaths)
+        .sort()
+        .forEach(zone => {
+          sortedPaths[zone] = unsortedPaths[zone];
+        });
+
+      setFileSharePaths(sortedPaths);
+      console.log('sortedPaths:', sortedPaths);
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error(error.message);
@@ -99,8 +139,11 @@ export default function useFileList() {
     checked,
     files,
     currentPath,
+    fileSharePaths,
+    openZones,
     handleCheckboxToggle,
     getFiles,
-    getFileSharePaths
+    getFileSharePaths,
+    toggleZone
   };
 }
