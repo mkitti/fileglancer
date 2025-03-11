@@ -50,11 +50,15 @@ export default function useFileBrowser() {
   }
 
   async function getFiles(path: File['path']): Promise<void> {
-    let url = '/fileglancer/files/';
+    let url = '/api/fileglancer/files/local';
 
     // Only append the path if it exists and is not empty
     if (path && path.trim() !== '') {
-      url = `/fileglancer/files/${path}`;
+      // Remove leading slash from path if present to avoid double slashes
+      const cleanPath = path.trim().startsWith('/')
+        ? path.trim().substring(1)
+        : path.trim();
+      url = `/api/fileglancer/files/local?subpath=${cleanPath}`;
     }
 
     let data = [];
