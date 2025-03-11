@@ -80,7 +80,7 @@ export default function FileList({
             return (
               <div
                 key={file.name}
-                className={`grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 hover:bg-blue-50/50 ${isChecked && 'bg-blue-50/50'} ${index % 2 === 0 && 'bg-gray-50'}`}
+                className={`grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 hover:bg-blue-50/50 ${index % 2 === 0 && !isChecked && 'bg-gray-50'} ${isChecked && 'bg-blue-50/50'} `}
               >
                 {/* Name column */}
                 <div className="flex items-center w-full gap-3 pl-3 py-1  text-blue-500">
