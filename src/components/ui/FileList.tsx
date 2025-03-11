@@ -48,7 +48,7 @@ export default function FileList({
       <FileListCrumbs currentPath={currentPath} getFiles={getFiles} />
       <div className="min-w-full bg-white">
         {/* Header row */}
-        <div className="grid grid-cols-5 gap-4 p-0 text-gray-700">
+        <div className="grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 p-0 text-gray-700">
           <div className="flex w-full gap-3 px-3 py-1">
             <div className="w-5 h-5"></div>
             <Typography variant="small" className="font-bold">
@@ -80,10 +80,10 @@ export default function FileList({
             return (
               <div
                 key={file.name}
-                className={`grid grid-cols-5 gap-4 hover:bg-blue-50/50 ${isChecked && 'bg-blue-50/50'} ${index % 2 === 0 && 'bg-gray-50'}`}
+                className={`grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 hover:bg-blue-50/50 ${isChecked && 'bg-blue-50/50'} ${index % 2 === 0 && 'bg-gray-50'}`}
               >
                 {/* Name column */}
-                <div className="flex items-center w-full gap-3 px-3 py-1  text-blue-500">
+                <div className="flex items-center w-full gap-3 pl-3 py-1  text-blue-500">
                   <div
                     className="cursor-pointer"
                     onClick={(e: React.MouseEvent<HTMLDivElement>) => {
