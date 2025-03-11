@@ -1,7 +1,7 @@
 import React from 'react';
 import FileSidebar from '../components/ui/FileSidebar';
 import FileList from '../components/ui/FileList';
-import useFileList from '../hooks/useFileBrowser';
+import useFileBrowser from '../hooks/useFileBrowser';
 
 export default function Files() {
   const {
@@ -14,7 +14,7 @@ export default function Files() {
     getFileSharePaths,
     handleCheckboxToggle,
     toggleZone
-  } = useFileList();
+  } = useFileBrowser();
 
   React.useEffect(() => {
     if (Object.keys(fileSharePaths).length === 0) {

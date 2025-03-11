@@ -20,7 +20,7 @@ export type FileSharePathItem = {
 
 export type FileSharePaths = Record<string, string[]>;
 
-export default function useFileList() {
+export default function useFileBrowser() {
   const [checked, setChecked] = React.useState<string[]>([]);
   const [files, setFiles] = React.useState<File[]>([]);
   const [currentPath, setCurrentPath] = React.useState<File['path']>('');
