@@ -5,7 +5,7 @@ import {
   Typography,
   BreadcrumbSeparator
 } from '@material-tailwind/react';
-import { NavArrowRight, Home } from 'iconoir-react';
+import { NavArrowRight, Server } from 'iconoir-react';
 
 type FileListCrumbsProps = {
   currentPath: string;
@@ -20,7 +20,7 @@ export default function FileListCrumbs({
   const dirDepth = dirArray.length;
 
   return (
-    <div className="w-full max-w-[360px] py-2 px-3">
+    <div className="w-full py-2 px-3">
       <Breadcrumb
         separator={<NavArrowRight className="h-4 w-4 text-blue-gray-500" />}
         className="bg-transparent p-0"
@@ -28,12 +28,12 @@ export default function FileListCrumbs({
         {/* Home crumb */}
         <BreadcrumbLink
           variant="text"
-          className="flex items-center gap-1 p-1 rounded-md  hover:bg-blue-50/50 transition-colors"
+          className="flex items-center gap-1 rounded-md  hover:bg-blue-50/50 transition-colors"
           onClick={() => getFiles('')}
         >
-          <Home className="h-4 w-4 text-blue-500" />
+          <Server className="h-4 w-4 text-blue-500" />
+          <NavArrowRight />
         </BreadcrumbLink>
-        <BreadcrumbSeparator>/</BreadcrumbSeparator>
 
         {/* Path segments */}
         {dirArray.map((item, index) => {
@@ -42,7 +42,7 @@ export default function FileListCrumbs({
             <React.Fragment key={index}>
               <BreadcrumbLink
                 variant="text"
-                className="p-1 rounded-md  hover:bg-blue-50/50 transition-colors"
+                className="rounded-md  hover:bg-blue-50/50 transition-colors"
                 onClick={() => getFiles(dirArray.slice(0, index + 1).join('/'))}
               >
                 <Typography
