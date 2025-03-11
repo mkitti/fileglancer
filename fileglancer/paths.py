@@ -41,8 +41,14 @@ class FileSharePath(BaseModel):
         
 
 class FileSharePathManager:
-
+    """Manage the list of file share paths from the central server.
+    
+    This class is used to manage the list of file share paths from the central server.
+    It is used to get the file share paths from the central server and to cache them for a short time.
+    """
+    
     def __init__(self, central_url: str, jupyter_root_dir: str):
+        """Initialize the file share path manager."""
         self.central_url = central_url
         if self.central_url:
             log.debug(f"Central URL: {self.central_url}")
@@ -68,13 +74,15 @@ class FileSharePathManager:
     
 
     def get_file_share_paths(self) -> list[FileSharePath]:
+        """Get the list of file share paths from the central server."""
         if self.central_url:
             # Check if we have a valid cache
             now = datetime.now()
             if not self._file_share_paths or not self._fsp_cache_time or now - self._fsp_cache_time > timedelta(hours=1):
                 log.debug("Cache miss or expired, fetching fresh data")
                 response = requests.get(f"{self.central_url}/file-share-paths")
-                self._file_share_paths = [FileSharePath(**fsp) for fsp in response.json()]
+                fsps = response.json()["paths"]
+                self._file_share_paths = [FileSharePath(**fsp) for fsp in fsps]
                 self._fsp_cache_time = now
             else:
                 log.debug("Cache hit")
@@ -83,6 +91,7 @@ class FileSharePathManager:
     
 
     def get_file_share_path(self, canonical_path: str) -> FileSharePath:
+        """Lookup a file share path by its canonical path."""
         for fsp in self._file_share_paths:
             if canonical_path == fsp.canonical_path:
                 return fsp

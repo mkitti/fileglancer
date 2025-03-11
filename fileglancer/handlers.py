@@ -44,7 +44,7 @@ class FileSharePathsHandler(StreamingProxy):
         self.set_header('Content-Type', 'application/json')
         self.set_status(200)
         # Convert Pydantic objects to dicts before JSON serialization
-        file_share_paths_json = [fsp.model_dump() for fsp in file_share_paths]
+        file_share_paths_json = {"paths": [fsp.model_dump() for fsp in file_share_paths]}
         self.write(json.dumps(file_share_paths_json))
         self.finish()
 
@@ -127,11 +127,11 @@ class FileShareHandler(APIHandler):
         
         file_type = file_info.get("type")
         if file_type == "directory":
-            self.log.info(f"Creating {path} as a directory")
-            filestore.create_dir(path)
+            self.log.info(f"Creating {subpath} as a directory")
+            filestore.create_dir(subpath)
         elif file_type == "file":
-            self.log.info(f"Creating {path} as a file")
-            filestore.create_empty_file(path)
+            self.log.info(f"Creating {subpath} as a file")
+            filestore.create_empty_file(subpath)
         else:
             raise web.HTTPError(400, "Invalid file type")
 
