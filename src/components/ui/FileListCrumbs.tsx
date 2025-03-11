@@ -21,19 +21,17 @@ export default function FileListCrumbs({
 
   return (
     <div className="w-full py-2 px-3">
-      <Breadcrumb
-        separator={<NavArrowRight className="h-4 w-4 text-blue-gray-500" />}
-        className="bg-transparent p-0"
-      >
-        {/* Home crumb */}
-        <BreadcrumbLink
-          variant="text"
-          className="flex items-center gap-1 rounded-md  hover:bg-blue-50/50 transition-colors"
+      <Breadcrumb className="bg-transparent p-0">
+        <div
+          className="flex items-center gap-1 rounded-md hover:bg-blue-50/50 transition-colors"
           onClick={() => getFiles('')}
         >
           <Server className="h-4 w-4 text-blue-500" />
           <NavArrowRight />
-        </BreadcrumbLink>
+          <Typography variant="small" className="font-medium text-blue-500">
+            local
+          </Typography>
+        </div>
 
         {/* Path segments */}
         {dirArray.map((item, index) => {
