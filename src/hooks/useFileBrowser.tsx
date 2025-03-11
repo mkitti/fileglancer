@@ -16,6 +16,9 @@ export type FileSharePathItem = {
   group: string;
   storage: string;
   linux_path: string;
+  canonical_path: string;
+  mac_path: string | null;
+  windows_path: string | null;
 };
 
 export type FileSharePaths = Record<string, string[]>;
@@ -52,7 +55,6 @@ export default function useFileBrowser() {
   async function getFiles(path: File['path']): Promise<void> {
     let url = '/api/fileglancer/files/local';
 
-    // Only append the path if it exists and is not empty
     if (path && path.trim() !== '') {
       // Remove leading slash from path if present to avoid double slashes
       const cleanPath = path.trim().startsWith('/')
@@ -60,7 +62,6 @@ export default function useFileBrowser() {
         : path.trim();
       url = `/api/fileglancer/files/local?subpath=${cleanPath}`;
     }
-
     let data = [];
     try {
       const response = await fetch(url);
@@ -93,7 +94,7 @@ export default function useFileBrowser() {
   }
 
   async function getFileSharePaths() {
-    const url = '/fileglancer/file-share-paths/';
+    const url = '/api/fileglancer/file-share-paths/';
 
     try {
       const response = await fetch(url);
@@ -101,17 +102,18 @@ export default function useFileBrowser() {
         throw new Error(`Response status: ${response.status}`);
       }
 
-      const rawData: FileSharePathItem[] = await response.json();
-
+      const rawData: Record<string, FileSharePathItem[]> =
+        await response.json();
+      console.log('rawData in getFileSharePaths:', rawData);
       const unsortedPaths: FileSharePaths = {};
 
-      rawData.forEach(item => {
+      rawData.paths.forEach(item => {
         if (!unsortedPaths[item.zone]) {
           unsortedPaths[item.zone] = [];
         }
 
-        if (!unsortedPaths[item.zone].includes(item.linux_path)) {
-          unsortedPaths[item.zone].push(item.linux_path);
+        if (!unsortedPaths[item.zone].includes(item.canonical_path)) {
+          unsortedPaths[item.zone].push(item.canonical_path);
         }
       });
 
