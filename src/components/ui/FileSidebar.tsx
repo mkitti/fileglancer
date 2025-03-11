@@ -8,7 +8,7 @@ import {
 } from '@material-tailwind/react';
 import { Folder, Search, NavArrowRight, Server } from 'iconoir-react';
 
-import { FileSharePaths } from '../../hooks/useFileList';
+import { FileSharePaths } from '../../hooks/useFileBrowser';
 
 type FileSidebarProps = {
   fileSharePaths: FileSharePaths;

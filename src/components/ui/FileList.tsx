@@ -3,6 +3,8 @@ import { Typography } from '@material-tailwind/react';
 import { CustomCheckbox } from './CustomCheckbox';
 import { EmptyPage, Folder, MoreVert } from 'iconoir-react';
 
+import { File } from '../../hooks/useFileBrowser';
+
 import FileListCrumbs from './FileListCrumbs';
 
 type FileListProps = {
