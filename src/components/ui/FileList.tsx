@@ -104,7 +104,7 @@ export default function FileList(): JSX.Element {
                 </div>
 
                 {/* Type column */}
-                <div className="flex items-center w-full gap-3 px-3 py-1 text-grey-700 ">
+                <div className="flex items-center w-full gap-3 py-1 text-grey-700 ">
                   {file.is_dir ? (
                     <Folder className="text-gray-700" />
                   ) : (
@@ -116,21 +116,21 @@ export default function FileList(): JSX.Element {
                 </div>
 
                 {/* Last Modified column */}
-                <div className="px-3 py-1 text-grey-700  flex items-center">
+                <div className="py-1 text-grey-700  flex items-center">
                   <Typography variant="small" className="font-medium">
-                    {file.last_modified}
+                    {formatDate(file.last_modified)}
                   </Typography>
                 </div>
 
                 {/* Size column */}
-                <div className="px-3 py-1 text-grey-700 flex items-center">
+                <div className="py-1 text-grey-700 flex items-center">
                   <Typography variant="small" className="font-medium">
-                    {file.size}
+                    {file.is_dir ? '—' : formatFileSize(file.size)}
                   </Typography>
                 </div>
 
                 {/* Actions column */}
-                <div className="flex items-center w-full gap-3 px-3 py-1 text-blue-500 cursor-pointer">
+                <div className="flex items-center w-full gap-3 py-1 text-blue-500 cursor-pointer">
                   <MoreVert />
                 </div>
               </div>
