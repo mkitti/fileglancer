@@ -17,20 +17,20 @@ export default function Files() {
   } = useFileList();
 
   React.useEffect(() => {
-    if (files.length === 0) {
-      getFiles('');
-    }
-  }, [files, getFiles]);
-
-  React.useEffect(() => {
     if (Object.keys(fileSharePaths).length === 0) {
       getFileSharePaths();
     }
   }, [fileSharePaths, getFileSharePaths]);
 
+  React.useEffect(() => {
+    if (files.length === 0 && Object.keys(fileSharePaths).length > 0) {
+      getFiles('');
+    }
+  }, [files, fileSharePaths, getFiles]);
+
   // Handler for when a path is clicked in the sidebar
   const handlePathClick = (path: string) => {
-    getFiles(path);
+    getFiles('');
   };
 
   return (
