@@ -93,7 +93,7 @@ filterwarnings = [
 
 [tool.pixi.project]
 channels = ["conda-forge"]
-platforms = ["osx-arm64", "osx-64"]
+platforms = ["osx-arm64", "osx-64", "linux-64"]
 
 [tool.pixi.pypi-dependencies]
 fileglancer = { path = ".", editable = true }
@@ -118,7 +118,7 @@ uninstall = "pip uninstall fileglancer"
 copier = "~=9.2"
 jinja2-time = ">=0.2.0,<0.3"
 jupyterlab = ">=4.3.0"
-nodejs = ">=22.13.0,<23"
+nodejs = ">=22.12.0,<23"
 pytest = ">=8.3.4,<9"
 pytest-check-links = ">=0.10.1,<0.11"
 pytest-jupyter = ">=0.10.1,<0.11"
