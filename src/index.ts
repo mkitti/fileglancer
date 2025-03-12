@@ -54,20 +54,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
         console.log(data);
       })
       .catch(reason => {
-        console.error(
-          `Problem calling file-share-paths API:\n${reason}`
-        );
+        console.error(`Problem calling file-share-paths API:\n${reason}`);
       });
-      
+
     requestAPI<any>('files/local')
       .then(data => {
         console.log('File listing /local:');
         console.log(data);
       })
       .catch(reason => {
-        console.error(
-          `Problem getting file listing:\n${reason}`
-        );
+        console.error(`Problem getting file listing:\n${reason}`);
       });
 
     requestAPI<any>('files/local?subpath=src')
@@ -76,9 +72,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         console.log(data);
       })
       .catch(reason => {
-        console.error(
-          `Problem getting file listing:\n${reason}`
-        );
+        console.error(`Problem getting file listing:\n${reason}`);
       });
   }
 };

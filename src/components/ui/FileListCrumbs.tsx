@@ -5,47 +5,48 @@ import {
   Typography,
   BreadcrumbSeparator
 } from '@material-tailwind/react';
-import { NavArrowRight, Home } from 'iconoir-react';
+import { NavArrowRight, Server } from 'iconoir-react';
 
 type FileListCrumbsProps = {
   currentPath: string;
-  getContents: (path?: string) => void;
+  getFiles: (path: string) => void;
 };
 
 export default function FileListCrumbs({
   currentPath,
-  getContents
+  getFiles
 }: FileListCrumbsProps): JSX.Element {
-  const dirArray = currentPath.split('/');
+  const dirArray = currentPath.split('/').filter(item => item !== '');
   const dirDepth = dirArray.length;
 
   return (
-    <div className="w-full max-w-[360px] py-2 px-3">
-      <Breadcrumb
-        separator={<NavArrowRight className="h-4 w-4 text-blue-gray-500" />}
-        className="bg-transparent p-0"
-      >
-        {/* Home crumb */}
-        <BreadcrumbLink
-          variant="text"
-          className="flex items-center gap-1 p-1 rounded-md  hover:bg-blue-50/50 transition-colors"
-          onClick={() => getContents('')}
+    <div className="w-full py-2 px-3">
+      <Breadcrumb className="bg-transparent p-0">
+        <div
+          className="flex items-center gap-1 rounded-md hover:bg-blue-50/50 transition-colors"
+          onClick={() => getFiles('')}
         >
-          <Home className="h-4 w-4 text-blue-500" />
-        </BreadcrumbLink>
-        <BreadcrumbSeparator>/</BreadcrumbSeparator>
+          <Server className="h-4 w-4 text-blue-500" />
+          <NavArrowRight />
+          <Typography variant="small" className="font-medium text-blue-500">
+            local
+          </Typography>
+        </div>
 
         {/* Path segments */}
         {dirArray.map((item, index) => {
           // Render a breadcrumb link for each segment in the path
           return (
             <React.Fragment key={index}>
+              {index === 0 && (
+                <span className="inline-block mx-1 text-sm select-none pointer-events-none opacity-50 text-black dark:text-white">
+                  /
+                </span>
+              )}
               <BreadcrumbLink
                 variant="text"
-                className="p-1 rounded-md  hover:bg-blue-50/50 transition-colors"
-                onClick={() =>
-                  getContents(dirArray.slice(0, index + 1).join('/'))
-                }
+                className="rounded-md  hover:bg-blue-50/50 transition-colors"
+                onClick={() => getFiles(dirArray.slice(0, index + 1).join('/'))}
               >
                 <Typography
                   variant="small"

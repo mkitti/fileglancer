@@ -1,6 +1,5 @@
 import React from 'react';
 import { Outlet } from 'react-router';
-import FileList from '../components/ui/FileList';
 import FileglancerNavbar from '../components/ui/Navbar';
 
 export const MainLayout = () => {
@@ -15,7 +14,6 @@ export const MainLayout = () => {
     >
       <FileglancerNavbar />
       <Outlet />
-      <FileList />
     </div>
   );
 };

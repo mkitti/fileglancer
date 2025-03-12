@@ -7,12 +7,12 @@ import Files from './components/Files';
 import Help from './components/Help';
 import Jobs from './components/Jobs';
 
-function Login() {
-  return <h2>Login Page</h2>;
-}
-
 function Profile() {
   return <h2>Profile Page</h2>;
+}
+
+function Login() {
+  return <h2>Login Page</h2>;
 }
 
 function Preferences() {

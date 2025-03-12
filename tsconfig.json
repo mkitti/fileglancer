@@ -15,12 +15,11 @@
     "preserveWatchOutput": true,
     "resolveJsonModule": true,
     "outDir": "lib",
-    "rootDir": "src",
     "strict": true,
     "strictNullChecks": true,
     "target": "ES2018",
     "skipLibCheck": true
   },
-  "include": ["src/**/*"],
+  "include": ["src"],
   "exclude": ["tailwind.config.ts"]
 }
