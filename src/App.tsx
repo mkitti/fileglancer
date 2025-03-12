@@ -37,6 +37,14 @@ const AppComponent = (): JSX.Element => {
           <Route path="preferences" element={<Preferences />} />
           <Route path="*" element={<Home />} />
         </Route>
+        <Route path="/jupyter/user/:username/lab/*" element={<MainLayout />}>
+          <Route path="files" element={<Files />} />
+          <Route path="jobs" element={<Jobs />} />
+          <Route path="help" element={<Help />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="preferences" element={<Preferences />} />
+          <Route path="*" element={<Home />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );
