@@ -1,6 +1,7 @@
 import { ReactWidget } from '@jupyterlab/ui-components';
 import React from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router';
+import { CookiesProvider } from 'react-cookie';
 import { MainLayout } from './layouts/MainLayout';
 import Home from './components/Home';
 import Files from './components/Files';
@@ -19,25 +20,34 @@ function Preferences() {
   return <h2>Preferences Page</h2>;
 }
 
+function getBasename() {
+  const { pathname } = window.location;
+  // Try to match /user/:username/lab
+  const userLabMatch = pathname.match(/^\/jupyter\/user\/[^/]+\/lab/);
+  if (userLabMatch) {
+    // Return the matched part, e.g. "/user/<username>/lab"
+    return userLabMatch[0];
+  }
+  // Otherwise, check if it starts with /lab
+  if (pathname.startsWith('/lab')) {
+    return '/lab';
+  }
+  // Fallback to root if no match is found
+  return '/';
+}
+
 /**
  * React component for a counter.
  *
  * @returns The React component
  */
 const AppComponent = (): JSX.Element => {
+  const basename = getBasename();
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <Routes>
-        <Route path="/lab/login" element={<Login />} />
-        <Route path="/lab/*" element={<MainLayout />}>
-          <Route path="files" element={<Files />} />
-          <Route path="jobs" element={<Jobs />} />
-          <Route path="help" element={<Help />} />
-          <Route path="profile" element={<Profile />} />
-          <Route path="preferences" element={<Preferences />} />
-          <Route path="*" element={<Home />} />
-        </Route>
-        <Route path="/jupyter/user/:username/lab/*" element={<MainLayout />}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/*" element={<MainLayout />}>
           <Route path="files" element={<Files />} />
           <Route path="jobs" element={<Jobs />} />
           <Route path="help" element={<Help />} />
@@ -63,6 +73,10 @@ export class AppWidget extends ReactWidget {
   }
 
   render(): JSX.Element {
-    return <AppComponent />;
+    return (
+      <CookiesProvider>
+        <AppComponent />
+      </CookiesProvider>
+    );
   }
 }

@@ -24,17 +24,17 @@ const LINKS = [
   {
     icon: Folder,
     title: 'Files',
-    href: '/lab/files'
+    href: '/files'
   },
   {
     icon: Suitcase,
     title: 'Jobs',
-    href: '/lab/jobs'
+    href: '/jobs'
   },
   {
     icon: HelpCircle,
     title: 'Help',
-    href: '/lab/help'
+    href: '/help'
   }
 ];
 
@@ -67,16 +67,16 @@ function ProfileMenu() {
         <ProfileCircle className="h-6 w-6" />
       </Menu.Trigger>
       <Menu.Content>
-        <Menu.Item as={Link} to="/lab/profile">
+        <Menu.Item as={Link} to="/profile">
           <UserCircle className="mr-2 h-[18px] w-[18px]" /> Profile
         </Menu.Item>
-        <Menu.Item as={Link} to="/lab/preferences">
+        <Menu.Item as={Link} to="/preferences">
           <Settings className="mr-2 h-[18px] w-[18px]" /> Preferences
         </Menu.Item>
         <hr className="!my-1 -mx-1 border-surface" />
         <Menu.Item
           as={Link}
-          to="/lab/login"
+          to="/login"
           className="text-error hover:bg-error/10 hover:text-error focus:bg-error/10 focus:text-error"
         >
           <LogoutIcon className="mr-2 h-[18px] w-[18px]" />
