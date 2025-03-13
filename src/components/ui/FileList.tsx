@@ -11,8 +11,11 @@ import { CustomCheckbox } from './CustomCheckbox';
 import { EmptyPage, Folder, InfoCircle, MoreVert, Xmark } from 'iconoir-react';
 
 import { File } from '../../hooks/useFileBrowser';
+import { formatDate, formatFileSize } from '../../utils';
 
 import FileListCrumbs from './FileListCrumbs';
+import FilePermissionTable from './FilePermissionTable';
+import FileOverviewTable from './FileOverviewTable';
 
 type FileListProps = {
   files: File[];
@@ -20,27 +23,6 @@ type FileListProps = {
   checked: string[];
   handleCheckboxToggle: (file: File) => void;
   getFiles: (path: string) => void;
-};
-
-const formatFileSize = (sizeInBytes: number): string => {
-  if (sizeInBytes < 1024) {
-    return `${sizeInBytes} bytes`;
-  } else if (sizeInBytes < 1024 * 1024) {
-    return `${(sizeInBytes / 1024).toFixed(0)} KB`;
-  } else if (sizeInBytes < 1024 * 1024 * 1024) {
-    return `${(sizeInBytes / (1024 * 1024)).toFixed(0)} MB`;
-  } else {
-    return `${(sizeInBytes / (1024 * 1024 * 1024)).toFixed(0)} GB`;
-  }
-};
-
-const formatDate = (timestamp: number): string => {
-  const date = new Date(timestamp * 1000);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
 };
 
 const fileOptionLinks = [
@@ -158,26 +140,17 @@ export default function FileList({
                           </Tabs.List>
 
                           <Tabs.Panel value="overview">
-                            <Typography variant="small" className="font-medium">
-                              {`Last modified: ${formatDate(file.last_modified)}`}
-                            </Typography>
-                            <Typography variant="small" className="font-medium">
-                              {`Size: ${file.is_dir ? '—' : formatFileSize(file.size)}`}
-                            </Typography>
-                            <Typography variant="small" className="font-medium">
-                              {`Type: ${file.is_dir ? 'Folder' : 'File'}`}
-                            </Typography>
-                            <Typography variant="small" className="font-medium">
-                              Metadata: Pull from file
-                            </Typography>
+                            <FileOverviewTable file={file} />
                           </Tabs.Panel>
 
                           <Tabs.Panel value="permissions">
-                            Who can view or edit these data?
+                            <FilePermissionTable file={file} />
                           </Tabs.Panel>
 
                           <Tabs.Panel value="convert">
-                            Convert data to OME-Zarr
+                            <Typography variant="small" className="font-medium">
+                              Convert data to OME-Zarr
+                            </Typography>
                           </Tabs.Panel>
                         </Tabs>
                       </Drawer.Panel>
