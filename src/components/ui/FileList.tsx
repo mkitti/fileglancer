@@ -48,9 +48,14 @@ export default function FileList({
   handleCheckboxToggle,
   getFiles
 }: FileListProps): JSX.Element {
+  console.log('FileList files', files);
   return (
     <div className="mx-2">
-      <FileListCrumbs currentPath={currentPath} selectedZone={selectedZone} getFiles={getFiles} />
+      <FileListCrumbs
+        currentPath={currentPath}
+        selectedZone={selectedZone}
+        getFiles={getFiles}
+      />
       <div className="min-w-full bg-white">
         {/* Header row */}
         <div className="grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 p-0 text-gray-700">
@@ -178,7 +183,7 @@ export default function FileList({
                     onClick={(e: React.MouseEvent<HTMLSpanElement>) => {
                       e.stopPropagation();
                       if (file.is_dir) {
-                        getFiles(file.path);
+                        getFiles(`${selectedZone}?subpath=${file.path}`);
                       }
                     }}
                   >
