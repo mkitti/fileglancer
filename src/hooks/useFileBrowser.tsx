@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router';
 import { useCookies } from 'react-cookie';
 
 export type File = {
@@ -58,9 +57,8 @@ export default function useFileBrowser() {
 
   // Handler for when a path is clicked in the sidebar
   const handlePathClick = (path: string) => {
-    console.log('handlePathClick called with path:', path);
     setSelectedZone(path);
-    getFiles(path)
+    getFiles(path);
   };
 
   function getAPIPathRoot() {
@@ -74,7 +72,7 @@ export default function useFileBrowser() {
   async function getFiles(path: File['path']): Promise<void> {
     let cleanPath = path;
 
-     if (path && path.trim() !== '') {
+    if (path && path.trim() !== '') {
       // Remove leading slash from path if present to avoid double slashes
       cleanPath = path.trim().startsWith('/')
         ? path.trim().substring(1)
@@ -82,7 +80,7 @@ export default function useFileBrowser() {
     }
 
     const url = `${getAPIPathRoot()}api/fileglancer/files/${cleanPath}`;
-  
+
     let data = [];
     try {
       const response = await fetch(url, {
@@ -136,7 +134,7 @@ export default function useFileBrowser() {
 
       const rawData: Record<string, FileSharePathItem[]> =
         await response.json();
-      console.log('rawData in getFileSharePaths:', rawData);
+
       const unsortedPaths: FileSharePaths = {};
 
       rawData.paths.forEach(item => {
@@ -163,7 +161,6 @@ export default function useFileBrowser() {
         });
 
       setFileSharePaths(sortedPaths);
-      console.log('sortedPaths:', sortedPaths);
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error(error.message);
@@ -180,6 +177,7 @@ export default function useFileBrowser() {
     fileSharePaths,
     openZones,
     selectedZone,
+    setSelectedZone,
     handleCheckboxToggle,
     getFiles,
     getFileSharePaths,
