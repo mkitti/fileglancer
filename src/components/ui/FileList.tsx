@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import {
+  Button,
   Drawer,
   IconButton,
   Typography,
@@ -143,14 +144,26 @@ export default function FileList({
                             <FileOverviewTable file={file} />
                           </Tabs.Panel>
 
-                          <Tabs.Panel value="permissions">
+                          <Tabs.Panel
+                            value="permissions"
+                            className="flex flex-col gap-2"
+                          >
                             <FilePermissionTable file={file} />
+                            <Button as="a" href="#" variant="outline">
+                              Change Permissions
+                            </Button>
                           </Tabs.Panel>
 
-                          <Tabs.Panel value="convert">
+                          <Tabs.Panel
+                            value="convert"
+                            className="flex flex-col gap-2"
+                          >
                             <Typography variant="small" className="font-medium">
                               Convert data to OME-Zarr
                             </Typography>
+                            <Button as="a" href="#" variant="outline">
+                              Submit Ticket
+                            </Button>
                           </Tabs.Panel>
                         </Tabs>
                       </Drawer.Panel>
