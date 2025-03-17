@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useCookies } from 'react-cookie';
 
 export type File = {
   name: string;
@@ -31,6 +32,7 @@ export default function useFileBrowser() {
     {}
   );
   const [openZones, setOpenZones] = React.useState<Record<string, boolean>>({});
+  const [cookies] = useCookies(['_xsrf']);
 
   function handleCheckboxToggle(item: File) {
     const currentIndex = checked.indexOf(item.name);
@@ -52,19 +54,33 @@ export default function useFileBrowser() {
     }));
   }
 
-  async function getFiles(path: File['path']): Promise<void> {
-    let url = '/api/fileglancer/files/local';
+  function getAPIPathRoot() {
+    const match = window.location.pathname.match(/^\/jupyter\/user\/[^/]+\//);
+    if (match) {
+      return match[0];
+    }
+    return '/';
+  }
 
-    if (path && path.trim() !== '') {
+  async function getFiles(path: File['path']): Promise<void> {
+    const url = `${getAPIPathRoot()}api/fileglancer/files/local`;
+
+    /* if (path && path.trim() !== '') {
       // Remove leading slash from path if present to avoid double slashes
       const cleanPath = path.trim().startsWith('/')
         ? path.trim().substring(1)
         : path.trim();
-      url = `/api/fileglancer/files/local?subpath=${cleanPath}`;
-    }
+      url = `/jupyter/user/clementsj/api/fileglancer/files/local?subpath=${cleanPath}`;
+    } */
     let data = [];
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        credentials: 'include',
+        headers: {
+          'X-Xsrftoken': cookies['_xsrf']
+        }
+      });
+
       if (!response.ok) {
         throw new Error(`Response status: ${response.status}`);
       }
@@ -94,10 +110,15 @@ export default function useFileBrowser() {
   }
 
   async function getFileSharePaths() {
-    const url = '/api/fileglancer/file-share-paths/';
+    const url = `${getAPIPathRoot()}api/fileglancer/file-share-paths`;
 
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        credentials: 'include',
+        headers: {
+          'X-Xsrftoken': cookies['_xsrf']
+        }
+      });
       if (!response.ok) {
         throw new Error(`Response status: ${response.status}`);
       }
