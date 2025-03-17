@@ -136,7 +136,8 @@
         "tests",
         "**/__tests__",
         "ui-tests",
-        "tailwind.config.ts"
+        "tailwind.config.ts",
+        "src/style/tailwind_converted.css"
     ],
     "eslintConfig": {
         "extends": [
