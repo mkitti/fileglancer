@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router';
 import { useCookies } from 'react-cookie';
 
 export type File = {
@@ -32,6 +33,7 @@ export default function useFileBrowser() {
     {}
   );
   const [openZones, setOpenZones] = React.useState<Record<string, boolean>>({});
+  const [selectedZone, setSelectedZone] = React.useState<string | null>(null);
   const [cookies] = useCookies(['_xsrf']);
 
   function handleCheckboxToggle(item: File) {
@@ -54,6 +56,13 @@ export default function useFileBrowser() {
     }));
   }
 
+  // Handler for when a path is clicked in the sidebar
+  const handlePathClick = (path: string) => {
+    console.log('handlePathClick called with path:', path);
+    setSelectedZone(path);
+    getFiles(path)
+  };
+
   function getAPIPathRoot() {
     const match = window.location.pathname.match(/^\/jupyter\/user\/[^/]+\//);
     if (match) {
@@ -63,15 +72,17 @@ export default function useFileBrowser() {
   }
 
   async function getFiles(path: File['path']): Promise<void> {
-    const url = `${getAPIPathRoot()}api/fileglancer/files/local`;
+    let cleanPath = path;
 
-    /* if (path && path.trim() !== '') {
+     if (path && path.trim() !== '') {
       // Remove leading slash from path if present to avoid double slashes
-      const cleanPath = path.trim().startsWith('/')
+      cleanPath = path.trim().startsWith('/')
         ? path.trim().substring(1)
         : path.trim();
-      url = `/jupyter/user/clementsj/api/fileglancer/files/local?subpath=${cleanPath}`;
-    } */
+    }
+
+    const url = `${getAPIPathRoot()}api/fileglancer/files/${cleanPath}`;
+  
     let data = [];
     try {
       const response = await fetch(url, {
@@ -168,9 +179,11 @@ export default function useFileBrowser() {
     currentPath,
     fileSharePaths,
     openZones,
+    selectedZone,
     handleCheckboxToggle,
     getFiles,
     getFileSharePaths,
-    toggleZone
+    toggleZone,
+    handlePathClick
   };
 }

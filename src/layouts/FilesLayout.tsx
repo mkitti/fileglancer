@@ -4,18 +4,13 @@ import FileSidebar from '../components/ui/FileSidebar';
 import useFileBrowser from '../hooks/useFileBrowser';
 
 export const FilesLayout = () => {
-  const {fileSharePaths, openZones, toggleZone, getFileSharePaths, getFiles} = useFileBrowser();
+  const {fileSharePaths, openZones, toggleZone, getFileSharePaths, handlePathClick} = useFileBrowser();
 
   React.useEffect(() => {
     if (Object.keys(fileSharePaths).length === 0) {
       getFileSharePaths();
     }
   }, [fileSharePaths, getFileSharePaths]);
-
-// Handler for when a path is clicked in the sidebar
-  const handlePathClick = (path: string) => {
-    getFiles('');
-  };
 
   return (
     <div className="flex h-full w-full">
@@ -24,7 +19,7 @@ export const FilesLayout = () => {
           fileSharePaths={fileSharePaths}
           openZones={openZones}
           toggleZone={toggleZone}
-          onPathClick={handlePathClick}
+          handlePathClick={handlePathClick}
         />
       </div>
       <Outlet />

@@ -9,11 +9,13 @@ import { NavArrowRight, Server } from 'iconoir-react';
 
 type FileListCrumbsProps = {
   currentPath: string;
+  selectedZone: string | null;
   getFiles: (path: string) => void;
 };
 
 export default function FileListCrumbs({
   currentPath,
+  selectedZone,
   getFiles
 }: FileListCrumbsProps): JSX.Element {
   const dirArray = currentPath.split('/').filter(item => item !== '');
@@ -29,7 +31,7 @@ export default function FileListCrumbs({
           <Server className="h-4 w-4 text-blue-500" />
           <NavArrowRight />
           <Typography variant="small" className="font-medium text-blue-500">
-            local
+            {selectedZone}
           </Typography>
         </div>
 

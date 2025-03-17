@@ -8,15 +8,18 @@ export default function Files() {
     fileSharePaths,
     currentPath,
     checked,
+    selectedZone,
     getFiles,
     handleCheckboxToggle,
   } = useFileBrowser();
 
   React.useEffect(() => {
     if (files.length === 0 && Object.keys(fileSharePaths).length > 0) {
-      getFiles('');
+      if (selectedZone) {
+        getFiles(selectedZone);
+      }
     }
-  }, [files, fileSharePaths, getFiles]);
+  }, [selectedZone, fileSharePaths]);
 
   console.log('files in Files.tsx', files);
   console.log('fileSharePaths in Files.tsx', fileSharePaths);
@@ -27,6 +30,7 @@ export default function Files() {
           files={files}
           currentPath={currentPath}
           checked={checked}
+          selectedZone={selectedZone}
           handleCheckboxToggle={handleCheckboxToggle}
           getFiles={getFiles}
         />
