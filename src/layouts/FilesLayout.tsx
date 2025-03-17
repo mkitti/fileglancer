@@ -4,7 +4,20 @@ import FileSidebar from '../components/ui/FileSidebar';
 import useFileBrowser from '../hooks/useFileBrowser';
 
 export const FilesLayout = () => {
-  const {fileSharePaths, openZones, toggleZone, getFileSharePaths, handlePathClick} = useFileBrowser();
+  const {
+    files,
+    currentPath,
+    checked,
+    selectedZone,
+    fileSharePaths,
+    openZones,
+    setSelectedZone,
+    toggleZone,
+    getFileSharePaths,
+    getFiles,
+    handlePathClick,
+    handleCheckboxToggle
+  } = useFileBrowser();
 
   React.useEffect(() => {
     if (Object.keys(fileSharePaths).length === 0) {
@@ -22,8 +35,17 @@ export const FilesLayout = () => {
           handlePathClick={handlePathClick}
         />
       </div>
-      <Outlet />
+      <Outlet
+        context={{
+          files,
+          currentPath,
+          checked,
+          selectedZone,
+          setSelectedZone,
+          handleCheckboxToggle,
+          getFiles
+        }}
+      />
     </div>
   );
 };
-    
