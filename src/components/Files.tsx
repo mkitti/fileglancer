@@ -1,39 +1,46 @@
 import React from 'react';
+import { useOutletContext } from 'react-router';
 import FileList from '../components/ui/FileList';
-import useFileBrowser from '../hooks/useFileBrowser';
+import { File } from '../hooks/useFileBrowser';
+
+type FilesRouteProps = {
+  files: File[];
+  currentPath: string;
+  checked: string[];
+  selectedZone: string | null;
+  setSelectedZone: (zone: string | null) => void;
+  handleCheckboxToggle: (file: File) => void;
+  getFiles: (path: string) => void;
+};
 
 export default function Files() {
   const {
     files,
-    fileSharePaths,
     currentPath,
     checked,
     selectedZone,
-    getFiles,
+    setSelectedZone,
     handleCheckboxToggle,
-  } = useFileBrowser();
+    getFiles
+  }: FilesRouteProps = useOutletContext();
 
   React.useEffect(() => {
-    if (files.length === 0 && Object.keys(fileSharePaths).length > 0) {
-      if (selectedZone) {
-        getFiles(selectedZone);
-      }
+    if (files.length === 0) {
+      getFiles('local');
+      setSelectedZone('/local');
     }
-  }, [selectedZone, fileSharePaths]);
-
-  console.log('files in Files.tsx', files);
-  console.log('fileSharePaths in Files.tsx', fileSharePaths);
+  }, []);
 
   return (
-      <div className="flex-1 h-full overflow-auto">
-        <FileList
-          files={files}
-          currentPath={currentPath}
-          checked={checked}
-          selectedZone={selectedZone}
-          handleCheckboxToggle={handleCheckboxToggle}
-          getFiles={getFiles}
-        />
-      </div>
+    <div className="flex-1 h-full overflow-auto">
+      <FileList
+        files={files}
+        currentPath={currentPath}
+        checked={checked}
+        selectedZone={selectedZone}
+        handleCheckboxToggle={handleCheckboxToggle}
+        getFiles={getFiles}
+      />
+    </div>
   );
 }
