@@ -5,4 +5,4 @@ node_modules
 !/package.json
 fileglancer
 .github
-src/style/tailwind_converted.css
+/style/tailwind_converted.css
