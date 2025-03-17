@@ -1,12 +1,22 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
-import { Typography, Popover } from '@material-tailwind/react';
+import {
+  Button,
+  Drawer,
+  IconButton,
+  Typography,
+  Popover,
+  Tabs
+} from '@material-tailwind/react';
 import { CustomCheckbox } from './CustomCheckbox';
-import { EmptyPage, Folder, MoreVert } from 'iconoir-react';
+import { EmptyPage, Folder, InfoCircle, MoreVert, Xmark } from 'iconoir-react';
 
 import { File } from '../../hooks/useFileBrowser';
+import { formatDate, formatFileSize } from '../../utils';
 
 import FileListCrumbs from './FileListCrumbs';
+import FilePermissionTable from './FilePermissionTable';
+import FileOverviewTable from './FileOverviewTable';
 
 type FileListProps = {
   files: File[];
@@ -14,27 +24,6 @@ type FileListProps = {
   checked: string[];
   handleCheckboxToggle: (file: File) => void;
   getFiles: (path: string) => void;
-};
-
-const formatFileSize = (sizeInBytes: number): string => {
-  if (sizeInBytes < 1024) {
-    return `${sizeInBytes} bytes`;
-  } else if (sizeInBytes < 1024 * 1024) {
-    return `${(sizeInBytes / 1024).toFixed(0)} KB`;
-  } else if (sizeInBytes < 1024 * 1024 * 1024) {
-    return `${(sizeInBytes / (1024 * 1024)).toFixed(0)} MB`;
-  } else {
-    return `${(sizeInBytes / (1024 * 1024 * 1024)).toFixed(0)} GB`;
-  }
-};
-
-const formatDate = (timestamp: number): string => {
-  const date = new Date(timestamp * 1000);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
 };
 
 const fileOptionLinks = [
@@ -64,7 +53,7 @@ export default function FileList({
         {/* Header row */}
         <div className="grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 p-0 text-gray-700">
           <div className="flex w-full gap-3 px-3 py-1">
-            <div className="w-5 h-5"></div>
+            <div className="w-[3.75rem] h-5"></div>
             <Typography variant="small" className="font-bold">
               Name
             </Typography>
@@ -94,7 +83,7 @@ export default function FileList({
             return (
               <div
                 key={file.name}
-                className={`grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 hover:bg-blue-50/50 ${index % 2 === 0 && !isChecked && 'bg-gray-50'} ${isChecked && 'bg-blue-50/50'} `}
+                className={`grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 hover:bg-blue-100/50 ${index % 2 === 0 && !isChecked && 'bg-gray-50'} ${isChecked && 'bg-blue-100/50'} `}
               >
                 {/* Name column */}
                 <div className="flex items-center w-full gap-3 pl-3 py-1  text-blue-500">
@@ -107,6 +96,79 @@ export default function FileList({
                   >
                     <CustomCheckbox id={labelId} checked={isChecked} />
                   </div>
+                  <Drawer>
+                    <Drawer.Trigger
+                      as={IconButton}
+                      size="sm"
+                      color="secondary"
+                      variant="ghost"
+                      isCircular
+                    >
+                      <InfoCircle className="text-gray-700 h-5 w-5" />
+                    </Drawer.Trigger>
+                    <Drawer.Overlay>
+                      <Drawer.Panel>
+                        <div className="flex items-center justify-between gap-4">
+                          <Typography type="h6">Properties</Typography>
+                          <Drawer.DismissTrigger
+                            as={IconButton}
+                            size="sm"
+                            variant="ghost"
+                            color="secondary"
+                            className="absolute right-2 top-2"
+                            isCircular
+                          >
+                            <Xmark className="h-5 w-5" />
+                          </Drawer.DismissTrigger>
+                        </div>
+                        <Tabs defaultValue="overview">
+                          <Tabs.List className="w-full rounded-none border-b border-secondary-dark bg-transparent py-0">
+                            <Tabs.Trigger className="w-full" value="overview">
+                              Overview
+                            </Tabs.Trigger>
+
+                            <Tabs.Trigger
+                              className="w-full"
+                              value="permissions"
+                            >
+                              Permissions
+                            </Tabs.Trigger>
+
+                            <Tabs.Trigger className="w-full" value="convert">
+                              Convert
+                            </Tabs.Trigger>
+                            <Tabs.TriggerIndicator className="rounded-none border-b-2 border-primary bg-transparent shadow-none" />
+                          </Tabs.List>
+
+                          <Tabs.Panel value="overview">
+                            <FileOverviewTable file={file} />
+                          </Tabs.Panel>
+
+                          <Tabs.Panel
+                            value="permissions"
+                            className="flex flex-col gap-2"
+                          >
+                            <FilePermissionTable file={file} />
+                            <Button as="a" href="#" variant="outline">
+                              Change Permissions
+                            </Button>
+                          </Tabs.Panel>
+
+                          <Tabs.Panel
+                            value="convert"
+                            className="flex flex-col gap-2"
+                          >
+                            <Typography variant="small" className="font-medium">
+                              Convert data to OME-Zarr
+                            </Typography>
+                            <Button as="a" href="#" variant="outline">
+                              Submit Ticket
+                            </Button>
+                          </Tabs.Panel>
+                        </Tabs>
+                      </Drawer.Panel>
+                    </Drawer.Overlay>
+                  </Drawer>
 
                   <Typography
                     variant="small"
