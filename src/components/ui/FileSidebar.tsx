@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router';
 import {
   Card,
   Collapse,
@@ -14,14 +15,14 @@ type FileSidebarProps = {
   fileSharePaths: FileSharePaths;
   openZones: Record<string, boolean>;
   toggleZone: (zone: string) => void;
-  onPathClick: (path: string) => void;
+  handlePathClick: (path: string) => void;
 };
 
 export default function FileSidebar({
   fileSharePaths,
   openZones,
   toggleZone,
-  onPathClick
+  handlePathClick
 }: FileSidebarProps) {
   return (
     <Card className="max-w-[280px] h-full rounded-none">
@@ -56,8 +57,10 @@ export default function FileSidebar({
                     {paths.map((path: string) => (
                       <List.Item
                         key={`${zone}-${path}`}
-                        onClick={() => onPathClick(path)}
+                        onClick={() => handlePathClick(path)}
                         className="cursor-pointer"
+                        as={Link}
+                        to="/files"
                       >
                         <List.ItemStart>
                           <Folder className="h-[18px] w-[18px]" />

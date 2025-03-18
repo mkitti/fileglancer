@@ -50,7 +50,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     requestAPI<any>('file-share-paths')
       .then(data => {
-        console.log('File share paths:');
+        console.log('DEMO File share paths:');
         console.log(data);
       })
       .catch(reason => {
@@ -59,7 +59,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     requestAPI<any>('files/local')
       .then(data => {
-        console.log('File listing /local:');
+        console.log('DEMO File listing /local:');
         console.log(data);
       })
       .catch(reason => {
@@ -68,7 +68,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     requestAPI<any>('files/local?subpath=src')
       .then(data => {
-        console.log('File listing /local/src:');
+        console.log('DEMO File listing /local/src:');
         console.log(data);
       })
       .catch(reason => {
