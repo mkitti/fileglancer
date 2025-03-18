@@ -99,13 +99,13 @@ export default function FileglancerNavbar() {
   }, []);
 
   return (
-    <Navbar className="mx-auto w-full rounded-t-none">
+    <Navbar className="mx-auto w-full rounded-none">
       <div className="flex items-center justify-between">
         {/* Logo */}
         <Typography
           as={Link}
           to="/lab/"
-          type="small"
+          type="h6"
           className="ml-2 mr-2 block py-1 font-semibold"
         >
           Janelia Fileglancer

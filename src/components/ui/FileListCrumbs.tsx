@@ -42,7 +42,7 @@ export default function FileListCrumbs({
     <div className="w-full py-2 px-3">
       <Breadcrumb className="bg-transparent p-0">
         <div
-          className="flex items-center gap-1 rounded-md hover:bg-blue-50/50 transition-colors"
+          className="flex items-center gap-1 rounded-md hover:bg-blue-50/50 transition-colors cursor-pointer"
           onClick={() => selectedZone && getFiles(selectedZone)}
         >
           <Server className="h-4 w-4 text-blue-500" />
