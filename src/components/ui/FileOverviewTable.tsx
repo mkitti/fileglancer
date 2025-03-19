@@ -3,7 +3,7 @@ import { File } from '../../hooks/useFileBrowser';
 import { formatDate, formatFileSize } from '../../utils';
 
 type FileOverviewTableProps = {
-  file: File;
+  file: File | null;
 };
 
 export default function FileOverviewTable({ file }: FileOverviewTableProps) {
@@ -15,21 +15,17 @@ export default function FileOverviewTable({ file }: FileOverviewTableProps) {
             <td className="p-3 border-b border-surface bg-surface-light text-sm text-foreground dark:bg-surface-dark font-medium">
               Last modified
             </td>
-            <td className="p-3 ">{formatDate(file.last_modified)}</td>
+            <td className="p-3 ">
+              {file ? formatDate(file.last_modified) : null}
+            </td>
           </tr>
           <tr className="border-b border-gray-200">
             <td className="p-3 border-b border-surface bg-surface-light text-sm text-foreground dark:bg-surface-dark font-medium">
               Size
             </td>
             <td className="p-3 ">
-              {file.is_dir ? '—' : formatFileSize(file.size)}
+              {file ? (file.is_dir ? '—' : formatFileSize(file.size)) : null}
             </td>
-          </tr>
-          <tr className="border-b border-gray-200">
-            <td className="p-3 border-b border-surface bg-surface-light text-sm text-foreground dark:bg-surface-dark font-medium">
-              Type
-            </td>
-            <td className="p-3 ">{file.is_dir ? 'Folder' : 'File'}</td>
           </tr>
           <tr className="border-b border-gray-200">
             <td className="p-3 border-b border-surface bg-surface-light text-sm text-foreground dark:bg-surface-dark font-medium">

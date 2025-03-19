@@ -5,7 +5,7 @@ type CustomCheckboxProps = {
   id: string;
 };
 
-export function CustomCheckbox({ checked, id }: CustomCheckboxProps) {
+export default function CustomCheckbox({ checked, id }: CustomCheckboxProps) {
   return (
     <div className="relative inline-flex items-center justify-center w-5 h-5">
       <input type="checkbox" id={id} checked={checked} className="sr-only" />
