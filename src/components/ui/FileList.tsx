@@ -1,30 +1,24 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Button,
-  Drawer,
-  IconButton,
-  Typography,
-  Popover,
-  Tabs
-} from '@material-tailwind/react';
-import { CustomCheckbox } from './CustomCheckbox';
-import { EmptyPage, Folder, InfoCircle, MoreVert, Xmark } from 'iconoir-react';
+import { Typography, Popover } from '@material-tailwind/react';
+import { EmptyPage, Folder, MoreVert } from 'iconoir-react';
+
+import CustomCheckbox from './CustomCheckbox';
+import FileListCrumbs from './FileListCrumbs';
 
 import { File } from '../../hooks/useFileBrowser';
 import { formatDate, formatFileSize } from '../../utils';
 
-import FileListCrumbs from './FileListCrumbs';
-import FilePermissionTable from './FilePermissionTable';
-import FileOverviewTable from './FileOverviewTable';
-
 type FileListProps = {
-  files: File[];
+  displayFiles: File[];
   currentPath: string;
   checked: string[];
   selectedZone: string | null;
   handleCheckboxToggle: (file: File) => void;
   getFiles: (path: string) => void;
+  showFileDrawer: boolean;
+  handleFileClick: (e: React.MouseEvent<HTMLDivElement>, file: File) => void;
+  selectedFile: File | null;
 };
 
 const fileOptionLinks = [
@@ -41,16 +35,22 @@ const fileOptionLinks = [
 ];
 
 export default function FileList({
-  files,
+  displayFiles,
   currentPath,
   checked,
   selectedZone,
   handleCheckboxToggle,
-  getFiles
+  getFiles,
+  showFileDrawer,
+  handleFileClick,
+  selectedFile
 }: FileListProps): JSX.Element {
-  console.log('FileList files', files);
+  console.log('Files to display in file list', displayFiles);
+
   return (
-    <div className="mx-2">
+    <div
+      className={`mx-2 transition-all duration-300 ${showFileDrawer ? 'mr-[350px]' : ''}`}
+    >
       <FileListCrumbs
         currentPath={currentPath}
         selectedZone={selectedZone}
@@ -82,15 +82,18 @@ export default function FileList({
         </div>
 
         {/* File rows */}
-        {files.length > 0 &&
-          files.map((file, index) => {
+        {displayFiles.length > 0 &&
+          displayFiles.map((file, index) => {
             const labelId = `checkbox-list-label-${file.name}`;
             const isChecked = checked.includes(file.name);
 
             return (
               <div
                 key={file.name}
-                className={`grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 hover:bg-blue-100/50 ${index % 2 === 0 && !isChecked && 'bg-gray-50'} ${isChecked && 'bg-blue-100/50'} `}
+                className={`grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 hover:bg-blue-100/50 ${index % 2 === 0 && !isChecked && file !== selectedFile && 'bg-gray-50'} ${(isChecked || file === selectedFile) && 'bg-blue-100/50'} `}
+                onClick={(e: React.MouseEvent<HTMLDivElement>) =>
+                  handleFileClick(e, file)
+                }
               >
                 {/* Name column */}
                 <div className="flex items-center w-full gap-3 pl-3 py-1  text-blue-500">
@@ -103,79 +106,6 @@ export default function FileList({
                   >
                     <CustomCheckbox id={labelId} checked={isChecked} />
                   </div>
-                  <Drawer>
-                    <Drawer.Trigger
-                      as={IconButton}
-                      size="sm"
-                      color="secondary"
-                      variant="ghost"
-                      isCircular
-                    >
-                      <InfoCircle className="text-gray-700 h-5 w-5" />
-                    </Drawer.Trigger>
-                    <Drawer.Overlay>
-                      <Drawer.Panel>
-                        <div className="flex items-center justify-between gap-4">
-                          <Typography type="h6">Properties</Typography>
-                          <Drawer.DismissTrigger
-                            as={IconButton}
-                            size="sm"
-                            variant="ghost"
-                            color="secondary"
-                            className="absolute right-2 top-2"
-                            isCircular
-                          >
-                            <Xmark className="h-5 w-5" />
-                          </Drawer.DismissTrigger>
-                        </div>
-                        <Tabs defaultValue="overview">
-                          <Tabs.List className="w-full rounded-none border-b border-secondary-dark bg-transparent py-0">
-                            <Tabs.Trigger className="w-full" value="overview">
-                              Overview
-                            </Tabs.Trigger>
-
-                            <Tabs.Trigger
-                              className="w-full"
-                              value="permissions"
-                            >
-                              Permissions
-                            </Tabs.Trigger>
-
-                            <Tabs.Trigger className="w-full" value="convert">
-                              Convert
-                            </Tabs.Trigger>
-                            <Tabs.TriggerIndicator className="rounded-none border-b-2 border-primary bg-transparent shadow-none" />
-                          </Tabs.List>
-
-                          <Tabs.Panel value="overview">
-                            <FileOverviewTable file={file} />
-                          </Tabs.Panel>
-
-                          <Tabs.Panel
-                            value="permissions"
-                            className="flex flex-col gap-2"
-                          >
-                            <FilePermissionTable file={file} />
-                            <Button as="a" href="#" variant="outline">
-                              Change Permissions
-                            </Button>
-                          </Tabs.Panel>
-
-                          <Tabs.Panel
-                            value="convert"
-                            className="flex flex-col gap-2"
-                          >
-                            <Typography variant="small" className="font-medium">
-                              Convert data to OME-Zarr
-                            </Typography>
-                            <Button as="a" href="#" variant="outline">
-                              Submit Ticket
-                            </Button>
-                          </Tabs.Panel>
-                        </Tabs>
-                      </Drawer.Panel>
-                    </Drawer.Overlay>
-                  </Drawer>
 
                   <Typography
                     variant="small"
