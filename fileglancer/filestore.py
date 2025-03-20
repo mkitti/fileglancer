@@ -31,15 +31,31 @@ class FileInfo(BaseModel):
         """Create FileInfo from os.stat_result"""
         is_dir = stat.S_ISDIR(stat_result.st_mode)
         size = 0 if is_dir else stat_result.st_size
+        name = os.path.basename(path)
+        permissions = stat.filemode(stat_result.st_mode)
+        last_modified = stat_result.st_mtime
+
+        try:
+            owner = pwd.getpwuid(stat_result.st_uid).pw_name
+        except KeyError:
+            # If the user ID is not found, use the user ID as the owner
+            owner = str(stat_result.st_uid)
+
+        try:
+            group = grp.getgrgid(stat_result.st_gid).gr_name
+        except KeyError:
+            # If the group ID is not found, use the group ID as the group
+            group = str(stat_result.st_gid)
+        
         return cls(
-            name=os.path.basename(path),
+            name=name,
             path=path,
             size=size,
             is_dir=is_dir,
-            permissions=stat.filemode(stat_result.st_mode),
-            owner=pwd.getpwuid(stat_result.st_uid).pw_name,
-            group=grp.getgrgid(stat_result.st_gid).gr_name,
-            last_modified=stat_result.st_mtime
+            permissions=permissions,
+            owner=owner,
+            group=group,
+            last_modified=last_modified
         )
 
 
