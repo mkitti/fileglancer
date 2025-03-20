@@ -133,3 +133,5 @@ dmypy.json
 pixi.lock
 package-lock.json
 
+# Converted Tailwind CSS
+style/tailwind_converted.css
