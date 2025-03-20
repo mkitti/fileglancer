@@ -128,3 +128,8 @@ dmypy.json
 # pixi environments
 .pixi
 *.egg-info
+
+# lock files
+pixi.lock
+package-lock.json
+
