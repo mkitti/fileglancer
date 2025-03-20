@@ -20,13 +20,13 @@ If this is your first time installing the extension in dev mode, install package
 pixi run dev-install
 ```
 
-If you've installed the extension in dev mode before, you can build the extension in watch mode - it will automatically rebuild when there are file changes:
+You can build the frontend extension in watch mode - it will automatically rebuild when there are file changes to the frontend:
 
 ```bash
-pixi run dev-build
+pixi run dev-watch
 ```
 
-In new terminal, run Jupyter Lab in autoreload mode:
+In new terminal, run Jupyter Lab in autoreload mode - it will automatically rebuild when there are file changes to the backend:
 
 ```bash
 pixi run dev-launch
@@ -40,10 +40,10 @@ If everything has worked so far, you should see the React Widget on the Launcher
 
 ### Troubleshooting the extension
 
-Try running the clean-dev-install command to clean up previous installation and remove the symlink to the old extension.
+If you run into any build issues, the first thing to try is to clear the build directories and start from scratch:
 
 ```bash
-pixi run clean-dev-install
+./clean.sh
 ```
 
 If you're still having issues, try manually deleting the symlink at `.pixi/envs/share/jupyter/labextensions/fileglancer` inside the fileglancer repo directory. Then, reinstall the extension using `pixi run dev-install`, and follow the steps above from there.
@@ -70,7 +70,7 @@ c.Fileglancer.central_url='http://0.0.0.0:7878'
 ## Development Uninstall
 
 ```bash
-pixi run uninstall
+pixi run pip-uninstall
 ```
 
 In development mode, you will also need to remove the symlink created by `jupyter labextension develop`
@@ -84,7 +84,7 @@ folder is located. Then you can remove the symlink named `fileglancer` within th
 To run backend tests using pytest:
 
 ```bash
-pixi run pytest
+pixi run test-backend
 ```
 
 ### Frontend tests
@@ -94,7 +94,7 @@ This extension is using [Jest](https://jestjs.io/) for JavaScript code testing.
 To execute them, execute:
 
 ```bash
-npm test
+pixi run test-frontend
 ```
 
 ### Integration tests
