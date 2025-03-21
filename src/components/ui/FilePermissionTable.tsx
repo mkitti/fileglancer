@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckSquare, MinusSquare } from 'iconoir-react';
+import { Check, Minus } from 'iconoir-react';
 import { File } from '../../hooks/useFileBrowser';
 
 type FileTableProps = {
@@ -32,9 +32,9 @@ export default function FilePermissionTable({ file }: FileTableProps) {
 
   const PermissionIcon = ({ hasPermission }: { hasPermission: boolean }) =>
     hasPermission ? (
-      <CheckSquare className="text-green-500 h-5 w-5" />
+      <Check className="h-5 w-5" />
     ) : (
-      <MinusSquare className="text-red-500 h-5 w-5" />
+      <Minus className="h-5 w-5" />
     );
 
   return (
@@ -54,12 +54,12 @@ export default function FilePermissionTable({ file }: FileTableProps) {
             <td className="p-3 font-medium">
               Owner: {file ? file.owner : null}
             </td>
-            <td className="p-3 text-center">
+            <td className="p-3">
               {permissions ? (
                 <PermissionIcon hasPermission={permissions.owner.read} />
               ) : null}
             </td>
-            <td className="p-3 text-center">
+            <td className="p-3">
               {permissions ? (
                 <PermissionIcon hasPermission={permissions.owner.write} />
               ) : null}
@@ -69,12 +69,12 @@ export default function FilePermissionTable({ file }: FileTableProps) {
             <td className="p-3 font-medium">
               Group: {file ? file.group : null}
             </td>
-            <td className="p-3 text-center">
+            <td className="p-3">
               {permissions ? (
                 <PermissionIcon hasPermission={permissions.group.read} />
               ) : null}
             </td>
-            <td className="p-3 text-center">
+            <td className="p-3">
               {permissions ? (
                 <PermissionIcon hasPermission={permissions.group.write} />
               ) : null}
@@ -82,12 +82,12 @@ export default function FilePermissionTable({ file }: FileTableProps) {
           </tr>
           <tr>
             <td className="p-3 font-medium">Everyone else</td>
-            <td className="p-3 text-center">
+            <td className="p-3">
               {permissions ? (
                 <PermissionIcon hasPermission={permissions.others.read} />
               ) : null}
             </td>
-            <td className="p-3 text-center">
+            <td className="p-3">
               {permissions ? (
                 <PermissionIcon hasPermission={permissions.others.write} />
               ) : null}
