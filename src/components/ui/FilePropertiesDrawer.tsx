@@ -13,7 +13,7 @@ type FilePropertiesPanelProps = {
   setShowFileDrawer: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
-export default function FilePropertiesPanel({
+export default function FilePropertiesDrawer({
   selectedFile,
   open,
   setShowFileDrawer

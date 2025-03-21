@@ -1,10 +1,9 @@
 import React from 'react';
 import { useOutletContext } from 'react-router';
 
-import FileList from './ui/FileList';
-
 import { File } from '../hooks/useFileBrowser';
-import FilePropertiesPanel from './ui/FilePropertiesPanel';
+import FileList from './ui/FileList';
+import FilePropertiesDrawer from './ui/FilePropertiesDrawer';
 import FileControlPanel from './ui/FileControlPanel';
 import FileContextMenu from './ui/FileContextMenu';
 
@@ -70,7 +69,7 @@ export default function Files() {
         setShowFileDrawer={setShowFileDrawer}
       />
       <div className="relative grow">
-        <FilePropertiesPanel
+        <FilePropertiesDrawer
           selectedFile={selectedFile}
           open={showFileDrawer}
           setShowFileDrawer={setShowFileDrawer}
