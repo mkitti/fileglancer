@@ -85,7 +85,7 @@ export default function FilePropertiesDrawer({
                 Convert data to OME-Zarr
               </Typography>
               <Button as="a" href="#" variant="outline">
-                Submit Ticket
+                Submit
               </Button>
             </Tabs.Panel>
           </Tabs>
