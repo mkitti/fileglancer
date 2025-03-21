@@ -6,6 +6,7 @@ import FileList from './ui/FileList';
 import { File } from '../hooks/useFileBrowser';
 import FilePropertiesPanel from './ui/FilePropertiesPanel';
 import FileControlPanel from './ui/FileControlPanel';
+import FileContextMenu from './ui/FileContextMenu';
 
 type FilesRouteProps = {
   files: File[];
@@ -30,6 +31,12 @@ export default function Files() {
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [hideDotFiles, setHideDotFiles] = React.useState<boolean>(true);
   const [showFileDrawer, setShowFileDrawer] = React.useState<boolean>(false);
+  const [showFileContextMenu, setShowFileContextMenu] =
+    React.useState<boolean>(false);
+  const [contextMenuCoords, setContextMenuCoords] = React.useState({
+    x: 0,
+    y: 0
+  });
 
   const displayFiles = React.useMemo(() => {
     return hideDotFiles
@@ -39,11 +46,11 @@ export default function Files() {
 
   const handleFileClick = (e: React.MouseEvent<HTMLDivElement>, file: File) => {
     e.preventDefault();
+    setSelectedFile(prev => (prev === file ? null : file));
     if (e.type === 'contextmenu') {
-      setSelectedFile(file);
-    } else {
-      console.log('File clicked:', file);
-      setSelectedFile(prev => (prev === file ? null : file));
+      setContextMenuCoords({ x: e.clientX, y: e.clientY });
+      setShowFileContextMenu(true);
+      e.stopPropagation();
     }
   };
 
@@ -80,6 +87,14 @@ export default function Files() {
           selectedFile={selectedFile}
         />
       </div>
+      {showFileContextMenu && (
+        <FileContextMenu
+          x={contextMenuCoords.x}
+          y={contextMenuCoords.y}
+          onClose={() => setShowFileContextMenu(false)}
+          setShowFileDrawer={setShowFileDrawer}
+        />
+      )}
     </div>
   );
 }

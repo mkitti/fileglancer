@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { Link } from 'react-router-dom';
-import { Typography, Popover } from '@material-tailwind/react';
-import { EmptyPage, Folder, MoreVert } from 'iconoir-react';
+import { Typography } from '@material-tailwind/react';
+import { EmptyPage, Folder } from 'iconoir-react';
 
 import CustomCheckbox from './CustomCheckbox';
 import FileListCrumbs from './FileListCrumbs';
@@ -20,19 +19,6 @@ type FileListProps = {
   handleFileClick: (e: React.MouseEvent<HTMLDivElement>, file: File) => void;
   selectedFile: File | null;
 };
-
-const fileOptionLinks = [
-  {
-    title: 'Rename',
-    href: '#'
-  },
-  {
-    title: 'Copy Path',
-    href: '#'
-  },
-  { title: 'Share', href: '#' },
-  { title: 'View', href: '#' }
-];
 
 export default function FileList({
   displayFiles,
@@ -94,6 +80,9 @@ export default function FileList({
                 onClick={(e: React.MouseEvent<HTMLDivElement>) =>
                   handleFileClick(e, file)
                 }
+                onContextMenu={(e: React.MouseEvent<HTMLDivElement>) =>
+                  handleFileClick(e, file)
+                }
               >
                 {/* Name column */}
                 <div className="flex items-center w-full gap-3 pl-3 py-1  text-blue-500">
@@ -146,28 +135,6 @@ export default function FileList({
                     {file.is_dir ? '—' : formatFileSize(file.size)}
                   </Typography>
                 </div>
-
-                {/* Actions column */}
-                <Popover placement="left">
-                  <Popover.Trigger>
-                    <MoreVert />
-                  </Popover.Trigger>
-
-                  <Popover.Content>
-                    <div className="flex flex-col gap-2">
-                      {fileOptionLinks.map((link, index) => (
-                        <Typography
-                          as={Link}
-                          to={link.href}
-                          key={index}
-                          className="text-sm p-1 cursor-pointer text-blue-500 hover:bg-blue-50/50 transition-colors"
-                        >
-                          {link.title}
-                        </Typography>
-                      ))}
-                    </div>
-                  </Popover.Content>
-                </Popover>
               </div>
             );
           })}
