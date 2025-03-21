@@ -2,7 +2,6 @@ import * as React from 'react';
 import {
   IconButton,
   ButtonGroup,
-  // Switch,
   Tooltip,
   Typography
 } from '@material-tailwind/react';
@@ -11,14 +10,12 @@ import { Eye, EyeClosed, List } from 'iconoir-react';
 type FileControlPanelProps = {
   hideDotFiles: boolean;
   setHideDotFiles: React.Dispatch<React.SetStateAction<boolean>>;
-  // showFileDrawer: boolean;
   setShowFileDrawer: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function FileControlPanel({
   hideDotFiles,
   setHideDotFiles,
-  // showFileDrawer,
   setShowFileDrawer
 }: FileControlPanelProps) {
   return (
