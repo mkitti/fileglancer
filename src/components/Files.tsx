@@ -65,7 +65,6 @@ export default function Files() {
       <FileControlPanel
         hideDotFiles={hideDotFiles}
         setHideDotFiles={setHideDotFiles}
-        showFileDrawer={showFileDrawer}
         setShowFileDrawer={setShowFileDrawer}
       />
       <div className="relative grow">
