@@ -53,7 +53,7 @@ const AppComponent = (): JSX.Element => {
           <Route path="help" element={<Help />} />
           <Route path="profile" element={<Profile />} />
           <Route path="preferences" element={<Preferences />} />
-          <Route element={<FilesLayout/>}>
+          <Route element={<FilesLayout />}>
             <Route path="files" element={<Files />} />
             <Route index path="*" element={<Home />} />
           </Route>
