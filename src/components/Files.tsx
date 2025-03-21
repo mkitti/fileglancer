@@ -2,6 +2,7 @@ import React from 'react';
 import { useOutletContext } from 'react-router';
 
 import { File } from '../hooks/useFileBrowser';
+import useDisplayOptions from '../hooks/useDisplayOptions';
 import FileList from './ui/FileList';
 import FilePropertiesDrawer from './ui/FilePropertiesDrawer';
 import FileControlPanel from './ui/FileControlPanel';
@@ -27,31 +28,19 @@ export default function Files() {
     handleCheckboxToggle,
     getFiles
   }: FilesRouteProps = useOutletContext();
-  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
-  const [hideDotFiles, setHideDotFiles] = React.useState<boolean>(true);
-  const [showFileDrawer, setShowFileDrawer] = React.useState<boolean>(false);
-  const [showFileContextMenu, setShowFileContextMenu] =
-    React.useState<boolean>(false);
-  const [contextMenuCoords, setContextMenuCoords] = React.useState({
-    x: 0,
-    y: 0
-  });
 
-  const displayFiles = React.useMemo(() => {
-    return hideDotFiles
-      ? files.filter(file => !file.name.startsWith('.'))
-      : files;
-  }, [files, hideDotFiles]);
-
-  const handleFileClick = (e: React.MouseEvent<HTMLDivElement>, file: File) => {
-    e.preventDefault();
-    setSelectedFile(prev => (prev === file ? null : file));
-    if (e.type === 'contextmenu') {
-      setContextMenuCoords({ x: e.clientX, y: e.clientY });
-      setShowFileContextMenu(true);
-      e.stopPropagation();
-    }
-  };
+  const {
+    selectedFile,
+    displayFiles,
+    hideDotFiles,
+    setHideDotFiles,
+    showFileDrawer,
+    setShowFileDrawer,
+    showFileContextMenu,
+    setShowFileContextMenu,
+    contextMenuCoords,
+    handleFileClick
+  } = useDisplayOptions(files);
 
   React.useEffect(() => {
     if (files.length === 0) {
