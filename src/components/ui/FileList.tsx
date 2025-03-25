@@ -85,21 +85,20 @@ export default function FileList({
               >
                 {/* Name column */}
                 <div className="flex items-center w-full gap-3 pl-3 py-1 text-primary-light">
-                  <div
-                    className="cursor-pointer"
-                    onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                  <span
+                    className="checkbox-wrapper"
+                    onClick={(e: React.MouseEvent<HTMLSpanElement>) => {
                       e.stopPropagation();
-                      handleCheckboxToggle(file);
                     }}
                   >
                     <Checkbox
                       id={labelId}
                       checked={isChecked}
-                      className="border-foreground/80"
+                      onChange={() => handleCheckboxToggle(file)}
                     >
                       <Checkbox.Indicator />
                     </Checkbox>
-                  </div>
+                  </span>
 
                   <Typography
                     variant="small"
