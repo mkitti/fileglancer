@@ -8,10 +8,10 @@ type FileOverviewTableProps = {
 
 export default function FileOverviewTable({ file }: FileOverviewTableProps) {
   return (
-    <div className="w-full overflow-hidden rounded-lg border border-gray-200 mt-4">
+    <div className="w-full overflow-hidden rounded-lg border border-surface mt-4">
       <table className="w-full">
         <tbody className="text-sm">
-          <tr className="border-b border-gray-200">
+          <tr className="border-b border-surface">
             <td className="p-3 border-b border-surface bg-surface-light text-sm text-foreground dark:bg-surface-dark font-medium">
               Last modified
             </td>
@@ -19,7 +19,7 @@ export default function FileOverviewTable({ file }: FileOverviewTableProps) {
               {file ? formatDate(file.last_modified) : null}
             </td>
           </tr>
-          <tr className="border-b border-gray-200">
+          <tr className="border-b border-surface">
             <td className="p-3 border-b border-surface bg-surface-light text-sm text-foreground dark:bg-surface-dark font-medium">
               Size
             </td>
@@ -27,7 +27,7 @@ export default function FileOverviewTable({ file }: FileOverviewTableProps) {
               {file ? (file.is_dir ? '—' : formatFileSize(file.size)) : null}
             </td>
           </tr>
-          <tr className="border-b border-gray-200">
+          <tr className="border-b border-surface">
             <td className="p-3 border-b border-surface bg-surface-light text-sm text-foreground dark:bg-surface-dark font-medium">
               Metadata
             </td>

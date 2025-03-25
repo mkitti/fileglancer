@@ -1,8 +1,7 @@
 import * as React from 'react';
-import { Typography } from '@material-tailwind/react';
+import { Checkbox, Typography } from '@material-tailwind/react';
 import { EmptyPage, Folder } from 'iconoir-react';
 
-import CustomCheckbox from './CustomCheckbox';
 import FileListCrumbs from './FileListCrumbs';
 
 import { File } from '../../hooks/useFileBrowser';
@@ -42,11 +41,11 @@ export default function FileList({
         selectedZone={selectedZone}
         getFiles={getFiles}
       />
-      <div className="min-w-full bg-white">
+      <div className="min-w-full bg-background">
         {/* Header row */}
-        <div className="grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 p-0 text-gray-700">
+        <div className="grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 p-0 text-foreground">
           <div className="flex w-full gap-3 px-3 py-1">
-            <div className="w-[3.75rem] h-5"></div>
+            <div className="w-[1.25rem] h-5"></div>
             <Typography variant="small" className="font-bold">
               Name
             </Typography>
@@ -76,7 +75,7 @@ export default function FileList({
             return (
               <div
                 key={file.name}
-                className={`grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 hover:bg-blue-100/50 ${index % 2 === 0 && !isChecked && file !== selectedFile && 'bg-gray-50'} ${(isChecked || file === selectedFile) && 'bg-blue-100/50'} `}
+                className={`grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 hover:bg-primary-light/20 focus:bg-primary-light/20 ${index % 2 === 0 && !isChecked && file !== selectedFile && 'bg-surface/50'} ${(isChecked || file === selectedFile) && 'bg-primary-light/20'} `}
                 onClick={(e: React.MouseEvent<HTMLDivElement>) =>
                   handleFileClick(e, file)
                 }
@@ -85,7 +84,7 @@ export default function FileList({
                 }
               >
                 {/* Name column */}
-                <div className="flex items-center w-full gap-3 pl-3 py-1  text-blue-500">
+                <div className="flex items-center w-full gap-3 pl-3 py-1 text-primary-light">
                   <div
                     className="cursor-pointer"
                     onClick={(e: React.MouseEvent<HTMLDivElement>) => {
@@ -93,7 +92,13 @@ export default function FileList({
                       handleCheckboxToggle(file);
                     }}
                   >
-                    <CustomCheckbox id={labelId} checked={isChecked} />
+                    <Checkbox
+                      id={labelId}
+                      checked={isChecked}
+                      className="border-foreground/80"
+                    >
+                      <Checkbox.Indicator />
+                    </Checkbox>
                   </div>
 
                   <Typography
@@ -113,9 +118,9 @@ export default function FileList({
                 {/* Type column */}
                 <div className="flex items-center w-full gap-3 py-1 text-grey-700 ">
                   {file.is_dir ? (
-                    <Folder className="text-gray-700" />
+                    <Folder className="text-foreground" />
                   ) : (
-                    <EmptyPage className="text-gray-700" />
+                    <EmptyPage className="text-foreground" />
                   )}
                   <Typography variant="small" className="font-medium">
                     {file.is_dir ? 'Folder' : 'File'}

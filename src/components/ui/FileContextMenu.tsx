@@ -55,7 +55,7 @@ export default function FileContextMenu({
   return ReactDOM.createPortal(
     <div
       ref={menuRef}
-      className="fixed z-[9999] bg-white shadow-lg rounded-md p-2"
+      className="fixed z-[9999] bg-background shadow-lg shadow-surface rounded-md p-2"
       style={{
         left: `${x}px`,
         top: `${y}px`
@@ -63,7 +63,7 @@ export default function FileContextMenu({
     >
       <div className="flex flex-col gap-2">
         <Typography
-          className="text-sm p-1 cursor-pointer text-blue-500 hover:bg-blue-50/50 transition-colors whitespace-nowrap"
+          className="text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
           onClick={() => {
             setShowFileDrawer(true);
           }}

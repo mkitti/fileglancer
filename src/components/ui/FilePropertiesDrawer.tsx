@@ -20,7 +20,7 @@ export default function FilePropertiesDrawer({
 }: FilePropertiesPanelProps) {
   return (
     <div
-      className={`absolute top-0 right-0 bottom-0 w-[350px] bg-white shadow-lg border-l border-gray-200 transform transition-transform duration-300 ease-in-out ${open ? 'translate-x-0' : 'translate-x-full'}`}
+      className={`absolute top-0 right-0 bottom-0 w-[350px] bg-background shadow-lg border-l border-surface shadow-surface transform transition-transform duration-300 ease-in-out ${open ? 'translate-x-0' : 'translate-x-full'}`}
     >
       <div className="flex flex-col h-full overflow-y-auto p-4">
         <div className="flex items-center justify-between gap-4 mb-1">
@@ -29,7 +29,7 @@ export default function FilePropertiesDrawer({
             size="sm"
             variant="ghost"
             color="secondary"
-            className="h-8 w-8 rounded-full"
+            className="h-8 w-8 rounded-full text-foreground hover:bg-secondary-light/20"
             onClick={() => setShowFileDrawer((prev: boolean) => !prev)}
           >
             <Xmark className="h-5 w-5" />
@@ -54,19 +54,25 @@ export default function FilePropertiesDrawer({
         )}
         {selectedFile ? (
           <Tabs key="file-properties-tabs" defaultValue="overview">
-            <Tabs.List className="w-full rounded-none border-b border-secondary-dark bg-transparent py-0">
-              <Tabs.Trigger className="w-full" value="overview">
+            <Tabs.List className="w-full rounded-none border-b border-secondary-dark  bg-transparent dark:bg-transparent py-0">
+              <Tabs.Trigger
+                className="w-full !text-foreground"
+                value="overview"
+              >
                 Overview
               </Tabs.Trigger>
 
-              <Tabs.Trigger className="w-full" value="permissions">
+              <Tabs.Trigger
+                className="w-full !text-foreground"
+                value="permissions"
+              >
                 Permissions
               </Tabs.Trigger>
 
-              <Tabs.Trigger className="w-full" value="convert">
+              <Tabs.Trigger className="w-full !text-foreground" value="convert">
                 Convert
               </Tabs.Trigger>
-              <Tabs.TriggerIndicator className="rounded-none border-b-2 border-primary bg-transparent shadow-none" />
+              <Tabs.TriggerIndicator className="rounded-none border-b-2 border-secondary bg-transparent dark:bg-transparent shadow-none" />
             </Tabs.List>
 
             <Tabs.Panel value="overview">

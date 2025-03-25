@@ -38,9 +38,9 @@ export default function FilePermissionTable({ file }: FileTableProps) {
     );
 
   return (
-    <div className="w-full overflow-hidden rounded-lg border border-gray-200 mt-4">
+    <div className="w-full overflow-hidden rounded-lg border border-surface mt-4">
       <table className="w-full">
-        <thead className="border-b border-gray-200 bg-gray-50 text-sm font-medium">
+        <thead className="border-b border-surface bg-surface-dark text-sm font-medium">
           <tr>
             <th className="px-3 py-2 text-start font-medium">
               Who can view or edit this data?
@@ -50,7 +50,7 @@ export default function FilePermissionTable({ file }: FileTableProps) {
           </tr>
         </thead>
         <tbody className="text-sm">
-          <tr className="border-b border-gray-200">
+          <tr className="border-b border-surface">
             <td className="p-3 font-medium">
               Owner: {file ? file.owner : null}
             </td>
@@ -65,7 +65,7 @@ export default function FilePermissionTable({ file }: FileTableProps) {
               ) : null}
             </td>
           </tr>
-          <tr className="border-b border-gray-200">
+          <tr className="border-b border-surface">
             <td className="p-3 font-medium">
               Group: {file ? file.group : null}
             </td>

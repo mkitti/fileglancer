@@ -5,9 +5,18 @@ import {
 
 import { MainAreaWidget } from '@jupyterlab/apputils';
 import { ILauncher } from '@jupyterlab/launcher';
-import { reactIcon } from '@jupyterlab/ui-components';
 import { requestAPI } from './handler';
 import { AppWidget } from './App';
+import { LabIcon } from '@jupyterlab/ui-components';
+import iconStr from '../style/img/fileglancer.svg';
+
+/**
+ * Custom icon
+ */
+const FileglancerIcon = new LabIcon({
+  name: 'fileglancer',
+  svgstr: iconStr
+});
 
 /**
  * The command IDs used by the react-widget plugin.
@@ -31,14 +40,14 @@ const plugin: JupyterFrontEndPlugin<void> = {
     const command = CommandIDs.createReactWidget;
 
     commands.addCommand(command, {
-      label: 'React Widget',
-      icon: reactIcon,
+      label: 'Fileglancer',
+      icon: FileglancerIcon,
       execute: () => {
         console.log('Create React widget command executed');
         const content = new AppWidget();
         const widget = new MainAreaWidget<AppWidget>({ content });
-        widget.title.label = 'React Widget';
-        widget.title.icon = reactIcon;
+        widget.title.label = 'Fileglancer';
+        widget.title.icon = FileglancerIcon;
         app.shell.add(widget, 'main');
       }
     });

@@ -30,7 +30,7 @@
         "build:prod": "npm run clean && npm run build:tailwind && npm run build:lib:prod && npm run build:labextension",
         "build:labextension": "jupyter labextension build .",
         "build:labextension:dev": "jupyter labextension build --development True .",
-        "build:lib": "tsc --sourceMap",
+        "build:lib": "tsc --sourceMap && mkdir -p lib/style/img && cp -r style/img/* lib/style/img/",
         "build:lib:prod": "tsc",
         "build:tailwind": "tailwindcss -i ./style/tailwind.css -o ./style/tailwind_converted.css --minify",
         "clean": "npm run clean:lib",
@@ -48,9 +48,10 @@
         "stylelint": "npm run stylelint:check --fix",
         "stylelint:check": "stylelint --cache \"style/**/*.css\" --ignore-pattern \"style/tailwind_converted.css\"",
         "test": "jest --coverage",
-        "watch": "run-p watch:tailwind watch:src watch:labextension",
-        "watch:src": "tsc -w --sourceMap",
+        "watch": "run-p watch:tailwind watch:src watch:labextension watch:img",
+        "watch:img": "mkdir -p lib/style/img && cp -r style/img/* lib/style/img/",
         "watch:labextension": "jupyter labextension watch .",
+        "watch:src": "tsc -w --sourceMap",
         "watch:tailwind": "tailwindcss -i ./style/tailwind.css -o ./style/tailwind_converted.css --minify --watch"
     },
     "dependencies": {

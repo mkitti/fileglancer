@@ -4,14 +4,7 @@ import FileglancerNavbar from '../components/ui/Navbar';
 
 export const MainLayout = () => {
   return (
-    <div
-      style={{
-        height: '100%',
-        width: '100%',
-        boxSizing: 'border-box',
-        overflowY: 'scroll'
-      }}
-    >
+    <div className="h-full w-full overflow-y-scroll bg-background text-foreground box-border">
       <FileglancerNavbar />
       <Outlet />
     </div>

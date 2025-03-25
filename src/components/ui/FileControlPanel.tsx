@@ -19,8 +19,24 @@ export default function FileControlPanel({
   setShowFileDrawer
 }: FileControlPanelProps) {
   return (
-    <div className="flex flex-col min-w-full p-2 border-b border-gray-200">
-      <ButtonGroup className="self-end">
+    <div className="flex flex-col min-w-full p-2 border-b border-surface">
+      <ButtonGroup className="self-start">
+        <Tooltip placement="top">
+          <Tooltip.Trigger
+            as={IconButton}
+            variant="outline"
+            onClick={() => setShowFileDrawer((prev: boolean) => !prev)}
+          >
+            <List className="h-5 w-5" />
+            <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
+              <Typography type="small" className="opacity-90">
+                View file properties
+              </Typography>
+              <Tooltip.Arrow />
+            </Tooltip.Content>
+          </Tooltip.Trigger>
+        </Tooltip>
+
         <Tooltip placement="top">
           <Tooltip.Trigger
             as={IconButton}
@@ -35,22 +51,6 @@ export default function FileControlPanel({
             <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
               <Typography type="small" className="opacity-90">
                 {hideDotFiles ? 'Show dot files' : 'Hide dot files'}
-              </Typography>
-              <Tooltip.Arrow />
-            </Tooltip.Content>
-          </Tooltip.Trigger>
-        </Tooltip>
-
-        <Tooltip placement="top">
-          <Tooltip.Trigger
-            as={IconButton}
-            variant="outline"
-            onClick={() => setShowFileDrawer((prev: boolean) => !prev)}
-          >
-            <List className="h-5 w-5" />
-            <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-              <Typography type="small" className="opacity-90">
-                View file properties
               </Typography>
               <Tooltip.Arrow />
             </Tooltip.Content>

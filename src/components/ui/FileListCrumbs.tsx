@@ -42,10 +42,10 @@ export default function FileListCrumbs({
     <div className="w-full py-2 px-3">
       <Breadcrumb className="bg-transparent p-0">
         <div
-          className="flex items-center gap-1 rounded-md hover:bg-blue-50/50 transition-colors cursor-pointer"
+          className="flex items-center gap-1 rounded-md hover:bg-primary-light/20 transition-colors cursor-pointer"
           onClick={() => selectedZone && getFiles(selectedZone)}
         >
-          <Server className="h-4 w-4 text-blue-500" />
+          <Server className="h-4 w-4 text-primary-light" />
           <NavArrowRight />
         </div>
 
@@ -56,7 +56,7 @@ export default function FileListCrumbs({
             <React.Fragment key={index}>
               <BreadcrumbLink
                 variant="text"
-                className="rounded-md  hover:bg-blue-50/50 transition-colors cursor-pointer"
+                className="rounded-md hover:bg-primary-light/20 hover:!text-black focus:!text-black transition-colors cursor-pointer"
                 onClick={() =>
                   getFiles(
                     `${selectedZone}?subpath=${dirArray.slice(0, index + 1).join('/')}`
@@ -65,7 +65,7 @@ export default function FileListCrumbs({
               >
                 <Typography
                   variant="small"
-                  className="font-medium text-blue-500"
+                  className="font-medium text-primary-light"
                 >
                   {item}
                 </Typography>
