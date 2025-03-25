@@ -22,6 +22,8 @@ import {
   Xmark
 } from 'iconoir-react';
 
+import useTheme from '../../hooks/useTheme';
+
 const LINKS = [
   {
     icon: Folder,
@@ -105,20 +107,8 @@ function ProfileMenu() {
 
 // Composed navbar
 export default function FileglancerNavbar() {
+  const { toggleTheme, isLightTheme, setIsLightTheme } = useTheme();
   const [openNav, setOpenNav] = React.useState(false);
-  const [isLightTheme, setIsLightTheme] = React.useState(true);
-
-  function toggleTheme() {
-    // Toggle light to dark theme and save to local storage
-    setIsLightTheme(prev => {
-      const newTheme = !prev;
-      localStorage.setItem('theme', newTheme ? 'light' : 'dark');
-      newTheme
-        ? document.documentElement.classList.remove('dark')
-        : document.documentElement.classList.add('dark');
-      return newTheme;
-    });
-  }
 
   React.useEffect(() => {
     window.addEventListener(
