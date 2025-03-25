@@ -69,7 +69,7 @@ export default function FileSidebar({
               <React.Fragment key={zone}>
                 <List.Item
                   onClick={() => toggleZone(zone)}
-                  className="cursor-pointer rounded-none py-3 hover:bg-primary-light/20"
+                  className="cursor-pointer rounded-none py-3 hover:bg-primary-light/30"
                 >
                   <List.ItemStart>
                     <Server className="h-[18px] w-[18px]" />
@@ -87,7 +87,7 @@ export default function FileSidebar({
                       <List.Item
                         key={`${zone}-${path}`}
                         onClick={() => handlePathClick(path)}
-                        className={`pl-5 rounded-none cursor-pointer hover:bg-primary-light/20 focus:bg-primary-light/20 hover:!text-foreground focus:!text-foreground ${index % 2 === 0 ? 'bg-background' : 'bg-surface-light'}`}
+                        className={`pl-5 rounded-none cursor-pointer hover:bg-primary-light/30 focus:bg-primary-light/30 hover:!text-foreground focus:!text-foreground ${index % 2 === 0 ? 'bg-background' : 'bg-surface/50'}`}
                         as={Link}
                         to="/files"
                       >

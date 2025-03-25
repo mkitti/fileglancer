@@ -75,7 +75,7 @@ export default function FileList({
             return (
               <div
                 key={file.name}
-                className={`grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 hover:bg-primary-light/20 focus:bg-primary-light/20 ${index % 2 === 0 && !isChecked && file !== selectedFile && 'bg-surface/50'} ${(isChecked || file === selectedFile) && 'bg-primary-light/20'} `}
+                className={`grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 hover:bg-primary-light/30 focus:bg-primary-light/30 ${(isChecked || file === selectedFile) && 'bg-primary-light/30'} ${index % 2 === 0 && !isChecked && file !== selectedFile && 'bg-surface/50'}  `}
                 onClick={(e: React.MouseEvent<HTMLDivElement>) =>
                   handleFileClick(e, file)
                 }
@@ -95,6 +95,7 @@ export default function FileList({
                       id={labelId}
                       checked={isChecked}
                       onChange={() => handleCheckboxToggle(file)}
+                      className="border-foreground/70 dark:shadow-white/5"
                     >
                       <Checkbox.Indicator />
                     </Checkbox>
