@@ -62,7 +62,7 @@ export default function FileSidebar({
             </Typography>
           </List.Item>
         </List>
-        <List className="bg-background">
+        <List className="bg-background overflow-y-auto">
           {Object.entries(displayPaths).map(([zone, paths], index) => {
             const isOpen = openZones[zone] || false;
             return (
