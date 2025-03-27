@@ -10,15 +10,27 @@ import Help from './components/Help';
 import Jobs from './components/Jobs';
 
 function Profile() {
-  return <h2>Profile Page</h2>;
+  return (
+    <div className="p-4">
+      <h2 className="text-foreground text-lg">Profile Page</h2>
+    </div>
+  );
 }
 
 function Login() {
-  return <h2>Login Page</h2>;
+  return (
+    <div className="p-4">
+      <h2 className="text-foreground text-lg">Login Page</h2>
+    </div>
+  );
 }
 
 function Preferences() {
-  return <h2>Preferences Page</h2>;
+  return (
+    <div className="p-4">
+      <h2 className="text-foreground text-lg">Preferences Page</h2>
+    </div>
+  );
 }
 
 function getBasename() {
@@ -53,7 +65,7 @@ const AppComponent = (): JSX.Element => {
           <Route path="help" element={<Help />} />
           <Route path="profile" element={<Profile />} />
           <Route path="preferences" element={<Preferences />} />
-          <Route element={<FilesLayout/>}>
+          <Route element={<FilesLayout />}>
             <Route path="files" element={<Files />} />
             <Route index path="*" element={<Home />} />
           </Route>

@@ -1,5 +1,9 @@
 import React from 'react';
 
 export default function Home() {
-  return <h2>Home Page</h2>;
+  return (
+    <div className="p-4">
+      <h2 className="text-foreground text-lg">Home Page</h2>
+    </div>
+  );
 }

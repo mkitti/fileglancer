@@ -27,14 +27,13 @@ export const FilesLayout = () => {
 
   return (
     <div className="flex h-full w-full">
-      <div className="w-64 h-full border-r border-gray-200 overflow-y-auto">
-        <FileSidebar
-          fileSharePaths={fileSharePaths}
-          openZones={openZones}
-          toggleZone={toggleZone}
-          handlePathClick={handlePathClick}
-        />
-      </div>
+      <FileSidebar
+        fileSharePaths={fileSharePaths}
+        openZones={openZones}
+        toggleZone={toggleZone}
+        handlePathClick={handlePathClick}
+      />
+
       <Outlet
         context={{
           files,

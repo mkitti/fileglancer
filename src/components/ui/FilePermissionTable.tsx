@@ -1,9 +1,9 @@
 import React from 'react';
-import { CheckSquare, MinusSquare } from 'iconoir-react';
+import { Check, Minus } from 'iconoir-react';
 import { File } from '../../hooks/useFileBrowser';
 
 type FileTableProps = {
-  file: File;
+  file: File | null;
 };
 
 export default function FilePermissionTable({ file }: FileTableProps) {
@@ -28,19 +28,19 @@ export default function FilePermissionTable({ file }: FileTableProps) {
     };
   };
 
-  const permissions = parsePermissions(file.permissions);
+  const permissions = file ? parsePermissions(file.permissions) : null;
 
   const PermissionIcon = ({ hasPermission }: { hasPermission: boolean }) =>
     hasPermission ? (
-      <CheckSquare className="text-green-500 h-5 w-5" />
+      <Check className="h-5 w-5" />
     ) : (
-      <MinusSquare className="text-red-500 h-5 w-5" />
+      <Minus className="h-5 w-5" />
     );
 
   return (
-    <div className="w-full overflow-hidden rounded-lg border border-gray-200 mt-4">
+    <div className="w-full overflow-hidden rounded-lg border border-surface mt-4">
       <table className="w-full">
-        <thead className="border-b border-gray-200 bg-gray-50 text-sm font-medium">
+        <thead className="border-b border-surface bg-surface-dark text-sm font-medium">
           <tr>
             <th className="px-3 py-2 text-start font-medium">
               Who can view or edit this data?
@@ -50,31 +50,47 @@ export default function FilePermissionTable({ file }: FileTableProps) {
           </tr>
         </thead>
         <tbody className="text-sm">
-          <tr className="border-b border-gray-200">
-            <td className="p-3 font-medium">Owner: {file.owner}</td>
-            <td className="p-3 text-center">
-              <PermissionIcon hasPermission={permissions.owner.read} />
+          <tr className="border-b border-surface">
+            <td className="p-3 font-medium">
+              Owner: {file ? file.owner : null}
             </td>
-            <td className="p-3 text-center">
-              <PermissionIcon hasPermission={permissions.owner.write} />
+            <td className="p-3">
+              {permissions ? (
+                <PermissionIcon hasPermission={permissions.owner.read} />
+              ) : null}
+            </td>
+            <td className="p-3">
+              {permissions ? (
+                <PermissionIcon hasPermission={permissions.owner.write} />
+              ) : null}
             </td>
           </tr>
-          <tr className="border-b border-gray-200">
-            <td className="p-3 font-medium">Group: {file.group}</td>
-            <td className="p-3 text-center">
-              <PermissionIcon hasPermission={permissions.group.read} />
+          <tr className="border-b border-surface">
+            <td className="p-3 font-medium">
+              Group: {file ? file.group : null}
             </td>
-            <td className="p-3 text-center">
-              <PermissionIcon hasPermission={permissions.group.write} />
+            <td className="p-3">
+              {permissions ? (
+                <PermissionIcon hasPermission={permissions.group.read} />
+              ) : null}
+            </td>
+            <td className="p-3">
+              {permissions ? (
+                <PermissionIcon hasPermission={permissions.group.write} />
+              ) : null}
             </td>
           </tr>
           <tr>
             <td className="p-3 font-medium">Everyone else</td>
-            <td className="p-3 text-center">
-              <PermissionIcon hasPermission={permissions.others.read} />
+            <td className="p-3">
+              {permissions ? (
+                <PermissionIcon hasPermission={permissions.others.read} />
+              ) : null}
             </td>
-            <td className="p-3 text-center">
-              <PermissionIcon hasPermission={permissions.others.write} />
+            <td className="p-3">
+              {permissions ? (
+                <PermissionIcon hasPermission={permissions.others.write} />
+              ) : null}
             </td>
           </tr>
         </tbody>

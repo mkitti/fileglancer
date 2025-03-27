@@ -1,66 +1,51 @@
 import * as React from 'react';
-import { Link } from 'react-router-dom';
-import {
-  Button,
-  Drawer,
-  IconButton,
-  Typography,
-  Popover,
-  Tabs
-} from '@material-tailwind/react';
-import { CustomCheckbox } from './CustomCheckbox';
-import { EmptyPage, Folder, InfoCircle, MoreVert, Xmark } from 'iconoir-react';
+import { Checkbox, Typography } from '@material-tailwind/react';
+import { EmptyPage, Folder } from 'iconoir-react';
+
+import FileListCrumbs from './FileListCrumbs';
 
 import { File } from '../../hooks/useFileBrowser';
 import { formatDate, formatFileSize } from '../../utils';
 
-import FileListCrumbs from './FileListCrumbs';
-import FilePermissionTable from './FilePermissionTable';
-import FileOverviewTable from './FileOverviewTable';
-
 type FileListProps = {
-  files: File[];
+  displayFiles: File[];
   currentPath: string;
   checked: string[];
   selectedZone: string | null;
   handleCheckboxToggle: (file: File) => void;
   getFiles: (path: string) => void;
+  showFileDrawer: boolean;
+  handleFileClick: (e: React.MouseEvent<HTMLDivElement>, file: File) => void;
+  selectedFile: File | null;
 };
 
-const fileOptionLinks = [
-  {
-    title: 'Rename',
-    href: '#'
-  },
-  {
-    title: 'Copy Path',
-    href: '#'
-  },
-  { title: 'Share', href: '#' },
-  { title: 'View', href: '#' }
-];
-
 export default function FileList({
-  files,
+  displayFiles,
   currentPath,
   checked,
   selectedZone,
   handleCheckboxToggle,
-  getFiles
+  getFiles,
+  showFileDrawer,
+  handleFileClick,
+  selectedFile
 }: FileListProps): JSX.Element {
-  console.log('FileList files', files);
+  console.log('Files to display in file list', displayFiles);
+
   return (
-    <div className="mx-2">
+    <div
+      className={`mx-2 transition-all duration-300 ${showFileDrawer ? 'mr-[350px]' : ''}`}
+    >
       <FileListCrumbs
         currentPath={currentPath}
         selectedZone={selectedZone}
         getFiles={getFiles}
       />
-      <div className="min-w-full bg-white">
+      <div className="min-w-full bg-background">
         {/* Header row */}
-        <div className="grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 p-0 text-gray-700">
+        <div className="grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 p-0 text-foreground">
           <div className="flex w-full gap-3 px-3 py-1">
-            <div className="w-[3.75rem] h-5"></div>
+            <div className="w-[1.25rem] h-5"></div>
             <Typography variant="small" className="font-bold">
               Name
             </Typography>
@@ -82,100 +67,39 @@ export default function FileList({
         </div>
 
         {/* File rows */}
-        {files.length > 0 &&
-          files.map((file, index) => {
+        {displayFiles.length > 0 &&
+          displayFiles.map((file, index) => {
             const labelId = `checkbox-list-label-${file.name}`;
             const isChecked = checked.includes(file.name);
 
             return (
               <div
                 key={file.name}
-                className={`grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 hover:bg-blue-100/50 ${index % 2 === 0 && !isChecked && 'bg-gray-50'} ${isChecked && 'bg-blue-100/50'} `}
+                className={`grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 hover:bg-primary-light/30 focus:bg-primary-light/30 ${(isChecked || file === selectedFile) && 'bg-primary-light/30'} ${index % 2 === 0 && !isChecked && file !== selectedFile && 'bg-surface/50'}  `}
+                onClick={(e: React.MouseEvent<HTMLDivElement>) =>
+                  handleFileClick(e, file)
+                }
+                onContextMenu={(e: React.MouseEvent<HTMLDivElement>) =>
+                  handleFileClick(e, file)
+                }
               >
                 {/* Name column */}
-                <div className="flex items-center w-full gap-3 pl-3 py-1  text-blue-500">
-                  <div
-                    className="cursor-pointer"
-                    onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                <div className="flex items-center w-full gap-3 pl-3 py-1 text-primary-light">
+                  <span
+                    className="checkbox-wrapper"
+                    onClick={(e: React.MouseEvent<HTMLSpanElement>) => {
                       e.stopPropagation();
-                      handleCheckboxToggle(file);
                     }}
                   >
-                    <CustomCheckbox id={labelId} checked={isChecked} />
-                  </div>
-                  <Drawer>
-                    <Drawer.Trigger
-                      as={IconButton}
-                      size="sm"
-                      color="secondary"
-                      variant="ghost"
-                      isCircular
+                    <Checkbox
+                      id={labelId}
+                      checked={isChecked}
+                      onChange={() => handleCheckboxToggle(file)}
+                      className="border-foreground/70 dark:shadow-white/5"
                     >
-                      <InfoCircle className="text-gray-700 h-5 w-5" />
-                    </Drawer.Trigger>
-                    <Drawer.Overlay>
-                      <Drawer.Panel>
-                        <div className="flex items-center justify-between gap-4">
-                          <Typography type="h6">Properties</Typography>
-                          <Drawer.DismissTrigger
-                            as={IconButton}
-                            size="sm"
-                            variant="ghost"
-                            color="secondary"
-                            className="absolute right-2 top-2"
-                            isCircular
-                          >
-                            <Xmark className="h-5 w-5" />
-                          </Drawer.DismissTrigger>
-                        </div>
-                        <Tabs defaultValue="overview">
-                          <Tabs.List className="w-full rounded-none border-b border-secondary-dark bg-transparent py-0">
-                            <Tabs.Trigger className="w-full" value="overview">
-                              Overview
-                            </Tabs.Trigger>
-
-                            <Tabs.Trigger
-                              className="w-full"
-                              value="permissions"
-                            >
-                              Permissions
-                            </Tabs.Trigger>
-
-                            <Tabs.Trigger className="w-full" value="convert">
-                              Convert
-                            </Tabs.Trigger>
-                            <Tabs.TriggerIndicator className="rounded-none border-b-2 border-primary bg-transparent shadow-none" />
-                          </Tabs.List>
-
-                          <Tabs.Panel value="overview">
-                            <FileOverviewTable file={file} />
-                          </Tabs.Panel>
-
-                          <Tabs.Panel
-                            value="permissions"
-                            className="flex flex-col gap-2"
-                          >
-                            <FilePermissionTable file={file} />
-                            <Button as="a" href="#" variant="outline">
-                              Change Permissions
-                            </Button>
-                          </Tabs.Panel>
-
-                          <Tabs.Panel
-                            value="convert"
-                            className="flex flex-col gap-2"
-                          >
-                            <Typography variant="small" className="font-medium">
-                              Convert data to OME-Zarr
-                            </Typography>
-                            <Button as="a" href="#" variant="outline">
-                              Submit Ticket
-                            </Button>
-                          </Tabs.Panel>
-                        </Tabs>
-                      </Drawer.Panel>
-                    </Drawer.Overlay>
-                  </Drawer>
+                      <Checkbox.Indicator />
+                    </Checkbox>
+                  </span>
 
                   <Typography
                     variant="small"
@@ -194,9 +118,9 @@ export default function FileList({
                 {/* Type column */}
                 <div className="flex items-center w-full gap-3 py-1 text-grey-700 ">
                   {file.is_dir ? (
-                    <Folder className="text-gray-700" />
+                    <Folder className="text-foreground" />
                   ) : (
-                    <EmptyPage className="text-gray-700" />
+                    <EmptyPage className="text-foreground" />
                   )}
                   <Typography variant="small" className="font-medium">
                     {file.is_dir ? 'Folder' : 'File'}
@@ -216,28 +140,6 @@ export default function FileList({
                     {file.is_dir ? '—' : formatFileSize(file.size)}
                   </Typography>
                 </div>
-
-                {/* Actions column */}
-                <Popover placement="left">
-                  <Popover.Trigger>
-                    <MoreVert />
-                  </Popover.Trigger>
-
-                  <Popover.Content>
-                    <div className="flex flex-col gap-2">
-                      {fileOptionLinks.map((link, index) => (
-                        <Typography
-                          as={Link}
-                          to={link.href}
-                          key={index}
-                          className="text-sm p-1 cursor-pointer text-blue-500 hover:bg-blue-50/50 transition-colors"
-                        >
-                          {link.title}
-                        </Typography>
-                      ))}
-                    </div>
-                  </Popover.Content>
-                </Popover>
               </div>
             );
           })}
