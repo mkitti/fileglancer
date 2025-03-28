@@ -6,10 +6,12 @@ rooted at a specific directory.
 import os
 
 from pydantic import BaseModel
-from typing import Optional, List, Generator
+from typing import Optional, Generator
 import stat
 import pwd
 import grp
+
+from fileglancer.paths import FileSharePath
 
 DEFAULT_BUFFER_SIZE = 8192
 
@@ -65,11 +67,11 @@ class Filestore:
     rooted at a specific directory.
     """
 
-    def __init__(self, root_path: str):
+    def __init__(self, root_path: FileSharePath):
         """
         Create a Filestore with the given root path.
         """
-        self.root_path = os.path.abspath(root_path)
+        self.root_path = os.path.abspath(root_path.linux_path)
 
 
     def _check_path_in_root(self, path: str) -> str:

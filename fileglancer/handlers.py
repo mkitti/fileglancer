@@ -62,11 +62,9 @@ class FileShareHandler(APIHandler):
             self.finish(json.dumps({"error": f"File share path '{actual_path}' not found"}))
             self.log.error(f"File share path '{actual_path}' not found")
             return None
-        return Filestore(fsp.linux_path)
+        return Filestore(fsp)
 
-    """
-    API handler for file access using the Filestore class
-    """
+
     @web.authenticated
     def get(self, path=""):
         """
