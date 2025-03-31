@@ -201,11 +201,11 @@ class PreferencesHandler(APIHandler):
         """
         key = self.get_argument("key", None)
         username = self.current_user.name
-        self.log.info(f"GET /api/fileglancer/preferences username={username} key={key}")
+        self.log.info(f"GET /api/fileglancer/preference username={username} key={key}")
 
         try:
             response = requests.get(
-                f"{self.settings['fileglancer'].central_url}/preferences/{username}" + 
+                f"{self.settings['fileglancer'].central_url}/preference/{username}" + 
                 (f"/{key}" if key else "")
             )
             if response.status_code == 404:
@@ -216,7 +216,7 @@ class PreferencesHandler(APIHandler):
             self.finish(response.json())
 
         except Exception as e:
-            self.log.error(f"Error getting preferences: {str(e)}")
+            self.log.error(f"Error getting preference: {str(e)}")
             self.set_status(500)
             self.finish(json.dumps({"error": str(e)}))
 
@@ -229,11 +229,11 @@ class PreferencesHandler(APIHandler):
         key = self.get_argument("key")
         username = self.current_user.name
         value = self.get_json_body()
-        self.log.info(f"PUT /api/fileglancer/preferences username={username} key={key}")
+        self.log.info(f"PUT /api/fileglancer/preference username={username} key={key}")
 
         try:
             response = requests.put(
-                f"{self.settings['fileglancer'].central_url}/preferences/{username}/{key}",
+                f"{self.settings['fileglancer'].central_url}/preference/{username}/{key}",
                 json=value
             )
             response.raise_for_status()
@@ -253,11 +253,11 @@ class PreferencesHandler(APIHandler):
         """
         key = self.get_argument("key")
         username = self.current_user.name
-        self.log.info(f"DELETE /api/fileglancer/preferences username={username} key={key}")
+        self.log.info(f"DELETE /api/fileglancer/preference username={username} key={key}")
 
         try:
             response = requests.delete(
-                f"{self.settings['fileglancer'].central_url}/preferences/{username}/{key}"
+                f"{self.settings['fileglancer'].central_url}/preference/{username}/{key}"
             )
             if response.status_code == 404:
                 self.set_status(404)
