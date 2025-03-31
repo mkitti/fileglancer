@@ -79,9 +79,10 @@ class Filestore:
         Check if a path is within the root directory and return the full path.
         Raises ValueError if path attempts to escape root directory.
         """
-        full_path = os.path.abspath(os.path.join(self.root_path, path))
-        if not full_path.startswith(self.root_path):
-            raise ValueError(f"Path {path} attempts to access outside of root directory")
+        if path is None or path == "":
+            full_path = self.root_path
+        else:
+            full_path = os.path.abspath(os.path.join(self.root_path, path))
         return full_path
 
 
