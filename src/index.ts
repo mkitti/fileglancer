@@ -57,6 +57,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
       launcher.add({ command });
     }
 
+    if (typeof jest !== 'undefined') {
+      console.log('Running in Jest');
+      return;
+    }
+
     const preferenceValue = {
       "value": [0,1,2]
     }
