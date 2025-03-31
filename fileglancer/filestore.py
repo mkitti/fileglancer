@@ -10,17 +10,20 @@ from typing import Optional, Generator
 import stat
 import pwd
 import grp
+import logging
 
 from fileglancer.paths import FileSharePath
+
+log = logging.getLogger("tornado.application")
 
 DEFAULT_BUFFER_SIZE = 8192
 
 class FileInfo(BaseModel):
     """
-    A class that represents a file or directory in the file system.
+    A class that represents a file or directory in a Filestore.
     """
     name: str
-    path: str
+    path: Optional[str] = None
     size: int
     is_dir: bool
     permissions: str
@@ -29,11 +32,11 @@ class FileInfo(BaseModel):
     last_modified: Optional[float] = None
 
     @classmethod
-    def from_stat(cls, path: str, stat_result: os.stat_result):
+    def from_stat(cls, path: str, full_path: str, stat_result: os.stat_result):
         """Create FileInfo from os.stat_result"""
         is_dir = stat.S_ISDIR(stat_result.st_mode)
         size = 0 if is_dir else stat_result.st_size
-        name = os.path.basename(path)
+        name = os.path.basename(full_path)
         permissions = stat.filemode(stat_result.st_mode)
         last_modified = stat_result.st_mtime
 
@@ -77,12 +80,22 @@ class Filestore:
     def _check_path_in_root(self, path: str) -> str:
         """
         Check if a path is within the root directory and return the full path.
-        Raises ValueError if path attempts to escape root directory.
+
+        Args:
+            path (str): The relative path to check.
+
+        Returns:
+            str: The full path to the file or directory.
+
+        Raises:
+            ValueError: If path attempts to escape root directory
         """
         if path is None or path == "":
             full_path = self.root_path
         else:
             full_path = os.path.abspath(os.path.join(self.root_path, path))
+            if not full_path.startswith(self.root_path):
+                raise ValueError(f"Path ({full_path}) attempts to escape root directory ({self.root_path})")
         return full_path
 
 
@@ -93,27 +106,29 @@ class Filestore:
         return self.root_path
     
 
-    def get_file_info(self, path: str) -> FileInfo:
+    def get_file_info(self, path: Optional[str] = None) -> FileInfo:
         """
         Get the FileInfo for a file or directory at the given path.
 
         Args:
             path (str): The relative path to the file or directory to get the FileInfo for.
+                May be None, in which case the root directory is used.
         
         Raises:
             ValueError: If path attempts to escape root directory
         """
         full_path = self._check_path_in_root(path)
         stat_result = os.stat(full_path)
-        return FileInfo.from_stat(path, stat_result)
+        return FileInfo.from_stat(path, full_path,stat_result)
     
 
-    def yield_file_infos(self, path: str) -> Generator[FileInfo, None, None]:
+    def yield_file_infos(self, path: Optional[str] = None) -> Generator[FileInfo, None, None]:
         """
         Yield a FileInfo object for each child of the given path.
 
         Args:
-            path (str): The relative path to the directory to list.
+            path (str): The relative path to the directory to list. 
+                May be None, in which case the root directory is listed.
             
         Raises:
             ValueError: If path attempts to escape root directory
@@ -125,7 +140,7 @@ class Filestore:
                 try:
                     stat_result = os.stat(entry_path)
                     rel_entry_path = os.path.relpath(entry_path, self.root_path)
-                    file_info = FileInfo.from_stat(rel_entry_path, stat_result)
+                    file_info = FileInfo.from_stat(rel_entry_path, entry_path, stat_result)
                     yield file_info
                 except (FileNotFoundError, PermissionError):
                     continue
@@ -145,6 +160,8 @@ class Filestore:
         Raises:
             ValueError: If path attempts to escape root directory
         """
+        if path is None or path == "":
+            raise ValueError("Path cannot be None or empty")
         full_path = self._check_path_in_root(path)
         with open(full_path, 'rb') as file:
             while True:
@@ -165,6 +182,10 @@ class Filestore:
         Raises:
             ValueError: If either path attempts to escape root directory
         """
+        if old_path is None or old_path == "":
+            raise ValueError("Old path cannot be None or empty")
+        if new_path is None or new_path == "":
+            raise ValueError("New path cannot be None or empty")
         full_old_path = self._check_path_in_root(old_path)
         full_new_path = self._check_path_in_root(new_path)
         os.rename(full_old_path, full_new_path)
@@ -178,8 +199,10 @@ class Filestore:
             path (str): The relative path to the file to delete.
             
         Raises:
-            ValueError: If path attempts to escape root directory
+            ValueError: If path is None or empty, or attempts to escape root directory
         """
+        if path is None or path == "":
+            raise ValueError("Path cannot be None or empty")
         full_path = self._check_path_in_root(path)
         if os.path.isdir(full_path):
             os.rmdir(full_path)
@@ -193,7 +216,12 @@ class Filestore:
 
         Args:
             path (str): The relative path to the directory to create.
+
+        Raises:
+            ValueError: If path is None or empty, or attempts to escape root directory
         """
+        if path is None or path == "":
+            raise ValueError("Path cannot be None or empty")
         full_path = self._check_path_in_root(path)
         os.mkdir(full_path)
 
@@ -204,7 +232,12 @@ class Filestore:
 
         Args:
             path (str): The relative path to the file to create.
+
+        Raises:
+            ValueError: If path is None or empty, or attempts to escape root directory
         """
+        if path is None or path == "":
+            raise ValueError("Path cannot be None or empty")
         full_path = self._check_path_in_root(path)
         open(full_path, 'w').close()
 
@@ -217,7 +250,13 @@ class Filestore:
             path (str): The relative path to the file to change the permissions of.
             permissions (str): The new permissions to set for the file.
                 Must be a string of length 10, like '-rw-r--r--'.
+        
+        Raises:
+            ValueError: If path is None or empty, or attempts to escape root directory, 
+                or permissions is not a string of length 10.
         """
+        if path is None or path == "":
+            raise ValueError("Path cannot be None or empty")
         if len(permissions) != 10:
             raise ValueError("Permissions must be a string of length 10")
         full_path = self._check_path_in_root(path)

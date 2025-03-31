@@ -1,11 +1,26 @@
-import os
 import json
 import requests
+
 from jupyter_server.base.handlers import APIHandler
 from jupyter_server.utils import url_path_join
 from tornado import web
+
 from fileglancer.filestore import Filestore
 from fileglancer.paths import get_fsp_manager
+
+
+def _get_mounted_filestore(fsp):
+    """
+    Constructs a filestore for the given file share path, checking to make sure it is mounted. 
+    If it is not mounted, returns None, otherwise returns the filestore.
+    """
+    filestore = Filestore(fsp)
+    try:
+        filestore.get_file_info(None)
+    except FileNotFoundError:
+        return None
+    return filestore
+
 
 class StreamingProxy(APIHandler):
     """
@@ -55,14 +70,26 @@ class FileShareHandler(APIHandler):
     """
 
     def _get_filestore(self, path):
-        actual_path = f"/{path}"
-        fsp = get_fsp_manager(self.settings).get_file_share_path(actual_path)
+        """
+        Get a filestore for the given path.
+        """
+        canonical_path = f"/{path}"
+        fsp = get_fsp_manager(self.settings).get_file_share_path(canonical_path)
         if fsp is None:
             self.set_status(404)
-            self.finish(json.dumps({"error": f"File share path '{actual_path}' not found"}))
-            self.log.error(f"File share path '{actual_path}' not found")
+            self.finish(json.dumps({"error": f"File share path '{canonical_path}' not found"}))
+            self.log.error(f"File share path '{canonical_path}' not found")
             return None
-        return Filestore(fsp)
+        
+        # Create a filestore for the file share path
+        filestore = _get_mounted_filestore(fsp)
+        if filestore is None:
+            self.set_status(500)
+            self.finish(json.dumps({"error": f"File share path '{canonical_path}' is not mounted"}))
+            self.log.error(f"File share path '{canonical_path}' is not mounted")
+            return None
+
+        return filestore
 
 
     @web.authenticated
@@ -73,16 +100,22 @@ class FileShareHandler(APIHandler):
         subpath = self.get_argument("subpath", '')
         self.log.info(f"GET /api/fileglancer/files/{path} subpath={subpath}")
 
+        
         filestore = self._get_filestore(path)
         if filestore is None:
+            self.log.info("WTFFFFFFFFFF2"+path)
             return
+        
         
         try:
             # Check if subpath is a directory by getting file info
             file_info = filestore.get_file_info(subpath)
+            self.log.info(f"File info: {file_info}")
             
             if file_info.is_dir:
                 # Write JSON response, streaming the files one by one
+                self.set_status(200)
+                self.set_header('Content-Type', 'application/json')
                 self.write("{\n")
                 self.write("\"files\": [\n")
                 for i, file in enumerate(filestore.yield_file_infos(subpath)):
@@ -93,6 +126,7 @@ class FileShareHandler(APIHandler):
                 self.write("}\n")
             else:
                 # Stream file contents
+                self.set_status(200)
                 self.set_header('Content-Type', 'application/octet-stream')
                 self.set_header('Content-Disposition', f'attachment; filename="{file_info.name}"')
                 
@@ -101,6 +135,7 @@ class FileShareHandler(APIHandler):
                 self.finish()
                 
         except FileNotFoundError:
+            self.log.error(f"File or directory not found: {subpath}")
             self.set_status(404)
             self.finish(json.dumps({"error": "File or directory not found"}))
         except PermissionError:

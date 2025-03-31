@@ -3,10 +3,12 @@ import json
 
 async def test_get_files(jp_fetch):
     # When
-    response = await jp_fetch("api", "fileglancer", "files", "local")
+    path = "api/fileglancer/files/local"
+    response = await jp_fetch(path)
 
     # Then
     assert response.code == 200
+    assert response.body != b""
     payload = json.loads(response.body)
     assert isinstance(payload, dict)
     assert "files" in payload
