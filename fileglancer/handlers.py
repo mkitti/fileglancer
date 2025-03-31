@@ -189,6 +189,89 @@ class FileShareHandler(APIHandler):
         self.finish()
 
 
+class PreferencesHandler(APIHandler):
+    """
+    Handler for user preferences API endpoints.
+    """
+
+    @web.authenticated
+    def get(self):
+        """
+        Get all preferences or a specific preference for the current user.
+        """
+        key = self.get_argument("key", None)
+        username = self.current_user.name
+        self.log.info(f"GET /api/fileglancer/preferences username={username} key={key}")
+
+        try:
+            response = requests.get(
+                f"{self.settings['fileglancer'].central_url}/preferences/{username}" + 
+                (f"/{key}" if key else "")
+            )
+            if response.status_code == 404:
+                self.set_status(404)
+                self.finish(response.content)
+                return
+            response.raise_for_status()
+            self.finish(response.json())
+
+        except Exception as e:
+            self.log.error(f"Error getting preferences: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
+    @web.authenticated
+    def put(self):
+        """
+        Set a preference for the current user.
+        """
+        key = self.get_argument("key")
+        username = self.current_user.name
+        value = self.get_json_body()
+        self.log.info(f"PUT /api/fileglancer/preferences username={username} key={key}")
+
+        try:
+            response = requests.put(
+                f"{self.settings['fileglancer'].central_url}/preferences/{username}/{key}",
+                json=value
+            )
+            response.raise_for_status()
+            self.set_status(204)
+            self.finish()
+
+        except Exception as e:
+            self.log.error(f"Error setting preference: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"z": str(e)}))
+
+    @web.authenticated
+    def delete(self):
+        """
+        Delete a preference for the current user.
+        """
+        key = self.get_argument("key")
+        username = self.current_user.name
+        self.log.info(f"DELETE /api/fileglancer/preferences username={username} key={key}")
+
+        try:
+            response = requests.delete(
+                f"{self.settings['fileglancer'].central_url}/preferences/{username}/{key}"
+            )
+            if response.status_code == 404:
+                self.set_status(404)
+                self.finish(json.dumps({"error": "Preference not found"}))
+                return
+            response.raise_for_status()
+            self.set_status(204)
+            self.finish()
+
+        except Exception as e:
+            self.log.error(f"Error deleting preference: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
+
+
 def setup_handlers(web_app):
     """ 
     Setup the URL handlers for the Fileglancer extension
