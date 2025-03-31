@@ -57,32 +57,76 @@ const plugin: JupyterFrontEndPlugin<void> = {
       launcher.add({ command });
     }
 
-    requestAPI<any>('file-share-paths')
+    const preferenceValue = {
+      "value": [0,1,2]
+    }
+
+    const requestInit: RequestInit = {
+      method: 'PUT',
+      body: JSON.stringify(preferenceValue),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+
+    requestAPI<any>('preference?key=my_preference', requestInit)
       .then(data => {
-        console.log('DEMO File share paths:');
-        console.log(data);
+        console.log('Set preference my_preference');
       })
       .catch(reason => {
-        console.error(`Problem calling file-share-paths API:\n${reason}`);
+        console.error(`Problem calling set preference API:\n${reason}`);
       });
 
-    requestAPI<any>('files/local')
+    requestAPI<any>('preference?key=my_preference')
       .then(data => {
-        console.log('DEMO File listing /local:');
+        console.log('Retrieved preference my_preference:');
         console.log(data);
       })
       .catch(reason => {
-        console.error(`Problem getting file listing:\n${reason}`);
+        console.error(`Problem calling get preference API:\n${reason}`);
       });
 
-    requestAPI<any>('files/local?subpath=src')
+
+    const ticketValue = {
+      "project_key": "FT",
+      "issue_type": "Service Request",
+      "summary": "Test ticket",
+      "description": "This is a test ticket"
+    }
+
+    const ticketRequestInit: RequestInit = {
+      method: 'POST',
+      body: JSON.stringify(ticketValue),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+
+    requestAPI<any>('ticket', ticketRequestInit)
       .then(data => {
-        console.log('DEMO File listing /local/src:');
-        console.log(data);
-      })
-      .catch(reason => {
-        console.error(`Problem getting file listing:\n${reason}`);
+        const ticketKey = data;
+        console.log('Created ticket '+ticketKey);
+
+        requestAPI<any>('ticket?ticket_key='+ticketKey)
+        .then(data => {
+          console.log('Retrieved ticket:');
+          console.log(data);
+
+          const deleteTicketRequestInit: RequestInit = {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          };
+
+          requestAPI<any>('ticket?ticket_key='+ticketKey, deleteTicketRequestInit)
+            .then(data => {
+              console.log('Deleted ticket: '+ticketKey);
+            });
+            
+        }); 
       });
+
   }
 };
 
