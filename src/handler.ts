@@ -45,3 +45,51 @@ export async function requestAPI<T>(
 
   return data;
 }
+
+/**
+ * Make a PUT request to the API extension
+ * 
+ * @param endPoint API REST end point for the extension
+ * @param body The body of the PUT request
+ * @param init Additional initial values for the request
+ * @returns The response body interpreted as JSON
+ */
+export async function putAPI<T>(
+  endPoint = '',
+  body: any,
+  init: RequestInit = {}
+): Promise<T> {
+  // Merge the body and method into the init object
+  const requestInit: RequestInit = {
+    ...init,
+    method: 'PUT',
+    body: JSON.stringify(body),
+    headers: {
+      ...init.headers,
+      'Content-Type': 'application/json'
+    }
+  };
+
+  return await requestAPI<T>(endPoint, requestInit);
+}
+
+/**
+ * Make a DELETE request to the API extension
+ * 
+ * @param endPoint API REST end point for the extension
+ * @param init Additional initial values for the request 
+ * @returns The response body interpreted as JSON
+ */
+export async function deleteAPI<T>(
+  endPoint = '',
+  init: RequestInit = {}
+): Promise<T> {
+  // Set the method to DELETE in the init object
+  const requestInit: RequestInit = {
+    ...init,
+    method: 'DELETE'
+  };
+
+  return await requestAPI<T>(endPoint, requestInit);
+}
+

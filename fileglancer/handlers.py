@@ -1,11 +1,26 @@
-import os
 import json
 import requests
+
 from jupyter_server.base.handlers import APIHandler
 from jupyter_server.utils import url_path_join
 from tornado import web
+
 from fileglancer.filestore import Filestore
 from fileglancer.paths import get_fsp_manager
+
+
+def _get_mounted_filestore(fsp):
+    """
+    Constructs a filestore for the given file share path, checking to make sure it is mounted. 
+    If it is not mounted, returns None, otherwise returns the filestore.
+    """
+    filestore = Filestore(fsp)
+    try:
+        filestore.get_file_info(None)
+    except FileNotFoundError:
+        return None
+    return filestore
+
 
 class StreamingProxy(APIHandler):
     """
@@ -55,18 +70,28 @@ class FileShareHandler(APIHandler):
     """
 
     def _get_filestore(self, path):
-        actual_path = f"/{path}"
-        fsp = get_fsp_manager(self.settings).get_file_share_path(actual_path)
+        """
+        Get a filestore for the given path.
+        """
+        canonical_path = f"/{path}"
+        fsp = get_fsp_manager(self.settings).get_file_share_path(canonical_path)
         if fsp is None:
             self.set_status(404)
-            self.finish(json.dumps({"error": f"File share path '{actual_path}' not found"}))
-            self.log.error(f"File share path '{actual_path}' not found")
+            self.finish(json.dumps({"error": f"File share path '{canonical_path}' not found"}))
+            self.log.error(f"File share path '{canonical_path}' not found")
             return None
-        return Filestore(fsp.linux_path)
+        
+        # Create a filestore for the file share path
+        filestore = _get_mounted_filestore(fsp)
+        if filestore is None:
+            self.set_status(500)
+            self.finish(json.dumps({"error": f"File share path '{canonical_path}' is not mounted"}))
+            self.log.error(f"File share path '{canonical_path}' is not mounted")
+            return None
 
-    """
-    API handler for file access using the Filestore class
-    """
+        return filestore
+
+
     @web.authenticated
     def get(self, path=""):
         """
@@ -75,16 +100,22 @@ class FileShareHandler(APIHandler):
         subpath = self.get_argument("subpath", '')
         self.log.info(f"GET /api/fileglancer/files/{path} subpath={subpath}")
 
+        
         filestore = self._get_filestore(path)
         if filestore is None:
+            self.log.info("WTFFFFFFFFFF2"+path)
             return
+        
         
         try:
             # Check if subpath is a directory by getting file info
             file_info = filestore.get_file_info(subpath)
+            self.log.info(f"File info: {file_info}")
             
             if file_info.is_dir:
                 # Write JSON response, streaming the files one by one
+                self.set_status(200)
+                self.set_header('Content-Type', 'application/json')
                 self.write("{\n")
                 self.write("\"files\": [\n")
                 for i, file in enumerate(filestore.yield_file_infos(subpath)):
@@ -95,6 +126,7 @@ class FileShareHandler(APIHandler):
                 self.write("}\n")
             else:
                 # Stream file contents
+                self.set_status(200)
                 self.set_header('Content-Type', 'application/octet-stream')
                 self.set_header('Content-Disposition', f'attachment; filename="{file_info.name}"')
                 
@@ -103,6 +135,7 @@ class FileShareHandler(APIHandler):
                 self.finish()
                 
         except FileNotFoundError:
+            self.log.error(f"File or directory not found: {subpath}")
             self.set_status(404)
             self.finish(json.dumps({"error": "File or directory not found"}))
         except PermissionError:
@@ -191,6 +224,162 @@ class FileShareHandler(APIHandler):
         self.finish()
 
 
+class PreferencesHandler(APIHandler):
+    """
+    Handler for user preferences API endpoints.
+    """
+
+    @web.authenticated
+    def get(self):
+        """
+        Get all preferences or a specific preference for the current user.
+        """
+        key = self.get_argument("key", None)
+        username = self.current_user.name
+        self.log.info(f"GET /api/fileglancer/preference username={username} key={key}")
+
+        try:
+            response = requests.get(
+                f"{self.settings['fileglancer'].central_url}/preference/{username}" + 
+                (f"/{key}" if key else "")
+            )
+            if response.status_code == 404:
+                self.set_status(404)
+                self.finish(response.content)
+                return
+            response.raise_for_status()
+            self.finish(response.json())
+
+        except Exception as e:
+            self.log.error(f"Error getting preference: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
+
+    @web.authenticated
+    def put(self):
+        """
+        Set a preference for the current user.
+        """
+        key = self.get_argument("key")
+        username = self.current_user.name
+        value = self.get_json_body()
+        self.log.info(f"PUT /api/fileglancer/preference username={username} key={key}")
+
+        try:
+            response = requests.put(
+                f"{self.settings['fileglancer'].central_url}/preference/{username}/{key}",
+                json=value
+            )
+            response.raise_for_status()
+            self.set_status(204)
+            self.finish()
+
+        except Exception as e:
+            self.log.error(f"Error setting preference: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"z": str(e)}))
+
+
+    @web.authenticated
+    def delete(self):
+        """
+        Delete a preference for the current user.
+        """
+        key = self.get_argument("key")
+        username = self.current_user.name
+        self.log.info(f"DELETE /api/fileglancer/preference username={username} key={key}")
+
+        try:
+            response = requests.delete(
+                f"{self.settings['fileglancer'].central_url}/preference/{username}/{key}"
+            )
+            if response.status_code == 404:
+                self.set_status(404)
+                self.finish(json.dumps({"error": "Preference not found"}))
+                return
+            response.raise_for_status()
+            self.set_status(204)
+            self.finish()
+
+        except Exception as e:
+            self.log.error(f"Error deleting preference: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
+
+class TicketHandler(APIHandler):
+    """
+    API handler for ticket operations
+    """
+    @web.authenticated
+    def post(self):
+        """Create a new ticket"""
+        try:
+            data = self.get_json_body()
+            response = requests.post(
+                f"{self.settings['fileglancer'].central_url}/ticket",
+                params={
+                    "project_key": data["project_key"],
+                    "issue_type": data["issue_type"],
+                    "summary": data["summary"], 
+                    "description": data["description"]
+                }
+            )
+            response.raise_for_status()
+            self.set_status(200)
+            self.finish(response.text)
+
+        except Exception as e:
+            self.log.error(f"Error creating ticket: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
+
+    @web.authenticated
+    def get(self):
+        """Get ticket details"""
+        ticket_key = self.get_argument("ticket_key")
+        try:
+            response = requests.get(
+                f"{self.settings['fileglancer'].central_url}/ticket/{ticket_key}"
+            )
+            if response.status_code == 404:
+                self.set_status(404)
+                self.finish(json.dumps({"error": "Ticket not found"}))
+                return
+            response.raise_for_status()
+            self.set_status(200)
+            self.finish(response.text)
+
+        except Exception as e:
+            self.log.error(f"Error getting ticket: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
+
+    @web.authenticated
+    def delete(self):
+        """Delete a ticket"""
+        ticket_key = self.get_argument("ticket_key")
+        try:
+            response = requests.delete(
+                f"{self.settings['fileglancer'].central_url}/ticket/{ticket_key}"
+            )
+            if response.status_code == 404:
+                self.set_status(404)
+                self.finish(json.dumps({"error": "Ticket not found"}))
+                return
+            response.raise_for_status()
+            self.set_status(204)
+            self.finish()
+
+        except Exception as e:
+            self.log.error(f"Error deleting ticket: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
+
 def setup_handlers(web_app):
     """ 
     Setup the URL handlers for the Fileglancer extension
@@ -200,5 +389,7 @@ def setup_handlers(web_app):
         (url_path_join(base_url, "api", "fileglancer", "file-share-paths"), FileSharePathsHandler),
         (url_path_join(base_url, "api", "fileglancer", "files", "(.*)"), FileShareHandler),
         (url_path_join(base_url, "api", "fileglancer", "files"), FileShareHandler),
+        (url_path_join(base_url, "api", "fileglancer", "preference"), PreferencesHandler),
+        (url_path_join(base_url, "api", "fileglancer", "ticket"), TicketHandler),
     ]
     web_app.add_handlers(".*$", handlers)

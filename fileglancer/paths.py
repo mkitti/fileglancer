@@ -90,7 +90,7 @@ class FileSharePathManager:
         return self._file_share_paths
     
 
-    def get_file_share_path(self, canonical_path: str) -> FileSharePath:
+    def get_file_share_path(self, canonical_path: str) -> Optional[FileSharePath]:
         """Lookup a file share path by its canonical path."""
         for fsp in self._file_share_paths:
             if canonical_path == fsp.canonical_path:

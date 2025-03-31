@@ -4,7 +4,7 @@ import pytest
 import tempfile
 import shutil
 from fileglancer.filestore import Filestore, FileInfo
-
+from fileglancer.paths import FileSharePath
 
 @pytest.fixture
 def test_dir():
@@ -34,11 +34,29 @@ def test_dir():
 
 @pytest.fixture
 def filestore(test_dir):
-    return Filestore(test_dir)
+    file_share_path = FileSharePath(zone="test", canonical_path="/test", linux_path=test_dir)
+    return Filestore(file_share_path)
+
+
+def test_unmounted_filestore():
+    test_dir = "/not/a/real/path"
+    file_share_path = FileSharePath(zone="test", canonical_path="/test", linux_path=test_dir)
+    filestore = Filestore(file_share_path)
+    with pytest.raises(FileNotFoundError):
+        filestore.get_file_info(None)
 
 
 def test_get_root_path(filestore, test_dir):
     assert filestore.get_root_path() == test_dir
+
+
+def test_get_root_info(filestore, test_dir):
+    file_info = filestore.get_file_info(None)
+    assert file_info is not None
+    assert file_info.name == os.path.basename(test_dir)
+    assert file_info.path == None
+    assert file_info.size == 0
+    assert file_info.is_dir
 
 
 def test_yield_file_infos(filestore, test_dir):
@@ -105,7 +123,7 @@ def test_remove_file_or_dir(filestore, test_dir):
     assert not os.path.exists(os.path.join(test_dir, "empty_dir"))
 
 
-def test_prevent_chroot_escape(filestore, test_dir):
+def test_prevent_chroot_escape(filestore):
     # Try to access file outside root using ..
     with pytest.raises(ValueError):
         filestore.get_file_info("../outside.txt")
