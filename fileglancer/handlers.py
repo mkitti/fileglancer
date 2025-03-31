@@ -220,6 +220,7 @@ class PreferencesHandler(APIHandler):
             self.set_status(500)
             self.finish(json.dumps({"error": str(e)}))
 
+
     @web.authenticated
     def put(self):
         """
@@ -243,6 +244,7 @@ class PreferencesHandler(APIHandler):
             self.log.error(f"Error setting preference: {str(e)}")
             self.set_status(500)
             self.finish(json.dumps({"z": str(e)}))
+
 
     @web.authenticated
     def delete(self):
@@ -271,6 +273,77 @@ class PreferencesHandler(APIHandler):
             self.finish(json.dumps({"error": str(e)}))
 
 
+class TicketHandler(APIHandler):
+    """
+    API handler for ticket operations
+    """
+    @web.authenticated
+    def post(self):
+        """Create a new ticket"""
+        try:
+            data = self.get_json_body()
+            response = requests.post(
+                f"{self.settings['fileglancer'].central_url}/ticket",
+                params={
+                    "project_key": data["project_key"],
+                    "issue_type": data["issue_type"],
+                    "summary": data["summary"], 
+                    "description": data["description"]
+                }
+            )
+            response.raise_for_status()
+            self.set_status(200)
+            self.finish(response.text)
+
+        except Exception as e:
+            self.log.error(f"Error creating ticket: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
+
+    @web.authenticated
+    def get(self):
+        """Get ticket details"""
+        ticket_key = self.get_argument("ticket_key")
+        try:
+            response = requests.get(
+                f"{self.settings['fileglancer'].central_url}/ticket/{ticket_key}"
+            )
+            if response.status_code == 404:
+                self.set_status(404)
+                self.finish(json.dumps({"error": "Ticket not found"}))
+                return
+            response.raise_for_status()
+            self.set_status(200)
+            self.finish(response.text)
+
+        except Exception as e:
+            self.log.error(f"Error getting ticket: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
+
+    @web.authenticated
+    def delete(self):
+        """Delete a ticket"""
+        ticket_key = self.get_argument("ticket_key")
+        try:
+            response = requests.delete(
+                f"{self.settings['fileglancer'].central_url}/ticket/{ticket_key}"
+            )
+            if response.status_code == 404:
+                self.set_status(404)
+                self.finish(json.dumps({"error": "Ticket not found"}))
+                return
+            response.raise_for_status()
+            self.set_status(204)
+            self.finish()
+
+        except Exception as e:
+            self.log.error(f"Error deleting ticket: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
 
 def setup_handlers(web_app):
     """ 
@@ -281,5 +354,7 @@ def setup_handlers(web_app):
         (url_path_join(base_url, "api", "fileglancer", "file-share-paths"), FileSharePathsHandler),
         (url_path_join(base_url, "api", "fileglancer", "files", "(.*)"), FileShareHandler),
         (url_path_join(base_url, "api", "fileglancer", "files"), FileShareHandler),
+        (url_path_join(base_url, "api", "fileglancer", "preference"), PreferencesHandler),
+        (url_path_join(base_url, "api", "fileglancer", "ticket"), TicketHandler),
     ]
     web_app.add_handlers(".*$", handlers)
