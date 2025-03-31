@@ -57,9 +57,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       launcher.add({ command });
     }
 
-    const isRunningInJest: boolean = typeof process !== 'undefined' && process.env.JEST_WORKER_ID !== undefined;
-    if (isRunningInJest) {
-      console.log('Running in Jest');
+    if (navigator.webdriver) {
+      console.log('Running in test mode, skipping demos.');
       return;
     }
 
