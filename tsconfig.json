@@ -18,7 +18,8 @@
     "strict": true,
     "strictNullChecks": true,
     "target": "ES2018",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "isolatedModules": true
   },
   "include": ["src"],
   "exclude": ["tailwind.config.ts"]

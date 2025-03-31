@@ -29,7 +29,6 @@ module.exports = {
     '^.+\\.(ts|tsx)$': [
       'ts-jest',
       {
-        isolatedModules: true,
         tsconfig: {
           // Override the tsconfig just for testing
           outDir: './dist-test'
