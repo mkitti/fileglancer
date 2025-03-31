@@ -57,7 +57,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       launcher.add({ command });
     }
 
-    if (typeof jest !== 'undefined') {
+    const isRunningInJest: boolean = typeof process !== 'undefined' && process.env.JEST_WORKER_ID !== undefined;
+    if (isRunningInJest) {
       console.log('Running in Jest');
       return;
     }
