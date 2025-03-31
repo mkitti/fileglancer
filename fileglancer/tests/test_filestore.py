@@ -4,7 +4,7 @@ import pytest
 import tempfile
 import shutil
 from fileglancer.filestore import Filestore, FileInfo
-
+from fileglancer.paths import FileSharePath
 
 @pytest.fixture
 def test_dir():
@@ -34,7 +34,8 @@ def test_dir():
 
 @pytest.fixture
 def filestore(test_dir):
-    return Filestore(test_dir)
+    file_share_path = FileSharePath(zone="test", canonical_path="/test", linux_path=test_dir)
+    return Filestore(file_share_path)
 
 
 def test_get_root_path(filestore, test_dir):
