@@ -73,20 +73,20 @@ class FileShareHandler(APIHandler):
         """
         Get a filestore for the given path.
         """
-        canonical_path = f"/{path}"
-        fsp = get_fsp_manager(self.settings).get_file_share_path(canonical_path)
+        filestore_path = f"/{path}"
+        fsp = get_fsp_manager(self.settings).get_file_share_path(filestore_path)
         if fsp is None:
             self.set_status(404)
-            self.finish(json.dumps({"error": f"File share path '{canonical_path}' not found"}))
-            self.log.error(f"File share path '{canonical_path}' not found")
+            self.finish(json.dumps({"error": f"File share path '{filestore_path}' not found"}))
+            self.log.error(f"File share path '{filestore_path}' not found")
             return None
         
         # Create a filestore for the file share path
         filestore = _get_mounted_filestore(fsp)
         if filestore is None:
             self.set_status(500)
-            self.finish(json.dumps({"error": f"File share path '{canonical_path}' is not mounted"}))
-            self.log.error(f"File share path '{canonical_path}' is not mounted")
+            self.finish(json.dumps({"error": f"File share path '{filestore_path}' is not mounted"}))
+            self.log.error(f"File share path '{filestore_path}' is not mounted")
             return None
 
         return filestore

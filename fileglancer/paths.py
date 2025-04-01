@@ -12,11 +12,11 @@ log = logging.getLogger("tornado.application")
 # TODO: consider extracting this to a shared library
 class FileSharePath(BaseModel):
     """A file share path from the database"""
+    name: str = Field(
+        description="The name of the file share, which uniquely identifies the file share."
+    )
     zone: str = Field(
         description="The zone of the file share, for grouping paths in the UI."
-    )
-    canonical_path: str = Field(
-        description="The canonical path to the file share, which uniquely identifies the file share."
     )
     group: Optional[str] = Field(
         description="The group that owns the file share",
@@ -25,6 +25,9 @@ class FileSharePath(BaseModel):
     storage: Optional[str] = Field(
         description="The storage type of the file share (home, primary, scratch, etc.)",
         default=None
+    )
+    mount_path: str = Field(
+        description="The path where the file share is mounted on the local machine"
     )
     mac_path: Optional[str] = Field(
         description="The path used to mount the file share on Mac (e.g. smb://server/share)",
@@ -63,10 +66,10 @@ class FileSharePathManager:
             self._file_share_paths = [
                 FileSharePath(
                     zone="Local",
-                    canonical_path="/local",
+                    name="local",
                     group="local",
                     storage="home",
-                    linux_path=root_dir_expanded
+                    mount_path=root_dir_expanded,
                 )
             ]
             n = len(self._file_share_paths)
@@ -90,10 +93,10 @@ class FileSharePathManager:
         return self._file_share_paths
     
 
-    def get_file_share_path(self, canonical_path: str) -> Optional[FileSharePath]:
+    def get_file_share_path(self, name: str) -> Optional[FileSharePath]:
         """Lookup a file share path by its canonical path."""
         for fsp in self._file_share_paths:
-            if canonical_path == fsp.canonical_path:
+            if name == fsp.name:
                 return fsp
         return None
 

@@ -10,7 +10,7 @@ import tornado.gen
 
 
 TEST_SERVER_PORT = 18788
-TEST_MESSAGE = {"paths": [{"zone": "local", "canonical_path": "/local", "linux_path": "/"}]}
+TEST_MESSAGE = {"paths": [{"zone": "local", "name": "local", "mount_path": "/"}]}
 
 
 @pytest.fixture
@@ -55,7 +55,7 @@ async def test_get_file_share_paths(jp_fetch):
         assert response.code == 200
         rj = json.loads(response.body)
         assert rj["paths"][0]["zone"] == TEST_MESSAGE["paths"][0]["zone"]
-        assert rj["paths"][0]["canonical_path"] == TEST_MESSAGE["paths"][0]["canonical_path"]
+        assert rj["paths"][0]["name"] == TEST_MESSAGE["paths"][0]["name"]
 
     finally:
         # Stop the mock HTTP server

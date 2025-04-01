@@ -14,10 +14,11 @@ export type File = {
 
 export type FileSharePathItem = {
   zone: string;
+  name: string;
   group: string;
   storage: string;
+  mount_path: string;
   linux_path: string;
-  canonical_path: string;
   mac_path: string | null;
   windows_path: string | null;
 };
@@ -142,8 +143,12 @@ export default function useFileBrowser() {
           unsortedPaths[item.zone] = [];
         }
 
-        if (!unsortedPaths[item.zone].includes(item.canonical_path)) {
-          unsortedPaths[item.zone].push(item.canonical_path);
+        // TODO: use the user's preferred address for the path 
+        //      (mac_path, windows_path, linux_path)
+        const item_name = item.linux_path;
+
+        if (!unsortedPaths[item.zone].includes(item_name)) {
+          unsortedPaths[item.zone].push(item_name);
         }
       });
 
