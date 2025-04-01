@@ -63,7 +63,7 @@ export default function FileSidebar({
           </List.Item>
         </List>
         <List className="bg-background overflow-y-auto">
-          {Object.entries(displayPaths).map(([zone, paths], index) => {
+          {Object.entries(displayPaths).map(([zone, pathItems], index) => {
             const isOpen = openZones[zone] || false;
             return (
               <React.Fragment key={zone}>
@@ -83,18 +83,24 @@ export default function FileSidebar({
                 </List.Item>
                 <Collapse open={isOpen}>
                   <List className="bg-background">
-                    {paths.map((path: string, index) => (
+                    {pathItems.map((pathItem, pathIndex) => (
                       <List.Item
-                        key={`${zone}-${path}`}
-                        onClick={() => handlePathClick(path)}
-                        className={`pl-5 rounded-none cursor-pointer hover:bg-primary-light/30 focus:bg-primary-light/30 hover:!text-foreground focus:!text-foreground ${index % 2 === 0 ? 'bg-surface/50' : 'bg-background'}`}
+                        key={`${zone}-${pathItem.name}`}
+                        onClick={() => handlePathClick(pathItem.name)}
+                        className={`pl-5 rounded-none cursor-pointer hover:bg-primary-light/30 focus:bg-primary-light/30 hover:!text-foreground focus:!text-foreground ${pathIndex % 2 === 0 ? 'bg-surface/50' : 'bg-background'}`}
                         as={Link}
                         to="/files"
                       >
                         <List.ItemStart>
                           <Folder className="h-[18px] w-[18px]" />
                         </List.ItemStart>
-                        {path}
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">{pathItem.storage}</span>
+                          <span className="text-xs text-gray-500">{
+                            /* TODO: use the user's preferred address for the path 
+                            (mac_path, windows_path, linux_path) */
+                            pathItem.linux_path}</span>
+                        </div>
                       </List.Item>
                     ))}
                   </List>

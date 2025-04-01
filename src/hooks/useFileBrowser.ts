@@ -23,7 +23,7 @@ export type FileSharePathItem = {
   windows_path: string | null;
 };
 
-export type FileSharePaths = Record<string, string[]>;
+export type FileSharePaths = Record<string, FileSharePathItem[]>;
 
 export default function useFileBrowser() {
   const [checked, setChecked] = React.useState<string[]>([]);
@@ -133,9 +133,7 @@ export default function useFileBrowser() {
         throw new Error(`Response status: ${response.status}`);
       }
 
-      const rawData: Record<string, FileSharePathItem[]> =
-        await response.json();
-
+      const rawData: { paths: FileSharePathItem[] } = await response.json();
       const unsortedPaths: FileSharePaths = {};
 
       rawData.paths.forEach(item => {
@@ -143,18 +141,15 @@ export default function useFileBrowser() {
           unsortedPaths[item.zone] = [];
         }
 
-        // TODO: use the user's preferred address for the path 
-        //      (mac_path, windows_path, linux_path)
-        const item_name = item.linux_path;
-
-        if (!unsortedPaths[item.zone].includes(item_name)) {
-          unsortedPaths[item.zone].push(item_name);
+        // Store the entire FileSharePathItem object instead of just a string path
+        if (!unsortedPaths[item.zone].some(existingItem => existingItem.name === item.name)) {
+          unsortedPaths[item.zone].push(item);
         }
       });
 
-      // Sort the linux_paths for each zone alphabetically
+      // Sort the items within each zone alphabetically by name
       Object.keys(unsortedPaths).forEach(zone => {
-        unsortedPaths[zone].sort();
+        unsortedPaths[zone].sort((a, b) => a.name.localeCompare(b.name));
       });
 
       // Create a new object with alphabetically sorted zone keys

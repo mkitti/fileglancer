@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileSharePaths } from './useFileBrowser';
+import { FileSharePaths, FileSharePathItem } from './useFileBrowser';
 
 export default function useZoneFilter() {
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -17,16 +17,17 @@ export default function useZoneFilter() {
       const query = searchQuery.toLowerCase();
       const filteredPaths: FileSharePaths = {};
 
-      Object.entries(fileSharePaths).forEach(([zone, paths]) => {
+      Object.entries(fileSharePaths).forEach(([zone, pathItems]) => {
         const zoneMatches = zone.toLowerCase().includes(query);
-        const matchingPaths = paths.filter(path =>
-          path.toLowerCase().includes(query)
+        const matchingPathItems = pathItems.filter((pathItem: FileSharePathItem) =>
+          pathItem.name.toLowerCase().includes(query) || 
+          pathItem.linux_path.toLowerCase().includes(query)
         );
 
         if (zoneMatches) {
-          filteredPaths[zone] = paths;
-        } else if (matchingPaths.length > 0) {
-          filteredPaths[zone] = matchingPaths;
+          filteredPaths[zone] = pathItems;
+        } else if (matchingPathItems.length > 0) {
+          filteredPaths[zone] = matchingPathItems;
         }
       });
 
