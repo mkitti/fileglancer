@@ -69,24 +69,23 @@ class FileShareHandler(APIHandler):
     API handler for file access using the Filestore class
     """
 
-    def _get_filestore(self, path):
+    def _get_filestore(self, path_name):
         """
         Get a filestore for the given path.
         """
-        filestore_path = f"/{path}"
-        fsp = get_fsp_manager(self.settings).get_file_share_path(filestore_path)
+        fsp = get_fsp_manager(self.settings).get_file_share_path(path_name)
         if fsp is None:
             self.set_status(404)
-            self.finish(json.dumps({"error": f"File share path '{filestore_path}' not found"}))
-            self.log.error(f"File share path '{filestore_path}' not found")
+            self.finish(json.dumps({"error": f"File share path '{path_name}' not found"}))
+            self.log.error(f"File share path '{path_name}' not found")
             return None
         
         # Create a filestore for the file share path
         filestore = _get_mounted_filestore(fsp)
         if filestore is None:
             self.set_status(500)
-            self.finish(json.dumps({"error": f"File share path '{filestore_path}' is not mounted"}))
-            self.log.error(f"File share path '{filestore_path}' is not mounted")
+            self.finish(json.dumps({"error": f"File share path '{path_name}' is not mounted"}))
+            self.log.error(f"File share path '{path_name}' is not mounted")
             return None
 
         return filestore
