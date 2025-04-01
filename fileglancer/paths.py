@@ -12,11 +12,11 @@ log = logging.getLogger("tornado.application")
 # TODO: consider extracting this to a shared library
 class FileSharePath(BaseModel):
     """A file share path from the database"""
+    name: str = Field(
+        description="The name of the file share, which uniquely identifies the file share."
+    )
     zone: str = Field(
         description="The zone of the file share, for grouping paths in the UI."
-    )
-    canonical_path: str = Field(
-        description="The canonical path to the file share, which uniquely identifies the file share."
     )
     group: Optional[str] = Field(
         description="The group that owns the file share",
@@ -25,6 +25,9 @@ class FileSharePath(BaseModel):
     storage: Optional[str] = Field(
         description="The storage type of the file share (home, primary, scratch, etc.)",
         default=None
+    )
+    mount_path: str = Field(
+        description="The path where the file share is mounted on the local machine"
     )
     mac_path: Optional[str] = Field(
         description="The path used to mount the file share on Mac (e.g. smb://server/share)",
@@ -47,7 +50,7 @@ class FileSharePathManager:
     It is used to get the file share paths from the central server and to cache them for a short time.
     """
     
-    def __init__(self, central_url: str, jupyter_root_dir: str):
+    def __init__(self, central_url: str, dev_mode: bool, jupyter_root_dir: str):
         """Initialize the file share path manager."""
         self.central_url = central_url
         if self.central_url:
@@ -57,20 +60,58 @@ class FileSharePathManager:
             n = len(self.get_file_share_paths())
             log.info(f"Configured {n} file share paths")
         else:
-            log.warning("Central URL is not set, using local file share config")
             root_dir_expanded = os.path.abspath(os.path.expanduser(jupyter_root_dir))
             log.debug(f"Jupyter absolute directory: {root_dir_expanded}")
-            self._file_share_paths = [
-                FileSharePath(
-                    zone="Local",
-                    canonical_path="/local",
-                    group="local",
-                    storage="home",
-                    linux_path=root_dir_expanded
-                )
-            ]
-            n = len(self._file_share_paths)
-            log.info(f"Configured {n} file share paths")
+            
+            if dev_mode:
+                log.warning("Dev mode is enabled, using fake file share config")
+                import random
+                
+                # Lists of words to generate random zone and path names
+                adjectives = ["Red", "Blue", "Green", "Purple", "Golden", "Silver", "Crystal", "Mystic", "Ancient", "Cosmic"]
+                nouns = ["Forest", "Mountain", "Ocean", "Desert", "Valley", "Canyon", "River", "Cave", "Plains", "Ridge"]
+                path_types = ["Data", "Projects", "Archive", "Scratch", "Storage"]
+                
+                # Generate 10 zones with 5 paths each
+                zones = []
+                while len(zones) < 10:
+                    adj = random.choice(adjectives)
+                    noun = random.choice(nouns)
+                    zone = f"{adj} {noun}"
+                    if zone not in zones:  # Avoid duplicates
+                        zones.append(zone)
+                
+                self._file_share_paths = []
+                for zone in zones:
+                    for path_type in path_types:
+                        name = f"{zone.lower().replace(' ', '-')}-{path_type.lower()}"
+                        self._file_share_paths.append(
+                            FileSharePath(
+                                zone=zone,
+                                name=name,
+                                group=zone.lower().replace(' ', '_'),
+                                storage=path_type.lower(),
+                                mount_path=root_dir_expanded,
+                                mac_path=f"smb://dev-server/{name}",
+                                windows_path=f"\\\\dev-server\\{name}",
+                                linux_path=f"/mnt/dev/{name}"
+                            )
+                        )
+                n = len(self._file_share_paths)
+                log.info(f"Configured {n} file share paths in dev mode")
+            else:
+                log.warning("Central URL is not set but dev mode is not enabled. Using simple local file share config.")
+                self._file_share_paths = [
+                    FileSharePath(
+                        zone="Local",
+                        name="local",
+                        group="local",
+                        storage="home",
+                        mount_path=root_dir_expanded,
+                    )
+                ]
+                n = len(self._file_share_paths)
+                log.info(f"Configured {n} file share paths")
     
 
     def get_file_share_paths(self) -> list[FileSharePath]:
@@ -90,19 +131,22 @@ class FileSharePathManager:
         return self._file_share_paths
     
 
-    def get_file_share_path(self, canonical_path: str) -> Optional[FileSharePath]:
+    def get_file_share_path(self, name: str) -> Optional[FileSharePath]:
         """Lookup a file share path by its canonical path."""
         for fsp in self._file_share_paths:
-            if canonical_path == fsp.canonical_path:
+            if name == fsp.name:
                 return fsp
         return None
 
 
 @cache
-def _get_fsp_manager(central_url: str, jupyter_root_dir: str):
-    return FileSharePathManager(central_url, jupyter_root_dir)
+def _get_fsp_manager(central_url: str, dev_mode: bool, jupyter_root_dir: str):
+    return FileSharePathManager(central_url, dev_mode, jupyter_root_dir)
 
 def get_fsp_manager(settings):
     # Extract the relevant settings from the settings dictionary, 
     # since it's not serializable and can't be passed to a @cache method
-    return _get_fsp_manager(settings["fileglancer"].central_url, settings.get("server_root_dir", os.getcwd()))
+    jupyter_root_dir = settings.get("server_root_dir", os.getcwd())
+    central_url = settings["fileglancer"].central_url
+    dev_mode = settings["fileglancer"].dev_mode
+    return _get_fsp_manager(central_url, dev_mode, jupyter_root_dir)

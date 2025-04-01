@@ -1,5 +1,5 @@
 """Initialize the backend server extension"""
-from traitlets import CFloat, List, Dict, Unicode, default
+from traitlets import CFloat, List, Dict, Unicode, Bool, default
 from traitlets.config import Configurable
 
 try:
@@ -35,6 +35,11 @@ class Fileglancer(Configurable):
     central_url = Unicode(
         help="The URL of the central server",
         default_value="",
+        config=True,
+    )
+    dev_mode = Bool(
+        help="Whether to run in dev mode",
+        default_value=False,
         config=True,
     )
 

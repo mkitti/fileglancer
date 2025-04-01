@@ -70,11 +70,11 @@ class Filestore:
     rooted at a specific directory.
     """
 
-    def __init__(self, root_path: FileSharePath):
+    def __init__(self, file_share_path: FileSharePath):
         """
         Create a Filestore with the given root path.
         """
-        self.root_path = os.path.abspath(root_path.linux_path)
+        self.root_path = os.path.abspath(file_share_path.mount_path)
 
 
     def _check_path_in_root(self, path: str) -> str:

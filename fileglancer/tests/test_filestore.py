@@ -34,13 +34,13 @@ def test_dir():
 
 @pytest.fixture
 def filestore(test_dir):
-    file_share_path = FileSharePath(zone="test", canonical_path="/test", linux_path=test_dir)
+    file_share_path = FileSharePath(zone="test", name="test", mount_path=test_dir)
     return Filestore(file_share_path)
 
 
 def test_unmounted_filestore():
     test_dir = "/not/a/real/path"
-    file_share_path = FileSharePath(zone="test", canonical_path="/test", linux_path=test_dir)
+    file_share_path = FileSharePath(zone="test", name="test", mount_path=test_dir)
     filestore = Filestore(file_share_path)
     with pytest.raises(FileNotFoundError):
         filestore.get_file_info(None)

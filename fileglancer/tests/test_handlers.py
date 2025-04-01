@@ -46,4 +46,4 @@ async def test_get_file_share_paths(jp_fetch):
     assert isinstance(payload, dict)
     assert "paths" in payload
     assert isinstance(payload["paths"], list)
-    assert payload["paths"][0]["canonical_path"] == "/local"
+    assert payload["paths"][0]["name"] == "local"

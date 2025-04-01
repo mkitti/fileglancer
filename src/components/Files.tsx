@@ -24,7 +24,6 @@ export default function Files() {
     currentPath,
     checked,
     selectedZone,
-    setSelectedZone,
     handleCheckboxToggle,
     getFiles
   }: FilesRouteProps = useOutletContext();
@@ -41,13 +40,6 @@ export default function Files() {
     contextMenuCoords,
     handleFileClick
   } = useDisplayOptions(files);
-
-  React.useEffect(() => {
-    if (files.length === 0) {
-      getFiles('local');
-      setSelectedZone('/local');
-    }
-  }, []);
 
   return (
     <div className="flex-1 overflow-auto flex flex-col">
