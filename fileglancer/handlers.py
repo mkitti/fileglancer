@@ -100,12 +100,9 @@ class FileShareHandler(APIHandler):
         subpath = self.get_argument("subpath", '')
         self.log.info(f"GET /api/fileglancer/files/{path} subpath={subpath}")
 
-        
         filestore = self._get_filestore(path)
         if filestore is None:
-            self.log.info("WTFFFFFFFFFF2"+path)
             return
-        
         
         try:
             # Check if subpath is a directory by getting file info

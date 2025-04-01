@@ -91,7 +91,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
         console.error(`Problem calling get preference API:\n${reason}`);
       });
 
-
+    // The following demo is commented out because it creates a new ticket 
+    // every time the browser is reloaded.
+    /* 
     const ticketValue = {
       "project_key": "FT",
       "issue_type": "Service Request",
@@ -131,6 +133,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
             
         }); 
       });
+    */
 
   }
 };
