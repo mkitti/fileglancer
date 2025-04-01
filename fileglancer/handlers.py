@@ -7,6 +7,7 @@ from tornado import web
 
 from fileglancer.filestore import Filestore
 from fileglancer.paths import get_fsp_manager
+from fileglancer.preferences import PreferenceManager, get_preference_manager
 
 
 def _get_mounted_filestore(fsp):
@@ -235,17 +236,14 @@ class PreferencesHandler(APIHandler):
         self.log.info(f"GET /api/fileglancer/preference username={username} key={key}")
 
         try:
-            response = requests.get(
-                f"{self.settings['fileglancer'].central_url}/preference/{username}" + 
-                (f"/{key}" if key else "")
-            )
-            if response.status_code == 404:
-                self.set_status(404)
-                self.finish(response.content)
-                return
-            response.raise_for_status()
-            self.finish(response.json())
-
+            preference_manager = get_preference_manager(self.settings)
+            result = preference_manager.get_preference(username, key)
+            self.set_status(200)
+            self.finish(json.dumps(result))
+        except KeyError as e:
+            self.log.warning(f"Preference not found: {str(e)}")
+            self.set_status(404)
+            self.finish(json.dumps({"error": str(e)}))
         except Exception as e:
             self.log.error(f"Error getting preference: {str(e)}")
             self.set_status(500)
@@ -263,18 +261,14 @@ class PreferencesHandler(APIHandler):
         self.log.info(f"PUT /api/fileglancer/preference username={username} key={key}")
 
         try:
-            response = requests.put(
-                f"{self.settings['fileglancer'].central_url}/preference/{username}/{key}",
-                json=value
-            )
-            response.raise_for_status()
+            preference_manager = get_preference_manager(self.settings)
+            preference_manager.set_preference(username, key, value)
             self.set_status(204)
             self.finish()
-
         except Exception as e:
             self.log.error(f"Error setting preference: {str(e)}")
             self.set_status(500)
-            self.finish(json.dumps({"z": str(e)}))
+            self.finish(json.dumps({"error": str(e)}))
 
 
     @web.authenticated
@@ -287,17 +281,14 @@ class PreferencesHandler(APIHandler):
         self.log.info(f"DELETE /api/fileglancer/preference username={username} key={key}")
 
         try:
-            response = requests.delete(
-                f"{self.settings['fileglancer'].central_url}/preference/{username}/{key}"
-            )
-            if response.status_code == 404:
-                self.set_status(404)
-                self.finish(json.dumps({"error": "Preference not found"}))
-                return
-            response.raise_for_status()
+            preference_manager = get_preference_manager(self.settings)
+            preference_manager.delete_preference(username, key)
             self.set_status(204)
             self.finish()
-
+        except KeyError as e:
+            self.log.warning(f"Preference not found: {str(e)}")
+            self.set_status(404)
+            self.finish(json.dumps({"error": str(e)}))
         except Exception as e:
             self.log.error(f"Error deleting preference: {str(e)}")
             self.set_status(500)
