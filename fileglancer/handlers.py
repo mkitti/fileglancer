@@ -1,7 +1,8 @@
+import os
 import json
 import requests
 
-from jupyter_server.base.handlers import APIHandler
+from jupyter_server.base.handlers import APIHandler, JupyterHandler
 from jupyter_server.utils import url_path_join
 from tornado import web
 
@@ -12,7 +13,7 @@ from fileglancer.preferences import PreferenceManager, get_preference_manager
 
 def _get_mounted_filestore(fsp):
     """
-    Constructs a filestore for the given file share path, checking to make sure it is mounted. 
+    Constructs a filestore for the given file share path, checking to make sure it is mounted.
     If it is not mounted, returns None, otherwise returns the filestore.
     """
     filestore = Filestore(fsp)
@@ -49,7 +50,7 @@ class StreamingProxy(APIHandler):
             }))
 
 
-class FileSharePathsHandler(StreamingProxy): 
+class FileSharePathsHandler(StreamingProxy):
     """
     API handler for file share paths
     """
@@ -80,7 +81,7 @@ class FileShareHandler(APIHandler):
             self.finish(json.dumps({"error": f"File share path '{path_name}' not found"}))
             self.log.error(f"File share path '{path_name}' not found")
             return None
-        
+
         # Create a filestore for the file share path
         filestore = _get_mounted_filestore(fsp)
         if filestore is None:
@@ -103,12 +104,12 @@ class FileShareHandler(APIHandler):
         filestore = self._get_filestore(path)
         if filestore is None:
             return
-        
+
         try:
             # Check if subpath is a directory by getting file info
             file_info = filestore.get_file_info(subpath)
             self.log.info(f"File info: {file_info}")
-            
+
             if file_info.is_dir:
                 # Write JSON response, streaming the files one by one
                 self.set_status(200)
@@ -126,17 +127,17 @@ class FileShareHandler(APIHandler):
                 self.set_status(200)
                 self.set_header('Content-Type', 'application/octet-stream')
                 self.set_header('Content-Disposition', f'attachment; filename="{file_info.name}"')
-                
+
                 for chunk in filestore.stream_file_contents(subpath):
                     self.write(chunk)
                 self.finish()
-                
+
         except FileNotFoundError:
             self.log.error(f"File or directory not found: {subpath}")
             self.set_status(404)
             self.finish(json.dumps({"error": "File or directory not found"}))
         except PermissionError:
-            self.set_status(403) 
+            self.set_status(403)
             self.finish(json.dumps({"error": "Permission denied"}))
 
 
@@ -150,11 +151,11 @@ class FileShareHandler(APIHandler):
         filestore = self._get_filestore(path)
         if filestore is None:
             return
-        
+
         file_info = self.get_json_body()
         if file_info is None:
             raise web.HTTPError(400, "JSON body missing")
-        
+
         file_type = file_info.get("type")
         if file_type == "directory":
             self.log.info(f"Creating {subpath} as a directory")
@@ -179,7 +180,7 @@ class FileShareHandler(APIHandler):
         filestore = self._get_filestore(path)
         if filestore is None:
             return
-        
+
         file_info = self.get_json_body()
         if file_info is None:
             raise web.HTTPError(400, "JSON body missing")
@@ -187,7 +188,7 @@ class FileShareHandler(APIHandler):
         old_file_info = filestore.get_file_info(subpath)
         new_path = file_info.get("path")
         new_permissions = file_info.get("permissions")
-        
+
         try:
             if new_permissions is not None and new_permissions != old_file_info.permissions:
                 self.log.info(f"Changing permissions of {old_file_info.path} to {new_permissions}")
@@ -215,7 +216,7 @@ class FileShareHandler(APIHandler):
         filestore = self._get_filestore(path)
         if filestore is None:
             return
-        
+
         filestore.remove_file_or_dir(subpath)
         self.set_status(204)
         self.finish()
@@ -309,7 +310,7 @@ class TicketHandler(APIHandler):
                 params={
                     "project_key": data["project_key"],
                     "issue_type": data["issue_type"],
-                    "summary": data["summary"], 
+                    "summary": data["summary"],
                     "description": data["description"]
                 }
             )
@@ -367,8 +368,66 @@ class TicketHandler(APIHandler):
             self.finish(json.dumps({"error": str(e)}))
 
 
+class VersionHandler(APIHandler):
+    """
+    API handler for returning the version of the fileglancer extension
+    """
+    @web.authenticated
+    def get(self):
+        self.log.info("GET /api/fileglancer/version")
+        # get the version from the _version.py file
+        version_file = os.path.join(os.path.dirname(__file__), "_version.py")
+        with open(version_file, "r") as f:
+            version = f.read().strip().split('=')[2].strip().strip("'")
+        self.log.debug(f"Fileglancer version: {version}")
+
+        self.set_header('Content-Type', 'application/json')
+        self.set_status(200)
+        self.write(json.dumps({"version": version}))
+        self.finish()
+
+class StaticHandler(JupyterHandler, web.StaticFileHandler):
+    """
+    Static file handler for serving files from the fileglancer extension.
+    If the requested file does not exist, it serves index.html.
+    """
+
+    def initialize(self, *args, **kwargs):
+        return web.StaticFileHandler.initialize(self, *args, **kwargs)
+
+    def check_xsrf_cookie(self):
+        # Disable XSRF for static assets
+        return
+
+    def parse_url_path(self, url_path):
+        # Tornado calls this before deciding which file to serve
+        file_path = os.path.join(self.root, url_path)
+
+        if not os.path.exists(file_path) or os.path.isdir(file_path):
+            # Fall back to index.html if the file doesn't exist
+            return "index.html"
+
+        return url_path
+
+    def get_cache_time(self, path, modified, mime_type):
+        # Prevent caching of index.html to ensure XSRF and updated SPA content
+        if path == "index.html":
+            return 0
+        return super().get_cache_time(path, modified, mime_type)
+
+    def compute_etag(self):
+        # Optional: Disable etags for index.html to prevent caching
+        if self.path == "index.html":
+            return None
+        return super().compute_etag()
+
+    def prepare(self):
+        # Ensure XSRF cookie is set for index.html
+        if self.get_absolute_path == "index.html":
+            self.xsrf_token
+
 def setup_handlers(web_app):
-    """ 
+    """
     Setup the URL handlers for the Fileglancer extension
     """
     base_url = web_app.settings["base_url"]

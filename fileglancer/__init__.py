@@ -1,6 +1,4 @@
 """Initialize the backend server extension"""
-from traitlets import CFloat, List, Dict, Unicode, Bool, default
-from traitlets.config import Configurable
 
 try:
     from ._version import __version__
@@ -12,8 +10,8 @@ except ImportError:
     warnings.warn("Importing 'fileglancer' outside a proper installation.")
     __version__ = "dev"
 
-from .handlers import setup_handlers
-
+import os
+from fileglancer.app import Fileglancer
 
 def _jupyter_labextension_paths():
     return [{
@@ -21,39 +19,14 @@ def _jupyter_labextension_paths():
         "dest": "fileglancer"
     }]
 
-
 def _jupyter_server_extension_points():
-    return [{
-        "module": "fileglancer"
-    }]
-
-
-class Fileglancer(Configurable):
     """
-    Configuration for the Fileglancer extension
+    Returns a list of dictionaries with metadata describing
+    where to find the `_load_jupyter_server_extension` function.
     """
-    central_url = Unicode(
-        help="The URL of the central server",
-        default_value="",
-        config=True,
-    )
-    dev_mode = Bool(
-        help="Whether to run in dev mode",
-        default_value=False,
-        config=True,
-    )
-
-
-def _load_jupyter_server_extension(server_app):
-    """Registers the API handler to receive HTTP requests from the frontend extension.
-
-    Parameters
-    ----------
-    server_app: jupyterlab.labapp.LabApp
-        JupyterLab application instance
-    """
-    config = Fileglancer(config=server_app.config)
-    server_app.web_app.settings["fileglancer"] = config
-    setup_handlers(server_app.web_app)
-    name = "fileglancer"
-    server_app.log.info(f"Registered {name} server extension")
+    return [
+        {
+            "module": "fileglancer.app",
+            "app": Fileglancer
+        }
+    ]
