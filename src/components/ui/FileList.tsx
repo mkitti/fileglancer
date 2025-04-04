@@ -112,6 +112,25 @@ export default function FileList({
                     {file.is_dir ? '—' : formatFileSize(file.size)}
                   </Typography>
                 </div>
+                {/* Context menu button */}
+                <div
+                  className="py-1 text-grey-700 flex items-center"
+                  onClick={e => {
+                    handleContextMenu(e, file);
+                  }}
+                >
+                  <Tooltip placement="top">
+                    <Tooltip.Trigger as={IconButton} variant="ghost">
+                      <EllipsisHorizontalCircleIcon className="h-5 w-5 text-grey-700 hover:text-primary-light" />
+                      <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
+                        <Typography type="small" className="opacity-90">
+                          View actions
+                        </Typography>
+                        <Tooltip.Arrow />
+                      </Tooltip.Content>
+                    </Tooltip.Trigger>
+                  </Tooltip>
+                </div>
               </div>
             );
           })}
