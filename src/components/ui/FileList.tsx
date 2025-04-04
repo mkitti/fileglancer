@@ -43,7 +43,7 @@ export default function FileList({
       />
       <div className="min-w-full bg-background">
         {/* Header row */}
-        <div className="grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_40px] gap-4 p-0 text-foreground">
+        <div className="min-w-fit grid grid-cols-[minmax(170px,2fr)_minmax(80px,1fr)_minmax(95px,1fr)_minmax(75px,1fr)_minmax(40px,1fr)] gap-4 p-0 text-foreground">
           <div className="flex w-full gap-3 px-3 py-1 overflow-x-auto">
             <Typography variant="small" className="font-bold">
               Name
@@ -73,7 +73,7 @@ export default function FileList({
             return (
               <div
                 key={file.name}
-                className={`cursor-pointer grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_40px] gap-4 hover:bg-primary-light/30 focus:bg-primary-light/30 ${isSelected && 'bg-primary-light/30'} ${index % 2 === 0 && !isSelected && 'bg-surface/50'}  `}
+                className={`cursor-pointer min-w-fit grid grid-cols-[minmax(170px,2fr)_minmax(80px,1fr)_minmax(95px,1fr)_minmax(75px,1fr)_minmax(40px,1fr)] gap-4 hover:bg-primary-light/30 focus:bg-primary-light/30 ${isSelected && 'bg-primary-light/30'} ${index % 2 === 0 && !isSelected && 'bg-surface/50'}  `}
                 onClick={(e: React.MouseEvent<HTMLDivElement>) =>
                   handleLeftClicks(e, file)
                 }
