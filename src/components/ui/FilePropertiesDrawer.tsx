@@ -43,9 +43,9 @@ export default function FilePropertiesDrawer({
         {propertiesTarget ? (
           <div className="flex items-center gap-2 mt-3 mb-4 max-h-min">
             {propertiesTarget.is_dir ? (
-              <FolderIcon className="max-h-full" />
+              <FolderIcon className="h-5 w-5" />
             ) : (
-              <DocumentIcon className="max-h-full" />
+              <DocumentIcon className="h-5 w-5" />
             )}{' '}
             <Typography className="font-semibold">
               {propertiesTarget.name}
