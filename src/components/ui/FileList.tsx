@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { IconButton, Tooltip, Typography } from '@material-tailwind/react';
 import { EmptyPage, Folder } from 'iconoir-react';
+import { EllipsisHorizontalCircleIcon } from '@heroicons/react/24/outline';
 
 import FileListCrumbs from './FileListCrumbs';
 

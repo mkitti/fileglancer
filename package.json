@@ -55,6 +55,7 @@
         "watch:tailwind": "tailwindcss -i ./style/tailwind.css -o ./style/tailwind_converted.css --minify --watch"
     },
     "dependencies": {
+        "@heroicons/react": "^2.2.0",
         "@jupyterlab/application": "^4.0.0",
         "@jupyterlab/apputils": "^4.4.4",
         "@jupyterlab/coreutils": "^6.0.0",
