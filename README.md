@@ -73,7 +73,6 @@ To configure "Dev Mode" which simulates many zones and file share paths, add thi
 c.Fileglancer.dev_mode=True
 ```
 
-
 ## Development Uninstall
 
 ```bash

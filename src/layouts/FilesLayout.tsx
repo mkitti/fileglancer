@@ -7,7 +7,6 @@ export const FilesLayout = () => {
   const {
     files,
     currentPath,
-    checked,
     selectedZone,
     fileSharePaths,
     openZones,
@@ -15,8 +14,7 @@ export const FilesLayout = () => {
     toggleZone,
     getFileSharePaths,
     getFiles,
-    handlePathClick,
-    handleCheckboxToggle
+    handlePathClick
   } = useFileBrowser();
 
   React.useEffect(() => {
@@ -26,7 +24,7 @@ export const FilesLayout = () => {
   }, [fileSharePaths, getFileSharePaths]);
 
   return (
-    <div className="flex h-full w-full">
+    <div className="flex h-full w-full overflow-y-hidden">
       <FileSidebar
         fileSharePaths={fileSharePaths}
         openZones={openZones}
@@ -38,10 +36,8 @@ export const FilesLayout = () => {
         context={{
           files,
           currentPath,
-          checked,
           selectedZone,
           setSelectedZone,
-          handleCheckboxToggle,
           getFiles
         }}
       />

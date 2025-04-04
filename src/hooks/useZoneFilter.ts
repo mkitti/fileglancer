@@ -19,9 +19,10 @@ export default function useZoneFilter() {
 
       Object.entries(fileSharePaths).forEach(([zone, pathItems]) => {
         const zoneMatches = zone.toLowerCase().includes(query);
-        const matchingPathItems = pathItems.filter((pathItem: FileSharePathItem) =>
-          pathItem.name.toLowerCase().includes(query) || 
-          pathItem.linux_path.toLowerCase().includes(query)
+        const matchingPathItems = pathItems.filter(
+          (pathItem: FileSharePathItem) =>
+            pathItem.name.toLowerCase().includes(query) ||
+            pathItem.linux_path.toLowerCase().includes(query)
         );
 
         if (zoneMatches) {

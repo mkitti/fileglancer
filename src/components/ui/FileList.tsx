@@ -1,6 +1,10 @@
 import * as React from 'react';
-import { Checkbox, Typography } from '@material-tailwind/react';
-import { EmptyPage, Folder } from 'iconoir-react';
+import { IconButton, Typography } from '@material-tailwind/react';
+import {
+  DocumentIcon,
+  EllipsisHorizontalCircleIcon,
+  FolderIcon
+} from '@heroicons/react/24/outline';
 
 import FileListCrumbs from './FileListCrumbs';
 
@@ -10,31 +14,27 @@ import { formatDate, formatFileSize } from '../../utils';
 type FileListProps = {
   displayFiles: File[];
   currentPath: string;
-  checked: string[];
+  selectedFiles: string[];
   selectedZone: string | null;
-  handleCheckboxToggle: (file: File) => void;
   getFiles: (path: string) => void;
   showFileDrawer: boolean;
-  handleFileClick: (e: React.MouseEvent<HTMLDivElement>, file: File) => void;
-  selectedFile: File | null;
+  handleContextMenu: (e: React.MouseEvent<HTMLDivElement>, file: File) => void;
+  handleLeftClicks: (e: React.MouseEvent<HTMLDivElement>, file: File) => void;
 };
 
 export default function FileList({
   displayFiles,
   currentPath,
-  checked,
+  selectedFiles,
   selectedZone,
-  handleCheckboxToggle,
   getFiles,
   showFileDrawer,
-  handleFileClick,
-  selectedFile
+  handleContextMenu,
+  handleLeftClicks
 }: FileListProps): JSX.Element {
-  console.log('Files to display in file list', displayFiles);
-
   return (
     <div
-      className={`mx-2 transition-all duration-300 ${showFileDrawer ? 'mr-[350px]' : ''}`}
+      className={`px-2 transition-all duration-300 ${showFileDrawer ? 'mr-[350px]' : ''}`}
     >
       <FileListCrumbs
         currentPath={currentPath}
@@ -43,84 +43,64 @@ export default function FileList({
       />
       <div className="min-w-full bg-background">
         {/* Header row */}
-        <div className="grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 p-0 text-foreground">
-          <div className="flex w-full gap-3 px-3 py-1">
-            <div className="w-[1.25rem] h-5"></div>
+        <div className="min-w-fit grid grid-cols-[minmax(170px,2fr)_minmax(80px,1fr)_minmax(95px,1fr)_minmax(75px,1fr)_minmax(40px,1fr)] gap-4 p-0 text-foreground">
+          <div className="flex w-full gap-3 px-3 py-1 overflow-x-auto">
             <Typography variant="small" className="font-bold">
               Name
             </Typography>
           </div>
 
-          <Typography variant="small" className="font-bold">
+          <Typography variant="small" className="font-bold overflow-x-auto">
             Type
           </Typography>
 
-          <Typography variant="small" className="font-bold">
+          <Typography variant="small" className="font-bold overflow-x-auto">
             Last Modified
           </Typography>
 
-          <Typography variant="small" className="font-bold">
+          <Typography variant="small" className="font-bold overflow-x-auto">
             Size
           </Typography>
 
-          <div className="w-[1.5em] h-[1.5em]"></div>
+          <Typography variant="small" className="font-bold overflow-x-auto">
+            Actions
+          </Typography>
         </div>
 
         {/* File rows */}
         {displayFiles.length > 0 &&
           displayFiles.map((file, index) => {
-            const labelId = `checkbox-list-label-${file.name}`;
-            const isChecked = checked.includes(file.name);
+            const isSelected = selectedFiles.includes(file.name);
 
             return (
               <div
                 key={file.name}
-                className={`grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 hover:bg-primary-light/30 focus:bg-primary-light/30 ${(isChecked || file === selectedFile) && 'bg-primary-light/30'} ${index % 2 === 0 && !isChecked && file !== selectedFile && 'bg-surface/50'}  `}
+                className={`cursor-pointer min-w-fit grid grid-cols-[minmax(170px,2fr)_minmax(80px,1fr)_minmax(95px,1fr)_minmax(75px,1fr)_minmax(40px,1fr)] gap-4 hover:bg-primary-light/30 focus:bg-primary-light/30 ${isSelected && 'bg-primary-light/30'} ${index % 2 === 0 && !isSelected && 'bg-surface/50'}  `}
                 onClick={(e: React.MouseEvent<HTMLDivElement>) =>
-                  handleFileClick(e, file)
+                  handleLeftClicks(e, file)
                 }
                 onContextMenu={(e: React.MouseEvent<HTMLDivElement>) =>
-                  handleFileClick(e, file)
+                  handleContextMenu(e, file)
                 }
+                onDoubleClick={() => {
+                  if (file.is_dir) {
+                    getFiles(`${selectedZone}?subpath=${file.path}`);
+                  }
+                }}
               >
                 {/* Name column */}
-                <div className="flex items-center w-full gap-3 pl-3 py-1 text-primary-light">
-                  <span
-                    className="checkbox-wrapper"
-                    onClick={(e: React.MouseEvent<HTMLSpanElement>) => {
-                      e.stopPropagation();
-                    }}
-                  >
-                    <Checkbox
-                      id={labelId}
-                      checked={isChecked}
-                      onChange={() => handleCheckboxToggle(file)}
-                      className="border-foreground/70 dark:shadow-white/5"
-                    >
-                      <Checkbox.Indicator />
-                    </Checkbox>
-                  </span>
-
-                  <Typography
-                    variant="small"
-                    className="font-medium cursor-pointer"
-                    onClick={(e: React.MouseEvent<HTMLSpanElement>) => {
-                      e.stopPropagation();
-                      if (file.is_dir) {
-                        getFiles(`${selectedZone}?subpath=${file.path}`);
-                      }
-                    }}
-                  >
+                <div className="flex items-center w-full gap-3 pl-3 py-1 text-primary-light overflow-x-auto">
+                  <Typography variant="small" className="font-medium">
                     {file.name}
                   </Typography>
                 </div>
 
                 {/* Type column */}
-                <div className="flex items-center w-full gap-3 py-1 text-grey-700 ">
+                <div className="flex items-center w-full gap-3 py-1 text-grey-700 overflow-x-auto">
                   {file.is_dir ? (
-                    <Folder className="text-foreground" />
+                    <FolderIcon className="text-foreground h-5 w-5" />
                   ) : (
-                    <EmptyPage className="text-foreground" />
+                    <DocumentIcon className="text-foreground h-5 w-5" />
                   )}
                   <Typography variant="small" className="font-medium">
                     {file.is_dir ? 'Folder' : 'File'}
@@ -128,17 +108,29 @@ export default function FileList({
                 </div>
 
                 {/* Last Modified column */}
-                <div className="py-1 text-grey-700  flex items-center">
+                <div className="py-1 text-grey-700  flex items-center overflow-x-auto">
                   <Typography variant="small" className="font-medium">
                     {formatDate(file.last_modified)}
                   </Typography>
                 </div>
 
                 {/* Size column */}
-                <div className="py-1 text-grey-700 flex items-center">
+                <div className="py-1 text-grey-700 flex items-center overflow-x-auto">
                   <Typography variant="small" className="font-medium">
                     {file.is_dir ? '—' : formatFileSize(file.size)}
                   </Typography>
+                </div>
+
+                {/* Context menu button */}
+                <div
+                  className="py-1 text-grey-700 flex items-center flex-shrink-0"
+                  onClick={e => {
+                    handleContextMenu(e, file);
+                  }}
+                >
+                  <IconButton variant="ghost">
+                    <EllipsisHorizontalCircleIcon className="h-5 w-5 text-foreground" />
+                  </IconButton>
                 </div>
               </div>
             );
