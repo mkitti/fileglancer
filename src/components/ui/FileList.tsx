@@ -126,17 +126,9 @@ export default function FileList({
                     handleContextMenu(e, file);
                   }}
                 >
-                  <Tooltip placement="top">
-                    <Tooltip.Trigger as={IconButton} variant="ghost">
-                      ...
-                      <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-                        <Typography type="small" className="opacity-90">
-                          View actions
-                        </Typography>
-                        <Tooltip.Arrow />
-                      </Tooltip.Content>
-                    </Tooltip.Trigger>
-                  </Tooltip>
+                  <IconButton variant="ghost">
+                    <EllipsisHorizontalCircleIcon className="h-5 w-5 text-foreground" />
+                  </IconButton>
                 </div>
               </div>
             );
