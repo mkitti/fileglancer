@@ -24,7 +24,7 @@ export const FilesLayout = () => {
   }, [fileSharePaths, getFileSharePaths]);
 
   return (
-    <div className="flex h-full w-full">
+    <div className="flex h-full w-full overflow-y-hidden">
       <FileSidebar
         fileSharePaths={fileSharePaths}
         openZones={openZones}
