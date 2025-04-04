@@ -63,8 +63,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
     }
 
     const preferenceValue = {
-      "value": [0,1,2]
-    }
+      value: [0, 1, 2]
+    };
 
     const requestInit: RequestInit = {
       method: 'PUT',
@@ -91,7 +91,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         console.error(`Problem calling get preference API:\n${reason}`);
       });
 
-    // The following demo is commented out because it creates a new ticket 
+    // The following demo is commented out because it creates a new ticket
     // every time the browser is reloaded.
     /* 
     const ticketValue = {
@@ -134,7 +134,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
         }); 
       });
     */
-
   }
 };
 

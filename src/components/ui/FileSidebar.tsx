@@ -95,11 +95,16 @@ export default function FileSidebar({
                           <Folder className="h-[18px] w-[18px]" />
                         </List.ItemStart>
                         <div className="flex flex-col">
-                          <span className="text-sm font-medium">{pathItem.storage}</span>
-                          <span className="text-xs text-gray-500">{
-                            /* TODO: use the user's preferred address for the path 
+                          <span className="text-sm font-medium">
+                            {pathItem.storage}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {
+                              /* TODO: use the user's preferred address for the path 
                             (mac_path, windows_path, linux_path) */
-                            pathItem.linux_path}</span>
+                              pathItem.linux_path
+                            }
+                          </span>
                         </div>
                       </List.Item>
                     ))}

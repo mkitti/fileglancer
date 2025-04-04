@@ -48,7 +48,7 @@ export async function requestAPI<T>(
 
 /**
  * Make a PUT request to the API extension
- * 
+ *
  * @param endPoint API REST end point for the extension
  * @param body The body of the PUT request
  * @param init Additional initial values for the request
@@ -75,9 +75,9 @@ export async function putAPI<T>(
 
 /**
  * Make a DELETE request to the API extension
- * 
+ *
  * @param endPoint API REST end point for the extension
- * @param init Additional initial values for the request 
+ * @param init Additional initial values for the request
  * @returns The response body interpreted as JSON
  */
 export async function deleteAPI<T>(
@@ -92,4 +92,3 @@ export async function deleteAPI<T>(
 
   return await requestAPI<T>(endPoint, requestInit);
 }
-
