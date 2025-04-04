@@ -113,7 +113,7 @@ export default function FileList({
                 </div>
 
                 {/* Size column */}
-                <div className="py-1 text-grey-700 flex items-cente overflow-x-auto">
+                <div className="py-1 text-grey-700 flex items-center overflow-x-auto">
                   <Typography variant="small" className="font-medium">
                     {file.is_dir ? '—' : formatFileSize(file.size)}
                   </Typography>
