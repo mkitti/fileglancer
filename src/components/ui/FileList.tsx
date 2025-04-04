@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Typography } from '@material-tailwind/react';
+import { IconButton, Tooltip, Typography } from '@material-tailwind/react';
 import { EmptyPage, Folder } from 'iconoir-react';
 
 import FileListCrumbs from './FileListCrumbs';
