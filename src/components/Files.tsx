@@ -11,25 +11,17 @@ import FileContextMenu from './ui/FileContextMenu';
 type FilesRouteProps = {
   files: File[];
   currentPath: string;
-  checked: string[];
   selectedZone: string | null;
-  setSelectedZone: (zone: string | null) => void;
-  handleCheckboxToggle: (file: File) => void;
   getFiles: (path: string) => void;
 };
 
 export default function Files() {
-  const {
-    files,
-    currentPath,
-    checked,
-    selectedZone,
-    handleCheckboxToggle,
-    getFiles
-  }: FilesRouteProps = useOutletContext();
+  const { files, currentPath, selectedZone, getFiles }: FilesRouteProps =
+    useOutletContext();
 
   const {
-    selectedFile,
+    propertiesTarget,
+    selectedFiles,
     displayFiles,
     hideDotFiles,
     setHideDotFiles,
@@ -50,20 +42,18 @@ export default function Files() {
       />
       <div className="relative grow">
         <FilePropertiesDrawer
-          selectedFile={selectedFile}
+          propertiesTarget={propertiesTarget}
           open={showFileDrawer}
           setShowFileDrawer={setShowFileDrawer}
         />
         <FileList
           displayFiles={displayFiles}
           currentPath={currentPath}
-          checked={checked}
+          selectedFiles={selectedFiles}
           selectedZone={selectedZone}
-          handleCheckboxToggle={handleCheckboxToggle}
           getFiles={getFiles}
           handleFileClick={handleFileClick}
           showFileDrawer={showFileDrawer}
-          selectedFile={selectedFile}
         />
       </div>
       {showFileContextMenu && (

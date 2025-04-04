@@ -26,7 +26,6 @@ export type FileSharePathItem = {
 export type FileSharePaths = Record<string, FileSharePathItem[]>;
 
 export default function useFileBrowser() {
-  const [checked, setChecked] = React.useState<string[]>([]);
   const [files, setFiles] = React.useState<File[]>([]);
   const [currentPath, setCurrentPath] = React.useState<File['path']>('');
   const [fileSharePaths, setFileSharePaths] = React.useState<FileSharePaths>(
@@ -35,19 +34,6 @@ export default function useFileBrowser() {
   const [openZones, setOpenZones] = React.useState<Record<string, boolean>>({});
   const [selectedZone, setSelectedZone] = React.useState<string | null>(null);
   const [cookies] = useCookies(['_xsrf']);
-
-  function handleCheckboxToggle(item: File) {
-    const currentIndex = checked.indexOf(item.name);
-    const newChecked = [...checked];
-
-    if (currentIndex === -1) {
-      newChecked.push(item.name);
-    } else {
-      newChecked.splice(currentIndex, 1);
-    }
-
-    setChecked(newChecked);
-  }
 
   function toggleZone(zone: string) {
     setOpenZones(prev => ({
@@ -142,7 +128,11 @@ export default function useFileBrowser() {
         }
 
         // Store the entire FileSharePathItem object instead of just a string path
-        if (!unsortedPaths[item.zone].some(existingItem => existingItem.name === item.name)) {
+        if (
+          !unsortedPaths[item.zone].some(
+            existingItem => existingItem.name === item.name
+          )
+        ) {
           unsortedPaths[item.zone].push(item);
         }
       });
@@ -171,14 +161,12 @@ export default function useFileBrowser() {
   }
 
   return {
-    checked,
     files,
     currentPath,
     fileSharePaths,
     openZones,
     selectedZone,
     setSelectedZone,
-    handleCheckboxToggle,
     getFiles,
     getFileSharePaths,
     toggleZone,

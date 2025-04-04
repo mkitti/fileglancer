@@ -8,13 +8,13 @@ import FilePermissionTable from './FilePermissionTable';
 import FileOverviewTable from './FileOverviewTable';
 
 type FilePropertiesPanelProps = {
-  selectedFile: File | null;
+  propertiesTarget: File | null;
   open: boolean;
   setShowFileDrawer: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function FilePropertiesDrawer({
-  selectedFile,
+  propertiesTarget,
   open,
   setShowFileDrawer
 }: FilePropertiesPanelProps) {
@@ -36,15 +36,15 @@ export default function FilePropertiesDrawer({
           </IconButton>
         </div>
 
-        {selectedFile ? (
+        {propertiesTarget ? (
           <div className="flex items-center gap-2 mt-3 mb-4 max-h-min">
-            {selectedFile.is_dir ? (
+            {propertiesTarget.is_dir ? (
               <Folder className="max-h-full" />
             ) : (
               <EmptyPage className="max-h-full" />
             )}{' '}
             <Typography className="font-semibold">
-              {selectedFile.name}
+              {propertiesTarget.name}
             </Typography>
           </div>
         ) : (
@@ -52,7 +52,7 @@ export default function FilePropertiesDrawer({
             Click on a file or folder to view its properties
           </Typography>
         )}
-        {selectedFile ? (
+        {propertiesTarget ? (
           <Tabs key="file-properties-tabs" defaultValue="overview">
             <Tabs.List className="w-full rounded-none border-b border-secondary-dark  bg-transparent dark:bg-transparent py-0">
               <Tabs.Trigger
@@ -76,11 +76,11 @@ export default function FilePropertiesDrawer({
             </Tabs.List>
 
             <Tabs.Panel value="overview">
-              <FileOverviewTable file={selectedFile} />
+              <FileOverviewTable file={propertiesTarget} />
             </Tabs.Panel>
 
             <Tabs.Panel value="permissions" className="flex flex-col gap-2">
-              <FilePermissionTable file={selectedFile} />
+              <FilePermissionTable file={propertiesTarget} />
               <Button as="a" href="#" variant="outline">
                 Change Permissions
               </Button>
