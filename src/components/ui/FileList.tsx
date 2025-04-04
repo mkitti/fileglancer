@@ -75,13 +75,18 @@ export default function FileList({
             return (
               <div
                 key={file.name}
-                className={`grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 hover:bg-primary-light/30 focus:bg-primary-light/30 ${(isChecked || file === selectedFile) && 'bg-primary-light/30'} ${index % 2 === 0 && !isChecked && file !== selectedFile && 'bg-surface/50'}  `}
+                className={`cursor-pointer grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 hover:bg-primary-light/30 focus:bg-primary-light/30 ${(isChecked || file === selectedFile) && 'bg-primary-light/30'} ${index % 2 === 0 && !isChecked && file !== selectedFile && 'bg-surface/50'}  `}
                 onClick={(e: React.MouseEvent<HTMLDivElement>) =>
                   handleFileClick(e, file)
                 }
                 onContextMenu={(e: React.MouseEvent<HTMLDivElement>) =>
                   handleFileClick(e, file)
                 }
+                onDoubleClick={(e: React.MouseEvent<HTMLSpanElement>) => {
+                  if (file.is_dir) {
+                    getFiles(`${selectedZone}?subpath=${file.path}`);
+                  }
+                }}
               >
                 {/* Name column */}
                 <div className="flex items-center w-full gap-3 pl-3 py-1 text-primary-light">
@@ -101,16 +106,7 @@ export default function FileList({
                     </Checkbox>
                   </span>
 
-                  <Typography
-                    variant="small"
-                    className="font-medium cursor-pointer"
-                    onClick={(e: React.MouseEvent<HTMLSpanElement>) => {
-                      e.stopPropagation();
-                      if (file.is_dir) {
-                        getFiles(`${selectedZone}?subpath=${file.path}`);
-                      }
-                    }}
-                  >
+                  <Typography variant="small" className="font-medium">
                     {file.name}
                   </Typography>
                 </div>
