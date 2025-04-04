@@ -7,13 +7,15 @@ type ContextMenuProps = {
   y: number;
   onClose: () => void;
   setShowFileDrawer: (show: boolean) => void;
+  setShowFileContextMenu: (show: boolean) => void;
 };
 
 export default function FileContextMenu({
   x,
   y,
   onClose,
-  setShowFileDrawer
+  setShowFileDrawer,
+  setShowFileContextMenu
 }: ContextMenuProps): JSX.Element {
   const menuRef = React.useRef<HTMLDivElement>(null);
 
@@ -66,6 +68,7 @@ export default function FileContextMenu({
           className="text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
           onClick={() => {
             setShowFileDrawer(true);
+            setShowFileContextMenu(false);
           }}
         >
           View file properties

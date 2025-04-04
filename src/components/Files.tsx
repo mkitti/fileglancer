@@ -63,6 +63,7 @@ export default function Files() {
           y={contextMenuCoords.y}
           onClose={() => setShowFileContextMenu(false)}
           setShowFileDrawer={setShowFileDrawer}
+          setShowFileContextMenu={setShowFileContextMenu}
         />
       )}
     </div>
