@@ -121,7 +121,7 @@ export default function FileList({
 
                 {/* Context menu button */}
                 <div
-                  className="py-1 text-grey-700 flex items-center overflow-x-auto"
+                  className="py-1 text-grey-700 flex items-center flex-shrink-0"
                   onClick={e => {
                     handleContextMenu(e, file);
                   }}
