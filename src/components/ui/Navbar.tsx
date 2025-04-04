@@ -129,62 +129,39 @@ export default function FileglancerNavbar() {
         {/* Logo */}
         <Link
           to="/"
-          className="flex place-content-center transition transform duration-300 hover:scale-105"
+          className="transition transform duration-300 hover:scale-105"
         >
           <div className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent flex items-center">
             <svg
               className="w-6 h-6 text-primary"
-              viewBox="0 0 24 24"
-              strokeWidth="1.5"
-              fill="none"
-              stroke="currentColor"
+              viewBox="0 0 18 24"
               version="1.1"
-              id="svg3"
+              xmlns="http://www.w3.org/2000/svg"
+              stroke="currentColor"
+              fill="currentColor"
             >
               <path
-                d="M7 2L16.5 2L21 6.5V19"
+                d="M 16.49997,21 V 9 h -5.25 c -1.24218,0 -2.25,-1.00781 -2.25,-2.25 V 1.5 h -6 c -0.82968,0 -1.5,0.67032 -1.5,1.5 v 18 c 0,0.82969 0.67032,1.5 1.5,1.5 h 12 c 0.82969,0 1.5,-0.67031 1.5,-1.5 z M 16.47657,7.5 C 16.44377,7.36875 16.37817,7.24688 16.27969,7.15313 L 10.84688,1.72032 C 10.74848,1.62192 10.63125,1.55625 10.5,1.52344 V 6.75 c 0,0.4125 0.3375,0.75 0.75,0.75 z M 0,3 C 0,1.34532 1.34532,0 3,0 h 7.31719 c 0.59531,0 1.16719,0.23907 1.58906,0.66094 l 5.43282,5.42813 C 17.76094,6.51094 18,7.08282 18,7.67813 V 21 c 0,1.65469 -1.34531,3 -3,3 H 3 C 1.34532,24 0,22.65469 0,21 Z"
+                stroke-width="0.046875"
                 stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                id="path1"
               />
-              <path
-                d="M3 20.5V6.5C3 5.67157 3.67157 5 4.5 5H14.2515C14.4106 5 14.5632 5.06321 14.6757 5.17574L17.8243 8.32426C17.9368 8.43679 18 8.5894 18 8.74853V20.5C18 21.3284 17.3284 22 16.5 22H4.5C3.67157 22 3 21.3284 3 20.5Z"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                id="path2"
-              />
-              <path
-                d="M14 5V8.4C14 8.73137 14.2686 9 14.6 9H18"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                id="path3"
-              />
-              <path
-                d="m 4.748031,14.844736 c 2.3040582,-5.1504406 9.216233,-5.1504406 11.520291,0"
-                stroke="currentColor"
-                stroke-width="0.962864"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                id="path1-7"
-              />
-              <path
-                d="m 10.508177,17.419956 c -1.0604433,0 -1.920049,-0.864694 -1.920049,-1.931415 0,-1.06672 0.8596057,-1.931415 1.920049,-1.931415 1.060442,0 1.920048,0.864695 1.920048,1.931415 0,1.066721 -0.859606,1.931415 -1.920048,1.931415 z"
-                stroke="currentColor"
-                stroke-width="0.962864"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                id="path2-9"
-              />
+
+              <g transform="matrix(0.61810071,0,0,0.61810071,-80.271649,-148.50575)">
+                <path
+                  d="m 144.45891,267.17308 c 1.6569,0 3,-1.3431 3,-3 0,-1.6569 -1.3431,-3 -3,-3 -1.6569,0 -3,1.3431 -3,3 0,1.6569 1.3431,3 3,3 z"
+                  stroke="currentColor"
+                />
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="m 133.78232,263.61978 c 1.48725,-4.47099 5.7045,-7.6967 10.67709,-7.6967 4.9703,0 9.1859,3.22271 10.675,7.6905 0.1204,0.361 0.1205,0.7517 4e-4,1.1128 -1.4873,4.471 -5.7045,7.6967 -10.6771,7.6967 -4.97033,0 -9.18596,-3.2227 -10.67506,-7.6905 -0.12034,-0.361 -0.12046,-0.7517 -3.3e-4,-1.1128 z m 15.92659,0.5533 c 0,2.8995 -2.3505,5.25 -5.25,5.25 -2.8995,0 -5.25,-2.3505 -5.25,-5.25 0,-2.8995 2.3505,-5.25 5.25,-5.25 2.8995,0 5.25,2.3505 5.25,5.25 z"
+                  stroke="currentColor"
+                />
+              </g>
             </svg>
             <Typography
               type="h6"
-              className="ml-2 mr-2 block py-1 font-semibold pointer-events-none"
+              className="ml-2 mr-2 block font-semibold pointer-events-none"
             >
               Janelia Fileglancer
             </Typography>
