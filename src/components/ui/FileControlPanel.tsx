@@ -5,7 +5,7 @@ import {
   Tooltip,
   Typography
 } from '@material-tailwind/react';
-import { Eye, EyeClosed } from 'iconoir-react';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/solid';
 
 type FileControlPanelProps = {
   hideDotFiles: boolean;
@@ -26,9 +26,9 @@ export default function FileControlPanel({
             onClick={() => setHideDotFiles((prev: boolean) => !prev)}
           >
             {hideDotFiles ? (
-              <EyeClosed className="h-5 w-5" />
+              <EyeSlashIcon className="h-5 w-5" />
             ) : (
-              <Eye className="h-5 w-5" />
+              <EyeIcon className="h-5 w-5" />
             )}
             <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
               <Typography type="small" className="opacity-90">

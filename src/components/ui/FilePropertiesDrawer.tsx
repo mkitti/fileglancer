@@ -1,6 +1,10 @@
 import * as React from 'react';
 import { Button, IconButton, Typography, Tabs } from '@material-tailwind/react';
-import { EmptyPage, Folder, Xmark } from 'iconoir-react';
+import {
+  DocumentIcon,
+  FolderIcon,
+  XMarkIcon
+} from '@heroicons/react/24/outline';
 
 import { File } from '../../hooks/useFileBrowser';
 
@@ -32,16 +36,16 @@ export default function FilePropertiesDrawer({
             className="h-8 w-8 rounded-full text-foreground hover:bg-secondary-light/20"
             onClick={() => setShowFileDrawer((prev: boolean) => !prev)}
           >
-            <Xmark className="h-5 w-5" />
+            <XMarkIcon className="h-5 w-5" />
           </IconButton>
         </div>
 
         {propertiesTarget ? (
           <div className="flex items-center gap-2 mt-3 mb-4 max-h-min">
             {propertiesTarget.is_dir ? (
-              <Folder className="max-h-full" />
+              <FolderIcon className="max-h-full" />
             ) : (
-              <EmptyPage className="max-h-full" />
+              <DocumentIcon className="max-h-full" />
             )}{' '}
             <Typography className="font-semibold">
               {propertiesTarget.name}

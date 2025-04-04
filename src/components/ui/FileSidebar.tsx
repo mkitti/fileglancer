@@ -7,7 +7,12 @@ import {
   List,
   Input
 } from '@material-tailwind/react';
-import { Folder, FilterList, NavArrowRight, Server } from 'iconoir-react';
+import {
+  ChevronRightIcon,
+  FolderIcon,
+  FunnelIcon,
+  Squares2X2Icon
+} from '@heroicons/react/24/outline';
 
 import useZoneFilter from '../../hooks/useZoneFilter';
 import { FileSharePaths } from '../../hooks/useFileBrowser';
@@ -46,7 +51,7 @@ export default function FileSidebar({
           }
         >
           <Input.Icon>
-            <FilterList className="h-full w-full" />
+            <FunnelIcon className="h-full w-full" />
           </Input.Icon>
         </Input>
       </div>
@@ -55,7 +60,7 @@ export default function FileSidebar({
         <List className="bg-surface-light border border-surface py-2">
           <List.Item className="pointer-events-none">
             <List.ItemStart>
-              <Server className="h-5 w-5 text-surface-foreground" />
+              <Squares2X2Icon className="h-5 w-5 text-surface-foreground" />
             </List.ItemStart>
             <Typography className="font-semibold text-surface-foreground">
               Zones
@@ -72,11 +77,11 @@ export default function FileSidebar({
                   className="cursor-pointer rounded-none py-3 hover:bg-primary-light/30"
                 >
                   <List.ItemStart>
-                    <Server className="h-[18px] w-[18px]" />
+                    <Squares2X2Icon className="h-[18px] w-[18px]" />
                   </List.ItemStart>
                   {zone}
                   <List.ItemEnd>
-                    <NavArrowRight
+                    <ChevronRightIcon
                       className={`h-4 w-4 ${isOpen ? 'rotate-90' : ''}`}
                     />
                   </List.ItemEnd>
@@ -92,7 +97,7 @@ export default function FileSidebar({
                         to="/files"
                       >
                         <List.ItemStart>
-                          <Folder className="h-[18px] w-[18px]" />
+                          <FolderIcon className="h-[18px] w-[18px]" />
                         </List.ItemStart>
                         <div className="flex flex-col">
                           <span className="text-sm font-medium">

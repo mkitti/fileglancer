@@ -9,34 +9,33 @@ import {
 } from '@material-tailwind/react';
 import { Link } from 'react-router-dom';
 import {
-  Folder,
-  HalfMoon,
-  HelpCircle,
-  LogOut as LogoutIcon,
-  Menu as MenuIcon,
-  ProfileCircle,
-  Settings,
-  Suitcase,
-  SunLight,
-  UserCircle,
-  Xmark
-} from 'iconoir-react';
+  FolderIcon,
+  MoonIcon,
+  InformationCircleIcon,
+  ArrowRightStartOnRectangleIcon as LogoutIcon,
+  Bars3Icon as MenuIcon,
+  UserCircleIcon,
+  AdjustmentsHorizontalIcon,
+  BriefcaseIcon,
+  XMarkIcon,
+  SunIcon
+} from '@heroicons/react/24/outline';
 
 import useTheme from '../../hooks/useTheme';
 
 const LINKS = [
   {
-    icon: Folder,
+    icon: FolderIcon,
     title: 'Files',
     href: '/files'
   },
   {
-    icon: Suitcase,
+    icon: BriefcaseIcon,
     title: 'Jobs',
     href: '/jobs'
   },
   {
-    icon: HelpCircle,
+    icon: InformationCircleIcon,
     title: 'Help',
     href: '/help'
   }
@@ -74,7 +73,7 @@ function ProfileMenu() {
         color="secondary"
         className="flex items-center justify-center p-1 rounded-full h-8 w-8 text-foreground dark:text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
       >
-        <ProfileCircle className="h-6 w-6" />
+        <UserCircleIcon className="h-6 w-6" />
       </Menu.Trigger>
       <Menu.Content>
         <Menu.Item
@@ -82,14 +81,15 @@ function ProfileMenu() {
           to="/profile"
           className="dark:text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark hover:!text-foreground focus:!text-foreground"
         >
-          <UserCircle className="mr-2 h-[18px] w-[18px]" /> Profile
+          <UserCircleIcon className="mr-2 h-[18px] w-[18px]" /> Profile
         </Menu.Item>
         <Menu.Item
           as={Link}
           to="/preferences"
           className="dark:text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark hover:!text-foreground focus:!text-foreground"
         >
-          <Settings className="mr-2 h-[18px] w-[18px]" /> Preferences
+          <AdjustmentsHorizontalIcon className="mr-2 h-[18px] w-[18px]" />{' '}
+          Preferences
         </Menu.Item>
         <hr className="!my-1 -mx-1 border-surface" />
         <Menu.Item
@@ -208,9 +208,9 @@ export default function FileglancerNavbar() {
             onClick={toggleTheme}
           >
             {isLightTheme ? (
-              <SunLight className="h-6 w-6" />
+              <SunIcon className="h-6 w-6" />
             ) : (
-              <HalfMoon className="h-6 w-6" />
+              <MoonIcon className="h-6 w-6" />
             )}
           </IconButton>
           <ProfileMenu />
@@ -223,7 +223,7 @@ export default function FileglancerNavbar() {
             className="mr-2 grid ml-auto text-foreground dark:text-foreground hover:!text-foreground focus:!text-foreground lg:hidden hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
           >
             {openNav ? (
-              <Xmark className="h-6 w-6" />
+              <XMarkIcon className="h-6 w-6" />
             ) : (
               <MenuIcon className="h-6 w-6" />
             )}

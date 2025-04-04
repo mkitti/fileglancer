@@ -5,7 +5,11 @@ import {
   Typography,
   BreadcrumbSeparator
 } from '@material-tailwind/react';
-import { NavArrowRight, Server } from 'iconoir-react';
+import {
+  ChevronRightIcon,
+  SlashIcon,
+  Squares2X2Icon
+} from '@heroicons/react/24/outline';
 
 type FileListCrumbsProps = {
   currentPath: string;
@@ -42,11 +46,11 @@ export default function FileListCrumbs({
     <div className="w-full py-2 px-3">
       <Breadcrumb className="bg-transparent p-0">
         <div
-          className="flex items-center gap-1 rounded-md hover:bg-primary-light/20 transition-colors cursor-pointer"
+          className="flex items-center gap-1 h-5 rounded-md hover:bg-primary-light/20 transition-colors cursor-pointer"
           onClick={() => selectedZone && getFiles(selectedZone)}
         >
-          <Server className="h-4 w-4 text-primary-light" />
-          <NavArrowRight />
+          <Squares2X2Icon className="h-5 w-5 text-primary-light" />
+          <ChevronRightIcon className="h-5 w-5" />
         </div>
 
         {/* Path segments */}
@@ -73,7 +77,9 @@ export default function FileListCrumbs({
 
               {/* Add separator only if not the last segment */}
               {index < dirDepth - 1 && (
-                <BreadcrumbSeparator>/</BreadcrumbSeparator>
+                <BreadcrumbSeparator>
+                  <SlashIcon className="h-5 w-5" />
+                </BreadcrumbSeparator>
               )}
             </React.Fragment>
           );

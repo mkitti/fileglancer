@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Minus } from 'iconoir-react';
+import { CheckIcon, MinusIcon } from '@heroicons/react/24/outline';
 import { File } from '../../hooks/useFileBrowser';
 
 type FileTableProps = {
@@ -32,9 +32,9 @@ export default function FilePermissionTable({ file }: FileTableProps) {
 
   const PermissionIcon = ({ hasPermission }: { hasPermission: boolean }) =>
     hasPermission ? (
-      <Check className="h-5 w-5" />
+      <CheckIcon className="h-5 w-5" />
     ) : (
-      <Minus className="h-5 w-5" />
+      <MinusIcon className="h-5 w-5" />
     );
 
   return (

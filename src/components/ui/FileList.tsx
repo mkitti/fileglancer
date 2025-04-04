@@ -1,7 +1,10 @@
 import * as React from 'react';
 import { IconButton, Tooltip, Typography } from '@material-tailwind/react';
-import { EmptyPage, Folder } from 'iconoir-react';
-import { EllipsisHorizontalCircleIcon } from '@heroicons/react/24/outline';
+import {
+  DocumentIcon,
+  EllipsisHorizontalCircleIcon,
+  FolderIcon
+} from '@heroicons/react/24/outline';
 
 import FileListCrumbs from './FileListCrumbs';
 
@@ -93,9 +96,9 @@ export default function FileList({
                 {/* Type column */}
                 <div className="flex items-center w-full gap-3 py-1 text-grey-700 ">
                   {file.is_dir ? (
-                    <Folder className="text-foreground" />
+                    <FolderIcon className="text-foreground h-5 w-5" />
                   ) : (
-                    <EmptyPage className="text-foreground" />
+                    <DocumentIcon className="text-foreground h-5 w-5" />
                   )}
                   <Typography variant="small" className="font-medium">
                     {file.is_dir ? 'Folder' : 'File'}
