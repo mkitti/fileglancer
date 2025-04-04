@@ -67,10 +67,16 @@ export default function useDisplayOptions(files: File[]) {
       } else {
         // If no modifier keys are held down, select the current file
         const currentIndex = selectedFiles.indexOf(file.name);
-        const newSelectedFiles = currentIndex === -1 ? [file.name] : [];
+        const newSelectedFiles =
+          currentIndex === -1 || selectedFiles.length > 1 || showFileDrawer
+            ? [file.name]
+            : [];
         setSelectedFiles(newSelectedFiles);
-        // If the file is already selected, toggle the properties target
-        setPropertiesTarget(prev => (prev === file ? null : file));
+        const newPropertiesTarget =
+          currentIndex === -1 || selectedFiles.length > 1 || showFileDrawer
+            ? file
+            : null;
+        setPropertiesTarget(newPropertiesTarget);
       }
     }
   };
