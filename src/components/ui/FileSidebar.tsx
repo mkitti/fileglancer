@@ -34,7 +34,7 @@ export default function FileSidebar({
       : fileSharePaths;
 
   return (
-    <Card className="max-w-[280px] h-full rounded-none bg-surface shadow-lg">
+    <Card className="max-w-[280px] max-h-full overflow-hidden rounded-none bg-surface shadow-lg flex flex-col">
       <div className="w-[calc(100%-1.5rem)] mx-3 mt-3">
         <Input
           className="bg-background text-foreground"
@@ -51,7 +51,7 @@ export default function FileSidebar({
         </Input>
       </div>
 
-      <div className="w-[calc(100%-1.5rem)] mt-3 mx-3 bg-background border border-surface shadow-sm">
+      <div className="w-[calc(100%-1.5rem)] mt-3 mx-3 bg-background border border-surface shadow-sm flex flex-col flex-1 max-h-full">
         <List className="bg-surface-light border border-surface py-2">
           <List.Item className="pointer-events-none">
             <List.ItemStart>
@@ -62,19 +62,19 @@ export default function FileSidebar({
             </Typography>
           </List.Item>
         </List>
-        <List className="bg-background overflow-y-auto">
+        <List className="bg-background overflow-y-auto flex-grow">
           {Object.entries(displayPaths).map(([zone, pathItems], index) => {
             const isOpen = openZones[zone] || false;
             return (
               <React.Fragment key={zone}>
                 <List.Item
                   onClick={() => toggleZone(zone)}
-                  className="cursor-pointer rounded-none py-3 hover:bg-primary-light/30"
+                  className="cursor-pointer rounded-none py-3 flex-shrink-0 hover:bg-primary-light/30"
                 >
                   <List.ItemStart>
                     <Server className="h-[18px] w-[18px]" />
                   </List.ItemStart>
-                  {zone}
+                  <div className="flex-1 min-w-0">{zone}</div>
                   <List.ItemEnd>
                     <NavArrowRight
                       className={`h-4 w-4 ${isOpen ? 'rotate-90' : ''}`}
