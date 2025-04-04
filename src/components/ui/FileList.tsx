@@ -14,7 +14,8 @@ type FileListProps = {
   selectedZone: string | null;
   getFiles: (path: string) => void;
   showFileDrawer: boolean;
-  handleFileClick: (e: React.MouseEvent<HTMLDivElement>, file: File) => void;
+  handleContextMenu: (e: React.MouseEvent<HTMLDivElement>, file: File) => void;
+  handleLeftClicks: (e: React.MouseEvent<HTMLDivElement>, file: File) => void;
 };
 
 export default function FileList({
@@ -24,7 +25,8 @@ export default function FileList({
   selectedZone,
   getFiles,
   showFileDrawer,
-  handleFileClick
+  handleContextMenu,
+  handleLeftClicks
 }: FileListProps): JSX.Element {
   return (
     <div
@@ -69,10 +71,10 @@ export default function FileList({
                 key={file.name}
                 className={`cursor-pointer grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_20px] gap-4 hover:bg-primary-light/30 focus:bg-primary-light/30 ${isSelected && 'bg-primary-light/30'} ${index % 2 === 0 && !isSelected && 'bg-surface/50'}  `}
                 onClick={(e: React.MouseEvent<HTMLDivElement>) =>
-                  handleFileClick(e, file)
+                  handleLeftClicks(e, file)
                 }
                 onContextMenu={(e: React.MouseEvent<HTMLDivElement>) =>
-                  handleFileClick(e, file)
+                  handleContextMenu(e, file)
                 }
                 onDoubleClick={() => {
                   if (file.is_dir) {

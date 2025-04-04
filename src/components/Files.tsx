@@ -30,7 +30,8 @@ export default function Files() {
     showFileContextMenu,
     setShowFileContextMenu,
     contextMenuCoords,
-    handleFileClick
+    handleContextMenu,
+    handleLeftClicks
   } = useDisplayOptions(files);
 
   return (
@@ -51,7 +52,8 @@ export default function Files() {
           selectedFiles={selectedFiles}
           selectedZone={selectedZone}
           getFiles={getFiles}
-          handleFileClick={handleFileClick}
+          handleContextMenu={handleContextMenu}
+          handleLeftClicks={handleLeftClicks}
           showFileDrawer={showFileDrawer}
         />
       </div>
