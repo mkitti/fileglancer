@@ -40,21 +40,21 @@ export default function FileList({
       <div className="min-w-full bg-background">
         {/* Header row */}
         <div className="grid grid-cols-[minmax(200px,2fr)_minmax(85px,1fr)_minmax(100px,1fr)_minmax(75px,1fr)_40px] gap-4 p-0 text-foreground">
-          <div className="flex w-full gap-3 px-3 py-1">
+          <div className="flex w-full gap-3 px-3 py-1 overflow-x-auto">
             <Typography variant="small" className="font-bold">
               Name
             </Typography>
           </div>
 
-          <Typography variant="small" className="font-bold">
+          <Typography variant="small" className="font-bold overflow-x-auto">
             Type
           </Typography>
 
-          <Typography variant="small" className="font-bold">
+          <Typography variant="small" className="font-bold overflow-x-auto">
             Last Modified
           </Typography>
 
-          <Typography variant="small" className="font-bold">
+          <Typography variant="small" className="font-bold overflow-x-auto">
             Size
           </Typography>
 
@@ -83,14 +83,14 @@ export default function FileList({
                 }}
               >
                 {/* Name column */}
-                <div className="flex items-center w-full gap-3 pl-3 py-1 text-primary-light">
+                <div className="flex items-center w-full gap-3 pl-3 py-1 text-primary-light overflow-x-auto">
                   <Typography variant="small" className="font-medium">
                     {file.name}
                   </Typography>
                 </div>
 
                 {/* Type column */}
-                <div className="flex items-center w-full gap-3 py-1 text-grey-700 ">
+                <div className="flex items-center w-full gap-3 py-1 text-grey-700 overflow-x-auto">
                   {file.is_dir ? (
                     <Folder className="text-foreground" />
                   ) : (
@@ -102,28 +102,29 @@ export default function FileList({
                 </div>
 
                 {/* Last Modified column */}
-                <div className="py-1 text-grey-700  flex items-center">
+                <div className="py-1 text-grey-700  flex items-center overflow-x-auto">
                   <Typography variant="small" className="font-medium">
                     {formatDate(file.last_modified)}
                   </Typography>
                 </div>
 
                 {/* Size column */}
-                <div className="py-1 text-grey-700 flex items-center">
+                <div className="py-1 text-grey-700 flex items-cente overflow-x-auto">
                   <Typography variant="small" className="font-medium">
                     {file.is_dir ? '—' : formatFileSize(file.size)}
                   </Typography>
                 </div>
+
                 {/* Context menu button */}
                 <div
-                  className="py-1 text-grey-700 flex items-center"
+                  className="py-1 text-grey-700 flex items-center overflow-x-auto"
                   onClick={e => {
                     handleContextMenu(e, file);
                   }}
                 >
                   <Tooltip placement="top">
                     <Tooltip.Trigger as={IconButton} variant="ghost">
-                      <EllipsisHorizontalCircleIcon className="h-5 w-5 text-grey-700 hover:text-primary-light" />
+                      ...
                       <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
                         <Typography type="small" className="opacity-90">
                           View actions
