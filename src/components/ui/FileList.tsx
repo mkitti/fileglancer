@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { IconButton, Tooltip, Typography } from '@material-tailwind/react';
+import { IconButton, Typography } from '@material-tailwind/react';
 import {
   DocumentIcon,
   EllipsisHorizontalCircleIcon,
@@ -62,7 +62,9 @@ export default function FileList({
             Size
           </Typography>
 
-          <div className="w-[1.5em] h-[1.5em]"></div>
+          <Typography variant="small" className="font-bold overflow-x-auto">
+            Actions
+          </Typography>
         </div>
 
         {/* File rows */}
