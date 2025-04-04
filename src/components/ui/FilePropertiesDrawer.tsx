@@ -20,7 +20,7 @@ export default function FilePropertiesDrawer({
 }: FilePropertiesPanelProps) {
   return (
     <div
-      className={`absolute top-0 right-0 bottom-0 w-[350px] bg-background shadow-lg border-l border-surface shadow-surface transform transition-transform duration-300 ease-in-out ${open ? 'translate-x-0' : 'translate-x-full'}`}
+      className={`absolute top-0 right-0 bottom-0 w-[350px] bg-background shadow-lg border-l border-surface shadow-surface transform transition-transform duration-300 ease-in-out ${open ? 'translate-x-0 z-50' : 'translate-x-full'}`}
     >
       <div className="flex flex-col h-full overflow-y-auto p-4">
         <div className="flex items-center justify-between gap-4 mb-1">
