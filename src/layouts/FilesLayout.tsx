@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet } from 'react-router';
 import FileSidebar from '../components/ui/FileSidebar';
 import useFileBrowser from '../hooks/useFileBrowser';
+import usePreferences from '../hooks/usePreferences';
 
 export const FilesLayout = () => {
   const {
@@ -16,6 +17,15 @@ export const FilesLayout = () => {
     getFiles,
     handlePathClick
   } = useFileBrowser();
+  const {
+    zoneFavorites,
+    setZoneFavorites,
+    // fileSharePathFavorites,
+    // setFileSharePathFavorites,
+    // directoryFavorites,
+    // setDirectoryFavorites,
+    handleFavoriteChange
+  } = usePreferences();
 
   React.useEffect(() => {
     if (Object.keys(fileSharePaths).length === 0) {
@@ -27,9 +37,12 @@ export const FilesLayout = () => {
     <div className="flex h-full w-full overflow-y-hidden">
       <FileSidebar
         fileSharePaths={fileSharePaths}
+        zoneFavorites={zoneFavorites}
+        setZoneFavorites={setZoneFavorites}
         openZones={openZones}
         toggleZone={toggleZone}
         handlePathClick={handlePathClick}
+        handleFavoriteChange={handleFavoriteChange}
       />
 
       <Outlet
