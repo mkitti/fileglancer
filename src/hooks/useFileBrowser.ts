@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useCookies } from 'react-cookie';
+import { getAPIPathRoot, sendGetRequest } from '../utils';
 
 export type File = {
   name: string;
@@ -48,14 +49,6 @@ export default function useFileBrowser() {
     getFiles(path);
   };
 
-  function getAPIPathRoot() {
-    const match = window.location.pathname.match(/^\/jupyter\/user\/[^/]+\//);
-    if (match) {
-      return match[0];
-    }
-    return '/';
-  }
-
   async function getFiles(path: File['path']): Promise<void> {
     let cleanPath = path;
 
@@ -70,16 +63,7 @@ export default function useFileBrowser() {
 
     let data = [];
     try {
-      const response = await fetch(url, {
-        credentials: 'include',
-        headers: {
-          'X-Xsrftoken': cookies['_xsrf']
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Response status: ${response.status}`);
-      }
+      const response = await sendGetRequest(url, cookies['_xsrf']);
 
       data = await response.json();
       if (data) {
@@ -109,15 +93,7 @@ export default function useFileBrowser() {
     const url = `${getAPIPathRoot()}api/fileglancer/file-share-paths`;
 
     try {
-      const response = await fetch(url, {
-        credentials: 'include',
-        headers: {
-          'X-Xsrftoken': cookies['_xsrf']
-        }
-      });
-      if (!response.ok) {
-        throw new Error(`Response status: ${response.status}`);
-      }
+      const response = await sendGetRequest(url, cookies['_xsrf']);
 
       const rawData: { paths: FileSharePathItem[] } = await response.json();
       const unsortedPaths: FileSharePaths = {};
