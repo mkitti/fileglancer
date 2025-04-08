@@ -46,23 +46,32 @@ export default function FileSidebar({
       ? filteredFileSharePaths
       : fileSharePaths;
 
+  const sortByFavorites = (displayPaths: FileSharePaths) => {
+    const sortedPaths = Object.keys(displayPaths)
+      .sort((a, b) => {
+        const aIsFavorite = zoneFavorites.includes(a);
+        const bIsFavorite = zoneFavorites.includes(b);
+        if (aIsFavorite && !bIsFavorite) {
+          return -1;
+        }
+        if (!aIsFavorite && bIsFavorite) {
+          return 1;
+        }
+        return a.localeCompare(b);
+      })
+      .reduce((acc, key) => {
+        acc[key] = displayPaths[key];
+        return acc;
+      }, {} as FileSharePaths);
+    return sortedPaths;
+  };
+
   // Sort displayPaths so zones that are favorites are at the top
-  const sortedDisplayPaths = Object.keys(displayPaths)
-    .sort((a, b) => {
-      const aIsFavorite = zoneFavorites.includes(a);
-      const bIsFavorite = zoneFavorites.includes(b);
-      if (aIsFavorite && !bIsFavorite) {
-        return -1;
-      }
-      if (!aIsFavorite && bIsFavorite) {
-        return 1;
-      }
-      return a.localeCompare(b);
-    })
-    .reduce((acc, key) => {
-      acc[key] = displayPaths[key];
-      return acc;
-    }, {} as FileSharePaths);
+  const sortedDisplayPaths = zoneFavorites
+    ? sortByFavorites(displayPaths)
+    : displayPaths;
+
+  console.log('Zone favorites in sidebar:', zoneFavorites);
 
   return (
     <Card className="max-w-[280px] max-h-full overflow-hidden rounded-none bg-surface shadow-lg flex flex-col">
@@ -97,7 +106,9 @@ export default function FileSidebar({
           {Object.entries(sortedDisplayPaths).map(
             ([zone, pathItems], index) => {
               const isOpen = openZones[zone] || false;
-              const isFavorite = zoneFavorites.includes(zone);
+              const isFavorite = zoneFavorites
+                ? zoneFavorites.includes(zone)
+                : false;
               return (
                 <React.Fragment key={zone}>
                   <List.Item
