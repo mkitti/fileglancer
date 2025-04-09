@@ -1,10 +1,21 @@
 import React from 'react';
-import { Outlet } from 'react-router';
+import { Outlet, useOutletContext } from 'react-router';
 import FileSidebar from '../components/ui/FileSidebar';
 import useFileBrowser from '../hooks/useFileBrowser';
-import usePreferences from '../hooks/usePreferences';
+
+type FilesLayoutRouteProps = {
+  zoneFavorites: string[];
+  fileSharePathFavorites: string[];
+  handleFavoriteChange: (item: string, type: string) => Promise<void>;
+};
 
 export const FilesLayout = () => {
+  const {
+    zoneFavorites,
+    fileSharePathFavorites,
+    handleFavoriteChange
+  }: FilesLayoutRouteProps = useOutletContext();
+
   const {
     files,
     currentPath,
@@ -17,21 +28,6 @@ export const FilesLayout = () => {
     getFiles,
     handlePathClick
   } = useFileBrowser();
-  const {
-    zoneFavorites,
-    setZoneFavorites,
-    // fileSharePathFavorites,
-    // setFileSharePathFavorites,
-    // directoryFavorites,
-    // setDirectoryFavorites,
-    handleFavoriteChange
-  } = usePreferences();
-
-  React.useEffect(() => {
-    if (Object.keys(fileSharePaths).length === 0) {
-      getFileSharePaths();
-    }
-  }, [fileSharePaths, getFileSharePaths]);
 
   return (
     <div className="flex h-full w-full overflow-y-hidden">
