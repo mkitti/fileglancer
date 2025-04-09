@@ -4,6 +4,7 @@ import FileSidebar from '../components/ui/FileSidebar';
 import useFileBrowser from '../hooks/useFileBrowser';
 
 type FilesLayoutRouteProps = {
+  pathPreference: ['linux_path'] | ['windows_path'] | ['mac_path'];
   zoneFavorites: string[];
   fileSharePathFavorites: string[];
   handleFavoriteChange: (item: string, type: string) => Promise<void>;
@@ -11,6 +12,7 @@ type FilesLayoutRouteProps = {
 
 export const FilesLayout = () => {
   const {
+    pathPreference,
     zoneFavorites,
     fileSharePathFavorites,
     handleFavoriteChange
@@ -24,7 +26,6 @@ export const FilesLayout = () => {
     openZones,
     setSelectedZone,
     toggleZone,
-    getFileSharePaths,
     getFiles,
     handlePathClick
   } = useFileBrowser();
@@ -34,13 +35,13 @@ export const FilesLayout = () => {
       <FileSidebar
         fileSharePaths={fileSharePaths}
         zoneFavorites={zoneFavorites}
-        setZoneFavorites={setZoneFavorites}
+        fileSharePathFavorites={fileSharePathFavorites}
         openZones={openZones}
         toggleZone={toggleZone}
         handlePathClick={handlePathClick}
+        pathPreference={pathPreference}
         handleFavoriteChange={handleFavoriteChange}
       />
-
       <Outlet
         context={{
           files,
