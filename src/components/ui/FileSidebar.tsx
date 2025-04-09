@@ -23,19 +23,22 @@ import { FileSharePaths } from '../../hooks/useFileBrowser';
 type FileSidebarProps = {
   fileSharePaths: FileSharePaths;
   zoneFavorites: string[];
-  setZoneFavorites: (zones: string[]) => void;
+  fileSharePathFavorites: string[];
   openZones: Record<string, boolean>;
   toggleZone: (zone: string) => void;
   handlePathClick: (path: string) => void;
+  pathPreference: ['linux_path'] | ['windows_path'] | ['mac_path'];
   handleFavoriteChange: (item: string, type: string) => void;
 };
 
 export default function FileSidebar({
   fileSharePaths,
   zoneFavorites,
+  fileSharePathFavorites,
   openZones,
   toggleZone,
   handlePathClick,
+  pathPreference,
   handleFavoriteChange
 }: FileSidebarProps) {
   const { searchQuery, filteredFileSharePaths, handleSearchChange } =
@@ -47,6 +50,7 @@ export default function FileSidebar({
       : fileSharePaths;
 
   const sortByFavorites = (displayPaths: FileSharePaths) => {
+    // Sort the zones based on favorites
     const sortedPaths = Object.keys(displayPaths)
       .sort((a, b) => {
         const aIsFavorite = zoneFavorites.includes(a);
@@ -60,7 +64,20 @@ export default function FileSidebar({
         return a.localeCompare(b);
       })
       .reduce((acc, key) => {
-        acc[key] = displayPaths[key];
+        // Sort the items within each zone
+        acc[key] = [...displayPaths[key]].sort((a, b) => {
+          // Check if linux_path of adjacent items are favorite paths
+          const aIsFavorite = fileSharePathFavorites.includes(a.linux_path);
+          const bIsFavorite = fileSharePathFavorites.includes(b.linux_path);
+
+          if (aIsFavorite && !bIsFavorite) {
+            return -1;
+          }
+          if (!aIsFavorite && bIsFavorite) {
+            return 1;
+          }
+          return a.name.localeCompare(b.name);
+        });
         return acc;
       }, {} as FileSharePaths);
     return sortedPaths;
@@ -70,8 +87,6 @@ export default function FileSidebar({
   const sortedDisplayPaths = zoneFavorites
     ? sortByFavorites(displayPaths)
     : displayPaths;
-
-  console.log('Zone favorites in sidebar:', zoneFavorites);
 
   return (
     <Card className="max-w-[280px] max-h-full overflow-hidden rounded-none bg-surface shadow-lg flex flex-col">
@@ -106,8 +121,8 @@ export default function FileSidebar({
           {Object.entries(sortedDisplayPaths).map(
             ([zone, pathItems], index) => {
               const isOpen = openZones[zone] || false;
-              const isFavorite = zoneFavorites
-                ? zoneFavorites.includes(zone)
+              const isFavoriteZone = zoneFavorites.includes(zone)
+                ? true
                 : false;
               return (
                 <React.Fragment key={zone}>
@@ -129,7 +144,7 @@ export default function FileSidebar({
                           isCircular
                           onClick={() => handleFavoriteChange(zone, 'zone')}
                         >
-                          {isFavorite ? (
+                          {isFavoriteZone ? (
                             <StarFilled className="h-[18px] w-[18px] mb-[2px]" />
                           ) : (
                             <StarOutline className="h-[18px] w-[18px] mb-[2px]" />
@@ -145,31 +160,69 @@ export default function FileSidebar({
                   </List.Item>
                   <Collapse open={isOpen}>
                     <List className="bg-background">
-                      {pathItems.map((pathItem, pathIndex) => (
-                        <List.Item
-                          key={`${zone}-${pathItem.name}`}
-                          onClick={() => handlePathClick(pathItem.name)}
-                          className={`pl-5 rounded-none cursor-pointer hover:bg-primary-light/30 focus:bg-primary-light/30 hover:!text-foreground focus:!text-foreground ${pathIndex % 2 === 0 ? 'bg-surface/50' : 'bg-background'}`}
-                          as={Link}
-                          to="/files"
-                        >
-                          <List.ItemStart>
-                            <FolderIcon className="h-[18px] w-[18px]" />
-                          </List.ItemStart>
-                          <div className="flex flex-col">
-                            <span className="text-sm font-medium">
-                              {pathItem.storage}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {
-                                /* TODO: use the user's preferred address for the path 
-                            (mac_path, windows_path, linux_path) */
-                                pathItem.linux_path
-                              }
-                            </span>
-                          </div>
-                        </List.Item>
-                      ))}
+                      {pathItems.map((pathItem, pathIndex) => {
+                        const isFavoritePath = fileSharePathFavorites.includes(
+                          pathItem.linux_path
+                        )
+                          ? true
+                          : false;
+                        return (
+                          <List.Item
+                            key={`${zone}-${pathItem.name}`}
+                            onClick={() => handlePathClick(pathItem.name)}
+                            className={`flex gap-2 items-center justify-between pl-5 rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30  ${pathIndex % 2 === 0 ? 'bg-surface/50' : 'bg-background'}`}
+                          >
+                            <Link
+                              to="/files"
+                              className="flex flex-col gap-2 !text-foreground hover:!text-black focus:!text-black"
+                            >
+                              <div className="flex gap-1 items-center">
+                                <FolderIcon className="h-[18px] w-[18px]" />
+                                <Typography className="text-sm font-medium leading-[18px]">
+                                  {pathItem.storage}
+                                </Typography>
+                              </div>
+
+                              <Typography className="text-xs">
+                                {pathPreference[0] === 'linux_path'
+                                  ? pathItem.linux_path
+                                  : pathPreference[0] === 'windows_path'
+                                    ? pathItem.windows_path
+                                    : pathPreference[0] === 'mac_path'
+                                      ? pathItem.mac_path
+                                      : pathItem.linux_path}
+                              </Typography>
+                            </Link>
+
+                            <div
+                              onClick={e => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                              }}
+                            >
+                              <IconButton
+                                variant="ghost"
+                                isCircular
+                                onClick={(
+                                  e: React.MouseEvent<HTMLButtonElement>
+                                ) => {
+                                  e.stopPropagation();
+                                  handleFavoriteChange(
+                                    pathItem.linux_path,
+                                    'fileSharePath'
+                                  );
+                                }}
+                              >
+                                {isFavoritePath ? (
+                                  <StarFilled className="h-[18px] w-[18px] mb-[2px]" />
+                                ) : (
+                                  <StarOutline className="h-[18px] w-[18px] mb-[2px]" />
+                                )}
+                              </IconButton>
+                            </div>
+                          </List.Item>
+                        );
+                      })}
                     </List>
                   </Collapse>
                 </React.Fragment>
