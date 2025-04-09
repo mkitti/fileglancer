@@ -34,7 +34,9 @@ export default function useFileBrowser() {
         )
           .then(response => response.json())
           .then(data => {
-            setZoneFavorites(data);
+            if (data) {
+              setZoneFavorites(data);
+            }
           });
         await sendGetRequest(
           `${getAPIPathRoot()}api/fileglancer/preference?key=fileSharePathFavorites`,
@@ -42,7 +44,9 @@ export default function useFileBrowser() {
         )
           .then(response => response.json())
           .then(data => {
-            setFileSharePathFavorites(data);
+            if (data) {
+              setFileSharePathFavorites(data);
+            }
           });
         await sendGetRequest(
           `${getAPIPathRoot()}api/fileglancer/preference?key=directoryFavorites`,
@@ -50,7 +54,9 @@ export default function useFileBrowser() {
         )
           .then(response => response.json())
           .then(data => {
-            setDirectoryFavorites(data);
+            if (data) {
+              setDirectoryFavorites(data);
+            }
           });
       } catch (error) {
         console.error('Error fetching preferences:', error);
