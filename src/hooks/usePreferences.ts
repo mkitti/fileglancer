@@ -3,6 +3,9 @@ import { useCookies } from 'react-cookie';
 import { getAPIPathRoot, sendGetRequest, sendPutRequest } from '../utils';
 
 export default function useFileBrowser() {
+  const [pathPreference, setPathPreference] = React.useState<
+    ['linux_path'] | ['windows_path'] | ['mac_path']
+  >(['linux_path']);
   const [zoneFavorites, setZoneFavorites] = React.useState<string[]>([]);
   const [fileSharePathFavorites, setFileSharePathFavorites] = React.useState<
     string[]
@@ -15,6 +18,16 @@ export default function useFileBrowser() {
   React.useEffect(() => {
     const fetchPreferences = async () => {
       try {
+        await sendGetRequest(
+          `${getAPIPathRoot()}api/fileglancer/preference?key=pathPreference`,
+          cookies['_xsrf']
+        )
+          .then(response => response.json())
+          .then(data => {
+            if (data) {
+              setPathPreference(data);
+            }
+          });
         await sendGetRequest(
           `${getAPIPathRoot()}api/fileglancer/preference?key=zoneFavorites`,
           cookies['_xsrf']
@@ -58,6 +71,20 @@ export default function useFileBrowser() {
     }
   };
 
+  function handlePathPreferenceChange(
+    event: React.ChangeEvent<HTMLSelectElement>
+  ) {
+    const selectedPath = event.target.value.split(' ') as [
+      'linux_path' | 'windows_path' | 'mac_path'
+    ];
+    setPathPreference(selectedPath);
+  }
+
+  function handlePathPreferenceSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    updatePreferences('pathPreference', pathPreference);
+  }
+
   const handleFavoriteChange = async (item: string, type: string) => {
     if (type === 'zone') {
       const newFavorites = zoneFavorites.includes(item)
@@ -81,6 +108,9 @@ export default function useFileBrowser() {
   };
 
   return {
+    pathPreference,
+    handlePathPreferenceChange,
+    handlePathPreferenceSubmit,
     zoneFavorites,
     setZoneFavorites,
     fileSharePathFavorites,
