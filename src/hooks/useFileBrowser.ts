@@ -36,6 +36,12 @@ export default function useFileBrowser() {
   const [selectedZone, setSelectedZone] = React.useState<string | null>(null);
   const [cookies] = useCookies(['_xsrf']);
 
+  React.useEffect(() => {
+    if (Object.keys(fileSharePaths).length === 0) {
+      getFileSharePaths();
+    }
+  }, [fileSharePaths, getFileSharePaths]);
+
   function toggleZone(zone: string) {
     setOpenZones(prev => ({
       ...prev,
