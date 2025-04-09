@@ -42,7 +42,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     commands.addCommand(command, {
       label: 'Fileglancer',
-
+      icon: FileglancerIcon,
       execute: () => {
         console.log('Create React widget command executed');
         const content = new AppWidget();
