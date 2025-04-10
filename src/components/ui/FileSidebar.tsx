@@ -18,7 +18,7 @@ import {
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
 import useZoneFilter from '../../hooks/useZoneFilter';
-import { FileSharePaths } from '../../hooks/useFileBrowser';
+import { FileSharePaths } from '../../shared.types';
 
 type FileSidebarProps = {
   fileSharePaths: FileSharePaths;
@@ -84,7 +84,7 @@ export default function FileSidebar({
   };
 
   // Sort displayPaths so zones that are favorites are at the top
-  const sortedDisplayPaths = zoneFavorites
+  const sortedDisplayPaths: FileSharePaths = zoneFavorites
     ? sortByFavorites(displayPaths)
     : displayPaths;
 

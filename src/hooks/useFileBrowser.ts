@@ -1,30 +1,7 @@
 import * as React from 'react';
 import { useCookies } from 'react-cookie';
 import { getAPIPathRoot, sendGetRequest } from '../utils';
-
-export type File = {
-  name: string;
-  path: string;
-  size: number;
-  is_dir: boolean;
-  permissions: string;
-  owner: string;
-  group: string;
-  last_modified: number;
-};
-
-export type FileSharePathItem = {
-  zone: string;
-  name: string;
-  group: string;
-  storage: string;
-  mount_path: string;
-  linux_path: string;
-  mac_path: string | null;
-  windows_path: string | null;
-};
-
-export type FileSharePaths = Record<string, FileSharePathItem[]>;
+import { File, FileSharePaths, FileSharePathItem } from '../shared.types';
 
 export default function useFileBrowser() {
   const [files, setFiles] = React.useState<File[]>([]);

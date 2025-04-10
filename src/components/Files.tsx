@@ -1,7 +1,7 @@
 import React from 'react';
 import { useOutletContext } from 'react-router';
 
-import { File } from '../hooks/useFileBrowser';
+import { File } from '../shared.types';
 import useDisplayOptions from '../hooks/useDisplayOptions';
 import FileList from './ui/FileList';
 import FilePropertiesDrawer from './ui/FilePropertiesDrawer';
