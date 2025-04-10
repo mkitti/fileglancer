@@ -7,30 +7,39 @@ import {
 } from '@heroicons/react/24/outline';
 
 import FileListCrumbs from './FileListCrumbs';
-
-import { File } from '../../hooks/useFileBrowser';
 import { formatDate, formatFileSize } from '../../utils';
+import { File } from '../../shared.types';
 
 type FileListProps = {
   displayFiles: File[];
   currentPath: string;
   selectedFiles: string[];
+  setSelectedFiles: React.Dispatch<React.SetStateAction<string[]>>;
   selectedZone: string | null;
   getFiles: (path: string) => void;
   showFileDrawer: boolean;
-  handleContextMenu: (e: React.MouseEvent<HTMLDivElement>, file: File) => void;
+  setPropertiesTarget: React.Dispatch<React.SetStateAction<File | null>>;
   handleLeftClicks: (e: React.MouseEvent<HTMLDivElement>, file: File) => void;
+  handleRightClick: (
+    e: React.MouseEvent<HTMLDivElement>,
+    file: File,
+    selectedFiles: string[],
+    setSelectedFiles: React.Dispatch<React.SetStateAction<string[]>>,
+    setPropertiesTarget: React.Dispatch<React.SetStateAction<File | null>>
+  ) => void;
 };
 
 export default function FileList({
   displayFiles,
   currentPath,
   selectedFiles,
+  setSelectedFiles,
   selectedZone,
   getFiles,
+  handleLeftClicks,
   showFileDrawer,
-  handleContextMenu,
-  handleLeftClicks
+  setPropertiesTarget,
+  handleRightClick
 }: FileListProps): JSX.Element {
   return (
     <div
@@ -80,7 +89,13 @@ export default function FileList({
                   handleLeftClicks(e, file)
                 }
                 onContextMenu={(e: React.MouseEvent<HTMLDivElement>) =>
-                  handleContextMenu(e, file)
+                  handleRightClick(
+                    e,
+                    file,
+                    selectedFiles,
+                    setSelectedFiles,
+                    setPropertiesTarget
+                  )
                 }
                 onDoubleClick={() => {
                   if (file.is_dir) {

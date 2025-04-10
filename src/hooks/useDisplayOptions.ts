@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { File } from '../hooks/useFileBrowser';
+import { File } from '../shared.types';
 
 export default function useDisplayOptions(files: File[]) {
   const [selectedFiles, setSelectedFiles] = React.useState<string[]>([]);
@@ -8,33 +8,12 @@ export default function useDisplayOptions(files: File[]) {
   );
   const [hideDotFiles, setHideDotFiles] = React.useState<boolean>(true);
   const [showFileDrawer, setShowFileDrawer] = React.useState<boolean>(false);
-  const [showFileContextMenu, setShowFileContextMenu] =
-    React.useState<boolean>(false);
-  const [contextMenuCoords, setContextMenuCoords] = React.useState({
-    x: 0,
-    y: 0
-  });
 
   const displayFiles = React.useMemo(() => {
     return hideDotFiles
       ? files.filter(file => !file.name.startsWith('.'))
       : files;
   }, [files, hideDotFiles]);
-
-  const handleContextMenu = (
-    e: React.MouseEvent<HTMLDivElement>,
-    file: File
-  ) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setPropertiesTarget(file);
-    setContextMenuCoords({ x: e.clientX, y: e.clientY });
-    setShowFileContextMenu(true);
-    const currentIndex = selectedFiles.indexOf(file.name);
-    const newSelectedFiles =
-      currentIndex === -1 ? [file.name] : [...selectedFiles];
-    setSelectedFiles(newSelectedFiles);
-  };
 
   const handleLeftClicks = (
     e: React.MouseEvent<HTMLDivElement>,
@@ -95,10 +74,6 @@ export default function useDisplayOptions(files: File[]) {
     setHideDotFiles,
     showFileDrawer,
     setShowFileDrawer,
-    showFileContextMenu,
-    setShowFileContextMenu,
-    contextMenuCoords,
-    handleContextMenu,
     handleLeftClicks
   };
 }
