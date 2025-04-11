@@ -1,8 +1,41 @@
-import * as React from 'react';
-import { useCookies } from 'react-cookie';
+import React from 'react';
+import { useCookiesContext } from '../contexts/CookiesContext';
 import { getAPIPathRoot, sendGetRequest, sendPutRequest } from '../utils';
 
-export default function useFileBrowser() {
+type PreferencesContextType = {
+  pathPreference: ['linux_path'] | ['windows_path'] | ['mac_path'];
+  handlePathPreferenceChange: (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => void;
+  handlePathPreferenceSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  zoneFavorites: string[];
+  setZoneFavorites: React.Dispatch<React.SetStateAction<string[]>>;
+  fileSharePathFavorites: string[];
+  setFileSharePathFavorites: React.Dispatch<React.SetStateAction<string[]>>;
+  directoryFavorites: string[];
+  setDirectoryFavorites: React.Dispatch<React.SetStateAction<string[]>>;
+  handleFavoriteChange: (item: string, type: string) => Promise<void>;
+};
+
+const PreferencesContext = React.createContext<PreferencesContextType | null>(
+  null
+);
+
+export const usePreferencesContext = () => {
+  const context = React.useContext(PreferencesContext);
+  if (!context) {
+    throw new Error(
+      'usePreferencesContext must be used within a PreferencesProvider'
+    );
+  }
+  return context;
+};
+
+export const PreferencesProvider = ({
+  children
+}: {
+  children: React.ReactNode;
+}) => {
   const [pathPreference, setPathPreference] = React.useState<
     ['linux_path'] | ['windows_path'] | ['mac_path']
   >(['linux_path']);
@@ -13,7 +46,7 @@ export default function useFileBrowser() {
   const [directoryFavorites, setDirectoryFavorites] = React.useState<string[]>(
     []
   );
-  const [cookies] = useCookies(['_xsrf']);
+  const { cookies } = useCookiesContext();
 
   React.useEffect(() => {
     const fetchPreferences = async () => {
@@ -78,7 +111,7 @@ export default function useFileBrowser() {
   };
 
   function handlePathPreferenceChange(
-    event: React.ChangeEvent<HTMLSelectElement>
+    event: React.ChangeEvent<HTMLInputElement>
   ) {
     const selectedPath = event.target.value.split(' ') as [
       'linux_path' | 'windows_path' | 'mac_path'
@@ -112,17 +145,22 @@ export default function useFileBrowser() {
       updatePreferences('directoryFavorites', newFavorites);
     }
   };
-
-  return {
-    pathPreference,
-    handlePathPreferenceChange,
-    handlePathPreferenceSubmit,
-    zoneFavorites,
-    setZoneFavorites,
-    fileSharePathFavorites,
-    setFileSharePathFavorites,
-    directoryFavorites,
-    setDirectoryFavorites,
-    handleFavoriteChange
-  };
-}
+  return (
+    <PreferencesContext.Provider
+      value={{
+        pathPreference,
+        handlePathPreferenceChange,
+        handlePathPreferenceSubmit,
+        zoneFavorites,
+        setZoneFavorites,
+        fileSharePathFavorites,
+        setFileSharePathFavorites,
+        directoryFavorites,
+        setDirectoryFavorites,
+        handleFavoriteChange
+      }}
+    >
+      {children}
+    </PreferencesContext.Provider>
+  );
+};

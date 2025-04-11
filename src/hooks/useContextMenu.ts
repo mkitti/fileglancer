@@ -53,8 +53,8 @@ export default function useContextMenu() {
   function handleRightClick(
     e: React.MouseEvent<HTMLDivElement>,
     file: File,
-    selectedFiles: string[],
-    setSelectedFiles: React.Dispatch<React.SetStateAction<string[]>>,
+    selectedFiles: File[],
+    setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>,
     setPropertiesTarget: React.Dispatch<React.SetStateAction<File | null>>
   ) {
     e.preventDefault();
@@ -62,9 +62,8 @@ export default function useContextMenu() {
     setPropertiesTarget(file);
     setContextMenuCoords({ x: e.clientX, y: e.clientY });
     setShowFileContextMenu(true);
-    const currentIndex = selectedFiles.indexOf(file.name);
-    const newSelectedFiles =
-      currentIndex === -1 ? [file.name] : [...selectedFiles];
+    const currentIndex = selectedFiles.indexOf(file);
+    const newSelectedFiles = currentIndex === -1 ? [file] : [...selectedFiles];
     setSelectedFiles(newSelectedFiles);
   }
   return {

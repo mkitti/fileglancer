@@ -1,7 +1,7 @@
 import { ReactWidget } from '@jupyterlab/ui-components';
 import React from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router';
-import { CookiesProvider } from 'react-cookie';
+// import { CookiesProvider } from 'react-cookie';
 import { MainLayout } from './layouts/MainLayout';
 import { FilesLayout } from './layouts/FilesLayout';
 import Home from './components/Home';
@@ -81,10 +81,6 @@ export class AppWidget extends ReactWidget {
   }
 
   render(): JSX.Element {
-    return (
-      <CookiesProvider>
-        <AppComponent />
-      </CookiesProvider>
-    );
+    return <AppComponent />;
   }
 }

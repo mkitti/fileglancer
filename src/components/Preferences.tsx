@@ -1,21 +1,13 @@
 import * as React from 'react';
-import { useOutletContext } from 'react-router';
 import { Button, Card, Typography } from '@material-tailwind/react';
-
-type PreferencesRouteProps = {
-  pathPreference: ['linux_path'] | ['windows_path'] | ['mac_path'];
-  handlePathPreferenceChange: (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => void;
-  handlePathPreferenceSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
-};
+import { usePreferencesContext } from '../contexts/PreferencesContext';
 
 export default function Preferences() {
   const {
     pathPreference,
     handlePathPreferenceChange,
     handlePathPreferenceSubmit
-  }: PreferencesRouteProps = useOutletContext();
+  } = usePreferencesContext();
 
   return (
     <div className="pt-12 w-4/5">

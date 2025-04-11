@@ -21,3 +21,5 @@ export type FileSharePathItem = {
 };
 
 export type FileSharePaths = Record<string, FileSharePathItem[]>;
+
+export type Cookies = { [key: string]: string };

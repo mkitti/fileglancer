@@ -17,32 +17,29 @@ import {
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
-import useZoneFilter from '../../hooks/useZoneFilter';
 import { FileSharePaths } from '../../shared.types';
 
-type FileSidebarProps = {
-  fileSharePaths: FileSharePaths;
-  zoneFavorites: string[];
-  fileSharePathFavorites: string[];
-  openZones: Record<string, boolean>;
-  toggleZone: (zone: string) => void;
-  handlePathClick: (path: string) => void;
-  pathPreference: ['linux_path'] | ['windows_path'] | ['mac_path'];
-  handleFavoriteChange: (item: string, type: string) => void;
-};
+import { usePreferencesContext } from '../../contexts/PreferencesContext';
+import { useZoneBrowserContext } from '../../contexts/ZoneBrowserContext';
+import { useFileBrowserContext } from '../../contexts/FileBrowserContext';
 
-export default function FileSidebar({
-  fileSharePaths,
-  zoneFavorites,
-  fileSharePathFavorites,
-  openZones,
-  toggleZone,
-  handlePathClick,
-  pathPreference,
-  handleFavoriteChange
-}: FileSidebarProps) {
+import useZoneFilter from '../../hooks/useZoneFilter';
+import useToggleOpenZones from '../../hooks/useToggleOpenZones';
+
+export default function FileSidebar() {
+  const {
+    zoneFavorites,
+    fileSharePathFavorites,
+    pathPreference,
+    handleFavoriteChange
+  } = usePreferencesContext();
+
+  const { fileSharePaths, setCurrentNavigationZone } = useZoneBrowserContext();
+  const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
+
   const { searchQuery, filteredFileSharePaths, handleSearchChange } =
     useZoneFilter();
+  const { openZones, toggleZone } = useToggleOpenZones();
 
   const displayPaths =
     Object.keys(filteredFileSharePaths).length > 0 || searchQuery.length > 0
@@ -87,6 +84,12 @@ export default function FileSidebar({
   const sortedDisplayPaths: FileSharePaths = zoneFavorites
     ? sortByFavorites(displayPaths)
     : displayPaths;
+
+  // Handler for when a path is clicked in the sidebar
+  const handlePathClick = (path: string) => {
+    setCurrentNavigationZone(path);
+    fetchAndFormatFilesForDisplay(path);
+  };
 
   return (
     <Card className="max-w-[280px] max-h-full overflow-hidden rounded-none bg-surface shadow-lg flex flex-col">

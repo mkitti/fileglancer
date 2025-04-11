@@ -6,7 +6,8 @@ type ContextMenuProps = {
   x: number;
   y: number;
   menuRef: React.RefObject<HTMLDivElement>;
-  setShowFileDrawer: (show: boolean) => void;
+  // selectedFiles: string[];
+  setShowFilePropertiesDrawer: (show: boolean) => void;
   setShowFileContextMenu: (show: boolean) => void;
 };
 
@@ -14,7 +15,8 @@ export default function FileContextMenu({
   x,
   y,
   menuRef,
-  setShowFileDrawer,
+  // selectedFiles,
+  setShowFilePropertiesDrawer,
   setShowFileContextMenu
 }: ContextMenuProps): JSX.Element {
   return ReactDOM.createPortal(
@@ -30,12 +32,23 @@ export default function FileContextMenu({
         <Typography
           className="text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
           onClick={() => {
-            setShowFileDrawer(true);
+            setShowFilePropertiesDrawer(true);
             setShowFileContextMenu(false);
           }}
         >
           View file properties
         </Typography>
+        {/* { selectedFiles.length == 1 && selectedFiles[0]
+          <Typography
+            className="text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
+            onClick={() => {
+              setShowFilePropertiesDrawer(true);
+              setShowFileContextMenu(false);
+            }}
+          >
+            Set as favorite
+          </Typography>
+        } */}
       </div>
     </div>,
     document.body // Render directly to body
