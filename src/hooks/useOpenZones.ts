@@ -1,10 +1,10 @@
 import React from 'react';
 
 // Hook to manage the open zones in the file browser sidebar
-export default function useToggleOpenZones() {
+export default function useOpenZones() {
   const [openZones, setOpenZones] = React.useState<Record<string, boolean>>({});
 
-  function toggleZone(zone: string) {
+  function toggleOpenZones(zone: string) {
     setOpenZones(prev => ({
       ...prev,
       [zone]: !prev[zone]
@@ -12,6 +12,7 @@ export default function useToggleOpenZones() {
   }
   return {
     openZones,
-    toggleZone
+    setOpenZones,
+    toggleOpenZones
   };
 }

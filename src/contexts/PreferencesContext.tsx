@@ -1,4 +1,5 @@
 import React from 'react';
+import type { FileSharePathItem } from '../shared.types';
 import { useCookiesContext } from '../contexts/CookiesContext';
 import { getAPIPathRoot, sendGetRequest, sendPutRequest } from '../utils';
 
@@ -10,11 +11,16 @@ type PreferencesContextType = {
   handlePathPreferenceSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   zoneFavorites: string[];
   setZoneFavorites: React.Dispatch<React.SetStateAction<string[]>>;
-  fileSharePathFavorites: string[];
-  setFileSharePathFavorites: React.Dispatch<React.SetStateAction<string[]>>;
+  fileSharePathFavorites: FileSharePathItem[];
+  setFileSharePathFavorites: React.Dispatch<
+    React.SetStateAction<FileSharePathItem[]>
+  >;
   directoryFavorites: string[];
   setDirectoryFavorites: React.Dispatch<React.SetStateAction<string[]>>;
-  handleFavoriteChange: (item: string, type: string) => Promise<void>;
+  handleFavoriteChange: (
+    item: string | FileSharePathItem,
+    type: string
+  ) => Promise<void>;
 };
 
 const PreferencesContext = React.createContext<PreferencesContextType | null>(
@@ -41,7 +47,7 @@ export const PreferencesProvider = ({
   >(['linux_path']);
   const [zoneFavorites, setZoneFavorites] = React.useState<string[]>([]);
   const [fileSharePathFavorites, setFileSharePathFavorites] = React.useState<
-    string[]
+    FileSharePathItem[]
   >([]);
   const [directoryFavorites, setDirectoryFavorites] = React.useState<string[]>(
     []
@@ -98,7 +104,10 @@ export const PreferencesProvider = ({
     fetchPreferences();
   }, []);
 
-  const updatePreferences = async (key: string, body: string[]) => {
+  const updatePreferences = async (
+    key: string,
+    body: string[] | FileSharePathItem[]
+  ) => {
     try {
       await sendPutRequest(
         `${getAPIPathRoot()}api/fileglancer/preference?key=${key}`,
@@ -124,20 +133,23 @@ export const PreferencesProvider = ({
     updatePreferences('pathPreference', pathPreference);
   }
 
-  const handleFavoriteChange = async (item: string, type: string) => {
-    if (type === 'zone') {
+  const handleFavoriteChange = async (
+    item: string | FileSharePathItem,
+    type: string
+  ) => {
+    if (type === 'zone' && typeof item === 'string') {
       const newFavorites = zoneFavorites.includes(item)
         ? zoneFavorites.filter(zone => zone !== item)
         : [...zoneFavorites, item];
       setZoneFavorites(newFavorites);
       updatePreferences('zoneFavorites', newFavorites);
-    } else if (type === 'fileSharePath') {
+    } else if (type === 'fileSharePath' && typeof item !== 'string') {
       const newFavorites = fileSharePathFavorites.includes(item)
         ? fileSharePathFavorites.filter(path => path !== item)
         : [...fileSharePathFavorites, item];
       setFileSharePathFavorites(newFavorites);
       updatePreferences('fileSharePathFavorites', newFavorites);
-    } else if (type === 'directory') {
+    } else if (type === 'directory' && typeof item === 'string') {
       const newFavorites = directoryFavorites.includes(item)
         ? directoryFavorites.filter(dir => dir !== item)
         : [...directoryFavorites, item];

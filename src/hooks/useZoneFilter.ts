@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileSharePaths, FileSharePathItem } from './useFileBrowser';
+import { FileSharePaths, FileSharePathItem } from '../shared.types';
 
 export default function useZoneFilter() {
   const [searchQuery, setSearchQuery] = useState<string>('');
