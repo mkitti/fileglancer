@@ -13,7 +13,7 @@ export default function FileSidebar() {
   const { fileSharePaths } = useZoneBrowserContext();
 
   const { searchQuery, handleSearchChange } = useZoneFilter();
-
+  console.log('open zones:', openZones);
   return (
     <Card className="max-w-[280px] max-h-full overflow-hidden rounded-none bg-surface shadow-lg flex flex-col">
       <div className="w-[calc(100%-1.5rem)] mx-3 mt-3">

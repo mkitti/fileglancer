@@ -8,7 +8,7 @@ import {
 } from '@material-tailwind/react';
 import {
   ChevronRightIcon,
-  FolderIcon,
+  RectangleStackIcon,
   Squares2X2Icon,
   StarIcon as StarOutline
 } from '@heroicons/react/24/outline';
@@ -18,7 +18,7 @@ import { FileSharePaths } from '../../shared.types';
 import { usePreferencesContext } from '../../contexts/PreferencesContext';
 import { useZoneBrowserContext } from '../../contexts/ZoneBrowserContext';
 import useZoneFilter from '../../hooks/useZoneFilter';
-import useHandlePathClick from '../../hooks/useHandlePathClick';
+import useHandleFileSharePathClick from '../../hooks/useHandleFileSharePathClick';
 
 export default function SidebarZones({
   searchQuery,
@@ -30,7 +30,7 @@ export default function SidebarZones({
   toggleOpenZones: (zone: string) => void;
 }) {
   const { filteredFileSharePaths } = useZoneFilter();
-  const { handlePathClick } = useHandlePathClick();
+  const { handleFileSharePathClick } = useHandleFileSharePathClick();
   const {
     zoneFavorites,
     fileSharePathFavorites,
@@ -159,7 +159,12 @@ export default function SidebarZones({
                         return (
                           <List.Item
                             key={`${zone}-${pathItem.name}`}
-                            onClick={() => handlePathClick(pathItem.name)}
+                            onClick={() =>
+                              handleFileSharePathClick(
+                                pathItem.zone,
+                                pathItem.name
+                              )
+                            }
                             className={`flex gap-2 items-center justify-between pl-5 rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30  ${pathIndex % 2 === 0 ? 'bg-background' : 'bg-surface-light'}`}
                           >
                             <Link
@@ -167,7 +172,7 @@ export default function SidebarZones({
                               className="flex flex-col gap-2 !text-foreground hover:!text-black focus:!text-black"
                             >
                               <div className="flex gap-1 items-center">
-                                <FolderIcon className="h-[18px] w-[18px]" />
+                                <RectangleStackIcon className="h-[18px] w-[18px]" />
                                 <Typography className="text-sm font-medium leading-[18px]">
                                   {pathItem.storage}
                                 </Typography>

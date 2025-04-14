@@ -6,6 +6,7 @@ import { useCookiesContext } from './CookiesContext';
 type FileBrowserContextType = {
   files: File[];
   currentNavigationPath: File['path'];
+  setCurrentNavigationPath: React.Dispatch<React.SetStateAction<File['path']>>;
   fetchAndFormatFilesForDisplay: (path: File['path']) => Promise<void>;
 };
 
@@ -79,6 +80,7 @@ export const FileBrowserContextProvider = ({
       value={{
         files,
         currentNavigationPath,
+        setCurrentNavigationPath,
         fetchAndFormatFilesForDisplay
       }}
     >

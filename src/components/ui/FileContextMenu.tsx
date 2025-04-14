@@ -1,12 +1,16 @@
 import * as React from 'react';
 import ReactDOM from 'react-dom';
 import { Typography } from '@material-tailwind/react';
+import type { File } from '../../shared.types';
+import { useZoneBrowserContext } from '../../contexts/ZoneBrowserContext';
+import { useFileBrowserContext } from '../../contexts/FileBrowserContext';
+import { usePreferencesContext } from '../../contexts/PreferencesContext';
 
 type ContextMenuProps = {
   x: number;
   y: number;
   menuRef: React.RefObject<HTMLDivElement>;
-  // selectedFiles: string[];
+  selectedFiles: File[];
   setShowFilePropertiesDrawer: (show: boolean) => void;
   setShowFileContextMenu: (show: boolean) => void;
 };
@@ -15,10 +19,14 @@ export default function FileContextMenu({
   x,
   y,
   menuRef,
-  // selectedFiles,
+  selectedFiles,
   setShowFilePropertiesDrawer,
   setShowFileContextMenu
 }: ContextMenuProps): JSX.Element {
+  const { currentNavigationZone } = useZoneBrowserContext();
+  const { currentNavigationPath } = useFileBrowserContext();
+  const { handleFavoriteChange } = usePreferencesContext();
+  console.log('selected files in context menu', selectedFiles);
   return ReactDOM.createPortal(
     <div
       ref={menuRef}
@@ -38,17 +46,42 @@ export default function FileContextMenu({
         >
           View file properties
         </Typography>
-        {/* { selectedFiles.length == 1 && selectedFiles[0]
+        {(selectedFiles.length === 1 && selectedFiles[0].is_dir) ||
+        (selectedFiles.length > 1 &&
+          selectedFiles.some(file => file.is_dir)) ? (
           <Typography
             className="text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
             onClick={() => {
-              setShowFilePropertiesDrawer(true);
-              setShowFileContextMenu(false);
+              if (currentNavigationZone) {
+                if (selectedFiles.length === 1) {
+                  handleFavoriteChange(
+                    {
+                      navigationZone: currentNavigationZone,
+                      navigationPath: currentNavigationPath,
+                      name: selectedFiles[0].name,
+                      path: selectedFiles[0].path
+                    },
+                    'directory'
+                  );
+                } else if (selectedFiles.length > 1) {
+                  const directoriesToAdd = selectedFiles
+                    .filter(file => file.is_dir)
+                    .map(file => ({
+                      navigationZone: currentNavigationZone,
+                      navigationPath: currentNavigationPath,
+                      name: file.name,
+                      path: file.path
+                    }));
+
+                  handleFavoriteChange(directoriesToAdd, 'directory');
+                  setShowFileContextMenu(false);
+                }
+              }
             }}
           >
-            Set as favorite
+            Set/unset as favorite
           </Typography>
-        } */}
+        ) : null}
       </div>
     </div>,
     document.body // Render directly to body

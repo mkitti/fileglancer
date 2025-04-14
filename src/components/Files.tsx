@@ -4,6 +4,7 @@ import useContextMenu from '../hooks/useContextMenu';
 import useFileDrawer from '../hooks/useShowFilePropertiesDrawer';
 import usePropertiesTarget from '../hooks/usePropertiesTarget';
 import useHideDotFiles from '../hooks/useHideDotFiles';
+import useSelectedFiles from '../hooks/useSelectedFiles';
 
 import FileList from './ui/FileList';
 import FilePropertiesDrawer from './ui/FilePropertiesDrawer';
@@ -22,6 +23,7 @@ export default function Files() {
     useFileDrawer();
   const { propertiesTarget, setPropertiesTarget } = usePropertiesTarget();
   const { hideDotFiles, setHideDotFiles, displayFiles } = useHideDotFiles();
+  const { selectedFiles, setSelectedFiles } = useSelectedFiles();
 
   return (
     <div className="flex-1 overflow-auto flex flex-col">
@@ -37,6 +39,8 @@ export default function Files() {
         />
         <FileList
           displayFiles={displayFiles}
+          selectedFiles={selectedFiles}
+          setSelectedFiles={setSelectedFiles}
           showFilePropertiesDrawer={showFilePropertiesDrawer}
           setPropertiesTarget={setPropertiesTarget}
           handleRightClick={handleRightClick}
@@ -47,6 +51,7 @@ export default function Files() {
           x={contextMenuCoords.x}
           y={contextMenuCoords.y}
           menuRef={menuRef}
+          selectedFiles={selectedFiles}
           setShowFilePropertiesDrawer={setShowFilePropertiesDrawer}
           setShowFileContextMenu={setShowFileContextMenu}
         />

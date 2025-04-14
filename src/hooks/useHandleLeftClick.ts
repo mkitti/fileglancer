@@ -1,18 +1,21 @@
-import * as React from 'react';
+import React from 'react';
 import type { File } from '../shared.types';
 import { useFileBrowserContext } from '../contexts/FileBrowserContext';
-import useSelectedFiles from './useSelectedFiles';
 import usePropertiesTarget from './usePropertiesTarget';
 import useFileDrawer from './useShowFilePropertiesDrawer';
 
 // Hook to handle left click events on files in the file browser
 export default function useHandleLeftClick() {
   const { files } = useFileBrowserContext();
-  const { selectedFiles, setSelectedFiles } = useSelectedFiles();
   const { setPropertiesTarget } = usePropertiesTarget();
   const { showFilePropertiesDrawer } = useFileDrawer();
 
-  const handleLeftClick = (e: React.MouseEvent<HTMLDivElement>, file: File) => {
+  const handleLeftClick = (
+    e: React.MouseEvent<HTMLDivElement>,
+    file: File,
+    selectedFiles: File[],
+    setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>
+  ) => {
     if (e.shiftKey) {
       // If shift key held down while clicking,
       // add all files between the last selected and the current file

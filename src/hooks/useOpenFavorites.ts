@@ -1,6 +1,7 @@
 import React from 'react';
 
-// Hook to manage the open zones in the file browser sidebar
+// Hook to manage the open favorite "types" (i.e., zone,
+// file share path, directory) in the file browser sidebar
 export default function useToggleOpenFavorites() {
   const [openFavorites, setOpenFavorites] = React.useState<
     Record<string, boolean>

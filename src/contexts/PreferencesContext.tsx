@@ -3,6 +3,13 @@ import type { FileSharePathItem } from '../shared.types';
 import { useCookiesContext } from '../contexts/CookiesContext';
 import { getAPIPathRoot, sendGetRequest, sendPutRequest } from '../utils';
 
+type DirectoryFavorite = {
+  navigationZone: string;
+  navigationPath: string;
+  name: string;
+  path: string;
+};
+
 type PreferencesContextType = {
   pathPreference: ['linux_path'] | ['windows_path'] | ['mac_path'];
   handlePathPreferenceChange: (
@@ -15,10 +22,12 @@ type PreferencesContextType = {
   setFileSharePathFavorites: React.Dispatch<
     React.SetStateAction<FileSharePathItem[]>
   >;
-  directoryFavorites: string[];
-  setDirectoryFavorites: React.Dispatch<React.SetStateAction<string[]>>;
+  directoryFavorites: DirectoryFavorite[];
+  setDirectoryFavorites: React.Dispatch<
+    React.SetStateAction<DirectoryFavorite[]>
+  >;
   handleFavoriteChange: (
-    item: string | FileSharePathItem,
+    item: string | FileSharePathItem | DirectoryFavorite | DirectoryFavorite[],
     type: string
   ) => Promise<void>;
 };
@@ -49,9 +58,9 @@ export const PreferencesProvider = ({
   const [fileSharePathFavorites, setFileSharePathFavorites] = React.useState<
     FileSharePathItem[]
   >([]);
-  const [directoryFavorites, setDirectoryFavorites] = React.useState<string[]>(
-    []
-  );
+  const [directoryFavorites, setDirectoryFavorites] = React.useState<
+    DirectoryFavorite[]
+  >([]);
   const { cookies } = useCookiesContext();
 
   React.useEffect(() => {
@@ -106,7 +115,7 @@ export const PreferencesProvider = ({
 
   const updatePreferences = async (
     key: string,
-    body: string[] | FileSharePathItem[]
+    body: string[] | FileSharePathItem[] | DirectoryFavorite[]
   ) => {
     try {
       await sendPutRequest(
@@ -134,7 +143,7 @@ export const PreferencesProvider = ({
   }
 
   const handleFavoriteChange = async (
-    item: string | FileSharePathItem,
+    item: string | FileSharePathItem | DirectoryFavorite | DirectoryFavorite[],
     type: string
   ) => {
     if (type === 'zone' && typeof item === 'string') {
@@ -143,20 +152,53 @@ export const PreferencesProvider = ({
         : [...zoneFavorites, item];
       setZoneFavorites(newFavorites);
       updatePreferences('zoneFavorites', newFavorites);
-    } else if (type === 'fileSharePath' && typeof item !== 'string') {
+    } else if (
+      type === 'fileSharePath' &&
+      typeof item !== 'string' &&
+      'group' in item
+    ) {
       const newFavorites = fileSharePathFavorites.includes(item)
         ? fileSharePathFavorites.filter(path => path !== item)
         : [...fileSharePathFavorites, item];
       setFileSharePathFavorites(newFavorites);
       updatePreferences('fileSharePathFavorites', newFavorites);
-    } else if (type === 'directory' && typeof item === 'string') {
+    } else if (
+      type === 'directory' &&
+      typeof item !== 'string' &&
+      'navigationZone' in item
+    ) {
       const newFavorites = directoryFavorites.includes(item)
         ? directoryFavorites.filter(dir => dir !== item)
         : [...directoryFavorites, item];
+      console.log('new favorite directories:', newFavorites);
       setDirectoryFavorites(newFavorites);
       updatePreferences('directoryFavorites', newFavorites);
+    } else if (type === 'directory' && Array.isArray(item)) {
+      const itemsToProcess = item as DirectoryFavorite[];
+      const updatedFavorites = [...directoryFavorites];
+
+      itemsToProcess.forEach(newItem => {
+        // Check if item already exists in favorites
+        const existingItemIndex = updatedFavorites.findIndex(
+          existingItem =>
+            existingItem.path === newItem.path &&
+            existingItem.navigationZone === newItem.navigationZone
+        );
+
+        if (existingItemIndex >= 0) {
+          // Remove existing items
+          updatedFavorites.splice(existingItemIndex, 1);
+        } else {
+          updatedFavorites.push(newItem);
+        }
+      });
+
+      console.log('new favorite directories:', updatedFavorites);
+      setDirectoryFavorites(updatedFavorites);
+      updatePreferences('directoryFavorites', updatedFavorites);
     }
   };
+
   return (
     <PreferencesContext.Provider
       value={{
