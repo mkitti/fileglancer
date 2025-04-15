@@ -41,7 +41,10 @@ export default function FileList({
   const { currentNavigationZone } = useZoneBrowserContext();
   const { currentNavigationPath, fetchAndFormatFilesForDisplay } =
     useFileBrowserContext();
-  const { handleLeftClick } = useHandleLeftClick();
+  const { handleLeftClick } = useHandleLeftClick(
+    setPropertiesTarget,
+    showFilePropertiesDrawer
+  );
 
   return (
     <div

@@ -17,20 +17,20 @@ import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 import { FileSharePaths } from '../../shared.types';
 import { usePreferencesContext } from '../../contexts/PreferencesContext';
 import { useZoneBrowserContext } from '../../contexts/ZoneBrowserContext';
-import useHandleFileSharePathClick from '../../hooks/useHandleFileSharePathClick';
 
 export default function SidebarZones({
   searchQuery,
   openZones,
   toggleOpenZones,
-  filteredFileSharePaths
+  filteredFileSharePaths,
+  handleFileSharePathClick
 }: {
   searchQuery: string;
   openZones: Record<string, boolean>;
   toggleOpenZones: (zone: string) => void;
   filteredFileSharePaths: FileSharePaths;
+  handleFileSharePathClick: (zone: string, fileSharePath: string) => void;
 }) {
-  const { handleFileSharePathClick } = useHandleFileSharePathClick();
   const {
     zoneFavorites,
     fileSharePathFavorites,

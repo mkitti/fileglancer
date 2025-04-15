@@ -1,14 +1,13 @@
 import React from 'react';
 import type { File } from '../shared.types';
 import { useFileBrowserContext } from '../contexts/FileBrowserContext';
-import usePropertiesTarget from './usePropertiesTarget';
-import useFileDrawer from './useShowFilePropertiesDrawer';
 
 // Hook to handle left click events on files in the file browser
-export default function useHandleLeftClick() {
+export default function useHandleLeftClick(
+  setPropertiesTarget: (file: File | null) => void,
+  showFilePropertiesDrawer: boolean
+) {
   const { files } = useFileBrowserContext();
-  const { setPropertiesTarget } = usePropertiesTarget();
-  const { showFilePropertiesDrawer } = useFileDrawer();
 
   const handleLeftClick = (
     e: React.MouseEvent<HTMLDivElement>,

@@ -13,8 +13,8 @@ import {
   DirectoryFavorite,
   usePreferencesContext
 } from '../../contexts/PreferencesContext';
-import useToggleOpenFavorites from '../../hooks/useOpenFavorites';
-import useHandleFileSharePathClick from '../../hooks/useHandleFileSharePathClick';
+import useToggleOpenFavorites from '../../hooks/useToggleOpenFavorites';
+
 import { FileSharePathItem } from '../../shared.types';
 
 export default function SidebarFavorites({
@@ -22,16 +22,17 @@ export default function SidebarFavorites({
   setOpenZones,
   filteredZoneFavorites,
   filteredFileSharePathFavorites,
-  filteredDirectoryFavorites
+  filteredDirectoryFavorites,
+  handleFileSharePathClick
 }: {
   searchQuery: string;
   setOpenZones: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   filteredZoneFavorites: string[];
   filteredFileSharePathFavorites: FileSharePathItem[];
   filteredDirectoryFavorites: DirectoryFavorite[];
+  handleFileSharePathClick: (zone: string, fileSharePath: string) => void;
 }) {
   const { openFavorites, toggleOpenFavorites } = useToggleOpenFavorites();
-  const { handleFileSharePathClick } = useHandleFileSharePathClick();
   const {
     zoneFavorites,
     fileSharePathFavorites,

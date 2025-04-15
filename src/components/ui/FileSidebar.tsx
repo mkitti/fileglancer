@@ -6,9 +6,11 @@ import SidebarFavorites from './SidebarFavorites';
 import SidebarZones from './SidebarZones';
 import useSearchFilter from '../../hooks/useSearchFilter';
 import useOpenZones from '../../hooks/useOpenZones';
+import useHandleFileSharePathClick from '../../hooks/useHandleFileSharePathClick';
 
 export default function FileSidebar() {
   const { openZones, setOpenZones, toggleOpenZones } = useOpenZones();
+  const { handleFileSharePathClick } = useHandleFileSharePathClick();
   const {
     searchQuery,
     handleSearchChange,
@@ -41,12 +43,14 @@ export default function FileSidebar() {
           filteredZoneFavorites={filteredZoneFavorites}
           filteredFileSharePathFavorites={filteredFileSharePathFavorites}
           filteredDirectoryFavorites={filteredDirectoryFavorites}
+          handleFileSharePathClick={handleFileSharePathClick}
         />
         <SidebarZones
           searchQuery={searchQuery}
           openZones={openZones}
           toggleOpenZones={toggleOpenZones}
           filteredFileSharePaths={filteredFileSharePaths}
+          handleFileSharePathClick={handleFileSharePathClick}
         />
       </div>
     </Card>
