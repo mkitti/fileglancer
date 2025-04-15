@@ -84,11 +84,11 @@ export default function SidebarZones({
     : displayPaths;
 
   return (
-    <div className="w-[calc(100%-1.5rem)] mt-3 mx-3 flex flex-col flex-1 max-h-full h-fit overflow-y-auto">
-      <List className="bg-surface-light py-2 ">
+    <div className="flex flex-col h-full overflow-hidden w-[calc(100%-1.5rem)] my-3 mx-3 bg-surface/50">
+      <List className="bg-background py-0">
         <List.Item
           onClick={() => toggleOpenZones('all')}
-          className="cursor-pointer rounded-none py-3 "
+          className="cursor-pointer rounded-none py-3 bg-surface/50 hover:!bg-surface-light focus:!bg-surface-light"
         >
           <List.ItemStart>
             <Squares2X2Icon className="h-5 w-5 text-surface-foreground" />
@@ -96,7 +96,7 @@ export default function SidebarZones({
           <Typography className="font-semibold text-surface-foreground">
             Zones
           </Typography>
-          <List.ItemEnd>
+          <List.ItemEnd className="pr-2">
             <ChevronRightIcon
               className={`h-4 w-4 ${openZones['all'] ? 'rotate-90' : ''}`}
             />
@@ -105,9 +105,9 @@ export default function SidebarZones({
       </List>
       <Collapse
         open={openZones['all'] ? true : false}
-        className="!overflow-y-auto max-h-[calc(40vh)]"
+        className="!overflow-y-auto overflow-x-hidden flex-grow"
       >
-        <List className="overflow-y-auto py-0">
+        <List className="!overflow-y-auto h-full py-0 gap-0 pr-2 bg-background">
           {Object.entries(sortedDisplayPaths).map(
             ([zone, pathItems], index) => {
               const isOpen = openZones[zone] || false;
@@ -118,13 +118,13 @@ export default function SidebarZones({
                 <React.Fragment key={zone}>
                   <List.Item
                     onClick={() => toggleOpenZones(zone)}
-                    className={`cursor-pointer rounded-none py-3 flex-shrink-0 hover:bg-primary-light/30 ${index % 2 === 0 ? 'bg-background' : 'bg-surface-light'}`}
+                    className="cursor-pointer rounded-none py-1 flex-shrink-0 hover:!bg-primary-light/30 focus:!bg-primary-light/30  !bg-background"
                   >
                     <List.ItemStart>
-                      <Squares2X2Icon className="h-[18px] w-[18px]" />
+                      <Squares2X2Icon className="h-4 w-4" />
                     </List.ItemStart>
                     <div className="flex-1 min-w-0 flex items-center gap-1">
-                      <Typography>{zone}</Typography>
+                      <Typography className="text-sm">{zone}</Typography>
                       <div
                         className="flex items-center"
                         onClick={e => e.stopPropagation()}
@@ -135,9 +135,9 @@ export default function SidebarZones({
                           onClick={() => handleFavoriteChange(zone, 'zone')}
                         >
                           {isFavoriteZone ? (
-                            <StarFilled className="h-[18px] w-[18px] mb-[2px]" />
+                            <StarFilled className="h-4 w-4 mb-[2px]" />
                           ) : (
-                            <StarOutline className="h-[18px] w-[18px] mb-[2px]" />
+                            <StarOutline className="h-4 w-4 mb-[2px]" />
                           )}
                         </IconButton>
                       </div>
@@ -165,15 +165,15 @@ export default function SidebarZones({
                                 pathItem.name
                               )
                             }
-                            className={`flex gap-2 items-center justify-between pl-5 rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30  ${pathIndex % 2 === 0 ? 'bg-background' : 'bg-surface-light'}`}
+                            className={`flex gap-2 items-center justify-between pl-5 rounded-none cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30 ${pathIndex % 2 !== 0 ? '!bg-background' : '!bg-surface/50'}`}
                           >
                             <Link
                               to="/files"
-                              className="flex flex-col gap-2 !text-foreground hover:!text-black focus:!text-black"
+                              className="flex flex-col gap-2 !text-foreground hover:!text-black focus:!text-black dark:hover:!text-white dark:focus:!text-white"
                             >
                               <div className="flex gap-1 items-center">
-                                <RectangleStackIcon className="h-[18px] w-[18px]" />
-                                <Typography className="text-sm font-medium leading-[18px]">
+                                <RectangleStackIcon className="h-4 w-4" />
+                                <Typography className="text-sm font-medium leading-4">
                                   {pathItem.storage}
                                 </Typography>
                               </div>
@@ -209,9 +209,9 @@ export default function SidebarZones({
                                 }}
                               >
                                 {isFavoritePath ? (
-                                  <StarFilled className="h-[18px] w-[18px] mb-[2px]" />
+                                  <StarFilled className="h-4 w-4 mb-[2px]" />
                                 ) : (
-                                  <StarOutline className="h-[18px] w-[18px] mb-[2px]" />
+                                  <StarOutline className="h-4 w-4 mb-[2px]" />
                                 )}
                               </IconButton>
                             </div>

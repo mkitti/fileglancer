@@ -21,7 +21,7 @@ export default function FileSidebar() {
   } = useSearchFilter();
   return (
     <Card className="max-w-[280px] max-h-full overflow-hidden rounded-none bg-surface shadow-lg flex flex-col">
-      <div className="w-[calc(100%-1.5rem)] mx-3 mt-3">
+      <div className="w-[calc(100%-1.5rem)] mx-3 my-3">
         <Input
           className="bg-background text-foreground"
           type="search"
@@ -36,22 +36,28 @@ export default function FileSidebar() {
           </Input.Icon>
         </Input>
       </div>
-      <div className="flex-1">
-        <SidebarFavorites
-          searchQuery={searchQuery}
-          setOpenZones={setOpenZones}
-          filteredZoneFavorites={filteredZoneFavorites}
-          filteredFileSharePathFavorites={filteredFileSharePathFavorites}
-          filteredDirectoryFavorites={filteredDirectoryFavorites}
-          handleFileSharePathClick={handleFileSharePathClick}
-        />
-        <SidebarZones
-          searchQuery={searchQuery}
-          openZones={openZones}
-          toggleOpenZones={toggleOpenZones}
-          filteredFileSharePaths={filteredFileSharePaths}
-          handleFileSharePathClick={handleFileSharePathClick}
-        />
+      <div className="flex flex-col overflow-hidden flex-grow mb-3 gap-3">
+        <div
+          className={`flex-shrink ${openZones['all'] ? 'max-h-[50%]' : 'max-h-[100%]'}`}
+        >
+          <SidebarFavorites
+            searchQuery={searchQuery}
+            setOpenZones={setOpenZones}
+            filteredZoneFavorites={filteredZoneFavorites}
+            filteredFileSharePathFavorites={filteredFileSharePathFavorites}
+            filteredDirectoryFavorites={filteredDirectoryFavorites}
+            handleFileSharePathClick={handleFileSharePathClick}
+          />
+        </div>
+        <div className="flex-grow overflow-hidden">
+          <SidebarZones
+            searchQuery={searchQuery}
+            openZones={openZones}
+            toggleOpenZones={toggleOpenZones}
+            filteredFileSharePaths={filteredFileSharePaths}
+            handleFileSharePathClick={handleFileSharePathClick}
+          />
+        </div>
       </div>
     </Card>
   );

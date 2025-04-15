@@ -5,7 +5,7 @@ import React from 'react';
 export default function useToggleOpenFavorites() {
   const [openFavorites, setOpenFavorites] = React.useState<
     Record<string, boolean>
-  >({});
+  >({ all: true });
 
   function toggleOpenFavorites(zone: string) {
     setOpenFavorites(prev => ({
