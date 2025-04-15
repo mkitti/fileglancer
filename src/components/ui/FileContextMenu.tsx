@@ -26,7 +26,6 @@ export default function FileContextMenu({
   const { currentNavigationZone } = useZoneBrowserContext();
   const { currentNavigationPath } = useFileBrowserContext();
   const { handleFavoriteChange } = usePreferencesContext();
-  console.log('selected files in context menu', selectedFiles);
   return ReactDOM.createPortal(
     <div
       ref={menuRef}

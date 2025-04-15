@@ -3,7 +3,7 @@ import type { FileSharePathItem } from '../shared.types';
 import { useCookiesContext } from '../contexts/CookiesContext';
 import { getAPIPathRoot, sendGetRequest, sendPutRequest } from '../utils';
 
-type DirectoryFavorite = {
+export type DirectoryFavorite = {
   navigationZone: string;
   navigationPath: string;
   name: string;

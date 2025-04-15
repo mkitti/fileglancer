@@ -4,16 +4,19 @@ import { FunnelIcon } from '@heroicons/react/24/outline';
 
 import SidebarFavorites from './SidebarFavorites';
 import SidebarZones from './SidebarZones';
-import { useZoneBrowserContext } from '../../contexts/ZoneBrowserContext';
-import useZoneFilter from '../../hooks/useZoneFilter';
+import useSearchFilter from '../../hooks/useSearchFilter';
 import useOpenZones from '../../hooks/useOpenZones';
 
 export default function FileSidebar() {
   const { openZones, setOpenZones, toggleOpenZones } = useOpenZones();
-  const { fileSharePaths } = useZoneBrowserContext();
-
-  const { searchQuery, handleSearchChange } = useZoneFilter();
-  console.log('open zones:', openZones);
+  const {
+    searchQuery,
+    handleSearchChange,
+    filteredFileSharePaths,
+    filteredZoneFavorites,
+    filteredFileSharePathFavorites,
+    filteredDirectoryFavorites
+  } = useSearchFilter();
   return (
     <Card className="max-w-[280px] max-h-full overflow-hidden rounded-none bg-surface shadow-lg flex flex-col">
       <div className="w-[calc(100%-1.5rem)] mx-3 mt-3">
@@ -23,7 +26,7 @@ export default function FileSidebar() {
           placeholder="Type to filter zones"
           value={searchQuery}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            handleSearchChange(e, fileSharePaths)
+            handleSearchChange(e)
           }
         >
           <Input.Icon>
@@ -35,11 +38,15 @@ export default function FileSidebar() {
         <SidebarFavorites
           searchQuery={searchQuery}
           setOpenZones={setOpenZones}
+          filteredZoneFavorites={filteredZoneFavorites}
+          filteredFileSharePathFavorites={filteredFileSharePathFavorites}
+          filteredDirectoryFavorites={filteredDirectoryFavorites}
         />
         <SidebarZones
           searchQuery={searchQuery}
           openZones={openZones}
           toggleOpenZones={toggleOpenZones}
+          filteredFileSharePaths={filteredFileSharePaths}
         />
       </div>
     </Card>

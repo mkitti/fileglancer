@@ -9,16 +9,26 @@ import {
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
-import { usePreferencesContext } from '../../contexts/PreferencesContext';
+import {
+  DirectoryFavorite,
+  usePreferencesContext
+} from '../../contexts/PreferencesContext';
 import useToggleOpenFavorites from '../../hooks/useOpenFavorites';
 import useHandleFileSharePathClick from '../../hooks/useHandleFileSharePathClick';
+import { FileSharePathItem } from '../../shared.types';
 
 export default function SidebarFavorites({
   searchQuery,
-  setOpenZones
+  setOpenZones,
+  filteredZoneFavorites,
+  filteredFileSharePathFavorites,
+  filteredDirectoryFavorites
 }: {
   searchQuery: string;
   setOpenZones: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  filteredZoneFavorites: string[];
+  filteredFileSharePathFavorites: FileSharePathItem[];
+  filteredDirectoryFavorites: DirectoryFavorite[];
 }) {
   const { openFavorites, toggleOpenFavorites } = useToggleOpenFavorites();
   const { handleFileSharePathClick } = useHandleFileSharePathClick();
@@ -28,6 +38,23 @@ export default function SidebarFavorites({
     directoryFavorites,
     pathPreference
   } = usePreferencesContext();
+
+  const displayZones =
+    filteredZoneFavorites.length > 0 || searchQuery.length > 0
+      ? filteredZoneFavorites
+      : zoneFavorites;
+
+  const displayFileSharePaths =
+    filteredFileSharePathFavorites.length > 0 || searchQuery.length > 0
+      ? filteredFileSharePathFavorites
+      : fileSharePathFavorites;
+
+  const displayDirectories =
+    filteredDirectoryFavorites.length > 0 || searchQuery.length > 0
+      ? filteredDirectoryFavorites
+      : directoryFavorites;
+
+  console.log('displayDirectories', displayDirectories);
 
   return (
     <div className="w-[calc(100%-1.5rem)] mt-3 mx-3 flex flex-col max-h-full h-fit">
@@ -72,7 +99,7 @@ export default function SidebarFavorites({
           </List.Item>
           <Collapse open={openFavorites['zones'] ? true : false}>
             <List className="bg-surface-light max-h-[calc(40vh)] overflow-y-auto !py-0">
-              {zoneFavorites.map((zone, index) => {
+              {displayZones.map((zone, index) => {
                 return (
                   <List.Item
                     key={`favorite-zone-${zone}`}
@@ -117,7 +144,7 @@ export default function SidebarFavorites({
           </List.Item>
           <Collapse open={openFavorites['fileSharePaths'] ? true : false}>
             <List className="bg-surface-light max-h-[calc(40vh)] overflow-y-auto !py-0">
-              {fileSharePathFavorites.map((path, index) => {
+              {displayFileSharePaths.map((path, index) => {
                 return (
                   <List.Item
                     key={`favorite-fileSharePath-${path}`}
@@ -177,7 +204,7 @@ export default function SidebarFavorites({
           </List.Item>
           <Collapse open={openFavorites['directories'] ? true : false}>
             <List className="bg-surface-light max-h-[calc(40vh)] overflow-y-auto !py-0">
-              {directoryFavorites.map((directoryItem, index) => {
+              {displayDirectories.map((directoryItem, index) => {
                 console.log(
                   'directory item navigation zone:',
                   directoryItem.navigationZone
