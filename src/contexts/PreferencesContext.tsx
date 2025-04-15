@@ -155,21 +155,50 @@ export const PreferencesProvider = ({
     } else if (
       type === 'fileSharePath' &&
       typeof item !== 'string' &&
-      'group' in item
+      'storage' in item &&
+      'linux_path' in item
     ) {
-      const newFavorites = fileSharePathFavorites.includes(item)
-        ? fileSharePathFavorites.filter(path => path !== item)
-        : [...fileSharePathFavorites, item];
+      // Find the index of an existing item with the same properties
+      const existingItemIndex = fileSharePathFavorites.findIndex(
+        path =>
+          path.storage === item.storage && path.linux_path === item.linux_path
+      );
+
+      let newFavorites;
+      if (existingItemIndex >= 0) {
+        // If found, remove it
+        newFavorites = [
+          ...fileSharePathFavorites.slice(0, existingItemIndex),
+          ...fileSharePathFavorites.slice(existingItemIndex + 1)
+        ];
+      } else {
+        newFavorites = [...fileSharePathFavorites, item];
+      }
+
       setFileSharePathFavorites(newFavorites);
       updatePreferences('fileSharePathFavorites', newFavorites);
     } else if (
       type === 'directory' &&
       typeof item !== 'string' &&
-      'navigationZone' in item
+      'navigationPath' in item &&
+      'name' in item
     ) {
-      const newFavorites = directoryFavorites.includes(item)
-        ? directoryFavorites.filter(dir => dir !== item)
-        : [...directoryFavorites, item];
+      // Find the index of an existing item with the same path and navigationZone
+      const existingItemIndex = directoryFavorites.findIndex(
+        dir =>
+          dir.name === item.name && dir.navigationPath === item.navigationPath
+      );
+
+      let newFavorites;
+      if (existingItemIndex >= 0) {
+        // Remove existing items
+        newFavorites = [
+          ...directoryFavorites.slice(0, existingItemIndex),
+          ...directoryFavorites.slice(existingItemIndex + 1)
+        ];
+      } else {
+        newFavorites = [...directoryFavorites, item];
+      }
       console.log('new favorite directories:', newFavorites);
       setDirectoryFavorites(newFavorites);
       updatePreferences('directoryFavorites', newFavorites);
@@ -181,8 +210,8 @@ export const PreferencesProvider = ({
         // Check if item already exists in favorites
         const existingItemIndex = updatedFavorites.findIndex(
           existingItem =>
-            existingItem.path === newItem.path &&
-            existingItem.navigationZone === newItem.navigationZone
+            existingItem.name === newItem.name &&
+            existingItem.navigationPath === newItem.navigationPath
         );
 
         if (existingItemIndex >= 0) {
