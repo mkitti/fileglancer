@@ -60,7 +60,7 @@ export default function Preferences() {
                 htmlFor="windows_path"
                 className="text-foreground"
               >
-                Widonws/Linux SMB (e.g. \\prfs.hhmi.org\public)
+                Windows/Linux SMB (e.g. \\prfs.hhmi.org\public)
               </Typography>
             </div>
 

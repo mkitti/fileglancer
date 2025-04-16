@@ -81,7 +81,9 @@ export default function FileList({
         {/* File rows */}
         {displayFiles.length > 0 &&
           displayFiles.map((file, index) => {
-            const isSelected = selectedFiles.some(selectedFile => selectedFile.name === file.name);
+            const isSelected = selectedFiles.some(
+              selectedFile => selectedFile.name === file.name
+            );
 
             return (
               <div
