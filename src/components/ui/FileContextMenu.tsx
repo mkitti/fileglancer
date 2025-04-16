@@ -1,59 +1,31 @@
 import * as React from 'react';
 import ReactDOM from 'react-dom';
 import { Typography } from '@material-tailwind/react';
+import type { File } from '../../shared.types';
+import { useZoneBrowserContext } from '../../contexts/ZoneBrowserContext';
+import { useFileBrowserContext } from '../../contexts/FileBrowserContext';
+import { usePreferencesContext } from '../../contexts/PreferencesContext';
 
 type ContextMenuProps = {
   x: number;
   y: number;
-  onClose: () => void;
-  setShowFileDrawer: (show: boolean) => void;
+  menuRef: React.RefObject<HTMLDivElement>;
+  selectedFiles: File[];
+  setShowFilePropertiesDrawer: (show: boolean) => void;
   setShowFileContextMenu: (show: boolean) => void;
 };
 
 export default function FileContextMenu({
   x,
   y,
-  onClose,
-  setShowFileDrawer,
+  menuRef,
+  selectedFiles,
+  setShowFilePropertiesDrawer,
   setShowFileContextMenu
 }: ContextMenuProps): JSX.Element {
-  const menuRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    // Adjust menu position if it would go off screen
-    if (menuRef.current) {
-      const rect = menuRef.current.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-
-      let adjustedX = x;
-      let adjustedY = y;
-
-      if (x + rect.width > viewportWidth) {
-        adjustedX = viewportWidth - rect.width - 5;
-      }
-
-      if (y + rect.height > viewportHeight) {
-        adjustedY = viewportHeight - rect.height - 5;
-      }
-
-      menuRef.current.style.left = `${adjustedX}px`;
-      menuRef.current.style.top = `${adjustedY}px`;
-    }
-
-    // Add click handler to close the menu when clicking outside
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [x, y, onClose]);
-
+  const { currentNavigationZone } = useZoneBrowserContext();
+  const { currentNavigationPath } = useFileBrowserContext();
+  const { handleFavoriteChange } = usePreferencesContext();
   return ReactDOM.createPortal(
     <div
       ref={menuRef}
@@ -67,12 +39,48 @@ export default function FileContextMenu({
         <Typography
           className="text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
           onClick={() => {
-            setShowFileDrawer(true);
+            setShowFilePropertiesDrawer(true);
             setShowFileContextMenu(false);
           }}
         >
           View file properties
         </Typography>
+        {(selectedFiles.length === 1 && selectedFiles[0].is_dir) ||
+        (selectedFiles.length > 1 &&
+          selectedFiles.some(file => file.is_dir)) ? (
+          <Typography
+            className="text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
+            onClick={() => {
+              if (currentNavigationZone) {
+                if (selectedFiles.length === 1) {
+                  handleFavoriteChange(
+                    {
+                      navigationZone: currentNavigationZone,
+                      navigationPath: currentNavigationPath,
+                      name: selectedFiles[0].name,
+                      path: selectedFiles[0].path
+                    },
+                    'directory'
+                  );
+                } else if (selectedFiles.length > 1) {
+                  const directoriesToAdd = selectedFiles
+                    .filter(file => file.is_dir)
+                    .map(file => ({
+                      navigationZone: currentNavigationZone,
+                      navigationPath: currentNavigationPath,
+                      name: file.name,
+                      path: file.path
+                    }));
+
+                  handleFavoriteChange(directoriesToAdd, 'directory');
+                  setShowFileContextMenu(false);
+                }
+              }
+            }}
+          >
+            Set/unset as favorite
+          </Typography>
+        ) : null}
       </div>
     </div>,
     document.body // Render directly to body
