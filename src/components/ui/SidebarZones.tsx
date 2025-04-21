@@ -178,15 +178,17 @@ export default function SidebarZones({
                                 </Typography>
                               </div>
 
-                              <Typography className="text-xs">
-                                {pathPreference[0] === 'linux_path'
-                                  ? pathItem.linux_path
-                                  : pathPreference[0] === 'windows_path'
+                              {pathItem.linux_path ? (
+                                <Typography className="text-xs">
+                                  {pathPreference[0] === 'linux_path'
+                                    ? pathItem.linux_path
+                                    : pathPreference[0] === 'windows_path'
                                     ? pathItem.windows_path
                                     : pathPreference[0] === 'mac_path'
-                                      ? pathItem.mac_path
-                                      : pathItem.linux_path}
-                              </Typography>
+                                    ? pathItem.mac_path
+                                    : pathItem.linux_path}
+                                </Typography>
+                              ) : null}
                             </Link>
 
                             <div
