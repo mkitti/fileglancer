@@ -13,6 +13,8 @@ import {
   DirectoryFavorite,
   usePreferencesContext
 } from '../../contexts/PreferencesContext';
+import { useZoneBrowserContext } from '../../contexts/ZoneBrowserContext';
+import { useFileBrowserContext } from '../../contexts/FileBrowserContext';
 import useToggleOpenFavorites from '../../hooks/useToggleOpenFavorites';
 
 import { FileSharePathItem } from '../../shared.types';
@@ -22,15 +24,13 @@ export default function SidebarFavorites({
   setOpenZones,
   filteredZoneFavorites,
   filteredFileSharePathFavorites,
-  filteredDirectoryFavorites,
-  handleFileSharePathClick
+  filteredDirectoryFavorites
 }: {
   searchQuery: string;
   setOpenZones: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   filteredZoneFavorites: string[];
   filteredFileSharePathFavorites: FileSharePathItem[];
   filteredDirectoryFavorites: DirectoryFavorite[];
-  handleFileSharePathClick: (zone: string, fileSharePath: string) => void;
 }) {
   const { openFavorites, toggleOpenFavorites } = useToggleOpenFavorites();
   const {
@@ -39,6 +39,9 @@ export default function SidebarFavorites({
     directoryFavorites,
     pathPreference
   } = usePreferencesContext();
+  const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
+  const { setCurrentNavigationZone, setCurrentFileSharePath } =
+    useZoneBrowserContext();
 
   const displayZones =
     filteredZoneFavorites.length > 0 || searchQuery.length > 0
@@ -54,8 +57,6 @@ export default function SidebarFavorites({
     filteredDirectoryFavorites.length > 0 || searchQuery.length > 0
       ? filteredDirectoryFavorites
       : directoryFavorites;
-
-  console.log('displayDirectories', displayDirectories);
 
   return (
     <div className="w-[calc(100%-1.5rem)] min-h-fit flex flex-col overflow-hidden h-full mt-3 mx-3 pb-1">
@@ -104,6 +105,8 @@ export default function SidebarFavorites({
                       key={`favorite-zone-${zone}`}
                       onClick={() => {
                         setOpenZones({ all: true, [zone]: true });
+                        setCurrentNavigationZone(zone);
+                        setCurrentFileSharePath(null);
                       }}
                       className="flex gap-2 items-center justify-between pl-5 rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 !bg-background"
                     >
@@ -149,7 +152,9 @@ export default function SidebarFavorites({
                       key={`favorite-fileSharePath-${path}`}
                       onClick={() => {
                         setOpenZones({ all: true, [path.zone]: true });
-                        handleFileSharePathClick(path.zone, path.name);
+                        setCurrentNavigationZone(path.zone);
+                        setCurrentFileSharePath(path.name);
+                        fetchAndFormatFilesForDisplay(path.name);
                       }}
                       className="flex gap-2 items-center justify-between pl-5 rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 !bg-background"
                     >
@@ -200,7 +205,7 @@ export default function SidebarFavorites({
             </List.Item>
             <Collapse open={openFavorites['directories'] ? true : false}>
               <List className="bg-surface-light max-h-[calc(40vh)] !py-0 !gap-0">
-                {displayDirectories.map((directoryItem, index) => {
+                {displayDirectories.map(directoryItem => {
                   return (
                     <List.Item
                       key={`favorite-directory-${directoryItem.name}`}
@@ -209,9 +214,10 @@ export default function SidebarFavorites({
                           all: true,
                           [directoryItem.navigationZone]: true
                         });
-                        handleFileSharePathClick(
-                          directoryItem.navigationZone,
-                          `${directoryItem.navigationPath}?subpath=${directoryItem.path}`
+                        setCurrentNavigationZone(directoryItem.navigationZone);
+                        setCurrentFileSharePath(directoryItem.fileSharePath);
+                        fetchAndFormatFilesForDisplay(
+                          `${directoryItem.fileSharePath}?subpath=${directoryItem.path}`
                         );
                       }}
                       className="flex gap-2 items-center justify-between pl-5 rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 !bg-background"
@@ -227,7 +233,7 @@ export default function SidebarFavorites({
                           </Typography>
                         </div>
                         <Typography className="text-xs">
-                          {directoryItem.navigationPath}
+                          {directoryItem.path}
                         </Typography>
                       </Link>
                     </List.Item>

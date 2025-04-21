@@ -17,19 +17,18 @@ import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 import { FileSharePaths } from '../../shared.types';
 import { usePreferencesContext } from '../../contexts/PreferencesContext';
 import { useZoneBrowserContext } from '../../contexts/ZoneBrowserContext';
+import { useFileBrowserContext } from '../../contexts/FileBrowserContext';
 
 export default function SidebarZones({
   searchQuery,
   openZones,
   toggleOpenZones,
-  filteredFileSharePaths,
-  handleFileSharePathClick
+  filteredFileSharePaths
 }: {
   searchQuery: string;
   openZones: Record<string, boolean>;
   toggleOpenZones: (zone: string) => void;
   filteredFileSharePaths: FileSharePaths;
-  handleFileSharePathClick: (zone: string, fileSharePath: string) => void;
 }) {
   const {
     zoneFavorites,
@@ -37,7 +36,9 @@ export default function SidebarZones({
     pathPreference,
     handleFavoriteChange
   } = usePreferencesContext();
-  const { fileSharePaths } = useZoneBrowserContext();
+  const { fileSharePaths, setCurrentFileSharePath, setCurrentNavigationZone } =
+    useZoneBrowserContext();
+  const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
 
   const displayPaths =
     Object.keys(filteredFileSharePaths).length > 0 || searchQuery.length > 0
@@ -159,12 +160,11 @@ export default function SidebarZones({
                         return (
                           <List.Item
                             key={`${zone}-${pathItem.name}`}
-                            onClick={() =>
-                              handleFileSharePathClick(
-                                pathItem.zone,
-                                pathItem.name
-                              )
-                            }
+                            onClick={() => {
+                              setCurrentNavigationZone(pathItem.zone);
+                              setCurrentFileSharePath(pathItem.name);
+                              fetchAndFormatFilesForDisplay(pathItem.name);
+                            }}
                             className={`flex gap-2 items-center justify-between pl-5 rounded-none cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30 ${pathIndex % 2 !== 0 ? '!bg-background' : '!bg-surface/50'}`}
                           >
                             <Link
@@ -183,10 +183,10 @@ export default function SidebarZones({
                                   {pathPreference[0] === 'linux_path'
                                     ? pathItem.linux_path
                                     : pathPreference[0] === 'windows_path'
-                                    ? pathItem.windows_path
-                                    : pathPreference[0] === 'mac_path'
-                                    ? pathItem.mac_path
-                                    : pathItem.linux_path}
+                                      ? pathItem.windows_path
+                                      : pathPreference[0] === 'mac_path'
+                                        ? pathItem.mac_path
+                                        : pathItem.linux_path}
                                 </Typography>
                               ) : null}
                             </Link>

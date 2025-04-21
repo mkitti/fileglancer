@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom';
 import { Typography } from '@material-tailwind/react';
 import type { File } from '../../shared.types';
 import { useZoneBrowserContext } from '../../contexts/ZoneBrowserContext';
-import { useFileBrowserContext } from '../../contexts/FileBrowserContext';
 import { usePreferencesContext } from '../../contexts/PreferencesContext';
 
 type ContextMenuProps = {
@@ -23,8 +22,8 @@ export default function FileContextMenu({
   setShowFilePropertiesDrawer,
   setShowFileContextMenu
 }: ContextMenuProps): JSX.Element {
-  const { currentNavigationZone } = useZoneBrowserContext();
-  const { currentNavigationPath } = useFileBrowserContext();
+  const { currentNavigationZone, currentFileSharePath } =
+    useZoneBrowserContext();
   const { handleFavoriteChange } = usePreferencesContext();
   return ReactDOM.createPortal(
     <div
@@ -51,12 +50,12 @@ export default function FileContextMenu({
           <Typography
             className="text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
             onClick={() => {
-              if (currentNavigationZone) {
+              if (currentNavigationZone && currentFileSharePath) {
                 if (selectedFiles.length === 1) {
                   handleFavoriteChange(
                     {
                       navigationZone: currentNavigationZone,
-                      navigationPath: currentNavigationPath,
+                      fileSharePath: currentFileSharePath,
                       name: selectedFiles[0].name,
                       path: selectedFiles[0].path
                     },
@@ -67,7 +66,7 @@ export default function FileContextMenu({
                     .filter(file => file.is_dir)
                     .map(file => ({
                       navigationZone: currentNavigationZone,
-                      navigationPath: currentNavigationPath,
+                      fileSharePath: currentFileSharePath,
                       name: file.name,
                       path: file.path
                     }));

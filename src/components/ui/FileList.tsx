@@ -40,7 +40,6 @@ export default function FileList({
     useFileBrowserContext();
   const { handleLeftClick } = useHandleLeftClick();
   const { currentFileSharePath } = useZoneBrowserContext();
-
   return (
     <div
       className={`px-2 transition-all duration-300 ${showFilePropertiesDrawer ? 'mr-[350px]' : ''}`}
