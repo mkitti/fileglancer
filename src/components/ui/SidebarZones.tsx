@@ -169,7 +169,7 @@ export default function SidebarZones({
                           >
                             <Link
                               to="/files"
-                              className="flex flex-col gap-2 !text-foreground hover:!text-black focus:!text-black dark:hover:!text-white dark:focus:!text-white"
+                              className="grow flex flex-col gap-2 !text-foreground hover:!text-black focus:!text-black dark:hover:!text-white dark:focus:!text-white"
                             >
                               <div className="flex gap-1 items-center">
                                 <RectangleStackIcon className="h-4 w-4" />
