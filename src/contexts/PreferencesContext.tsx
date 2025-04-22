@@ -5,7 +5,7 @@ import { getAPIPathRoot, sendGetRequest, sendPutRequest } from '../utils';
 
 export type DirectoryFavorite = {
   navigationZone: string;
-  navigationPath: string;
+  fileSharePath: string;
   name: string;
   path: string;
 };
@@ -180,13 +180,13 @@ export const PreferencesProvider = ({
     } else if (
       type === 'directory' &&
       typeof item !== 'string' &&
-      'navigationPath' in item &&
+      'fileSharePath' in item &&
       'name' in item
     ) {
       // Find the index of an existing item with the same path and navigationZone
       const existingItemIndex = directoryFavorites.findIndex(
         dir =>
-          dir.name === item.name && dir.navigationPath === item.navigationPath
+          dir.name === item.name && dir.fileSharePath === item.fileSharePath
       );
 
       let newFavorites;
@@ -199,7 +199,6 @@ export const PreferencesProvider = ({
       } else {
         newFavorites = [...directoryFavorites, item];
       }
-      console.log('new favorite directories:', newFavorites);
       setDirectoryFavorites(newFavorites);
       updatePreferences('directoryFavorites', newFavorites);
     } else if (type === 'directory' && Array.isArray(item)) {
@@ -211,7 +210,7 @@ export const PreferencesProvider = ({
         const existingItemIndex = updatedFavorites.findIndex(
           existingItem =>
             existingItem.name === newItem.name &&
-            existingItem.navigationPath === newItem.navigationPath
+            existingItem.fileSharePath === newItem.fileSharePath
         );
 
         if (existingItemIndex >= 0) {
@@ -222,7 +221,6 @@ export const PreferencesProvider = ({
         }
       });
 
-      console.log('new favorite directories:', updatedFavorites);
       setDirectoryFavorites(updatedFavorites);
       updatePreferences('directoryFavorites', updatedFavorites);
     }

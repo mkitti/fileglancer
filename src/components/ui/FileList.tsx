@@ -8,10 +8,8 @@ import {
 
 import type { File } from '../../shared.types';
 import FileListCrumbs from './FileListCrumbs';
-
 import { useFileBrowserContext } from '../../contexts/FileBrowserContext';
 import { useZoneBrowserContext } from '../../contexts/ZoneBrowserContext';
-
 import useHandleLeftClick from '../../hooks/useHandleLeftClick';
 import { formatDate, formatFileSize } from '../../utils';
 
@@ -38,18 +36,17 @@ export default function FileList({
   setPropertiesTarget,
   handleRightClick
 }: FileListProps): JSX.Element {
-  const { currentNavigationZone } = useZoneBrowserContext();
   const { currentNavigationPath, fetchAndFormatFilesForDisplay } =
     useFileBrowserContext();
   const { handleLeftClick } = useHandleLeftClick();
-
+  const { currentFileSharePath } = useZoneBrowserContext();
   return (
     <div
       className={`px-2 transition-all duration-300 ${showFilePropertiesDrawer ? 'mr-[350px]' : ''}`}
     >
       <FileListCrumbs
         currentNavigationPath={currentNavigationPath}
-        currentNavigationZone={currentNavigationZone}
+        currentFileSharePath={currentFileSharePath}
         fetchAndFormatFilesForDisplay={fetchAndFormatFilesForDisplay}
       />
       <div className="min-w-full bg-background">
@@ -112,7 +109,7 @@ export default function FileList({
                 onDoubleClick={() => {
                   if (file.is_dir) {
                     fetchAndFormatFilesForDisplay(
-                      `${currentNavigationZone}?subpath=${file.path}`
+                      `${currentFileSharePath}?subpath=${file.path}`
                     );
                   }
                 }}

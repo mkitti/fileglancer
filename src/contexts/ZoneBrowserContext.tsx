@@ -8,6 +8,8 @@ type ZoneBrowserContextType = {
   fileSharePaths: FileSharePaths;
   currentNavigationZone: string | null;
   setCurrentNavigationZone: React.Dispatch<React.SetStateAction<string | null>>;
+  currentFileSharePath: string | null;
+  setCurrentFileSharePath: React.Dispatch<React.SetStateAction<string | null>>;
   getFileSharePaths: () => Promise<void>;
 };
 
@@ -34,6 +36,9 @@ export const ZoneBrowserContextProvider = ({
     {}
   );
   const [currentNavigationZone, setCurrentNavigationZone] = React.useState<
+    string | null
+  >(null);
+  const [currentFileSharePath, setCurrentFileSharePath] = React.useState<
     string | null
   >(null);
 
@@ -97,6 +102,8 @@ export const ZoneBrowserContextProvider = ({
         fileSharePaths,
         currentNavigationZone,
         setCurrentNavigationZone,
+        currentFileSharePath,
+        setCurrentFileSharePath,
         getFileSharePaths
       }}
     >

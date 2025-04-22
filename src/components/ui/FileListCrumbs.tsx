@@ -13,13 +13,13 @@ import {
 
 type FileListCrumbsProps = {
   currentNavigationPath: string;
-  currentNavigationZone: string | null;
+  currentFileSharePath: string | null;
   fetchAndFormatFilesForDisplay: (path: string) => void;
 };
 
 export default function FileListCrumbs({
   currentNavigationPath,
-  currentNavigationZone,
+  currentFileSharePath,
   fetchAndFormatFilesForDisplay
 }: FileListCrumbsProps): JSX.Element {
   function makeDirArray(path: string) {
@@ -56,10 +56,10 @@ export default function FileListCrumbs({
                 className="rounded-md hover:bg-primary-light/20 hover:!text-black focus:!text-black transition-colors cursor-pointer"
                 onClick={() => {
                   if (index === 0) {
-                    fetchAndFormatFilesForDisplay(`${currentNavigationZone}`);
+                    fetchAndFormatFilesForDisplay(`${currentFileSharePath}`);
                   } else {
                     fetchAndFormatFilesForDisplay(
-                      `${currentNavigationZone}?subpath=${dirArray.slice(1, index + 1).join('/')}`
+                      `${currentFileSharePath}?subpath=${dirArray.slice(1, index + 1).join('/')}`
                     );
                   }
                 }}

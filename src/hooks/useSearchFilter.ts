@@ -22,8 +22,6 @@ export default function useSearchFilter() {
   >([]);
 
   const filterFileSharePathsAndFavorites = (query: string) => {
-    console.log('query in filterFavorites', query);
-
     const filteredPaths: FileSharePaths = {};
 
     Object.entries(fileSharePaths).forEach(([zone, pathItems]) => {
@@ -59,7 +57,7 @@ export default function useSearchFilter() {
     const filteredDirectoryFavorites = directoryFavorites.filter(
       directory =>
         directory.navigationZone.toLowerCase().includes(query) ||
-        directory.navigationPath.toLowerCase().includes(query) ||
+        directory.fileSharePath.toLowerCase().includes(query) ||
         directory.name.toLowerCase().includes(query) ||
         directory.path.toLowerCase().includes(query)
     );
