@@ -115,8 +115,20 @@ export default function FileList({
                 }}
               >
                 {/* Name column */}
-                <div className="flex items-center w-full gap-3 pl-3 py-1 text-primary-light overflow-x-auto">
-                  <Typography variant="small" className="font-medium">
+                <div className="flex items-center w-full gap-3 pl-3 py-1 overflow-x-auto">
+                  <Typography
+                    variant="small"
+                    className="font-medium text-primary-light hover:underline"
+                    onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                      e.stopPropagation();
+                      if (file.is_dir) {
+                        fetchAndFormatFilesForDisplay(
+                          `${currentFileSharePath}?subpath=${file.path}`
+                        );
+                        setPropertiesTarget(file);
+                      }
+                    }}
+                  >
                     {file.name}
                   </Typography>
                 </div>
