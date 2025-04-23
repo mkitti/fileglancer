@@ -45,45 +45,6 @@ export default function SidebarZones({
       ? filteredFileSharePaths
       : fileSharePaths;
 
-  const sortByFavorites = (displayPaths: FileSharePaths) => {
-    // Sort the zones based on favorites
-    const sortedPaths = Object.keys(displayPaths)
-      .sort((a, b) => {
-        const aIsFavorite = zoneFavorites.includes(a);
-        const bIsFavorite = zoneFavorites.includes(b);
-        if (aIsFavorite && !bIsFavorite) {
-          return -1;
-        }
-        if (!aIsFavorite && bIsFavorite) {
-          return 1;
-        }
-        return a.localeCompare(b);
-      })
-      .reduce((acc, key) => {
-        // Sort the items within each zone
-        acc[key] = [...displayPaths[key]].sort((a, b) => {
-          // Check if linux_path of adjacent items are favorite paths
-          const aIsFavorite = fileSharePathFavorites.includes(a);
-          const bIsFavorite = fileSharePathFavorites.includes(b);
-
-          if (aIsFavorite && !bIsFavorite) {
-            return -1;
-          }
-          if (!aIsFavorite && bIsFavorite) {
-            return 1;
-          }
-          return a.name.localeCompare(b.name);
-        });
-        return acc;
-      }, {} as FileSharePaths);
-    return sortedPaths;
-  };
-
-  // Sort displayPaths so zones that are favorites are at the top
-  const sortedDisplayPaths: FileSharePaths = zoneFavorites
-    ? sortByFavorites(displayPaths)
-    : displayPaths;
-
   return (
     <div className="flex flex-col h-full overflow-hidden w-[calc(100%-1.5rem)] my-3 mx-3 bg-surface/50">
       <List className="bg-background py-0">
@@ -109,123 +70,116 @@ export default function SidebarZones({
         className="!overflow-y-auto overflow-x-hidden flex-grow"
       >
         <List className="!overflow-y-auto h-full py-0 gap-0 pr-2 bg-background">
-          {Object.entries(sortedDisplayPaths).map(
-            ([zone, pathItems], index) => {
-              const isOpen = openZones[zone] || false;
-              const isFavoriteZone = zoneFavorites.includes(zone)
-                ? true
-                : false;
-              return (
-                <React.Fragment key={zone}>
-                  <List.Item
-                    onClick={() => toggleOpenZones(zone)}
-                    className="cursor-pointer rounded-none py-1 flex-shrink-0 hover:!bg-primary-light/30 focus:!bg-primary-light/30  !bg-background"
-                  >
-                    <List.ItemStart>
-                      <Squares2X2Icon className="h-4 w-4" />
-                    </List.ItemStart>
-                    <div className="flex-1 min-w-0 flex items-center gap-1">
-                      <Typography className="text-sm">{zone}</Typography>
-                      <div
-                        className="flex items-center"
-                        onClick={e => e.stopPropagation()}
+          {Object.entries(displayPaths).map(([zone, pathItems], index) => {
+            const isOpen = openZones[zone] || false;
+            const isFavoriteZone = zoneFavorites.includes(zone) ? true : false;
+            return (
+              <React.Fragment key={zone}>
+                <List.Item
+                  onClick={() => toggleOpenZones(zone)}
+                  className="cursor-pointer rounded-none py-1 flex-shrink-0 hover:!bg-primary-light/30 focus:!bg-primary-light/30  !bg-background"
+                >
+                  <List.ItemStart>
+                    <Squares2X2Icon className="h-4 w-4" />
+                  </List.ItemStart>
+                  <div className="flex-1 min-w-0 flex items-center gap-1">
+                    <Typography className="text-sm">{zone}</Typography>
+                    <div
+                      className="flex items-center"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <IconButton
+                        variant="ghost"
+                        isCircular
+                        onClick={() => handleFavoriteChange(zone, 'zone')}
                       >
-                        <IconButton
-                          variant="ghost"
-                          isCircular
-                          onClick={() => handleFavoriteChange(zone, 'zone')}
-                        >
-                          {isFavoriteZone ? (
-                            <StarFilled className="h-4 w-4 mb-[2px]" />
-                          ) : (
-                            <StarOutline className="h-4 w-4 mb-[2px]" />
-                          )}
-                        </IconButton>
-                      </div>
+                        {isFavoriteZone ? (
+                          <StarFilled className="h-4 w-4 mb-[2px]" />
+                        ) : (
+                          <StarOutline className="h-4 w-4 mb-[2px]" />
+                        )}
+                      </IconButton>
                     </div>
-                    <List.ItemEnd>
-                      <ChevronRightIcon
-                        className={`h-4 w-4 ${isOpen ? 'rotate-90' : ''}`}
-                      />
-                    </List.ItemEnd>
-                  </List.Item>
-                  <Collapse open={isOpen}>
-                    <List className="bg-background !gap-0">
-                      {pathItems.map((pathItem, pathIndex) => {
-                        const isFavoritePath = fileSharePathFavorites.includes(
-                          pathItem
-                        )
-                          ? true
-                          : false;
-                        return (
-                          <List.Item
-                            key={`${zone}-${pathItem.name}`}
-                            onClick={() => {
-                              setCurrentNavigationZone(pathItem.zone);
-                              setCurrentFileSharePath(pathItem.name);
-                              fetchAndFormatFilesForDisplay(pathItem.name);
-                            }}
-                            className={`flex gap-2 items-center justify-between pl-5 rounded-none cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30 ${pathIndex % 2 !== 0 ? '!bg-background' : '!bg-surface/50'}`}
+                  </div>
+                  <List.ItemEnd>
+                    <ChevronRightIcon
+                      className={`h-4 w-4 ${isOpen ? 'rotate-90' : ''}`}
+                    />
+                  </List.ItemEnd>
+                </List.Item>
+                <Collapse open={isOpen}>
+                  <List className="bg-background !gap-0">
+                    {pathItems.map((pathItem, pathIndex) => {
+                      const isFavoritePath = fileSharePathFavorites.includes(
+                        pathItem
+                      )
+                        ? true
+                        : false;
+                      return (
+                        <List.Item
+                          key={`${zone}-${pathItem.name}`}
+                          onClick={() => {
+                            setCurrentNavigationZone(pathItem.zone);
+                            setCurrentFileSharePath(pathItem.name);
+                            fetchAndFormatFilesForDisplay(pathItem.name);
+                          }}
+                          className={`flex gap-2 items-center justify-between pl-5 rounded-none cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30 ${pathIndex % 2 !== 0 ? '!bg-background' : '!bg-surface/50'}`}
+                        >
+                          <Link
+                            to="/files"
+                            className="grow flex flex-col gap-2 !text-foreground hover:!text-black focus:!text-black dark:hover:!text-white dark:focus:!text-white"
                           >
-                            <Link
-                              to="/files"
-                              className="grow flex flex-col gap-2 !text-foreground hover:!text-black focus:!text-black dark:hover:!text-white dark:focus:!text-white"
-                            >
-                              <div className="flex gap-1 items-center">
-                                <RectangleStackIcon className="h-4 w-4" />
-                                <Typography className="text-sm font-medium leading-4">
-                                  {pathItem.storage}
-                                </Typography>
-                              </div>
+                            <div className="flex gap-1 items-center">
+                              <RectangleStackIcon className="h-4 w-4" />
+                              <Typography className="text-sm font-medium leading-4">
+                                {pathItem.storage}
+                              </Typography>
+                            </div>
 
-                              {pathItem.linux_path ? (
-                                <Typography className="text-xs">
-                                  {pathPreference[0] === 'linux_path'
-                                    ? pathItem.linux_path
-                                    : pathPreference[0] === 'windows_path'
-                                      ? pathItem.windows_path
-                                      : pathPreference[0] === 'mac_path'
-                                        ? pathItem.mac_path
-                                        : pathItem.linux_path}
-                                </Typography>
-                              ) : null}
-                            </Link>
+                            {pathItem.linux_path ? (
+                              <Typography className="text-xs">
+                                {pathPreference[0] === 'linux_path'
+                                  ? pathItem.linux_path
+                                  : pathPreference[0] === 'windows_path'
+                                    ? pathItem.windows_path
+                                    : pathPreference[0] === 'mac_path'
+                                      ? pathItem.mac_path
+                                      : pathItem.linux_path}
+                              </Typography>
+                            ) : null}
+                          </Link>
 
-                            <div
-                              onClick={e => {
+                          <div
+                            onClick={e => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                            }}
+                          >
+                            <IconButton
+                              variant="ghost"
+                              isCircular
+                              onClick={(
+                                e: React.MouseEvent<HTMLButtonElement>
+                              ) => {
                                 e.stopPropagation();
-                                e.preventDefault();
+                                handleFavoriteChange(pathItem, 'fileSharePath');
                               }}
                             >
-                              <IconButton
-                                variant="ghost"
-                                isCircular
-                                onClick={(
-                                  e: React.MouseEvent<HTMLButtonElement>
-                                ) => {
-                                  e.stopPropagation();
-                                  handleFavoriteChange(
-                                    pathItem,
-                                    'fileSharePath'
-                                  );
-                                }}
-                              >
-                                {isFavoritePath ? (
-                                  <StarFilled className="h-4 w-4 mb-[2px]" />
-                                ) : (
-                                  <StarOutline className="h-4 w-4 mb-[2px]" />
-                                )}
-                              </IconButton>
-                            </div>
-                          </List.Item>
-                        );
-                      })}
-                    </List>
-                  </Collapse>
-                </React.Fragment>
-              );
-            }
-          )}
+                              {isFavoritePath ? (
+                                <StarFilled className="h-4 w-4 mb-[2px]" />
+                              ) : (
+                                <StarOutline className="h-4 w-4 mb-[2px]" />
+                              )}
+                            </IconButton>
+                          </div>
+                        </List.Item>
+                      );
+                    })}
+                  </List>
+                </Collapse>
+              </React.Fragment>
+            );
+          })}
         </List>
       </Collapse>
     </div>
