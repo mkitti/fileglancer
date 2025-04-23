@@ -49,7 +49,7 @@ export default function FileList({
         currentFileSharePath={currentFileSharePath}
         fetchAndFormatFilesForDisplay={fetchAndFormatFilesForDisplay}
       />
-      <div className="min-w-full bg-background">
+      <div className="min-w-full bg-background select-none">
         {/* Header row */}
         <div className="min-w-fit grid grid-cols-[minmax(170px,2fr)_minmax(80px,1fr)_minmax(95px,1fr)_minmax(75px,1fr)_minmax(40px,1fr)] gap-4 p-0 text-foreground">
           <div className="flex w-full gap-3 px-3 py-1 overflow-x-auto">
