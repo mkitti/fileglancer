@@ -127,10 +127,7 @@ export default function FileglancerNavbar() {
     <Navbar className="mx-auto w-full rounded-none bg-background p-4 dark:shadow-surface">
       <div className="flex items-center justify-between ">
         {/* Logo */}
-        <Link
-          to="/"
-          className="transition transform duration-300 hover:scale-105"
-        >
+        <Link to="/">
           <div className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent flex items-center">
             <svg
               className="w-6 h-6 text-primary"
