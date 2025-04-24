@@ -186,8 +186,6 @@ export const PreferencesProvider = ({
     if (isZonesAndFileSharePaths(item)) {
       // Get the key of the item
       const itemKey = Object.keys(item)[0];
-      console.log('itemKey', itemKey);
-      console.log('existing zone favorites', zoneFavorites);
       // Find the index of an existing item with the same key
       const existingItemIndex = zoneFavorites.findIndex(
         zone => Object.keys(zone)[0] === itemKey
@@ -203,7 +201,6 @@ export const PreferencesProvider = ({
       } else {
         newFavorites = [...zoneFavorites, item];
       }
-      console.log('new zone favorites', newFavorites);
       setZoneFavorites(newFavorites);
       updatePreferences('zoneFavorites', newFavorites);
     } else if (

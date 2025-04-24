@@ -35,7 +35,6 @@ export default function Zone({
   )
     ? true
     : false;
-  console.log('zone:', zoneName, 'isFavoriteZone:', isFavoriteZone);
 
   return (
     <React.Fragment>

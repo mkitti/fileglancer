@@ -1,12 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Collapse, Typography, List } from '@material-tailwind/react';
-import {
-  ChevronRightIcon,
-  FolderIcon,
-  RectangleStackIcon,
-  Squares2X2Icon
-} from '@heroicons/react/24/outline';
+import { ChevronRightIcon, FolderIcon } from '@heroicons/react/24/outline';
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
 import Zone from './Zone';
