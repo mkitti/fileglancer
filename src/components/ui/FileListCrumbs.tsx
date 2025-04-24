@@ -17,23 +17,9 @@ type FileListCrumbsProps = {
   fetchAndFormatFilesForDisplay: (path: string) => void;
 };
 
-export default function FileListCrumbs({
-  currentNavigationPath,
-  currentFileSharePath,
-  fetchAndFormatFilesForDisplay
-}: FileListCrumbsProps): JSX.Element {
-  function makeDirArray(path: string) {
-    if (currentNavigationPath.includes('?subpath=')) {
-      const firstSegment = currentNavigationPath.split('?subpath=')[0];
-      const subpathSegment = currentNavigationPath.split('?subpath=')[1];
-      const subpathArray = subpathSegment
-        .split('/')
-        .filter(item => item !== '');
-      return [firstSegment, ...subpathArray];
-    } else {
-      return [path];
-    }
-  }
+export default function FileListCrumbs(): JSX.Element {
+  const { dirArray, fetchAndFormatFilesForDisplay } = useFileBrowserContext();
+  const { currentFileSharePath } = useZoneBrowserContext();
 
   const dirArray = makeDirArray(currentNavigationPath);
   const dirDepth = dirArray.length;
