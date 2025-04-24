@@ -39,9 +39,12 @@ export default function FavoritesBrowser({
   const { openFavorites, toggleOpenFavorites } = useToggleOpenFavorites();
   const { zoneFavorites, fileSharePathFavorites, directoryFavorites } =
     usePreferencesContext();
-  const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
-  const { setCurrentNavigationZone, setCurrentFileSharePath } =
-    useZoneBrowserContext();
+  const { currentDir, fetchAndFormatFilesForDisplay } = useFileBrowserContext();
+  const {
+    setCurrentNavigationZone,
+    currentFileSharePath,
+    setCurrentFileSharePath
+  } = useZoneBrowserContext();
 
   const displayZones =
     filteredZoneFavorites.length > 0 || searchQuery.length > 0
