@@ -20,6 +20,6 @@ export type FileSharePathItem = {
   windows_path: string | null;
 };
 
-export type FileSharePaths = Record<string, FileSharePathItem[]>;
+export type ZonesAndFileSharePaths = Record<string, FileSharePathItem[]>;
 
 export type Cookies = { [key: string]: string };

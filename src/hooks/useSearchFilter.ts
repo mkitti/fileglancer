@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import type { FileSharePaths, FileSharePathItem } from '../shared.types';
+import type {
+  ZonesAndFileSharePaths,
+  FileSharePathItem
+} from '../shared.types';
 import type { DirectoryFavorite } from '../contexts/PreferencesContext';
 import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';
 import { usePreferencesContext } from '../contexts/PreferencesContext';
@@ -10,21 +13,21 @@ export default function useSearchFilter() {
     usePreferencesContext();
 
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [filteredFileSharePaths, setFilteredFileSharePaths] =
-    useState<FileSharePaths>({});
-  const [filteredZoneFavorites, setFilteredZoneFavorites] = useState<string[]>(
-    []
-  );
+  const [filteredZonesAndFileSharePaths, setFilteredZonesAndFileSharePaths] =
+    useState<ZonesAndFileSharePaths>({});
+  const [filteredZoneFavorites, setFilteredZoneFavorites] = useState<
+    ZonesAndFileSharePaths[]
+  >([]);
   const [filteredFileSharePathFavorites, setFilteredFileSharePathFavorites] =
     useState<FileSharePathItem[]>([]);
   const [filteredDirectoryFavorites, setFilteredDirectoryFavorites] = useState<
     DirectoryFavorite[]
   >([]);
 
-  const filterFileSharePathsAndFavorites = (query: string) => {
-    const filteredPaths: FileSharePaths = {};
+  const filterZones = (query: string) => {
+    const filteredPaths: ZonesAndFileSharePaths = {};
 
-    Object.entries(fileSharePaths).forEach(([zone, pathItems]) => {
+    Object.entries(zonesAndFileSharePaths).forEach(([zone, pathItems]) => {
       const zoneMatches = zone.toLowerCase().includes(query);
       const matchingPathItems = pathItems.filter(
         (pathItem: FileSharePathItem) =>
@@ -79,7 +82,7 @@ export default function useSearchFilter() {
       filterFileSharePathsAndFavorites(query);
     } else {
       // When search query is empty, use all the original paths
-      setFilteredFileSharePaths({});
+      setFilteredZonesAndFileSharePaths({});
       setFilteredZoneFavorites([]);
       setFilteredFileSharePathFavorites([]);
       setFilteredDirectoryFavorites([]);
@@ -88,7 +91,7 @@ export default function useSearchFilter() {
 
   return {
     searchQuery,
-    filteredFileSharePaths,
+    filteredZonesAndFileSharePaths,
     filteredZoneFavorites,
     filteredFileSharePathFavorites,
     filteredDirectoryFavorites,

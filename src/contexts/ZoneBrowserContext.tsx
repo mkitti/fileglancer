@@ -1,16 +1,16 @@
 import React from 'react';
 
-import { FileSharePaths, FileSharePathItem } from '../shared.types';
+import { ZonesAndFileSharePaths, FileSharePathItem } from '../shared.types';
 import { getAPIPathRoot, sendGetRequest } from '../utils';
 import { useCookiesContext } from '../contexts/CookiesContext';
 
 type ZoneBrowserContextType = {
-  fileSharePaths: FileSharePaths;
+  zonesAndFileSharePaths: ZonesAndFileSharePaths;
   currentNavigationZone: string | null;
   setCurrentNavigationZone: React.Dispatch<React.SetStateAction<string | null>>;
   currentFileSharePath: string | null;
   setCurrentFileSharePath: React.Dispatch<React.SetStateAction<string | null>>;
-  getFileSharePaths: () => Promise<void>;
+  getZonesAndFileSharePaths: () => Promise<void>;
 };
 
 const ZoneBrowserContext = React.createContext<ZoneBrowserContextType | null>(
@@ -32,9 +32,8 @@ export const ZoneBrowserContextProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const [fileSharePaths, setFileSharePaths] = React.useState<FileSharePaths>(
-    {}
-  );
+  const [zonesAndFileSharePaths, setZonesAndFileSharePaths] =
+    React.useState<ZonesAndFileSharePaths>({});
   const [currentNavigationZone, setCurrentNavigationZone] = React.useState<
     string | null
   >(null);
@@ -45,19 +44,19 @@ export const ZoneBrowserContextProvider = ({
   const { cookies } = useCookiesContext();
 
   React.useEffect(() => {
-    if (Object.keys(fileSharePaths).length === 0) {
-      getFileSharePaths();
+    if (Object.keys(zonesAndFileSharePaths).length === 0) {
+      getZonesAndFileSharePaths();
     }
-  }, [fileSharePaths, getFileSharePaths]);
+  }, [zonesAndFileSharePaths, getZonesAndFileSharePaths]);
 
-  async function getFileSharePaths() {
+  async function getZonesAndFileSharePaths() {
     const url = `${getAPIPathRoot()}api/fileglancer/file-share-paths`;
 
     try {
       const response = await sendGetRequest(url, cookies['_xsrf']);
 
       const rawData: { paths: FileSharePathItem[] } = await response.json();
-      const unsortedPaths: FileSharePaths = {};
+      const unsortedPaths: ZonesAndFileSharePaths = {};
 
       rawData.paths.forEach(item => {
         if (!unsortedPaths[item.zone]) {
@@ -80,14 +79,14 @@ export const ZoneBrowserContextProvider = ({
       });
 
       // Create a new object with alphabetically sorted zone keys
-      const sortedPaths: FileSharePaths = {};
+      const sortedPaths: ZonesAndFileSharePaths = {};
       Object.keys(unsortedPaths)
         .sort()
         .forEach(zone => {
           sortedPaths[zone] = unsortedPaths[zone];
         });
 
-      setFileSharePaths(sortedPaths);
+      setZonesAndFileSharePaths(sortedPaths);
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error(error.message);
@@ -99,12 +98,12 @@ export const ZoneBrowserContextProvider = ({
   return (
     <ZoneBrowserContext.Provider
       value={{
-        fileSharePaths,
+        zonesAndFileSharePaths,
         currentNavigationZone,
         setCurrentNavigationZone,
         currentFileSharePath,
         setCurrentFileSharePath,
-        getFileSharePaths
+        getZonesAndFileSharePaths
       }}
     >
       {children}
