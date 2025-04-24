@@ -1,5 +1,8 @@
 import React from 'react';
-import type { FileSharePathItem } from '../shared.types';
+import type {
+  FileSharePathItem,
+  ZonesAndFileSharePaths
+} from '../shared.types';
 import { useCookiesContext } from '../contexts/CookiesContext';
 import { getAPIPathRoot, sendGetRequest, sendPutRequest } from '../utils';
 
@@ -16,8 +19,10 @@ type PreferencesContextType = {
     event: React.ChangeEvent<HTMLInputElement>
   ) => void;
   handlePathPreferenceSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
-  zoneFavorites: string[];
-  setZoneFavorites: React.Dispatch<React.SetStateAction<string[]>>;
+  zoneFavorites: ZonesAndFileSharePaths[];
+  setZoneFavorites: React.Dispatch<
+    React.SetStateAction<ZonesAndFileSharePaths[]>
+  >;
   fileSharePathFavorites: FileSharePathItem[];
   setFileSharePathFavorites: React.Dispatch<
     React.SetStateAction<FileSharePathItem[]>
@@ -27,7 +32,11 @@ type PreferencesContextType = {
     React.SetStateAction<DirectoryFavorite[]>
   >;
   handleFavoriteChange: (
-    item: string | FileSharePathItem | DirectoryFavorite | DirectoryFavorite[],
+    item:
+      | ZonesAndFileSharePaths
+      | FileSharePathItem
+      | DirectoryFavorite
+      | DirectoryFavorite[],
     type: string
   ) => Promise<void>;
 };
@@ -54,7 +63,9 @@ export const PreferencesProvider = ({
   const [pathPreference, setPathPreference] = React.useState<
     ['linux_path'] | ['windows_path'] | ['mac_path']
   >(['linux_path']);
-  const [zoneFavorites, setZoneFavorites] = React.useState<string[]>([]);
+  const [zoneFavorites, setZoneFavorites] = React.useState<
+    ZonesAndFileSharePaths[]
+  >([]);
   const [fileSharePathFavorites, setFileSharePathFavorites] = React.useState<
     FileSharePathItem[]
   >([]);
@@ -115,7 +126,11 @@ export const PreferencesProvider = ({
 
   const updatePreferences = async (
     key: string,
-    body: string[] | FileSharePathItem[] | DirectoryFavorite[]
+    body:
+      | [string]
+      | ZonesAndFileSharePaths[]
+      | FileSharePathItem[]
+      | DirectoryFavorite[]
   ) => {
     try {
       await sendPutRequest(
@@ -142,19 +157,57 @@ export const PreferencesProvider = ({
     updatePreferences('pathPreference', pathPreference);
   }
 
+  function isZonesAndFileSharePaths(item: any): item is ZonesAndFileSharePaths {
+    if (typeof item !== 'object' || item === null) {
+      return false;
+    }
+    return Object.values(item).every(
+      value =>
+        Array.isArray(value) &&
+        value.every(
+          entry =>
+            typeof entry === 'object' &&
+            'zone' in entry &&
+            'name' in entry &&
+            'storage' in entry &&
+            'linux_path' in entry
+        )
+    );
+  }
+
   const handleFavoriteChange = async (
-    item: string | FileSharePathItem | DirectoryFavorite | DirectoryFavorite[],
+    item:
+      | ZonesAndFileSharePaths
+      | FileSharePathItem
+      | DirectoryFavorite
+      | DirectoryFavorite[],
     type: string
   ) => {
-    if (type === 'zone' && typeof item === 'string') {
-      const newFavorites = zoneFavorites.includes(item)
-        ? zoneFavorites.filter(zone => zone !== item)
-        : [...zoneFavorites, item];
+    if (isZonesAndFileSharePaths(item)) {
+      // Get the key of the item
+      const itemKey = Object.keys(item)[0];
+      console.log('itemKey', itemKey);
+      console.log('existing zone favorites', zoneFavorites);
+      // Find the index of an existing item with the same key
+      const existingItemIndex = zoneFavorites.findIndex(
+        zone => Object.keys(zone)[0] === itemKey
+      );
+
+      let newFavorites;
+      if (existingItemIndex >= 0) {
+        // If found, remove it
+        newFavorites = [
+          ...zoneFavorites.slice(0, existingItemIndex),
+          ...zoneFavorites.slice(existingItemIndex + 1)
+        ];
+      } else {
+        newFavorites = [...zoneFavorites, item];
+      }
+      console.log('new zone favorites', newFavorites);
       setZoneFavorites(newFavorites);
       updatePreferences('zoneFavorites', newFavorites);
     } else if (
       type === 'fileSharePath' &&
-      typeof item !== 'string' &&
       'storage' in item &&
       'linux_path' in item
     ) {
