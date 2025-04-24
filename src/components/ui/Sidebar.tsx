@@ -2,17 +2,17 @@ import React from 'react';
 import { Card, Input } from '@material-tailwind/react';
 import { FunnelIcon } from '@heroicons/react/24/outline';
 
-import SidebarFavorites from './SidebarFavorites';
-import SidebarZones from './SidebarZones';
+import FavoritesBrowser from './Sidebar/FavoritesBrowser';
+import ZonesBrowser from './Sidebar/ZonesBrowser';
 import useSearchFilter from '../../hooks/useSearchFilter';
 import useOpenZones from '../../hooks/useOpenZones';
 
-export default function FileSidebar() {
+export default function Sidebar() {
   const { openZones, setOpenZones, toggleOpenZones } = useOpenZones();
   const {
     searchQuery,
     handleSearchChange,
-    filteredFileSharePaths,
+    filteredZonesAndFileSharePaths,
     filteredZoneFavorites,
     filteredFileSharePathFavorites,
     filteredDirectoryFavorites
@@ -38,7 +38,7 @@ export default function FileSidebar() {
         <div
           className={`flex-shrink ${openZones['all'] ? 'max-h-[50%]' : 'max-h-[100%]'}`}
         >
-          <SidebarFavorites
+          <FavoritesBrowser
             searchQuery={searchQuery}
             setOpenZones={setOpenZones}
             filteredZoneFavorites={filteredZoneFavorites}
@@ -47,11 +47,11 @@ export default function FileSidebar() {
           />
         </div>
         <div className="flex-grow overflow-hidden">
-          <SidebarZones
+          <ZonesBrowser
             searchQuery={searchQuery}
             openZones={openZones}
             toggleOpenZones={toggleOpenZones}
-            filteredFileSharePaths={filteredFileSharePaths}
+            filteredZonesAndFileSharePaths={filteredZonesAndFileSharePaths}
           />
         </div>
       </div>

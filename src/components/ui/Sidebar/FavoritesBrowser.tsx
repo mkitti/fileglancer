@@ -9,17 +9,21 @@ import {
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
+import Zone from './Zone';
+import FileSharePath from './FileSharePath';
 import {
   DirectoryFavorite,
   usePreferencesContext
-} from '../../contexts/PreferencesContext';
-import { useZoneBrowserContext } from '../../contexts/ZoneBrowserContext';
-import { useFileBrowserContext } from '../../contexts/FileBrowserContext';
-import useToggleOpenFavorites from '../../hooks/useToggleOpenFavorites';
+} from '../../../contexts/PreferencesContext';
+import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
+import { useFileBrowserContext } from '../../../contexts/FileBrowserContext';
+import useToggleOpenFavorites from '../../../hooks/useToggleOpenFavorites';
+import {
+  FileSharePathItem,
+  ZonesAndFileSharePaths
+} from '../../../shared.types';
 
-import { FileSharePathItem } from '../../shared.types';
-
-export default function SidebarFavorites({
+export default function FavoritesBrowser({
   searchQuery,
   setOpenZones,
   filteredZoneFavorites,
@@ -28,17 +32,13 @@ export default function SidebarFavorites({
 }: {
   searchQuery: string;
   setOpenZones: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-  filteredZoneFavorites: string[];
+  filteredZoneFavorites: ZonesAndFileSharePaths[];
   filteredFileSharePathFavorites: FileSharePathItem[];
   filteredDirectoryFavorites: DirectoryFavorite[];
 }) {
   const { openFavorites, toggleOpenFavorites } = useToggleOpenFavorites();
-  const {
-    zoneFavorites,
-    fileSharePathFavorites,
-    directoryFavorites,
-    pathPreference
-  } = usePreferencesContext();
+  const { zoneFavorites, fileSharePathFavorites, directoryFavorites } =
+    usePreferencesContext();
   const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
   const { setCurrentNavigationZone, setCurrentFileSharePath } =
     useZoneBrowserContext();
@@ -99,24 +99,16 @@ export default function SidebarFavorites({
             </List.Item>
             <Collapse open={openFavorites['zones'] ? true : false}>
               <List className="bg-surface-light !py-0 !gap-0">
-                {displayZones.map((zone, index) => {
+                {displayZones.map(zoneWithPaths => {
+                  const zoneName = Object.keys(zoneWithPaths)[0];
+                  const fileSharePaths = zoneWithPaths[zoneName];
                   return (
-                    <List.Item
-                      key={`favorite-zone-${zone}`}
-                      onClick={() => {
-                        setOpenZones({ all: true, [zone]: true });
-                        setCurrentNavigationZone(zone);
-                        setCurrentFileSharePath(null);
-                      }}
-                      className="flex gap-2 items-center justify-between pl-5 rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 !bg-background"
-                    >
-                      <div className="flex gap-1 items-center">
-                        {/* <FolderIcon className="h-4 w-4" /> */}
-                        <Typography className="text-sm font-medium leading-4">
-                          {zone}
-                        </Typography>
-                      </div>
-                    </List.Item>
+                    <Zone
+                      zoneName={zoneName}
+                      fileSharePaths={fileSharePaths}
+                      openZones={openFavorites}
+                      toggleOpenZones={toggleOpenFavorites}
+                    />
                   );
                 })}
               </List>
@@ -147,39 +139,7 @@ export default function SidebarFavorites({
             <Collapse open={openFavorites['fileSharePaths'] ? true : false}>
               <List className="bg-surface-light !py-0 !gap-0">
                 {displayFileSharePaths.map((path, index) => {
-                  return (
-                    <List.Item
-                      key={`favorite-fileSharePath-${path}`}
-                      onClick={() => {
-                        setOpenZones({ all: true, [path.zone]: true });
-                        setCurrentNavigationZone(path.zone);
-                        setCurrentFileSharePath(path.name);
-                        fetchAndFormatFilesForDisplay(path.name);
-                      }}
-                      className="flex gap-2 items-center justify-between pl-5 rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 !bg-background"
-                    >
-                      <Link
-                        to="/files"
-                        className="flex flex-col gap-2 !text-foreground hover:!text-black focus:!text-black hover:dark:!text-white focus:dark:!text-white"
-                      >
-                        <div className="flex gap-1 items-center">
-                          {/* <FolderIcon className="h-4 w-4" /> */}
-                          <Typography className="text-sm font-medium leading-4">
-                            {path.storage}
-                          </Typography>
-                        </div>
-                        <Typography className="text-xs">
-                          {pathPreference[0] === 'linux_path'
-                            ? path.linux_path
-                            : pathPreference[0] === 'windows_path'
-                              ? path.windows_path
-                              : pathPreference[0] === 'mac_path'
-                                ? path.mac_path
-                                : path.linux_path}
-                        </Typography>
-                      </Link>
-                    </List.Item>
-                  );
+                  return <FileSharePath pathItem={path} pathIndex={index} />;
                 })}
               </List>
             </Collapse>
@@ -247,3 +207,35 @@ export default function SidebarFavorites({
     </div>
   );
 }
+
+// <List.Item
+//   key={`favorite-fileSharePath-${path}`}
+//   onClick={() => {
+//     setOpenZones({ all: true, [path.zone]: true });
+//     setCurrentNavigationZone(path.zone);
+//     setCurrentFileSharePath(path.name);
+//     fetchAndFormatFilesForDisplay(path.name);
+//   }}
+//   className={`flex gap-2 items-center justify-between pl-5 rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 ${isCurrentPath ? '!bg-primary-light/30' : '!bg-background'}`}
+// >
+//   <Link
+//     to="/files"
+//     className="flex flex-col gap-2 !text-foreground hover:!text-black focus:!text-black hover:dark:!text-white focus:dark:!text-white"
+//   >
+//     <div className="flex gap-1 items-center">
+//       {/* <FolderIcon className="h-4 w-4" /> */}
+//       <Typography className="text-sm font-medium leading-4">
+//         {path.storage}
+//       </Typography>
+//     </div>
+//     <Typography className="text-xs">
+//       {pathPreference[0] === 'linux_path'
+//         ? path.linux_path
+//         : pathPreference[0] === 'windows_path'
+//           ? path.windows_path
+//           : pathPreference[0] === 'mac_path'
+//             ? path.mac_path
+//             : path.linux_path}
+//     </Typography>
+//   </Link>
+// </List.Item>
