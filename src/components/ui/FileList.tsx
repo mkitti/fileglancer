@@ -36,19 +36,14 @@ export default function FileList({
   setPropertiesTarget,
   handleRightClick
 }: FileListProps): JSX.Element {
-  const { currentNavigationPath, fetchAndFormatFilesForDisplay } =
-    useFileBrowserContext();
+  const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
   const { handleLeftClick } = useHandleLeftClick();
   const { currentFileSharePath } = useZoneBrowserContext();
   return (
     <div
       className={`px-2 transition-all duration-300 ${showFilePropertiesDrawer ? 'mr-[350px]' : ''}`}
     >
-      <FileListCrumbs
-        currentNavigationPath={currentNavigationPath}
-        currentFileSharePath={currentFileSharePath}
-        fetchAndFormatFilesForDisplay={fetchAndFormatFilesForDisplay}
-      />
+      <FileListCrumbs />
       <div className="min-w-full bg-background select-none">
         {/* Header row */}
         <div className="min-w-fit grid grid-cols-[minmax(170px,2fr)_minmax(80px,1fr)_minmax(95px,1fr)_minmax(75px,1fr)_minmax(40px,1fr)] gap-4 p-0 text-foreground">

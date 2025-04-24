@@ -11,17 +11,13 @@ import {
   Squares2X2Icon
 } from '@heroicons/react/24/outline';
 
-type FileListCrumbsProps = {
-  currentNavigationPath: string;
-  currentFileSharePath: string | null;
-  fetchAndFormatFilesForDisplay: (path: string) => void;
-};
+import { useFileBrowserContext } from '../../contexts/FileBrowserContext';
+import { useZoneBrowserContext } from '../../contexts/ZoneBrowserContext';
 
 export default function FileListCrumbs(): JSX.Element {
   const { dirArray, fetchAndFormatFilesForDisplay } = useFileBrowserContext();
   const { currentFileSharePath } = useZoneBrowserContext();
 
-  const dirArray = makeDirArray(currentNavigationPath);
   const dirDepth = dirArray.length;
 
   return (
