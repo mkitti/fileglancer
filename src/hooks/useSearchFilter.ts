@@ -8,7 +8,7 @@ import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';
 import { usePreferencesContext } from '../contexts/PreferencesContext';
 
 export default function useSearchFilter() {
-  const { fileSharePaths } = useZoneBrowserContext();
+  const { zonesAndFileSharePaths } = useZoneBrowserContext();
   const { zoneFavorites, fileSharePathFavorites, directoryFavorites } =
     usePreferencesContext();
 
@@ -41,8 +41,12 @@ export default function useSearchFilter() {
       }
     });
 
-    const filteredFavorites = zoneFavorites.filter(zone =>
-      zone.toLowerCase().includes(query)
+    setFilteredZonesAndFileSharePaths(filteredPaths);
+  };
+
+  const filterFavorites = (query: string) => {
+    const filteredZoneFavorites = zoneFavorites.filter(zone =>
+      Object.keys(zone)[0].toLowerCase().includes(query)
     );
 
     const filteredFileSharePathFavorites = fileSharePathFavorites.filter(
@@ -65,8 +69,7 @@ export default function useSearchFilter() {
         directory.path.toLowerCase().includes(query)
     );
 
-    setFilteredFileSharePaths(filteredPaths);
-    setFilteredZoneFavorites(filteredFavorites);
+    setFilteredZoneFavorites(filteredZoneFavorites);
     setFilteredFileSharePathFavorites(filteredFileSharePathFavorites);
     setFilteredDirectoryFavorites(filteredDirectoryFavorites);
   };
@@ -79,7 +82,8 @@ export default function useSearchFilter() {
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filterFileSharePathsAndFavorites(query);
+      filterZones(query);
+      filterFavorites(query);
     } else {
       // When search query is empty, use all the original paths
       setFilteredZonesAndFileSharePaths({});
