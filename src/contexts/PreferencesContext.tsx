@@ -15,10 +15,12 @@ export type DirectoryFavorite = {
 
 type PreferencesContextType = {
   pathPreference: ['linux_path'] | ['windows_path'] | ['mac_path'];
-  handlePathPreferenceChange: (
-    event: React.ChangeEvent<HTMLInputElement>
+  showPathPrefAlert: boolean;
+  setShowPathPrefAlert: React.Dispatch<React.SetStateAction<boolean>>;
+  handlePathPreferenceSubmit: (
+    event: React.FormEvent<HTMLFormElement>,
+    localPathPreference: PreferencesContextType['pathPreference']
   ) => void;
-  handlePathPreferenceSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   zoneFavorites: ZonesAndFileSharePaths[];
   setZoneFavorites: React.Dispatch<
     React.SetStateAction<ZonesAndFileSharePaths[]>
@@ -63,6 +65,8 @@ export const PreferencesProvider = ({
   const [pathPreference, setPathPreference] = React.useState<
     ['linux_path'] | ['windows_path'] | ['mac_path']
   >(['linux_path']);
+  const [showPathPrefAlert, setShowPathPrefAlert] = React.useState(false);
+
   const [zoneFavorites, setZoneFavorites] = React.useState<
     ZonesAndFileSharePaths[]
   >([]);
@@ -143,18 +147,28 @@ export const PreferencesProvider = ({
     }
   };
 
-  function handlePathPreferenceChange(
-    event: React.ChangeEvent<HTMLInputElement>
-  ) {
-    const selectedPath = event.target.value.split(' ') as [
-      'linux_path' | 'windows_path' | 'mac_path'
-    ];
-    setPathPreference(selectedPath);
-  }
+  // function handlePathPreferenceChange(
+  //   event: React.ChangeEvent<HTMLInputElement>
+  // ) {
+  //   const selectedPath = event.target.value.split(' ') as [
+  //     'linux_path' | 'windows_path' | 'mac_path'
+  //   ];
+  //   setPathPreference(selectedPath);
+  // }
 
-  function handlePathPreferenceSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handlePathPreferenceSubmit(
+    event: React.FormEvent<HTMLFormElement>,
+    localPathPreference: ['linux_path'] | ['windows_path'] | ['mac_path']
+  ) {
     event.preventDefault();
-    updatePreferences('pathPreference', pathPreference);
+    try {
+      updatePreferences('pathPreference', localPathPreference);
+      setPathPreference(localPathPreference);
+      setShowPathPrefAlert(true);
+    } catch (error) {
+      console.error('Error updating path preference:', error);
+      setShowPathPrefAlert(false);
+    }
   }
 
   function isZonesAndFileSharePaths(item: any): item is ZonesAndFileSharePaths {
@@ -280,7 +294,8 @@ export const PreferencesProvider = ({
     <PreferencesContext.Provider
       value={{
         pathPreference,
-        handlePathPreferenceChange,
+        showPathPrefAlert,
+        setShowPathPrefAlert,
         handlePathPreferenceSubmit,
         zoneFavorites,
         setZoneFavorites,
