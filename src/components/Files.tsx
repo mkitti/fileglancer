@@ -7,7 +7,7 @@ import useHideDotFiles from '../hooks/useHideDotFiles';
 import useSelectedFiles from '../hooks/useSelectedFiles';
 
 import FileList from './ui/FileList';
-import FilePropertiesDrawer from './ui/FilePropertiesDrawer';
+import PropertiesDrawer from './ui/PropertiesDrawer/PropertiesDrawer';
 import FileControlPanel from './ui/FileControlPanel';
 import FileContextMenu from './ui/FileContextMenu';
 
@@ -32,7 +32,7 @@ export default function Files() {
         setHideDotFiles={setHideDotFiles}
       />
       <div className="relative grow">
-        <FilePropertiesDrawer
+        <PropertiesDrawer
           propertiesTarget={propertiesTarget}
           open={showFilePropertiesDrawer}
           setShowFilePropertiesDrawer={setShowFilePropertiesDrawer}
