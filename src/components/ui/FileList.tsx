@@ -18,13 +18,24 @@ type FileListProps = {
   selectedFiles: File[];
   setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>;
   showFilePropertiesDrawer: boolean;
-  setPropertiesTarget: React.Dispatch<React.SetStateAction<File | null>>;
+  setPropertiesTarget: React.Dispatch<
+    React.SetStateAction<{
+      targetFile: File | null;
+      fileSharePath: string | null;
+    }>
+  >;
   handleRightClick: (
     e: React.MouseEvent<HTMLDivElement>,
     file: File,
     selectedFiles: File[],
     setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>,
-    setPropertiesTarget: React.Dispatch<React.SetStateAction<File | null>>
+    currentFileSharePath: string | null,
+    setPropertiesTarget: React.Dispatch<
+      React.SetStateAction<{
+        targetFile: File | null;
+        fileSharePath: string | null;
+      }>
+    >
   ) => void;
 };
 
@@ -88,6 +99,7 @@ export default function FileList({
                     selectedFiles,
                     setSelectedFiles,
                     displayFiles,
+                    currentFileSharePath,
                     setPropertiesTarget,
                     showFilePropertiesDrawer
                   )
@@ -98,6 +110,7 @@ export default function FileList({
                     file,
                     selectedFiles,
                     setSelectedFiles,
+                    currentFileSharePath,
                     setPropertiesTarget
                   )
                 }
@@ -120,7 +133,10 @@ export default function FileList({
                         fetchAndFormatFilesForDisplay(
                           `${currentFileSharePath}?subpath=${file.path}`
                         );
-                        setPropertiesTarget(file);
+                        setPropertiesTarget({
+                          targetFile: file,
+                          fileSharePath: currentFileSharePath
+                        });
                       }
                     }}
                   >
@@ -163,6 +179,7 @@ export default function FileList({
                       file,
                       selectedFiles,
                       setSelectedFiles,
+                      currentFileSharePath,
                       setPropertiesTarget
                     );
                   }}

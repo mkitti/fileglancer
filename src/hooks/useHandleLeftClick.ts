@@ -9,7 +9,13 @@ export default function useHandleLeftClick() {
     selectedFiles: File[],
     setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>,
     displayFiles: File[],
-    setPropertiesTarget: (file: File | null) => void,
+    currentFileSharePath: string | null,
+    setPropertiesTarget: React.Dispatch<
+      React.SetStateAction<{
+        targetFile: File | null;
+        fileSharePath: string | null;
+      }>
+    >,
     showFilePropertiesDrawer: boolean
   ) => {
     if (e.shiftKey) {
@@ -25,7 +31,10 @@ export default function useHandleLeftClick() {
       const end = Math.max(lastSelectedIndex, currentIndex);
       const newSelectedFiles = displayFiles.slice(start, end + 1);
       setSelectedFiles(newSelectedFiles);
-      setPropertiesTarget(file);
+      setPropertiesTarget({
+        targetFile: file,
+        fileSharePath: currentFileSharePath
+      });
     } else if (e.metaKey) {
       // If  "Windows/Cmd" is held down while clicking,
       // toggle the current file in the selection
@@ -40,7 +49,10 @@ export default function useHandleLeftClick() {
       }
 
       setSelectedFiles(newSelectedFiles);
-      setPropertiesTarget(file);
+      setPropertiesTarget({
+        targetFile: file,
+        fileSharePath: currentFileSharePath
+      });
     } else {
       // If no modifier keys are held down, select the current file
       const currentIndex = selectedFiles.indexOf(file);
@@ -57,7 +69,10 @@ export default function useHandleLeftClick() {
         showFilePropertiesDrawer
           ? file
           : null;
-      setPropertiesTarget(newPropertiesTarget);
+      setPropertiesTarget({
+        targetFile: newPropertiesTarget,
+        fileSharePath: currentFileSharePath
+      });
     }
   };
 
