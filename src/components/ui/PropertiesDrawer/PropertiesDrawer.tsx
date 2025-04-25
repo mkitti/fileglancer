@@ -124,7 +124,7 @@ export default function PropertiesDrawer({
               {copiedText.value === fullPath &&
               copiedText.isCopied === true &&
               showCopyAlert === true ? (
-                <Alert className="flex items-center justify-between">
+                <Alert className="flex items-center justify-between bg-secondary-light/70 border-none">
                   <Alert.Content>Path copied to clipboard!</Alert.Content>
                   <XMarkIcon
                     className="h-5 w-5 cursor-pointer"
