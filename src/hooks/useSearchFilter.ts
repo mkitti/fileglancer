@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React from 'react';
 import type {
   ZonesAndFileSharePaths,
   FileSharePathItem
@@ -12,19 +12,18 @@ export default function useSearchFilter() {
   const { zoneFavorites, fileSharePathFavorites, directoryFavorites } =
     usePreferencesContext();
 
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchQuery, setSearchQuery] = React.useState<string>('');
   const [filteredZonesAndFileSharePaths, setFilteredZonesAndFileSharePaths] =
-    useState<ZonesAndFileSharePaths>({});
-  const [filteredZoneFavorites, setFilteredZoneFavorites] = useState<
+    React.useState<ZonesAndFileSharePaths>({});
+  const [filteredZoneFavorites, setFilteredZoneFavorites] = React.useState<
     ZonesAndFileSharePaths[]
   >([]);
   const [filteredFileSharePathFavorites, setFilteredFileSharePathFavorites] =
-    useState<FileSharePathItem[]>([]);
-  const [filteredDirectoryFavorites, setFilteredDirectoryFavorites] = useState<
-    DirectoryFavorite[]
-  >([]);
+    React.useState<FileSharePathItem[]>([]);
+  const [filteredDirectoryFavorites, setFilteredDirectoryFavorites] =
+    React.useState<DirectoryFavorite[]>([]);
 
-  const filterZones = (query: string) => {
+  const filterZonesAndFileSharePaths = (query: string) => {
     const filteredPaths: ZonesAndFileSharePaths = {};
 
     Object.entries(zonesAndFileSharePaths).forEach(([zone, pathItems]) => {
@@ -44,7 +43,7 @@ export default function useSearchFilter() {
     setFilteredZonesAndFileSharePaths(filteredPaths);
   };
 
-  const filterFavorites = (query: string) => {
+  const filterAllFavorites = (query: string) => {
     const filteredZoneFavorites = zoneFavorites.filter(zone =>
       Object.keys(zone)[0].toLowerCase().includes(query)
     );
@@ -78,20 +77,27 @@ export default function useSearchFilter() {
     event: React.ChangeEvent<HTMLInputElement>
   ): void => {
     const searchQuery = event.target.value;
-    setSearchQuery(searchQuery);
+    setSearchQuery(searchQuery.trim().toLowerCase());
+  };
 
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filterZones(query);
-      filterFavorites(query);
-    } else {
+  React.useEffect(() => {
+    if (searchQuery !== '') {
+      filterZonesAndFileSharePaths(searchQuery);
+      filterAllFavorites(searchQuery);
+    } else if (searchQuery === '') {
       // When search query is empty, use all the original paths
       setFilteredZonesAndFileSharePaths({});
       setFilteredZoneFavorites([]);
       setFilteredFileSharePathFavorites([]);
       setFilteredDirectoryFavorites([]);
     }
-  };
+  }, [
+    searchQuery,
+    zonesAndFileSharePaths,
+    zoneFavorites,
+    fileSharePathFavorites,
+    directoryFavorites
+  ]);
 
   return {
     searchQuery,
