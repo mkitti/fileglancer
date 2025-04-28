@@ -1,10 +1,11 @@
 import React from 'react';
-import type { File } from '../shared.types';
+import type { File, FileSharePathItem } from '../shared.types';
 
 export default function usePropertiesTarget() {
-  const [propertiesTarget, setPropertiesTarget] = React.useState<File | null>(
-    null
-  );
+  const [propertiesTarget, setPropertiesTarget] = React.useState<{
+    targetFile: File | null;
+    fileSharePath: FileSharePathItem | null;
+  }>({ targetFile: null, fileSharePath: null });
   return {
     propertiesTarget,
     setPropertiesTarget

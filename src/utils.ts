@@ -1,3 +1,6 @@
+import type { ZonesAndFileSharePaths, FileSharePathItem } from './shared.types';
+import type { DirectoryFavorite } from './contexts/PreferencesContext';
+
 const formatFileSize = (sizeInBytes: number): string => {
   if (sizeInBytes < 1024) {
     return `${sizeInBytes} bytes`;
@@ -46,7 +49,13 @@ async function sendGetRequest(
 async function sendPutRequest(
   url: string,
   xrsfCookie: string,
-  body: any
+  body: {
+    value:
+      | [string]
+      | ZonesAndFileSharePaths[]
+      | FileSharePathItem[]
+      | DirectoryFavorite[];
+  }
 ): Promise<Response> {
   const response = await fetch(url, {
     method: 'PUT',

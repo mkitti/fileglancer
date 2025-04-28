@@ -6,6 +6,8 @@ import { useCookiesContext } from './CookiesContext';
 type FileBrowserContextType = {
   files: File[];
   currentNavigationPath: File['path'];
+  dirArray: string[];
+  currentDir: string;
   setCurrentNavigationPath: React.Dispatch<React.SetStateAction<File['path']>>;
   fetchAndFormatFilesForDisplay: (path: File['path']) => Promise<void>;
 };
@@ -30,8 +32,38 @@ export const FileBrowserContextProvider = ({
   const [files, setFiles] = React.useState<File[]>([]);
   const [currentNavigationPath, setCurrentNavigationPath] =
     React.useState<File['path']>('');
+  const [dirArray, setDirArray] = React.useState<string[]>([]);
+  const [currentDir, setCurrentDir] = React.useState<string>('');
 
   const { cookies } = useCookiesContext();
+
+  React.useEffect(() => {
+    if (currentNavigationPath) {
+      const dirArray = makeDirArray(currentNavigationPath);
+      setDirArray(dirArray);
+    }
+  }, [currentNavigationPath]);
+
+  React.useEffect(() => {
+    if (dirArray.length > 1) {
+      setCurrentDir(dirArray[dirArray.length - 1]);
+    } else {
+      setCurrentDir(dirArray[0]);
+    }
+  }, [dirArray]);
+
+  function makeDirArray(path: string) {
+    if (currentNavigationPath.includes('?subpath=')) {
+      const firstSegment = currentNavigationPath.split('?subpath=')[0];
+      const subpathSegment = currentNavigationPath.split('?subpath=')[1];
+      const subpathArray = subpathSegment
+        .split('/')
+        .filter(item => item !== '');
+      return [firstSegment, ...subpathArray];
+    } else {
+      return [path];
+    }
+  }
 
   async function fetchAndFormatFilesForDisplay(
     path: File['path']
@@ -80,6 +112,8 @@ export const FileBrowserContextProvider = ({
       value={{
         files,
         currentNavigationPath,
+        dirArray,
+        currentDir,
         setCurrentNavigationPath,
         fetchAndFormatFilesForDisplay
       }}

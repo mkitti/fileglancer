@@ -54,7 +54,6 @@ export default function FileContextMenu({
                 if (selectedFiles.length === 1) {
                   handleFavoriteChange(
                     {
-                      navigationZone: currentNavigationZone,
                       fileSharePath: currentFileSharePath,
                       name: selectedFiles[0].name,
                       path: selectedFiles[0].path

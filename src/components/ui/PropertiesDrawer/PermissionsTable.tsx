@@ -1,12 +1,8 @@
 import React from 'react';
 import { CheckIcon, MinusIcon } from '@heroicons/react/24/outline';
-import { File } from '../../shared.types';
+import { File } from '../../../shared.types';
 
-type FileTableProps = {
-  file: File | null;
-};
-
-export default function FilePermissionTable({ file }: FileTableProps) {
+export default function PermissionsTable({ file }: { file: File | null }) {
   // Parse the Unix-style permissions string (e.g., "drwxr-xr-x")
   const parsePermissions = (permissionString: string) => {
     // Owner permissions (positions 1-3)

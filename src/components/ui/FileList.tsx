@@ -6,7 +6,7 @@ import {
   FolderIcon
 } from '@heroicons/react/24/outline';
 
-import type { File } from '../../shared.types';
+import type { File, FileSharePathItem } from '../../shared.types';
 import FileListCrumbs from './FileListCrumbs';
 import { useFileBrowserContext } from '../../contexts/FileBrowserContext';
 import { useZoneBrowserContext } from '../../contexts/ZoneBrowserContext';
@@ -18,13 +18,24 @@ type FileListProps = {
   selectedFiles: File[];
   setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>;
   showFilePropertiesDrawer: boolean;
-  setPropertiesTarget: React.Dispatch<React.SetStateAction<File | null>>;
+  setPropertiesTarget: React.Dispatch<
+    React.SetStateAction<{
+      targetFile: File | null;
+      fileSharePath: FileSharePathItem | null;
+    }>
+  >;
   handleRightClick: (
     e: React.MouseEvent<HTMLDivElement>,
     file: File,
     selectedFiles: File[],
     setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>,
-    setPropertiesTarget: React.Dispatch<React.SetStateAction<File | null>>
+    currentFileSharePath: FileSharePathItem | null,
+    setPropertiesTarget: React.Dispatch<
+      React.SetStateAction<{
+        targetFile: File | null;
+        fileSharePath: FileSharePathItem | null;
+      }>
+    >
   ) => void;
 };
 
@@ -36,20 +47,15 @@ export default function FileList({
   setPropertiesTarget,
   handleRightClick
 }: FileListProps): JSX.Element {
-  const { currentNavigationPath, fetchAndFormatFilesForDisplay } =
-    useFileBrowserContext();
+  const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
   const { handleLeftClick } = useHandleLeftClick();
   const { currentFileSharePath } = useZoneBrowserContext();
   return (
     <div
       className={`px-2 transition-all duration-300 ${showFilePropertiesDrawer ? 'mr-[350px]' : ''}`}
     >
-      <FileListCrumbs
-        currentNavigationPath={currentNavigationPath}
-        currentFileSharePath={currentFileSharePath}
-        fetchAndFormatFilesForDisplay={fetchAndFormatFilesForDisplay}
-      />
-      <div className="min-w-full bg-background">
+      <FileListCrumbs />
+      <div className="min-w-full bg-background select-none">
         {/* Header row */}
         <div className="min-w-fit grid grid-cols-[minmax(170px,2fr)_minmax(80px,1fr)_minmax(95px,1fr)_minmax(75px,1fr)_minmax(40px,1fr)] gap-4 p-0 text-foreground">
           <div className="flex w-full gap-3 px-3 py-1 overflow-x-auto">
@@ -93,6 +99,7 @@ export default function FileList({
                     selectedFiles,
                     setSelectedFiles,
                     displayFiles,
+                    currentFileSharePath,
                     setPropertiesTarget,
                     showFilePropertiesDrawer
                   )
@@ -103,6 +110,7 @@ export default function FileList({
                     file,
                     selectedFiles,
                     setSelectedFiles,
+                    currentFileSharePath,
                     setPropertiesTarget
                   )
                 }
@@ -115,8 +123,23 @@ export default function FileList({
                 }}
               >
                 {/* Name column */}
-                <div className="flex items-center w-full gap-3 pl-3 py-1 text-primary-light overflow-x-auto">
-                  <Typography variant="small" className="font-medium">
+                <div className="flex items-center w-full gap-3 pl-3 py-1 overflow-x-auto">
+                  <Typography
+                    variant="small"
+                    className="font-medium text-primary-light hover:underline"
+                    onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                      e.stopPropagation();
+                      if (file.is_dir) {
+                        fetchAndFormatFilesForDisplay(
+                          `${currentFileSharePath}?subpath=${file.path}`
+                        );
+                        setPropertiesTarget({
+                          targetFile: file,
+                          fileSharePath: currentFileSharePath
+                        });
+                      }
+                    }}
+                  >
                     {file.name}
                   </Typography>
                 </div>
@@ -156,6 +179,7 @@ export default function FileList({
                       file,
                       selectedFiles,
                       setSelectedFiles,
+                      currentFileSharePath,
                       setPropertiesTarget
                     );
                   }}

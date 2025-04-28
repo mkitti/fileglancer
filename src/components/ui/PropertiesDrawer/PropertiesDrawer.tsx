@@ -1,27 +1,45 @@
 import * as React from 'react';
-import { Button, IconButton, Typography, Tabs } from '@material-tailwind/react';
+import {
+  Alert,
+  Button,
+  IconButton,
+  Typography,
+  Tabs
+} from '@material-tailwind/react';
 import {
   DocumentIcon,
   FolderIcon,
+  Square2StackIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
 
-import type { File } from '../../shared.types';
+import type { File, FileSharePathItem } from '../../../shared.types';
+import PermissionsTable from './PermissionsTable';
+import OverviewTable from './OverviewTable';
+import useCopyPath from '../../../hooks/useCopyPath';
 
-import FilePermissionTable from './FilePermissionTable';
-import FileOverviewTable from './FileOverviewTable';
-
-type FilePropertiesPanelProps = {
-  propertiesTarget: File | null;
-  open: boolean;
-  setShowFilePropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
-};
-
-export default function FilePropertiesDrawer({
+export default function PropertiesDrawer({
   propertiesTarget,
   open,
   setShowFilePropertiesDrawer
-}: FilePropertiesPanelProps) {
+}: {
+  propertiesTarget: {
+    targetFile: File | null;
+    fileSharePath: FileSharePathItem | null;
+  };
+  open: boolean;
+  setShowFilePropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
+  const {
+    copiedText,
+    showCopyAlert,
+    setShowCopyAlert,
+    copyToClipboard,
+    dismissCopyAlert
+  } = useCopyPath();
+
+  const fullPath = `${propertiesTarget.fileSharePath}/${propertiesTarget.targetFile?.path}`;
+
   return (
     <div
       className={`fixed top-[68px] right-0 bottom-0 w-[90%] max-w-[350px] bg-background shadow-lg border-l border-surface shadow-surface transform transition-transform duration-300 ease-in-out ${open ? 'translate-x-0 z-50' : 'translate-x-full'}`}
@@ -34,23 +52,26 @@ export default function FilePropertiesDrawer({
             variant="ghost"
             color="secondary"
             className="h-8 w-8 rounded-full text-foreground hover:bg-secondary-light/20"
-            onClick={() =>
-              setShowFilePropertiesDrawer((prev: boolean) => !prev)
-            }
+            onClick={() => {
+              if (open === true) {
+                setShowCopyAlert(false);
+              }
+              setShowFilePropertiesDrawer((prev: boolean) => !prev);
+            }}
           >
             <XMarkIcon className="h-5 w-5" />
           </IconButton>
         </div>
 
-        {propertiesTarget ? (
+        {propertiesTarget.targetFile ? (
           <div className="flex items-center gap-2 mt-3 mb-4 max-h-min">
-            {propertiesTarget.is_dir ? (
+            {propertiesTarget.targetFile.is_dir ? (
               <FolderIcon className="h-5 w-5" />
             ) : (
               <DocumentIcon className="h-5 w-5" />
             )}{' '}
             <Typography className="font-semibold">
-              {propertiesTarget.name}
+              {propertiesTarget.targetFile.name}
             </Typography>
           </div>
         ) : (
@@ -58,7 +79,7 @@ export default function FilePropertiesDrawer({
             Click on a file or folder to view its properties
           </Typography>
         )}
-        {propertiesTarget ? (
+        {propertiesTarget.targetFile && propertiesTarget.fileSharePath ? (
           <Tabs key="file-properties-tabs" defaultValue="overview">
             <Tabs.List className="w-full rounded-none border-b border-secondary-dark  bg-transparent dark:bg-transparent py-0">
               <Tabs.Trigger
@@ -82,11 +103,40 @@ export default function FilePropertiesDrawer({
             </Tabs.List>
 
             <Tabs.Panel value="overview">
-              <FileOverviewTable file={propertiesTarget} />
+              <div className="group flex justify-between items-center">
+                <Typography className="text-foreground font-medium text-sm">
+                  <span className="!font-bold">Path: </span>
+                  {fullPath}
+                </Typography>
+                <IconButton
+                  variant="ghost"
+                  isCircular
+                  className="text-transparent group-hover:text-foreground"
+                  onClick={() => {
+                    if (propertiesTarget.targetFile) {
+                      copyToClipboard(fullPath);
+                    }
+                  }}
+                >
+                  <Square2StackIcon className="h-4 w-4" />
+                </IconButton>
+              </div>
+              {copiedText.value === fullPath &&
+              copiedText.isCopied === true &&
+              showCopyAlert === true ? (
+                <Alert className="flex items-center justify-between bg-secondary-light/70 border-none">
+                  <Alert.Content>Path copied to clipboard!</Alert.Content>
+                  <XMarkIcon
+                    className="h-5 w-5 cursor-pointer"
+                    onClick={dismissCopyAlert}
+                  />
+                </Alert>
+              ) : null}
+              <OverviewTable file={propertiesTarget.targetFile} />
             </Tabs.Panel>
 
             <Tabs.Panel value="permissions" className="flex flex-col gap-2">
-              <FilePermissionTable file={propertiesTarget} />
+              <PermissionsTable file={propertiesTarget.targetFile} />
               <Button as="a" href="#" variant="outline">
                 Change Permissions
               </Button>

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { File } from '../shared.types';
+import { File, FileSharePathItem } from '../shared.types';
 
 export default function useContextMenu() {
   const [contextMenuCoords, setContextMenuCoords] = React.useState({
@@ -55,11 +55,20 @@ export default function useContextMenu() {
     file: File,
     selectedFiles: File[],
     setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>,
-    setPropertiesTarget: React.Dispatch<React.SetStateAction<File | null>>
+    currentFileSharePath: FileSharePathItem | null,
+    setPropertiesTarget: React.Dispatch<
+      React.SetStateAction<{
+        targetFile: File | null;
+        fileSharePath: FileSharePathItem | null;
+      }>
+    >
   ) {
     e.preventDefault();
     e.stopPropagation();
-    setPropertiesTarget(file);
+    setPropertiesTarget({
+      targetFile: file,
+      fileSharePath: currentFileSharePath
+    });
     setContextMenuCoords({ x: e.clientX, y: e.clientY });
     setShowFileContextMenu(true);
     const currentIndex = selectedFiles.indexOf(file);

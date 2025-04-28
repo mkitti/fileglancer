@@ -1,13 +1,20 @@
 import * as React from 'react';
-import { Button, Card, Typography } from '@material-tailwind/react';
+import { Alert, Button, Card, Typography } from '@material-tailwind/react';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 import { usePreferencesContext } from '../contexts/PreferencesContext';
+import useLocalPathPreference from '../hooks/useLocalPathPreference';
 
 export default function Preferences() {
   const {
-    pathPreference,
-    handlePathPreferenceChange,
+    showPathPrefAlert,
+    setShowPathPrefAlert,
     handlePathPreferenceSubmit
   } = usePreferencesContext();
+  const { localPathPreference, handleLocalChange } = useLocalPathPreference();
+
+  React.useEffect(() => {
+    setShowPathPrefAlert(false);
+  }, []);
 
   return (
     <div className="pt-12 w-4/5">
@@ -15,7 +22,11 @@ export default function Preferences() {
         Preferences
       </Typography>
 
-      <form onSubmit={event => handlePathPreferenceSubmit(event)}>
+      <form
+        onSubmit={(event: React.FormEvent<HTMLFormElement>) =>
+          handlePathPreferenceSubmit(event, localPathPreference)
+        }
+      >
         <Card className="p-6">
           <Card.Header>
             <Typography className="font-semibold">
@@ -29,10 +40,11 @@ export default function Preferences() {
                 type="radio"
                 id="linux_path"
                 value="linux_path"
-                checked={pathPreference[0] === 'linux_path'}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  handlePathPreferenceChange(event)
-                }
+                checked={localPathPreference[0] === 'linux_path'}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                  handleLocalChange(event);
+                  setShowPathPrefAlert(false);
+                }}
               />
 
               <Typography
@@ -50,10 +62,11 @@ export default function Preferences() {
                 type="radio"
                 id="windows_path"
                 value="windows_path"
-                checked={pathPreference[0] === 'windows_path'}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  handlePathPreferenceChange(event)
-                }
+                checked={localPathPreference[0] === 'windows_path'}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                  handleLocalChange(event);
+                  setShowPathPrefAlert(false);
+                }}
               />
               <Typography
                 as="label"
@@ -70,10 +83,11 @@ export default function Preferences() {
                 type="radio"
                 id="mac_path"
                 value="mac_path"
-                checked={pathPreference[0] === 'mac_path'}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  handlePathPreferenceChange(event)
-                }
+                checked={localPathPreference[0] === 'mac_path'}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                  handleLocalChange(event);
+                  setShowPathPrefAlert(false);
+                }}
               />
               <Typography
                 as="label"
@@ -88,6 +102,15 @@ export default function Preferences() {
             <Button className="!rounded-md" type="submit">
               Submit
             </Button>
+            {showPathPrefAlert === true ? (
+              <Alert className="flex items-center gap-6 mt-6 bg-secondary-light/70 border-none">
+                <Alert.Content>Preference updated!</Alert.Content>
+                <XMarkIcon
+                  className="h-5 w-5 cursor-pointer"
+                  onClick={() => setShowPathPrefAlert(false)}
+                />
+              </Alert>
+            ) : null}
           </Card.Footer>
         </Card>
       </form>
