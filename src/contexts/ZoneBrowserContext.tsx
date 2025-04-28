@@ -8,8 +8,10 @@ type ZoneBrowserContextType = {
   zonesAndFileSharePaths: ZonesAndFileSharePaths;
   currentNavigationZone: string | null;
   setCurrentNavigationZone: React.Dispatch<React.SetStateAction<string | null>>;
-  currentFileSharePath: string | null;
-  setCurrentFileSharePath: React.Dispatch<React.SetStateAction<string | null>>;
+  currentFileSharePath: FileSharePathItem | null;
+  setCurrentFileSharePath: React.Dispatch<
+    React.SetStateAction<FileSharePathItem | null>
+  >;
   getZonesAndFileSharePaths: () => Promise<void>;
 };
 
@@ -37,9 +39,8 @@ export const ZoneBrowserContextProvider = ({
   const [currentNavigationZone, setCurrentNavigationZone] = React.useState<
     string | null
   >(null);
-  const [currentFileSharePath, setCurrentFileSharePath] = React.useState<
-    string | null
-  >(null);
+  const [currentFileSharePath, setCurrentFileSharePath] =
+    React.useState<FileSharePathItem | null>(null);
 
   const { cookies } = useCookiesContext();
 

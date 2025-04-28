@@ -1,5 +1,5 @@
 import React from 'react';
-import type { File } from '../shared.types';
+import type { File, FileSharePathItem } from '../shared.types';
 
 // Hook to handle left click events on files in the file browser
 export default function useHandleLeftClick() {
@@ -9,11 +9,11 @@ export default function useHandleLeftClick() {
     selectedFiles: File[],
     setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>,
     displayFiles: File[],
-    currentFileSharePath: string | null,
+    currentFileSharePath: FileSharePathItem | null,
     setPropertiesTarget: React.Dispatch<
       React.SetStateAction<{
         targetFile: File | null;
-        fileSharePath: string | null;
+        fileSharePath: FileSharePathItem | null;
       }>
     >,
     showFilePropertiesDrawer: boolean

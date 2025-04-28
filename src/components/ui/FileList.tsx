@@ -6,7 +6,7 @@ import {
   FolderIcon
 } from '@heroicons/react/24/outline';
 
-import type { File } from '../../shared.types';
+import type { File, FileSharePathItem } from '../../shared.types';
 import FileListCrumbs from './FileListCrumbs';
 import { useFileBrowserContext } from '../../contexts/FileBrowserContext';
 import { useZoneBrowserContext } from '../../contexts/ZoneBrowserContext';
@@ -21,7 +21,7 @@ type FileListProps = {
   setPropertiesTarget: React.Dispatch<
     React.SetStateAction<{
       targetFile: File | null;
-      fileSharePath: string | null;
+      fileSharePath: FileSharePathItem | null;
     }>
   >;
   handleRightClick: (
@@ -29,11 +29,11 @@ type FileListProps = {
     file: File,
     selectedFiles: File[],
     setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>,
-    currentFileSharePath: string | null,
+    currentFileSharePath: FileSharePathItem | null,
     setPropertiesTarget: React.Dispatch<
       React.SetStateAction<{
         targetFile: File | null;
-        fileSharePath: string | null;
+        fileSharePath: FileSharePathItem | null;
       }>
     >
   ) => void;

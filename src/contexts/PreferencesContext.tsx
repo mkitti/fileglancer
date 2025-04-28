@@ -7,8 +7,7 @@ import { useCookiesContext } from '../contexts/CookiesContext';
 import { getAPIPathRoot, sendGetRequest, sendPutRequest } from '../utils';
 
 export type DirectoryFavorite = {
-  navigationZone: string;
-  fileSharePath: string;
+  fileSharePath: FileSharePathItem;
   name: string;
   path: string;
 };

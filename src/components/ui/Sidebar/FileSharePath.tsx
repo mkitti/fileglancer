@@ -30,7 +30,7 @@ export default function FileSharePath({
 
   const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
 
-  const isCurrentPath = currentFileSharePath === pathItem.name;
+  const isCurrentPath = currentFileSharePath === pathItem;
   const isFavoritePath = fileSharePathFavorites.includes(pathItem)
     ? true
     : false;
@@ -39,7 +39,7 @@ export default function FileSharePath({
     <List.Item
       onClick={() => {
         setCurrentNavigationZone(pathItem.zone);
-        setCurrentFileSharePath(pathItem.name);
+        setCurrentFileSharePath(pathItem);
         fetchAndFormatFilesForDisplay(pathItem.name);
       }}
       className={`flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30 ${isCurrentPath ? '!bg-primary-light/30' : pathIndex % 2 !== 0 ? '!bg-background' : '!bg-surface/50'}`}

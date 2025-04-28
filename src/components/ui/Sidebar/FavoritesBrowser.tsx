@@ -1,7 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Collapse, Typography, List } from '@material-tailwind/react';
-import { ChevronRightIcon, FolderIcon } from '@heroicons/react/24/outline';
+import {
+  Collapse,
+  IconButton,
+  Typography,
+  List
+} from '@material-tailwind/react';
+import {
+  ChevronRightIcon,
+  FolderIcon,
+  StarIcon as StarOutline
+} from '@heroicons/react/24/outline';
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
 import Zone from './Zone';
@@ -32,8 +41,13 @@ export default function FavoritesBrowser({
   filteredDirectoryFavorites: DirectoryFavorite[];
 }) {
   const { openFavorites, toggleOpenFavorites } = useToggleOpenFavorites();
-  const { zoneFavorites, fileSharePathFavorites, directoryFavorites } =
-    usePreferencesContext();
+  const {
+    zoneFavorites,
+    fileSharePathFavorites,
+    directoryFavorites,
+    pathPreference,
+    handleFavoriteChange
+  } = usePreferencesContext();
   const { currentDir, fetchAndFormatFilesForDisplay } = useFileBrowserContext();
   const {
     setCurrentNavigationZone,
@@ -100,20 +114,35 @@ export default function FavoritesBrowser({
 
             {/* Directory favorites */}
             {displayDirectories.map(directoryItem => {
-              console.log('current file share path:', currentFileSharePath);
-              console.log('current dir:', currentDir);
+              const fileSharePath =
+                pathPreference[0] === 'linux_path'
+                  ? directoryItem.fileSharePath.linux_path
+                  : pathPreference[0] === 'windows_path'
+                    ? directoryItem.fileSharePath.windows_path
+                    : pathPreference[0] === 'mac_path'
+                      ? directoryItem.fileSharePath.mac_path
+                      : directoryItem.fileSharePath.linux_path;
+
+              const isFavoriteDir = directoryFavorites.some(
+                fav =>
+                  fav.name === directoryItem.name &&
+                  fav.fileSharePath.name === directoryItem.fileSharePath.name
+              )
+                ? true
+                : false;
+
               return (
                 <List.Item
                   key={`favorite-directory-${directoryItem.name}`}
                   onClick={() => {
                     setOpenZones({
                       all: true,
-                      [directoryItem.navigationZone]: true
+                      [directoryItem.fileSharePath.zone]: true
                     });
-                    setCurrentNavigationZone(directoryItem.navigationZone);
+                    setCurrentNavigationZone(directoryItem.fileSharePath.zone);
                     setCurrentFileSharePath(directoryItem.fileSharePath);
                     fetchAndFormatFilesForDisplay(
-                      `${directoryItem.fileSharePath}?subpath=${directoryItem.path}`
+                      `${directoryItem.fileSharePath.name}?subpath=${directoryItem.path}`
                     );
                   }}
                   className={`flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 ${directoryItem.fileSharePath === currentFileSharePath && directoryItem.name === currentDir ? '!bg-primary-light/30' : '!bg-background'}`}
@@ -129,9 +158,30 @@ export default function FavoritesBrowser({
                       </Typography>
                     </div>
                     <Typography className="text-xs">
-                      {directoryItem.path}
+                      {`${fileSharePath}/${directoryItem.path}`}
                     </Typography>
                   </Link>
+                  <div
+                    onClick={e => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
+                  >
+                    <IconButton
+                      variant="ghost"
+                      isCircular
+                      onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                        e.stopPropagation();
+                        handleFavoriteChange(directoryItem, 'directory');
+                      }}
+                    >
+                      {isFavoriteDir ? (
+                        <StarFilled className="h-4 w-4 mb-[2px]" />
+                      ) : (
+                        <StarOutline className="h-4 w-4 mb-[2px]" />
+                      )}
+                    </IconButton>
+                  </div>
                 </List.Item>
               );
             })}

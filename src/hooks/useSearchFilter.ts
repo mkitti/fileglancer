@@ -62,8 +62,8 @@ export default function useSearchFilter() {
 
     const filteredDirectoryFavorites = directoryFavorites.filter(
       directory =>
-        directory.navigationZone.toLowerCase().includes(query) ||
-        directory.fileSharePath.toLowerCase().includes(query) ||
+        directory.fileSharePath.zone.toLowerCase().includes(query) ||
+        directory.fileSharePath.name.toLowerCase().includes(query) ||
         directory.name.toLowerCase().includes(query) ||
         directory.path.toLowerCase().includes(query)
     );

@@ -13,7 +13,7 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 
-import type { File } from '../../../shared.types';
+import type { File, FileSharePathItem } from '../../../shared.types';
 import PermissionsTable from './PermissionsTable';
 import OverviewTable from './OverviewTable';
 import useCopyPath from '../../../hooks/useCopyPath';
@@ -25,7 +25,7 @@ export default function PropertiesDrawer({
 }: {
   propertiesTarget: {
     targetFile: File | null;
-    fileSharePath: string | null;
+    fileSharePath: FileSharePathItem | null;
   };
   open: boolean;
   setShowFilePropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
