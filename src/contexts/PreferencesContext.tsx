@@ -108,27 +108,26 @@ export const PreferencesProvider = ({
         results.forEach((result, index) => {
           if (result.status === 'fulfilled') {
             const data = result.value;
-            switch (index) {
-              case 0:
-                if (data) {
-                  setPathPreference(data);
-                }
-                break;
-              case 1:
-                if (data) {
-                  setZoneFavorites(data);
-                }
-                break;
-              case 2:
-                if (data) {
-                  setFileSharePathFavorites(data);
-                }
-                break;
-              case 3:
-                if (data) {
-                  setDirectoryFavorites(data);
-                }
-                break;
+            console.log(
+              'Fetched preference:',
+              resultsIndices[index],
+              data.value
+            );
+            if (data.value) {
+              switch (index) {
+                case 0:
+                  setPathPreference(data.value);
+                  break;
+                case 1:
+                  setZoneFavorites(data.value);
+                  break;
+                case 2:
+                  setFileSharePathFavorites(data.value);
+                  break;
+                case 3:
+                  setDirectoryFavorites(data.value);
+                  break;
+              }
             }
           } else {
             console.log(
@@ -146,7 +145,7 @@ export const PreferencesProvider = ({
 
   const updatePreferences = async (
     key: string,
-    body:
+    keyValue:
       | [string]
       | ZonesAndFileSharePaths[]
       | FileSharePathItem[]
@@ -156,7 +155,7 @@ export const PreferencesProvider = ({
       await sendPutRequest(
         `${getAPIPathRoot()}api/fileglancer/preference?key=${key}`,
         cookies['_xsrf'],
-        body
+        { value: keyValue }
       );
     } catch (error) {
       console.error(`Error updating ${key}:`, error);
