@@ -94,7 +94,7 @@ export const PreferencesProvider = ({
         });
     } catch (error) {
       console.log(
-        `Potential error fetching preferences, or preference with key ${key} is not set}:`,
+        `Potential error fetching preferences, or preference with key ${key} is not set:`,
         error
       );
     }
@@ -143,124 +143,81 @@ export const PreferencesProvider = ({
     }
   }
 
-  function isZonesAndFileSharePaths(item: any): item is ZonesAndFileSharePaths {
-    if (typeof item !== 'object' || item === null) {
-      return false;
+  function changePreferences<T>(
+    preferenceState: T[],
+    setPreferenceState: React.Dispatch<React.SetStateAction<T[]>>,
+    preferenceKey: string,
+    existingItemIndex: number,
+    newItem: T
+  ) {
+    let newFavorites = [...preferenceState];
+    if (existingItemIndex >= 0) {
+      newFavorites.splice(existingItemIndex, 1);
+    } else {
+      newFavorites = [...newFavorites, newItem];
     }
-    return Object.values(item).every(
-      value =>
-        Array.isArray(value) &&
-        value.every(
-          entry =>
-            typeof entry === 'object' &&
-            'zone' in entry &&
-            'name' in entry &&
-            'storage' in entry &&
-            'linux_path' in entry
-        )
+    setPreferenceState(newFavorites);
+    updatePreferences(preferenceKey, newFavorites);
+  }
+
+  function handleZoneFavoriteChange(item: ZonesAndFileSharePaths) {
+    const itemKey = Object.keys(item)[0];
+
+    const existingItemIndex = zoneFavorites.findIndex(
+      zone => Object.keys(zone)[0] === itemKey
+    );
+    changePreferences(
+      zoneFavorites,
+      setZoneFavorites,
+      'zoneFavorites',
+      existingItemIndex,
+      item as ZonesAndFileSharePaths
     );
   }
 
-  const handleFavoriteChange = async (
-    item:
-      | ZonesAndFileSharePaths
-      | FileSharePathItem
-      | DirectoryFavorite
-      | DirectoryFavorite[],
-    type: string
-  ) => {
-    if (isZonesAndFileSharePaths(item)) {
-      // Get the key of the item
-      const itemKey = Object.keys(item)[0];
-      // Find the index of an existing item with the same key
-      const existingItemIndex = zoneFavorites.findIndex(
-        zone => Object.keys(zone)[0] === itemKey
-      );
+  function handleFileSharePathFavoriteChange(item: FileSharePathItem) {
+    const existingItemIndex = fileSharePathFavorites.findIndex(
+      path =>
+        path.storage === item.storage && path.linux_path === item.linux_path
+    );
+    changePreferences(
+      fileSharePathFavorites,
+      setFileSharePathFavorites,
+      'fileSharePathFavorites',
+      existingItemIndex,
+      item as FileSharePathItem
+    );
+  }
 
-      let newFavorites;
-      if (existingItemIndex >= 0) {
-        // If found, remove it
-        newFavorites = [
-          ...zoneFavorites.slice(0, existingItemIndex),
-          ...zoneFavorites.slice(existingItemIndex + 1)
-        ];
-      } else {
-        newFavorites = [...zoneFavorites, item];
-      }
-      setZoneFavorites(newFavorites);
-      updatePreferences('zoneFavorites', newFavorites);
-    } else if (
-      type === 'fileSharePath' &&
-      'storage' in item &&
-      'linux_path' in item
-    ) {
-      // Find the index of an existing item with the same properties
-      const existingItemIndex = fileSharePathFavorites.findIndex(
-        path =>
-          path.storage === item.storage && path.linux_path === item.linux_path
-      );
+  function handleDirectoryFavoriteChange(item: DirectoryFavorite) {
+    const existingItemIndex = directoryFavorites.findIndex(
+      dir => dir.name === item.name && dir.fileSharePath === item.fileSharePath
+    );
+    changePreferences(
+      directoryFavorites,
+      setDirectoryFavorites,
+      'directoryFavorites',
+      existingItemIndex,
+      item as DirectoryFavorite
+    );
+  }
 
-      let newFavorites;
-      if (existingItemIndex >= 0) {
-        // If found, remove it
-        newFavorites = [
-          ...fileSharePathFavorites.slice(0, existingItemIndex),
-          ...fileSharePathFavorites.slice(existingItemIndex + 1)
-        ];
-      } else {
-        newFavorites = [...fileSharePathFavorites, item];
-      }
-
-      setFileSharePathFavorites(newFavorites);
-      updatePreferences('fileSharePathFavorites', newFavorites);
-    } else if (
-      type === 'directory' &&
-      typeof item !== 'string' &&
-      'fileSharePath' in item &&
-      'name' in item
-    ) {
-      // Find the index of an existing item with the same path and navigationZone
-      const existingItemIndex = directoryFavorites.findIndex(
-        dir =>
-          dir.name === item.name && dir.fileSharePath === item.fileSharePath
-      );
-
-      let newFavorites;
-      if (existingItemIndex >= 0) {
-        // Remove existing items
-        newFavorites = [
-          ...directoryFavorites.slice(0, existingItemIndex),
-          ...directoryFavorites.slice(existingItemIndex + 1)
-        ];
-      } else {
-        newFavorites = [...directoryFavorites, item];
-      }
-      setDirectoryFavorites(newFavorites);
-      updatePreferences('directoryFavorites', newFavorites);
-    } else if (type === 'directory' && Array.isArray(item)) {
-      const itemsToProcess = item as DirectoryFavorite[];
-      const updatedFavorites = [...directoryFavorites];
-
-      itemsToProcess.forEach(newItem => {
-        // Check if item already exists in favorites
-        const existingItemIndex = updatedFavorites.findIndex(
-          existingItem =>
-            existingItem.name === newItem.name &&
-            existingItem.fileSharePath === newItem.fileSharePath
-        );
-
-        if (existingItemIndex >= 0) {
-          // Remove existing items
-          updatedFavorites.splice(existingItemIndex, 1);
-        } else {
-          updatedFavorites.push(newItem);
-        }
-      });
-
-      setDirectoryFavorites(updatedFavorites);
-      updatePreferences('directoryFavorites', updatedFavorites);
+  async function handleFavoriteChange<T>(item: T, type: string) {
+    switch (type) {
+      case 'zone':
+        handleZoneFavoriteChange(item as ZonesAndFileSharePaths);
+        break;
+      case 'fileSharePath':
+        handleFileSharePathFavoriteChange(item as FileSharePathItem);
+        break;
+      case 'directory':
+        handleDirectoryFavoriteChange(item as DirectoryFavorite);
+        break;
+      default:
+        console.error('Invalid type provided for handleFavoriteChange:', type);
+        break;
     }
-  };
+  }
 
   return (
     <PreferencesContext.Provider
