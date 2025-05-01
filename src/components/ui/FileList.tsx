@@ -115,9 +115,9 @@ export default function FileList({
                   )
                 }
                 onDoubleClick={() => {
-                  if (file.is_dir) {
+                  if (file.is_dir && currentFileSharePath) {
                     fetchAndFormatFilesForDisplay(
-                      `${currentFileSharePath}?subpath=${file.path}`
+                      `${currentFileSharePath.name}?subpath=${file.path}`
                     );
                   }
                 }}
@@ -131,7 +131,7 @@ export default function FileList({
                       e.stopPropagation();
                       if (file.is_dir) {
                         fetchAndFormatFilesForDisplay(
-                          `${currentFileSharePath}?subpath=${file.path}`
+                          `${currentFileSharePath?.name}?subpath=${file.path}`
                         );
                         setPropertiesTarget({
                           targetFile: file,
