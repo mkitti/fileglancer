@@ -77,70 +77,43 @@ export const PreferencesProvider = ({
   >([]);
   const { cookies } = useCookiesContext();
 
-  React.useEffect(() => {
-    const fetchPreferences = async () => {
-      try {
-        const results = await Promise.allSettled([
-          sendGetRequest(
-            `${getAPIPathRoot()}api/fileglancer/preference?key=pathPreference`,
-            cookies['_xsrf']
-          ).then(response => response.json()),
-          sendGetRequest(
-            `${getAPIPathRoot()}api/fileglancer/preference?key=zoneFavorites`,
-            cookies['_xsrf']
-          ).then(response => response.json()),
-          sendGetRequest(
-            `${getAPIPathRoot()}api/fileglancer/preference?key=fileSharePathFavorites`,
-            cookies['_xsrf']
-          ).then(response => response.json()),
-          sendGetRequest(
-            `${getAPIPathRoot()}api/fileglancer/preference?key=directoryFavorites`,
-            cookies['_xsrf']
-          ).then(response => response.json())
-        ]);
-
-        const resultsIndices = [
-          'pathPreference',
-          'zoneFavorites',
-          'fileSharePathFavorites',
-          'directoryFavorites'
-        ];
-        results.forEach((result, index) => {
-          if (result.status === 'fulfilled') {
-            const data = result.value;
-            console.log(
-              'Fetched preference:',
-              resultsIndices[index],
-              data.value
-            );
-            if (data.value) {
-              switch (index) {
-                case 0:
-                  setPathPreference(data.value);
-                  break;
-                case 1:
-                  setZoneFavorites(data.value);
-                  break;
-                case 2:
-                  setFileSharePathFavorites(data.value);
-                  break;
-                case 3:
-                  setDirectoryFavorites(data.value);
-                  break;
-              }
-            }
-          } else {
-            console.log(
-              `Unable to fetch preference with key "${resultsIndices[index]}". This might be due to the preference not being set yet.`
-            );
+  async function fetchPreferences<T>(
+    key: string,
+    setStateFunction: React.Dispatch<React.SetStateAction<T>>
+  ) {
+    try {
+      await sendGetRequest(
+        `${getAPIPathRoot()}api/fileglancer/preference?key=${key}`,
+        cookies['_xsrf']
+      )
+        .then(response => response.json())
+        .then(data => {
+          if (data.value) {
+            setStateFunction(data.value);
           }
         });
-      } catch (error) {
-        console.error('Unexpected error fetching preferences:', error);
-      }
-    };
+    } catch (error) {
+      console.log(
+        `Potential error fetching preferences, or preference with key ${key} is not set}:`,
+        error
+      );
+    }
+  }
 
-    fetchPreferences();
+  React.useEffect(() => {
+    fetchPreferences('pathPreference', setPathPreference);
+  }, []);
+
+  React.useEffect(() => {
+    fetchPreferences('zoneFavorites', setZoneFavorites);
+  }, []);
+
+  React.useEffect(() => {
+    fetchPreferences('fileSharePathFavorites', setFileSharePathFavorites);
+  }, []);
+
+  React.useEffect(() => {
+    fetchPreferences('directoryFavorites', setDirectoryFavorites);
   }, []);
 
   async function updatePreferences<T>(key: string, keyValue: T) {
