@@ -143,14 +143,7 @@ export const PreferencesProvider = ({
     fetchPreferences();
   }, []);
 
-  const updatePreferences = async (
-    key: string,
-    keyValue:
-      | [string]
-      | ZonesAndFileSharePaths[]
-      | FileSharePathItem[]
-      | DirectoryFavorite[]
-  ) => {
+  async function updatePreferences<T>(key: string, keyValue: T) {
     try {
       await sendPutRequest(
         `${getAPIPathRoot()}api/fileglancer/preference?key=${key}`,
@@ -160,7 +153,7 @@ export const PreferencesProvider = ({
     } catch (error) {
       console.error(`Error updating ${key}:`, error);
     }
-  };
+  }
 
   function handlePathPreferenceSubmit(
     event: React.FormEvent<HTMLFormElement>,
