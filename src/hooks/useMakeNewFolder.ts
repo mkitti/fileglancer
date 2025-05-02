@@ -6,8 +6,8 @@ export default function useMakeNewFolder() {
 
   async function makeNewFolder(path: string, subpath: string) {
     try {
-      await sendPutRequest(
-        `${getAPIPathRoot()}api/fileglancer/files/${path}?subpath=${subpath}/untitled folder`,
+      await sendPostRequest(
+        `${getAPIPathRoot()}api/fileglancer/files/${path}?subpath=${subpath}/${newFolderName}`,
         cookies['_xsrf'],
         { type: 'directory' }
       );

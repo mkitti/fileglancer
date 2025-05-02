@@ -43,6 +43,28 @@ async function sendGetRequest(
   return response;
 }
 
+async function sendPostRequest<T>(
+  url: string,
+  xrsfCookie: string,
+  body: {
+    [key: string]: T;
+  }
+): Promise<Response> {
+  const response = await fetch(url, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'X-Xsrftoken': xrsfCookie,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) {
+    throw new Error(`Response status: ${response.status}`);
+  }
+  return response;
+}
+
 async function sendPutRequest<T>(
   url: string,
   xrsfCookie: string,
@@ -70,5 +92,6 @@ export {
   formatDate,
   getAPIPathRoot,
   sendGetRequest,
+  sendPostRequest,
   sendPutRequest
 };
