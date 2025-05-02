@@ -1,7 +1,9 @@
-import { getAPIPathRoot, sendPutRequest } from '../utils';
+import { useState } from 'react';
+import { getAPIPathRoot, sendPostRequest } from '../utils';
 import { useCookiesContext } from '../contexts/CookiesContext';
 
 export default function useMakeNewFolder() {
+  const [newFolderName, setNewFolderName] = useState<string>('');
   const { cookies } = useCookiesContext();
 
   async function makeNewFolder(path: string, subpath: string) {
@@ -13,10 +15,10 @@ export default function useMakeNewFolder() {
       );
     } catch (error) {
       console.error(
-        `Error making new folder with path ${path}/${subpath}:`,
+        `Error making new folder with path ${path}/${subpath}/${newFolderName}:`,
         error
       );
     }
   }
-  return { makeNewFolder };
+  return { makeNewFolder, newFolderName, setNewFolderName };
 }

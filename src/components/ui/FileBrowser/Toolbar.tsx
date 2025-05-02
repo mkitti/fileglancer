@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Dialog,
   IconButton,
   ButtonGroup,
   Tooltip,
@@ -51,6 +52,7 @@ export default function Toolbar({
             </Tooltip.Content>
           </Tooltip.Trigger>
         </Tooltip>
+        <Dialog>
         <Tooltip placement="top">
           <Tooltip.Trigger
             as={IconButton}
@@ -64,7 +66,7 @@ export default function Toolbar({
               }
             }}
           >
-            <FolderPlusIcon className="h-5 w-5" />
+            <Dialog.Trigger as={IconButton}><FolderPlusIcon className="h-5 w-5" /></Dialog.Trigger>
             <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
               <Typography type="small" className="opacity-90">
                 New folder
@@ -73,6 +75,19 @@ export default function Toolbar({
             </Tooltip.Content>
           </Tooltip.Trigger>
         </Tooltip>
+        <Dialog.Overlay>
+          <Dialog.Content>
+            <Dialog.DismissTrigger
+            as={IconButton}
+            size="sm"
+            variant="ghost"
+            color="secondary"
+            className="absolute right-2 top-2"
+            isCircular
+          ></></Dialog.DismissTrigger>
+          </Dialog.Content>
+        </Dialog.Overlay>
+        </Dialog>
         <Tooltip placement="top">
           <Tooltip.Trigger
             as={IconButton}
