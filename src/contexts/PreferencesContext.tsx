@@ -77,80 +77,46 @@ export const PreferencesProvider = ({
   >([]);
   const { cookies } = useCookiesContext();
 
-  React.useEffect(() => {
-    const fetchPreferences = async () => {
-      try {
-        const results = await Promise.allSettled([
-          sendGetRequest(
-            `${getAPIPathRoot()}api/fileglancer/preference?key=pathPreference`,
-            cookies['_xsrf']
-          ).then(response => response.json()),
-          sendGetRequest(
-            `${getAPIPathRoot()}api/fileglancer/preference?key=zoneFavorites`,
-            cookies['_xsrf']
-          ).then(response => response.json()),
-          sendGetRequest(
-            `${getAPIPathRoot()}api/fileglancer/preference?key=fileSharePathFavorites`,
-            cookies['_xsrf']
-          ).then(response => response.json()),
-          sendGetRequest(
-            `${getAPIPathRoot()}api/fileglancer/preference?key=directoryFavorites`,
-            cookies['_xsrf']
-          ).then(response => response.json())
-        ]);
-
-        const resultsIndices = [
-          'pathPreference',
-          'zoneFavorites',
-          'fileSharePathFavorites',
-          'directoryFavorites'
-        ];
-        results.forEach((result, index) => {
-          if (result.status === 'fulfilled') {
-            const data = result.value;
-            console.log(
-              'Fetched preference:',
-              resultsIndices[index],
-              data.value
-            );
-            if (data.value) {
-              switch (index) {
-                case 0:
-                  setPathPreference(data.value);
-                  break;
-                case 1:
-                  setZoneFavorites(data.value);
-                  break;
-                case 2:
-                  setFileSharePathFavorites(data.value);
-                  break;
-                case 3:
-                  setDirectoryFavorites(data.value);
-                  break;
-              }
-            }
-          } else {
-            console.log(
-              `Unable to fetch preference with key "${resultsIndices[index]}". This might be due to the preference not being set yet.`
-            );
+  async function fetchPreferences<T>(
+    key: string,
+    setStateFunction: React.Dispatch<React.SetStateAction<T>>
+  ) {
+    try {
+      await sendGetRequest(
+        `${getAPIPathRoot()}api/fileglancer/preference?key=${key}`,
+        cookies['_xsrf']
+      )
+        .then(response => response.json())
+        .then(data => {
+          if (data.value) {
+            setStateFunction(data.value);
           }
         });
-      } catch (error) {
-        console.error('Unexpected error fetching preferences:', error);
-      }
-    };
+    } catch (error) {
+      console.log(
+        `Potential error fetching preferences, or preference with key ${key} is not set:`,
+        error
+      );
+    }
+  }
 
-    fetchPreferences();
+  React.useEffect(() => {
+    fetchPreferences('pathPreference', setPathPreference);
   }, []);
 
-  const updatePreferences = async (
-    key: string,
-    keyValue:
-      | [string]
-      | ZonesAndFileSharePaths[]
-      | FileSharePathItem[]
-      | DirectoryFavorite[]
-  ) => {
+  React.useEffect(() => {
+    fetchPreferences('zoneFavorites', setZoneFavorites);
+  }, []);
+
+  React.useEffect(() => {
+    fetchPreferences('fileSharePathFavorites', setFileSharePathFavorites);
+  }, []);
+
+  React.useEffect(() => {
+    fetchPreferences('directoryFavorites', setDirectoryFavorites);
+  }, []);
+
+  async function updatePreferences<T>(key: string, keyValue: T) {
     try {
       await sendPutRequest(
         `${getAPIPathRoot()}api/fileglancer/preference?key=${key}`,
@@ -160,7 +126,7 @@ export const PreferencesProvider = ({
     } catch (error) {
       console.error(`Error updating ${key}:`, error);
     }
-  };
+  }
 
   function handlePathPreferenceSubmit(
     event: React.FormEvent<HTMLFormElement>,
@@ -177,124 +143,81 @@ export const PreferencesProvider = ({
     }
   }
 
-  function isZonesAndFileSharePaths(item: any): item is ZonesAndFileSharePaths {
-    if (typeof item !== 'object' || item === null) {
-      return false;
+  function changePreferences<T>(
+    preferenceState: T[],
+    setPreferenceState: React.Dispatch<React.SetStateAction<T[]>>,
+    preferenceKey: string,
+    existingItemIndex: number,
+    newItem: T
+  ) {
+    let newFavorites = [...preferenceState];
+    if (existingItemIndex >= 0) {
+      newFavorites.splice(existingItemIndex, 1);
+    } else {
+      newFavorites = [...newFavorites, newItem];
     }
-    return Object.values(item).every(
-      value =>
-        Array.isArray(value) &&
-        value.every(
-          entry =>
-            typeof entry === 'object' &&
-            'zone' in entry &&
-            'name' in entry &&
-            'storage' in entry &&
-            'linux_path' in entry
-        )
+    setPreferenceState(newFavorites);
+    updatePreferences(preferenceKey, newFavorites);
+  }
+
+  function handleZoneFavoriteChange(item: ZonesAndFileSharePaths) {
+    const itemKey = Object.keys(item)[0];
+
+    const existingItemIndex = zoneFavorites.findIndex(
+      zone => Object.keys(zone)[0] === itemKey
+    );
+    changePreferences(
+      zoneFavorites,
+      setZoneFavorites,
+      'zoneFavorites',
+      existingItemIndex,
+      item as ZonesAndFileSharePaths
     );
   }
 
-  const handleFavoriteChange = async (
-    item:
-      | ZonesAndFileSharePaths
-      | FileSharePathItem
-      | DirectoryFavorite
-      | DirectoryFavorite[],
-    type: string
-  ) => {
-    if (isZonesAndFileSharePaths(item)) {
-      // Get the key of the item
-      const itemKey = Object.keys(item)[0];
-      // Find the index of an existing item with the same key
-      const existingItemIndex = zoneFavorites.findIndex(
-        zone => Object.keys(zone)[0] === itemKey
-      );
+  function handleFileSharePathFavoriteChange(item: FileSharePathItem) {
+    const existingItemIndex = fileSharePathFavorites.findIndex(
+      path =>
+        path.storage === item.storage && path.linux_path === item.linux_path
+    );
+    changePreferences(
+      fileSharePathFavorites,
+      setFileSharePathFavorites,
+      'fileSharePathFavorites',
+      existingItemIndex,
+      item as FileSharePathItem
+    );
+  }
 
-      let newFavorites;
-      if (existingItemIndex >= 0) {
-        // If found, remove it
-        newFavorites = [
-          ...zoneFavorites.slice(0, existingItemIndex),
-          ...zoneFavorites.slice(existingItemIndex + 1)
-        ];
-      } else {
-        newFavorites = [...zoneFavorites, item];
-      }
-      setZoneFavorites(newFavorites);
-      updatePreferences('zoneFavorites', newFavorites);
-    } else if (
-      type === 'fileSharePath' &&
-      'storage' in item &&
-      'linux_path' in item
-    ) {
-      // Find the index of an existing item with the same properties
-      const existingItemIndex = fileSharePathFavorites.findIndex(
-        path =>
-          path.storage === item.storage && path.linux_path === item.linux_path
-      );
+  function handleDirectoryFavoriteChange(item: DirectoryFavorite) {
+    const existingItemIndex = directoryFavorites.findIndex(
+      dir => dir.name === item.name && dir.fileSharePath === item.fileSharePath
+    );
+    changePreferences(
+      directoryFavorites,
+      setDirectoryFavorites,
+      'directoryFavorites',
+      existingItemIndex,
+      item as DirectoryFavorite
+    );
+  }
 
-      let newFavorites;
-      if (existingItemIndex >= 0) {
-        // If found, remove it
-        newFavorites = [
-          ...fileSharePathFavorites.slice(0, existingItemIndex),
-          ...fileSharePathFavorites.slice(existingItemIndex + 1)
-        ];
-      } else {
-        newFavorites = [...fileSharePathFavorites, item];
-      }
-
-      setFileSharePathFavorites(newFavorites);
-      updatePreferences('fileSharePathFavorites', newFavorites);
-    } else if (
-      type === 'directory' &&
-      typeof item !== 'string' &&
-      'fileSharePath' in item &&
-      'name' in item
-    ) {
-      // Find the index of an existing item with the same path and navigationZone
-      const existingItemIndex = directoryFavorites.findIndex(
-        dir =>
-          dir.name === item.name && dir.fileSharePath === item.fileSharePath
-      );
-
-      let newFavorites;
-      if (existingItemIndex >= 0) {
-        // Remove existing items
-        newFavorites = [
-          ...directoryFavorites.slice(0, existingItemIndex),
-          ...directoryFavorites.slice(existingItemIndex + 1)
-        ];
-      } else {
-        newFavorites = [...directoryFavorites, item];
-      }
-      setDirectoryFavorites(newFavorites);
-      updatePreferences('directoryFavorites', newFavorites);
-    } else if (type === 'directory' && Array.isArray(item)) {
-      const itemsToProcess = item as DirectoryFavorite[];
-      const updatedFavorites = [...directoryFavorites];
-
-      itemsToProcess.forEach(newItem => {
-        // Check if item already exists in favorites
-        const existingItemIndex = updatedFavorites.findIndex(
-          existingItem =>
-            existingItem.name === newItem.name &&
-            existingItem.fileSharePath === newItem.fileSharePath
-        );
-
-        if (existingItemIndex >= 0) {
-          // Remove existing items
-          updatedFavorites.splice(existingItemIndex, 1);
-        } else {
-          updatedFavorites.push(newItem);
-        }
-      });
-
-      setDirectoryFavorites(updatedFavorites);
-      updatePreferences('directoryFavorites', updatedFavorites);
+  async function handleFavoriteChange<T>(item: T, type: string) {
+    switch (type) {
+      case 'zone':
+        handleZoneFavoriteChange(item as ZonesAndFileSharePaths);
+        break;
+      case 'fileSharePath':
+        handleFileSharePathFavoriteChange(item as FileSharePathItem);
+        break;
+      case 'directory':
+        handleDirectoryFavoriteChange(item as DirectoryFavorite);
+        break;
+      default:
+        console.error('Invalid type provided for handleFavoriteChange:', type);
+        break;
     }
-  };
+  }
 
   return (
     <PreferencesContext.Provider
