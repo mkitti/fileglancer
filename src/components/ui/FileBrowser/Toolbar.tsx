@@ -5,14 +5,20 @@ import {
   Tooltip,
   Typography
 } from '@material-tailwind/react';
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/solid';
+import {
+  EyeIcon,
+  EyeSlashIcon,
+  ListBulletIcon
+} from '@heroicons/react/24/solid';
 
 export default function Toolbar({
   hideDotFiles,
-  setHideDotFiles
+  setHideDotFiles,
+  setShowPropertiesDrawer
 }: {
   hideDotFiles: boolean;
   setHideDotFiles: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   return (
     <div className="flex flex-col min-w-full p-2 border-b border-surface">
@@ -31,6 +37,21 @@ export default function Toolbar({
             <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
               <Typography type="small" className="opacity-90">
                 {hideDotFiles ? 'Show dot files' : 'Hide dot files'}
+              </Typography>
+              <Tooltip.Arrow />
+            </Tooltip.Content>
+          </Tooltip.Trigger>
+        </Tooltip>
+        <Tooltip placement="top">
+          <Tooltip.Trigger
+            as={IconButton}
+            variant="outline"
+            onClick={() => setShowPropertiesDrawer((prev: boolean) => !prev)}
+          >
+            <ListBulletIcon className="h-5 w-5" />
+            <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
+              <Typography type="small" className="opacity-90">
+                View file properties
               </Typography>
               <Tooltip.Arrow />
             </Tooltip.Content>

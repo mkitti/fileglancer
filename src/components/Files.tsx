@@ -27,7 +27,11 @@ export default function Files() {
 
   return (
     <div className="flex-1 overflow-auto flex flex-col">
-      <Toolbar hideDotFiles={hideDotFiles} setHideDotFiles={setHideDotFiles} />
+      <Toolbar
+        hideDotFiles={hideDotFiles}
+        setHideDotFiles={setHideDotFiles}
+        setShowPropertiesDrawer={setShowPropertiesDrawer}
+      />
       <div className="relative grow">
         <PropertiesDrawer
           propertiesTarget={propertiesTarget}
