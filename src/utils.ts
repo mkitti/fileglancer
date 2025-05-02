@@ -47,7 +47,7 @@ async function sendPutRequest<T>(
   url: string,
   xrsfCookie: string,
   body: {
-    value: T;
+    [key: string]: T;
   }
 ): Promise<Response> {
   const response = await fetch(url, {
