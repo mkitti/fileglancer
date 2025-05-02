@@ -7,7 +7,7 @@ import {
 } from '@material-tailwind/react';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/solid';
 
-export default function FileControlPanel({
+export default function Toolbar({
   hideDotFiles,
   setHideDotFiles
 }: {

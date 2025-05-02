@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet } from 'react-router';
-import Sidebar from '../components/ui/Sidebar';
+import Sidebar from '../components/ui/Sidebar/Sidebar';
 import { ZoneBrowserContextProvider } from '../contexts/ZoneBrowserContext';
 
 export const FilesLayout = () => {

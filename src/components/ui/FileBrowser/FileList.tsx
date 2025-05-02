@@ -6,18 +6,18 @@ import {
   FolderIcon
 } from '@heroicons/react/24/outline';
 
-import type { File, FileSharePathItem } from '../../shared.types';
-import FileListCrumbs from './FileListCrumbs';
-import { useFileBrowserContext } from '../../contexts/FileBrowserContext';
-import { useZoneBrowserContext } from '../../contexts/ZoneBrowserContext';
-import useHandleLeftClick from '../../hooks/useHandleLeftClick';
-import { formatDate, formatFileSize } from '../../utils';
+import type { File, FileSharePathItem } from '../../../shared.types';
+import FileListCrumbs from './Crumbs';
+import { useFileBrowserContext } from '../../../contexts/FileBrowserContext';
+import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
+import useHandleLeftClick from '../../../hooks/useHandleLeftClick';
+import { formatDate, formatFileSize } from '../../../utils';
 
 type FileListProps = {
   displayFiles: File[];
   selectedFiles: File[];
   setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>;
-  showFilePropertiesDrawer: boolean;
+  showPropertiesDrawer: boolean;
   setPropertiesTarget: React.Dispatch<
     React.SetStateAction<{
       targetFile: File | null;
@@ -43,7 +43,7 @@ export default function FileList({
   displayFiles,
   selectedFiles,
   setSelectedFiles,
-  showFilePropertiesDrawer,
+  showPropertiesDrawer,
   setPropertiesTarget,
   handleRightClick
 }: FileListProps): JSX.Element {
@@ -52,7 +52,7 @@ export default function FileList({
   const { currentFileSharePath } = useZoneBrowserContext();
   return (
     <div
-      className={`px-2 transition-all duration-300 ${showFilePropertiesDrawer ? 'mr-[350px]' : ''}`}
+      className={`px-2 transition-all duration-300 ${showPropertiesDrawer ? 'mr-[350px]' : ''}`}
     >
       <FileListCrumbs />
       <div className="min-w-full bg-background select-none">
@@ -101,7 +101,7 @@ export default function FileList({
                     displayFiles,
                     currentFileSharePath,
                     setPropertiesTarget,
-                    showFilePropertiesDrawer
+                    showPropertiesDrawer
                   )
                 }
                 onContextMenu={(e: React.MouseEvent<HTMLDivElement>) =>

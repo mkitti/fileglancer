@@ -11,10 +11,10 @@ import {
   Squares2X2Icon
 } from '@heroicons/react/24/outline';
 
-import { useFileBrowserContext } from '../../contexts/FileBrowserContext';
-import { useZoneBrowserContext } from '../../contexts/ZoneBrowserContext';
+import { useFileBrowserContext } from '../../../contexts/FileBrowserContext';
+import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
 
-export default function FileListCrumbs(): JSX.Element {
+export default function Crumbs(): JSX.Element {
   const { dirArray, fetchAndFormatFilesForDisplay } = useFileBrowserContext();
   const { currentFileSharePath } = useZoneBrowserContext();
 
