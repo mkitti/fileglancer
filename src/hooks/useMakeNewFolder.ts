@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { getAPIPathRoot, sendPostRequest } from '../utils';
 import { useFileBrowserContext } from '../contexts/FileBrowserContext';
+import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';
 import { useCookiesContext } from '../contexts/CookiesContext';
 
 export default function useMakeNewFolder() {
@@ -9,8 +10,18 @@ export default function useMakeNewFolder() {
   const [newFolderAlertContent, setNewFolderAlertContent] =
     useState<string>('');
 
-  const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
+  const { fetchAndFormatFilesForDisplay, dirArray } = useFileBrowserContext();
+  const { currentFileSharePath } = useZoneBrowserContext();
   const { cookies } = useCookiesContext();
+
+  function handleNewFolderSubmit() {
+    if (currentFileSharePath) {
+      addNewFolder(
+        currentFileSharePath.name,
+        dirArray.slice(1, dirArray.length).join('/')
+      );
+    }
+  }
 
   async function addNewFolder(path: string, subpath: string) {
     setShowNewFolderAlert(false);
@@ -31,7 +42,7 @@ export default function useMakeNewFolder() {
     }
   }
   return {
-    addNewFolder,
+    handleNewFolderSubmit,
     newFolderName,
     setNewFolderName,
     showNewFolderAlert,
