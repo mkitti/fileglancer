@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Alert,
   Button,
   ButtonGroup,
   Dialog,
@@ -30,7 +31,14 @@ export default function Toolbar({
 }) {
   const { currentFileSharePath } = useZoneBrowserContext();
   const { dirArray } = useFileBrowserContext();
-  const { makeNewFolder, newFolderName, setNewFolderName } = useMakeNewFolder();
+  const {
+    addNewFolder,
+    newFolderName,
+    setNewFolderName,
+    showNewFolderAlert,
+    setShowNewFolderAlert,
+    newFolderAlertContent
+  } = useMakeNewFolder();
 
   return (
     <div className="flex flex-col min-w-full p-2 border-b border-surface">
@@ -84,7 +92,7 @@ export default function Toolbar({
                 onSubmit={event => {
                   event.preventDefault();
                   if (currentFileSharePath) {
-                    makeNewFolder(
+                    addNewFolder(
                       currentFileSharePath.name,
                       dirArray.slice(1, dirArray.length).join('/')
                     );
@@ -111,19 +119,20 @@ export default function Toolbar({
                     className="mb-4 p-2 text-foreground text-lg border border-primary-light rounded-sm focus:outline-none focus:border-primary"
                   />
                 </div>
-                  <Button className="!rounded-md" type="submit">
-                    Submit
-                  </Button>
-
-                {/* {showPathPrefAlert === true ? (
-                  <Alert className="flex items-center gap-6 mt-6 bg-secondary-light/70 border-none">
-                    <Alert.Content>Preference updated!</Alert.Content>
+                <Button className="!rounded-md" type="submit">
+                  Submit
+                </Button>
+                {showNewFolderAlert === true ? (
+                  <Alert
+                    className={`flex items-center gap-6 mt-6 border-none ${newFolderAlertContent.startsWith('Error') ? 'bg-error-light/90' : 'bg-secondary-light/70'}`}
+                  >
+                    <Alert.Content>{newFolderAlertContent}</Alert.Content>
                     <XMarkIcon
                       className="h-5 w-5 cursor-pointer"
-                      onClick={() => setShowPathPrefAlert(false)}
+                      onClick={() => setShowNewFolderAlert(false)}
                     />
                   </Alert>
-                ) : null} */}
+                ) : null}
               </form>
             </Dialog.Content>
           </Dialog.Overlay>
