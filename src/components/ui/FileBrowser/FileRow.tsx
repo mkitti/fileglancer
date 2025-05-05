@@ -13,20 +13,19 @@ import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
 import useHandleLeftClick from '../../../hooks/useHandleLeftClick';
 import { formatDate, formatFileSize } from '../../../utils';
 
-export default function FileRow(
-  key: React.Key,
-  file: File,
-  index: number,
-  selectedFiles: File[],
-  setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>,
-  displayFiles: File[],
-  showPropertiesDrawer: boolean,
+type FileRowProps = {
+  file: File;
+  index: number;
+  selectedFiles: File[];
+  setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>;
+  displayFiles: File[];
+  showPropertiesDrawer: boolean;
   setPropertiesTarget: React.Dispatch<
     React.SetStateAction<{
       targetFile: File | null;
       fileSharePath: FileSharePathItem | null;
     }>
-  >,
+  >;
   handleRightClick: (
     e: React.MouseEvent<HTMLDivElement>,
     file: File,
@@ -39,8 +38,19 @@ export default function FileRow(
         fileSharePath: FileSharePathItem | null;
       }>
     >
-  ) => void
-): JSX.Element {
+  ) => void;
+};
+
+export default function FileRow({
+  file,
+  index,
+  selectedFiles,
+  setSelectedFiles,
+  displayFiles,
+  showPropertiesDrawer,
+  setPropertiesTarget,
+  handleRightClick
+}: FileRowProps): JSX.Element {
   const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
   const { handleLeftClick } = useHandleLeftClick();
   const { currentFileSharePath } = useZoneBrowserContext();
