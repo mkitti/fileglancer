@@ -81,7 +81,8 @@ export default function Toolbar({
                 <XMarkIcon className="h-4 w-4 text-secondary" />
               </Dialog.DismissTrigger>
               <form
-                onSubmit={() => {
+                onSubmit={event => {
+                  event.preventDefault();
                   if (currentFileSharePath) {
                     makeNewFolder(
                       currentFileSharePath.name,
@@ -110,10 +111,10 @@ export default function Toolbar({
                     className="mb-4 p-2 text-foreground text-lg border border-primary-light rounded-sm focus:outline-none focus:border-primary"
                   />
                 </div>
+                  <Button className="!rounded-md" type="submit">
+                    Submit
+                  </Button>
 
-                <Button className="!rounded-md" type="submit">
-                  Submit
-                </Button>
                 {/* {showPathPrefAlert === true ? (
                   <Alert className="flex items-center gap-6 mt-6 bg-secondary-light/70 border-none">
                     <Alert.Content>Preference updated!</Alert.Content>
