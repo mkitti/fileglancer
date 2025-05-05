@@ -5,7 +5,6 @@ import useShowPropertiesDrawer from '../hooks/useShowPropertiesDrawer';
 import usePropertiesTarget from '../hooks/usePropertiesTarget';
 import useHideDotFiles from '../hooks/useHideDotFiles';
 import useSelectedFiles from '../hooks/useSelectedFiles';
-import useMakeNewFolder from '../hooks/useMakeNewFolder';
 
 import FileList from './ui/FileBrowser/FileList';
 import PropertiesDrawer from './ui/PropertiesDrawer/PropertiesDrawer';
@@ -25,7 +24,6 @@ export default function Files() {
   const { propertiesTarget, setPropertiesTarget } = usePropertiesTarget();
   const { hideDotFiles, setHideDotFiles, displayFiles } = useHideDotFiles();
   const { selectedFiles, setSelectedFiles } = useSelectedFiles();
-  const { makeNewFolder, newFolderName, setNewFolderName } = useMakeNewFolder();
 
   return (
     <div className="flex-1 overflow-auto flex flex-col">
@@ -33,8 +31,6 @@ export default function Files() {
         hideDotFiles={hideDotFiles}
         setHideDotFiles={setHideDotFiles}
         setShowPropertiesDrawer={setShowPropertiesDrawer}
-        makeNewFolder={makeNewFolder}
-        setNewFolderName={setNewFolderName}
       />
       <div className="relative grow">
         <PropertiesDrawer
