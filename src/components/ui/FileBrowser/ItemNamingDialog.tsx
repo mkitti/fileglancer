@@ -7,47 +7,52 @@ import {
   Typography
 } from '@material-tailwind/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import useNamingDialog from '../../../hooks/useNamingDialog';
 
 type ItemNamingDialogProps = {
-  children: React.ReactNode;
-  type: 'newFolder' | 'renameItem';
-  labelText: string;
+  showNamingDialog: boolean;
+  setShowNamingDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  handleDialogSubmit: () => void;
+  newName: string;
+  setNewName: React.Dispatch<React.SetStateAction<string>>;
+  showAlert: boolean;
+  setShowAlert: React.Dispatch<React.SetStateAction<boolean>>;
+  alertContent: string;
+  namingDialogType: 'newFolder' | 'renameItem';
 };
 
 export default function ItemNamingDialog({
-  children,
-  type,
-  labelText
+  showNamingDialog,
+  setShowNamingDialog,
+  handleDialogSubmit,
+  newName,
+  setNewName,
+  showAlert,
+  setShowAlert,
+  alertContent,
+  namingDialogType
 }: ItemNamingDialogProps): JSX.Element {
-  const {
-    handleDialogSubmit,
-    newName,
-    setNewName,
-    showAlert,
-    setShowAlert,
-    alertContent
-  } = useNamingDialog();
-
   return (
-    <Dialog>
-      {children}
+    <Dialog open={showNamingDialog}>
       <Dialog.Overlay>
         <Dialog.Content>
-          <Dialog.DismissTrigger
-            as={IconButton}
+          <IconButton
             size="sm"
             variant="outline"
             color="secondary"
             className="absolute right-2 top-2"
             isCircular
+            onClick={() => {
+              setShowNamingDialog(false);
+              setNewName('');
+              setShowAlert(false);
+            }}
           >
             <XMarkIcon className="h-4 w-4 text-secondary" />
-          </Dialog.DismissTrigger>
+          </IconButton>
           <form
             onSubmit={event => {
               event.preventDefault();
-              handleDialogSubmit(type);
+              handleDialogSubmit();
             }}
           >
             <div className="mt-8 flex flex-col gap-2">
@@ -56,7 +61,11 @@ export default function ItemNamingDialog({
                 htmlFor="new_name"
                 className="text-foreground"
               >
-                {labelText}
+                {namingDialogType === 'newFolder'
+                  ? 'New Folder Name'
+                  : namingDialogType === 'renameItem'
+                    ? 'Rename Item'
+                    : ''}
               </Typography>
               <input
                 type="text"

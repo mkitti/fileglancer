@@ -5,6 +5,10 @@ import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';
 import { useCookiesContext } from '../contexts/CookiesContext';
 
 export default function useNamingDialog() {
+  const [showNamingDialog, setShowNamingDialog] = useState<boolean>(false);
+  const [namingDialogType, setNamingDialogType] = useState<
+    'newFolder' | 'renameItem'
+  >('newFolder');
   const [newName, setNewName] = useState<string>('');
   const [showAlert, setShowAlert] = useState<boolean>(false);
   const [alertContent, setAlertContent] = useState<string>('');
@@ -31,23 +35,29 @@ export default function useNamingDialog() {
     );
   }
 
-  function handleDialogSubmit(type: 'newFolder' | 'renameItem') {
+  async function handleDialogSubmit() {
     setShowAlert(false);
     if (currentFileSharePath) {
       const path = currentFileSharePath?.name;
       const subpath = dirArray.slice(1, dirArray.length).join('/');
       try {
-        switch (type) {
+        switch (namingDialogType) {
           case 'newFolder':
-            addNewFolder(path, subpath);
+            console.log(
+              `Creating new folder at path: ${path}/${subpath}/${newName}`
+            );
+            await addNewFolder(path, subpath);
             break;
           case 'renameItem':
-            renameItem(path, subpath);
+            console.log(
+              `Renaming item at path: ${path}/${subpath} to ${newName}`
+            );
+            await renameItem(path, subpath);
             break;
           default:
             throw new Error('Invalid type provided to handleDialogSubmit');
         }
-        fetchAndFormatFilesForDisplay(`${path}?subpath=${subpath}`);
+        await fetchAndFormatFilesForDisplay(`${path}?subpath=${subpath}`);
         setAlertContent(`Successfully created folder: ${newName}`);
       } catch (error) {
         setAlertContent(
@@ -59,9 +69,13 @@ export default function useNamingDialog() {
     }
     setShowAlert(true);
   }
-
+  console.log('show dialog:', showNamingDialog);
   return {
+    showNamingDialog,
+    setShowNamingDialog,
     handleDialogSubmit,
+    namingDialogType,
+    setNamingDialogType,
     newName,
     setNewName,
     showAlert,

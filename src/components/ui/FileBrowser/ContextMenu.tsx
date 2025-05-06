@@ -1,8 +1,7 @@
-import * as React from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom';
-import { Dialog, Typography } from '@material-tailwind/react';
+import { Typography } from '@material-tailwind/react';
 
-import ItemNamingDialog from './ItemNamingDialog';
 import type { File } from '../../../shared.types';
 import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
 import { usePreferencesContext } from '../../../contexts/PreferencesContext';
@@ -12,8 +11,12 @@ type ContextMenuProps = {
   y: number;
   menuRef: React.RefObject<HTMLDivElement>;
   selectedFiles: File[];
-  setShowPropertiesDrawer: (show: boolean) => void;
-  setShowContextMenu: (show: boolean) => void;
+  setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowContextMenu: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowNamingDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  setNamingDialogType: React.Dispatch<
+    React.SetStateAction<'renameItem' | 'newFolder'>
+  >;
 };
 
 export default function ContextMenu({
@@ -22,7 +25,9 @@ export default function ContextMenu({
   menuRef,
   selectedFiles,
   setShowPropertiesDrawer,
-  setShowContextMenu
+  setShowContextMenu,
+  setShowNamingDialog,
+  setNamingDialogType
 }: ContextMenuProps): JSX.Element {
   const { currentNavigationZone, currentFileSharePath } =
     useZoneBrowserContext();
@@ -87,16 +92,16 @@ export default function ContextMenu({
 
         {/* Rename file or folder */}
         {selectedFiles.length === 1 ? (
-          <ItemNamingDialog
-            type="renameItem"
-            labelText="Rename file or folder:"
+          <Typography
+            onClick={() => {
+              setNamingDialogType('renameItem');
+              setShowNamingDialog(true);
+              setShowContextMenu(false);
+            }}
+            className="text-left text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
           >
-            <Dialog.Trigger>
-              <Typography className="text-left text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap">
-                Rename
-              </Typography>
-            </Dialog.Trigger>
-          </ItemNamingDialog>
+            Rename
+          </Typography>
         ) : null}
 
         {/* Change permissions on file(s) or folder(s) */}

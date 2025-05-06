@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {
   ButtonGroup,
-  Dialog,
   IconButton,
   Tooltip,
   Typography
@@ -13,17 +12,23 @@ import {
   ListBulletIcon
 } from '@heroicons/react/24/solid';
 
-import ItemNamingDialog from './ItemNamingDialog';
+type ToolbarProps = {
+  hideDotFiles: boolean;
+  setHideDotFiles: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowNamingDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  setNamingDialogType: React.Dispatch<
+    React.SetStateAction<'newFolder' | 'renameItem'>
+  >;
+};
 
 export default function Toolbar({
   hideDotFiles,
   setHideDotFiles,
-  setShowPropertiesDrawer
-}: {
-  hideDotFiles: boolean;
-  setHideDotFiles: React.Dispatch<React.SetStateAction<boolean>>;
-  setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
-}) {
+  setShowPropertiesDrawer,
+  setShowNamingDialog,
+  setNamingDialogType
+}: ToolbarProps): JSX.Element {
   return (
     <div className="flex flex-col min-w-full p-2 border-b border-surface">
       <ButtonGroup className="self-start">
@@ -49,21 +54,24 @@ export default function Toolbar({
         </Tooltip>
 
         {/* Make new folder */}
-        <ItemNamingDialog type="newFolder" labelText="New folder name:">
-          <Tooltip placement="top">
-            <Tooltip.Trigger>
-              <Dialog.Trigger as={IconButton} variant="outline">
-                <FolderPlusIcon className="h-5 w-5" />
-              </Dialog.Trigger>
-            </Tooltip.Trigger>
-            <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-              <Typography type="small" className="opacity-90">
-                New folder
-              </Typography>
-              <Tooltip.Arrow />
-            </Tooltip.Content>
-          </Tooltip>
-        </ItemNamingDialog>
+        <Tooltip placement="top">
+          <Tooltip.Trigger
+            as={IconButton}
+            variant="outline"
+            onClick={() => {
+              setNamingDialogType('newFolder');
+              setShowNamingDialog(true);
+            }}
+          >
+            <FolderPlusIcon className="h-5 w-5" />
+          </Tooltip.Trigger>
+          <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
+            <Typography type="small" className="opacity-90">
+              New folder
+            </Typography>
+            <Tooltip.Arrow />
+          </Tooltip.Content>
+        </Tooltip>
 
         {/* Show/hide properties drawer */}
         <Tooltip placement="top">
