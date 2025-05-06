@@ -27,71 +27,26 @@ function getAPIPathRoot() {
   return '/';
 }
 
-async function sendGetRequest(
+async function sendFetchRequest(
   url: string,
-  xrsfCookie: string
-): Promise<Response> {
-  const response = await fetch(url, {
-    credentials: 'include',
-    headers: {
-      'X-Xsrftoken': xrsfCookie
-    }
-  });
-  if (!response.ok) {
-    throw new Error(`Response status: ${response.status}`);
-  }
-  return response;
-}
-
-async function sendPostRequest<T>(
-  url: string,
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH',
   xrsfCookie: string,
-  body: {
-    [key: string]: T;
-  }
+  body?: { [key: string]: any }
 ): Promise<Response> {
-  const response = await fetch(url, {
-    method: 'POST',
+  const options: RequestInit = {
+    method,
     credentials: 'include',
     headers: {
       'X-Xsrftoken': xrsfCookie,
-      'Content-Type': 'application/json'
+      ...(method !== 'GET' && { 'Content-Type': 'application/json' })
     },
-    body: JSON.stringify(body)
-  });
+    ...(method !== 'GET' && body && { body: JSON.stringify(body) })
+  };
+  const response = await fetch(url, options);
   if (!response.ok) {
     throw new Error(`Response status: ${response.status}`);
   }
   return response;
 }
 
-async function sendPutRequest<T>(
-  url: string,
-  xrsfCookie: string,
-  body: {
-    [key: string]: T;
-  }
-): Promise<Response> {
-  const response = await fetch(url, {
-    method: 'PUT',
-    credentials: 'include',
-    headers: {
-      'X-Xsrftoken': xrsfCookie,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(body)
-  });
-  if (!response.ok) {
-    throw new Error(`Response status: ${response.status}`);
-  }
-  return response;
-}
-
-export {
-  formatFileSize,
-  formatDate,
-  getAPIPathRoot,
-  sendGetRequest,
-  sendPostRequest,
-  sendPutRequest
-};
+export { formatFileSize, formatDate, getAPIPathRoot, sendFetchRequest };

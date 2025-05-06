@@ -1,6 +1,6 @@
 import React from 'react';
 import { File } from '../shared.types';
-import { getAPIPathRoot, sendGetRequest } from '../utils';
+import { getAPIPathRoot, sendFetchRequest } from '../utils';
 import { useCookiesContext } from './CookiesContext';
 
 type FileBrowserContextType = {
@@ -81,7 +81,7 @@ export const FileBrowserContextProvider = ({
 
     let data = [];
     try {
-      const response = await sendGetRequest(url, cookies['_xsrf']);
+      const response = await sendFetchRequest(url, 'GET', cookies['_xsrf']);
 
       data = await response.json();
       if (data) {
