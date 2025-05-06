@@ -1,6 +1,8 @@
 import * as React from 'react';
 import ReactDOM from 'react-dom';
-import { Typography } from '@material-tailwind/react';
+import { Dialog, Typography } from '@material-tailwind/react';
+
+import ItemNamingDialog from './ItemNamingDialog';
 import type { File } from '../../../shared.types';
 import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
 import { usePreferencesContext } from '../../../contexts/PreferencesContext';
@@ -35,6 +37,7 @@ export default function ContextMenu({
       }}
     >
       <div className="flex flex-col gap-2">
+        {/* Show/hide properties drawer */}
         <Typography
           className="text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
           onClick={() => {
@@ -44,6 +47,8 @@ export default function ContextMenu({
         >
           View file properties
         </Typography>
+
+        {/* Set/unset folders as favorites */}
         {(selectedFiles.length === 1 && selectedFiles[0].is_dir) ||
         (selectedFiles.length > 1 &&
           selectedFiles.some(file => file.is_dir)) ? (
@@ -70,8 +75,6 @@ export default function ContextMenu({
                       name: file.name,
                       path: file.path
                     }));
-                  console.log('directories to add:', directoriesToAdd);
-
                   handleFavoriteChange(directoriesToAdd, 'directory');
                   setShowContextMenu(false);
                 }
@@ -81,8 +84,45 @@ export default function ContextMenu({
             Set/unset as favorite
           </Typography>
         ) : null}
+
+        {/* Rename file or folder */}
+        {selectedFiles.length === 1 ? (
+          <ItemNamingDialog
+            type="renameItem"
+            labelText="Rename file or folder:"
+          >
+            <Dialog.Trigger>
+              <Typography className="text-left text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap">
+                Rename
+              </Typography>
+            </Dialog.Trigger>
+          </ItemNamingDialog>
+        ) : null}
+
+        {/* Change permissions on file(s) or folder(s) */}
+        {selectedFiles.length === 1 && !selectedFiles[0].is_dir ? (
+          <Typography
+            className="text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
+            onClick={() => {
+              console.log('rename file or folder clicked');
+            }}
+          >
+            Change permissions
+          </Typography>
+        ) : null}
+
+        {/* Delete file(s) or folder(s) */}
+        <Typography
+          className="text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
+          onClick={() => {
+            console.log('delete file or folder clicked');
+          }}
+        >
+          Delete
+        </Typography>
       </div>
     </div>,
-    document.body // Render directly to body
+
+    document.body // Render context menu directly to body
   );
 }
