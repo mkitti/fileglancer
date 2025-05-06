@@ -14,7 +14,6 @@ import {
 } from '@heroicons/react/24/solid';
 
 import ItemNamingDialog from './ItemNamingDialog';
-import useMakeNewFolder from '../../../hooks/useMakeNewFolder';
 
 export default function Toolbar({
   hideDotFiles,
@@ -25,18 +24,10 @@ export default function Toolbar({
   setHideDotFiles: React.Dispatch<React.SetStateAction<boolean>>;
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
-  const {
-    handleNewFolderSubmit,
-    newFolderName,
-    setNewFolderName,
-    showNewFolderAlert,
-    setShowNewFolderAlert,
-    newFolderAlertContent
-  } = useMakeNewFolder();
-
   return (
     <div className="flex flex-col min-w-full p-2 border-b border-surface">
       <ButtonGroup className="self-start">
+        {/* Show/hide dot files and folders */}
         <Tooltip placement="top">
           <Tooltip.Trigger
             as={IconButton}
@@ -56,14 +47,9 @@ export default function Toolbar({
             </Tooltip.Content>
           </Tooltip.Trigger>
         </Tooltip>
-        <ItemNamingDialog
-          handleSubmit={handleNewFolderSubmit}
-          stateValue={newFolderName}
-          setStateValue={setNewFolderName}
-          showAlert={showNewFolderAlert}
-          setShowAlert={setShowNewFolderAlert}
-          alertContent={newFolderAlertContent}
-        >
+
+        {/* Make new folder */}
+        <ItemNamingDialog type="newFolder" labelText="New folder name:">
           <Tooltip placement="top">
             <Tooltip.Trigger>
               <Dialog.Trigger as={IconButton} variant="outline">
@@ -78,6 +64,8 @@ export default function Toolbar({
             </Tooltip.Content>
           </Tooltip>
         </ItemNamingDialog>
+
+        {/* Show/hide properties drawer */}
         <Tooltip placement="top">
           <Tooltip.Trigger
             as={IconButton}

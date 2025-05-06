@@ -7,26 +7,28 @@ import {
   Typography
 } from '@material-tailwind/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import useNamingDialog from '../../../hooks/useNamingDialog';
 
 type ItemNamingDialogProps = {
   children: React.ReactNode;
-  handleSubmit: () => void;
-  stateValue: string;
-  setStateValue: React.Dispatch<React.SetStateAction<string>>;
-  showAlert: boolean;
-  setShowAlert: React.Dispatch<React.SetStateAction<boolean>>;
-  alertContent: string;
+  type: 'newFolder' | 'renameItem';
+  labelText: string;
 };
 
 export default function ItemNamingDialog({
   children,
-  handleSubmit,
-  stateValue,
-  setStateValue,
-  showAlert,
-  setShowAlert,
-  alertContent
+  type,
+  labelText
 }: ItemNamingDialogProps): JSX.Element {
+  const {
+    handleDialogSubmit,
+    newName,
+    setNewName,
+    showAlert,
+    setShowAlert,
+    alertContent
+  } = useNamingDialog();
+
   return (
     <Dialog>
       {children}
@@ -45,25 +47,25 @@ export default function ItemNamingDialog({
           <form
             onSubmit={event => {
               event.preventDefault();
-              handleSubmit();
+              handleDialogSubmit(type);
             }}
           >
             <div className="mt-8 flex flex-col gap-2">
               <Typography
                 as="label"
-                htmlFor="new_folder_name"
+                htmlFor="new_name"
                 className="text-foreground"
               >
-                New folder name:
+                {labelText}
               </Typography>
               <input
                 type="text"
-                id="new_folder_name"
+                id="new_name"
                 autoFocus
-                value={stateValue}
-                placeholder="Enter folder name"
+                value={newName}
+                placeholder="Enter name"
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                  setStateValue(event.target.value);
+                  setNewName(event.target.value);
                 }}
                 className="mb-4 p-2 text-foreground text-lg border border-primary-light rounded-sm focus:outline-none focus:border-primary"
               />
