@@ -38,7 +38,7 @@ export default function PropertiesDrawer({
     dismissCopyAlert
   } = useCopyPath();
 
-  const fullPath = `${propertiesTarget.fileSharePath}/${propertiesTarget.targetFile?.path}`;
+  const fullPath = `${propertiesTarget.fileSharePath?.name}/${propertiesTarget.targetFile?.path}`;
 
   return (
     <div
