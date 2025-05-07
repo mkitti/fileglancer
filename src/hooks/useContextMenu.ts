@@ -6,13 +6,12 @@ export default function useContextMenu() {
     x: 0,
     y: 0
   });
-  const [showFileContextMenu, setShowFileContextMenu] =
-    React.useState<boolean>(false);
+  const [showContextMenu, setShowContextMenu] = React.useState<boolean>(false);
 
   const menuRef = React.useRef<HTMLDivElement>(null);
 
   function onClose() {
-    setShowFileContextMenu(false);
+    setShowContextMenu(false);
   }
 
   React.useEffect(() => {
@@ -70,15 +69,15 @@ export default function useContextMenu() {
       fileSharePath: currentFileSharePath
     });
     setContextMenuCoords({ x: e.clientX, y: e.clientY });
-    setShowFileContextMenu(true);
+    setShowContextMenu(true);
     const currentIndex = selectedFiles.indexOf(file);
     const newSelectedFiles = currentIndex === -1 ? [file] : [...selectedFiles];
     setSelectedFiles(newSelectedFiles);
   }
   return {
     contextMenuCoords,
-    showFileContextMenu,
-    setShowFileContextMenu,
+    showContextMenu,
+    setShowContextMenu,
     menuRef,
     handleRightClick
   };

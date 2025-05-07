@@ -2,10 +2,10 @@ import React from 'react';
 import { Card, Input } from '@material-tailwind/react';
 import { FunnelIcon } from '@heroicons/react/24/outline';
 
-import FavoritesBrowser from './Sidebar/FavoritesBrowser';
-import ZonesBrowser from './Sidebar/ZonesBrowser';
-import useSearchFilter from '../../hooks/useSearchFilter';
-import useOpenZones from '../../hooks/useOpenZones';
+import FavoritesBrowser from './FavoritesBrowser';
+import ZonesBrowser from './ZonesBrowser';
+import useSearchFilter from '../../../hooks/useSearchFilter';
+import useOpenZones from '../../../hooks/useOpenZones';
 
 export default function Sidebar() {
   const { openZones, setOpenZones, toggleOpenZones } = useOpenZones();

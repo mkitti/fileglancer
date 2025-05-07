@@ -147,15 +147,29 @@ export const PreferencesProvider = ({
     preferenceState: T[],
     setPreferenceState: React.Dispatch<React.SetStateAction<T[]>>,
     preferenceKey: string,
-    existingItemIndex: number,
-    newItem: T
+    existingItemIndex: number | number[],
+    newItem: T | T[]
   ) {
     let newFavorites = [...preferenceState];
-    if (existingItemIndex >= 0) {
-      newFavorites.splice(existingItemIndex, 1);
-    } else {
-      newFavorites = [...newFavorites, newItem];
+    if (Array.isArray(existingItemIndex) && Array.isArray(newItem)) {
+      existingItemIndex.forEach((itemIndex, index) => {
+        if (itemIndex >= 0) {
+          newFavorites.splice(itemIndex, 1);
+        } else {
+          newFavorites = [...newFavorites, newItem[index]];
+        }
+      });
+    } else if (
+      typeof existingItemIndex === 'number' &&
+      !Array.isArray(newItem)
+    ) {
+      if (existingItemIndex >= 0) {
+        newFavorites.splice(existingItemIndex, 1);
+      } else {
+        newFavorites = [...newFavorites, newItem];
+      }
     }
+    console.log('Updated favorites:', newFavorites);
     setPreferenceState(newFavorites);
     updatePreferences(preferenceKey, newFavorites);
   }
@@ -189,20 +203,36 @@ export const PreferencesProvider = ({
     );
   }
 
-  function handleDirectoryFavoriteChange(item: DirectoryFavorite) {
-    const existingItemIndex = directoryFavorites.findIndex(
-      dir => dir.name === item.name && dir.fileSharePath === item.fileSharePath
-    );
+  function handleDirectoryFavoriteChange(
+    item: DirectoryFavorite | DirectoryFavorite[]
+  ) {
+    let existingItemIndex;
+    if (Array.isArray(item)) {
+      existingItemIndex = [];
+      item.forEach(dirItem => {
+        const index = directoryFavorites.findIndex(
+          dir =>
+            dir.name === dirItem.name &&
+            dir.fileSharePath === dirItem.fileSharePath
+        );
+        existingItemIndex.push(index);
+      });
+    } else {
+      existingItemIndex = directoryFavorites.findIndex(
+        dir =>
+          dir.name === item.name && dir.fileSharePath === item.fileSharePath
+      );
+    }
     changePreferences(
       directoryFavorites,
       setDirectoryFavorites,
       'directoryFavorites',
       existingItemIndex,
-      item as DirectoryFavorite
+      item as DirectoryFavorite | DirectoryFavorite[]
     );
   }
 
-  async function handleFavoriteChange<T>(item: T, type: string) {
+  async function handleFavoriteChange<T>(item: T | T[], type: string) {
     switch (type) {
       case 'zone':
         handleZoneFavoriteChange(item as ZonesAndFileSharePaths);
@@ -211,7 +241,9 @@ export const PreferencesProvider = ({
         handleFileSharePathFavoriteChange(item as FileSharePathItem);
         break;
       case 'directory':
-        handleDirectoryFavoriteChange(item as DirectoryFavorite);
+        handleDirectoryFavoriteChange(
+          item as DirectoryFavorite | DirectoryFavorite[]
+        );
         break;
       default:
         console.error('Invalid type provided for handleFavoriteChange:', type);

@@ -1,59 +1,60 @@
 import React from 'react';
 
 import useContextMenu from '../hooks/useContextMenu';
-import useFileDrawer from '../hooks/useShowFilePropertiesDrawer';
+import useShowPropertiesDrawer from '../hooks/useShowPropertiesDrawer';
 import usePropertiesTarget from '../hooks/usePropertiesTarget';
 import useHideDotFiles from '../hooks/useHideDotFiles';
 import useSelectedFiles from '../hooks/useSelectedFiles';
 
-import FileList from './ui/FileList';
+import FileList from './ui/FileBrowser/FileList';
 import PropertiesDrawer from './ui/PropertiesDrawer/PropertiesDrawer';
-import FileControlPanel from './ui/FileControlPanel';
-import FileContextMenu from './ui/FileContextMenu';
+import Toolbar from './ui/FileBrowser/Toolbar';
+import ContextMenu from './ui/FileBrowser/ContextMenu';
 
 export default function Files() {
   const {
     contextMenuCoords,
-    showFileContextMenu,
-    setShowFileContextMenu,
+    showContextMenu,
+    setShowContextMenu,
     menuRef,
     handleRightClick
   } = useContextMenu();
-  const { showFilePropertiesDrawer, setShowFilePropertiesDrawer } =
-    useFileDrawer();
+  const { showPropertiesDrawer, setShowPropertiesDrawer } =
+    useShowPropertiesDrawer();
   const { propertiesTarget, setPropertiesTarget } = usePropertiesTarget();
   const { hideDotFiles, setHideDotFiles, displayFiles } = useHideDotFiles();
   const { selectedFiles, setSelectedFiles } = useSelectedFiles();
 
   return (
     <div className="flex-1 overflow-auto flex flex-col">
-      <FileControlPanel
+      <Toolbar
         hideDotFiles={hideDotFiles}
         setHideDotFiles={setHideDotFiles}
+        setShowPropertiesDrawer={setShowPropertiesDrawer}
       />
       <div className="relative grow">
         <PropertiesDrawer
           propertiesTarget={propertiesTarget}
-          open={showFilePropertiesDrawer}
-          setShowFilePropertiesDrawer={setShowFilePropertiesDrawer}
+          open={showPropertiesDrawer}
+          setShowPropertiesDrawer={setShowPropertiesDrawer}
         />
         <FileList
           displayFiles={displayFiles}
           selectedFiles={selectedFiles}
           setSelectedFiles={setSelectedFiles}
-          showFilePropertiesDrawer={showFilePropertiesDrawer}
+          showPropertiesDrawer={showPropertiesDrawer}
           setPropertiesTarget={setPropertiesTarget}
           handleRightClick={handleRightClick}
         />
       </div>
-      {showFileContextMenu && (
-        <FileContextMenu
+      {showContextMenu && (
+        <ContextMenu
           x={contextMenuCoords.x}
           y={contextMenuCoords.y}
           menuRef={menuRef}
           selectedFiles={selectedFiles}
-          setShowFilePropertiesDrawer={setShowFilePropertiesDrawer}
-          setShowFileContextMenu={setShowFileContextMenu}
+          setShowPropertiesDrawer={setShowPropertiesDrawer}
+          setShowContextMenu={setShowContextMenu}
         />
       )}
     </div>

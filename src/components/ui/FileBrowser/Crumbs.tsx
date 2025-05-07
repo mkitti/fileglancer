@@ -11,10 +11,10 @@ import {
   Squares2X2Icon
 } from '@heroicons/react/24/outline';
 
-import { useFileBrowserContext } from '../../contexts/FileBrowserContext';
-import { useZoneBrowserContext } from '../../contexts/ZoneBrowserContext';
+import { useFileBrowserContext } from '../../../contexts/FileBrowserContext';
+import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
 
-export default function FileListCrumbs(): JSX.Element {
+export default function Crumbs(): JSX.Element {
   const { dirArray, fetchAndFormatFilesForDisplay } = useFileBrowserContext();
   const { currentFileSharePath } = useZoneBrowserContext();
 
@@ -37,11 +37,13 @@ export default function FileListCrumbs(): JSX.Element {
                 variant="text"
                 className="rounded-md hover:bg-primary-light/20 hover:!text-black focus:!text-black transition-colors cursor-pointer"
                 onClick={() => {
-                  if (index === 0) {
-                    fetchAndFormatFilesForDisplay(`${currentFileSharePath}`);
-                  } else {
+                  if (index === 0 && currentFileSharePath) {
                     fetchAndFormatFilesForDisplay(
-                      `${currentFileSharePath}?subpath=${dirArray.slice(1, index + 1).join('/')}`
+                      `${currentFileSharePath.name}`
+                    );
+                  } else if (currentFileSharePath) {
+                    fetchAndFormatFilesForDisplay(
+                      `${currentFileSharePath.name}?subpath=${dirArray.slice(1, index + 1).join('/')}`
                     );
                   }
                 }}

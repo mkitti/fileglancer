@@ -1,26 +1,26 @@
 import * as React from 'react';
 import ReactDOM from 'react-dom';
 import { Typography } from '@material-tailwind/react';
-import type { File } from '../../shared.types';
-import { useZoneBrowserContext } from '../../contexts/ZoneBrowserContext';
-import { usePreferencesContext } from '../../contexts/PreferencesContext';
+import type { File } from '../../../shared.types';
+import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
+import { usePreferencesContext } from '../../../contexts/PreferencesContext';
 
 type ContextMenuProps = {
   x: number;
   y: number;
   menuRef: React.RefObject<HTMLDivElement>;
   selectedFiles: File[];
-  setShowFilePropertiesDrawer: (show: boolean) => void;
-  setShowFileContextMenu: (show: boolean) => void;
+  setShowPropertiesDrawer: (show: boolean) => void;
+  setShowContextMenu: (show: boolean) => void;
 };
 
-export default function FileContextMenu({
+export default function ContextMenu({
   x,
   y,
   menuRef,
   selectedFiles,
-  setShowFilePropertiesDrawer,
-  setShowFileContextMenu
+  setShowPropertiesDrawer,
+  setShowContextMenu
 }: ContextMenuProps): JSX.Element {
   const { currentNavigationZone, currentFileSharePath } =
     useZoneBrowserContext();
@@ -38,8 +38,8 @@ export default function FileContextMenu({
         <Typography
           className="text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
           onClick={() => {
-            setShowFilePropertiesDrawer(true);
-            setShowFileContextMenu(false);
+            setShowPropertiesDrawer(true);
+            setShowContextMenu(false);
           }}
         >
           View file properties
@@ -61,6 +61,7 @@ export default function FileContextMenu({
                     'directory'
                   );
                 } else if (selectedFiles.length > 1) {
+                  console.log('selected files:', selectedFiles);
                   const directoriesToAdd = selectedFiles
                     .filter(file => file.is_dir)
                     .map(file => ({
@@ -69,9 +70,10 @@ export default function FileContextMenu({
                       name: file.name,
                       path: file.path
                     }));
+                  console.log('directories to add:', directoriesToAdd);
 
                   handleFavoriteChange(directoriesToAdd, 'directory');
-                  setShowFileContextMenu(false);
+                  setShowContextMenu(false);
                 }
               }
             }}

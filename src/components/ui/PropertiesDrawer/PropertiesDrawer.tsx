@@ -21,14 +21,14 @@ import useCopyPath from '../../../hooks/useCopyPath';
 export default function PropertiesDrawer({
   propertiesTarget,
   open,
-  setShowFilePropertiesDrawer
+  setShowPropertiesDrawer
 }: {
   propertiesTarget: {
     targetFile: File | null;
     fileSharePath: FileSharePathItem | null;
   };
   open: boolean;
-  setShowFilePropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const {
     copiedText,
@@ -38,7 +38,7 @@ export default function PropertiesDrawer({
     dismissCopyAlert
   } = useCopyPath();
 
-  const fullPath = `${propertiesTarget.fileSharePath}/${propertiesTarget.targetFile?.path}`;
+  const fullPath = `${propertiesTarget.fileSharePath?.name}/${propertiesTarget.targetFile?.path}`;
 
   return (
     <div
@@ -56,7 +56,7 @@ export default function PropertiesDrawer({
               if (open === true) {
                 setShowCopyAlert(false);
               }
-              setShowFilePropertiesDrawer((prev: boolean) => !prev);
+              setShowPropertiesDrawer((prev: boolean) => !prev);
             }}
           >
             <XMarkIcon className="h-5 w-5" />
