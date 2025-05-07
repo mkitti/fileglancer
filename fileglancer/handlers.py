@@ -24,6 +24,17 @@ def _get_mounted_filestore(fsp):
     return filestore
 
 
+def get_current_user(api):
+    """
+    Get the current user's username.
+    
+    Returns:
+        str: The username of the current user.
+    """
+    #return api.current_user.name
+    return os.getenv("USER") or os.getenv("USERNAME")
+
+
 class StreamingProxy(APIHandler):
     """
     API handler for proxying responses from the central server
@@ -233,7 +244,7 @@ class PreferencesHandler(APIHandler):
         Get all preferences or a specific preference for the current user.
         """
         key = self.get_argument("key", None)
-        username = self.current_user.name
+        username = get_current_user(self)
         self.log.info(f"GET /api/fileglancer/preference username={username} key={key}")
 
         try:
@@ -257,7 +268,7 @@ class PreferencesHandler(APIHandler):
         Set a preference for the current user.
         """
         key = self.get_argument("key")
-        username = self.current_user.name
+        username = get_current_user(self)
         value = self.get_json_body()
         self.log.info(f"PUT /api/fileglancer/preference username={username} key={key}")
 
@@ -278,7 +289,7 @@ class PreferencesHandler(APIHandler):
         Delete a preference for the current user.
         """
         key = self.get_argument("key")
-        username = self.current_user.name
+        username = get_current_user(self)
         self.log.info(f"DELETE /api/fileglancer/preference username={username} key={key}")
 
         try:
