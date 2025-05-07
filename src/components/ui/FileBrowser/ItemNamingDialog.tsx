@@ -7,11 +7,13 @@ import {
   Typography
 } from '@material-tailwind/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import type { File } from '../../../shared.types';
 
 type ItemNamingDialogProps = {
+  selectedFiles: File[];
   showNamingDialog: boolean;
   setShowNamingDialog: React.Dispatch<React.SetStateAction<boolean>>;
-  handleDialogSubmit: () => void;
+  handleDialogSubmit: (targetItem: File) => Promise<void>;
   newName: string;
   setNewName: React.Dispatch<React.SetStateAction<string>>;
   showAlert: boolean;
@@ -21,6 +23,7 @@ type ItemNamingDialogProps = {
 };
 
 export default function ItemNamingDialog({
+  selectedFiles,
   showNamingDialog,
   setShowNamingDialog,
   handleDialogSubmit,
@@ -39,7 +42,7 @@ export default function ItemNamingDialog({
             size="sm"
             variant="outline"
             color="secondary"
-            className="absolute right-2 top-2"
+            className="absolute right-2 top-2 text-secondary hover:text-background"
             isCircular
             onClick={() => {
               setShowNamingDialog(false);
@@ -47,12 +50,12 @@ export default function ItemNamingDialog({
               setShowAlert(false);
             }}
           >
-            <XMarkIcon className="h-4 w-4 text-secondary" />
+            <XMarkIcon className="h-5 w-5" />
           </IconButton>
           <form
             onSubmit={event => {
               event.preventDefault();
-              handleDialogSubmit();
+              handleDialogSubmit(selectedFiles[0]);
             }}
           >
             <div className="mt-8 flex flex-col gap-2">

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { File } from '../shared.types';
 import { getAPIPathRoot, sendFetchRequest } from '../utils';
 import { useFileBrowserContext } from '../contexts/FileBrowserContext';
 import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';
@@ -13,7 +14,7 @@ export default function useNamingDialog() {
   const [showAlert, setShowAlert] = useState<boolean>(false);
   const [alertContent, setAlertContent] = useState<string>('');
 
-  const { fetchAndFormatFilesForDisplay, dirArray } = useFileBrowserContext();
+  const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
   const { currentFileSharePath } = useZoneBrowserContext();
   const { cookies } = useCookiesContext();
 
@@ -24,44 +25,49 @@ export default function useNamingDialog() {
       cookies['_xsrf'],
       { type: 'directory' }
     );
+    await fetchAndFormatFilesForDisplay(`${path}?subpath=${subpath}`);
   }
 
-  async function renameItem(path: string, subpath: string) {
+ async function renameItem(fileSharePathName: string, originalPath: string, originalPathWithoutFileName: string) {
+    const newPath = `${originalPathWithoutFileName}/${newName}`
     await sendFetchRequest(
-      `${getAPIPathRoot()}api/fileglancer/files/${path}?subpath=${subpath}`,
+      `${getAPIPathRoot()}api/fileglancer/files/${fileSharePathName}?subpath=${originalPath}`,
       'PATCH',
       cookies['_xsrf'],
-      { path: newName }
+      { path: newPath }
     );
+    await fetchAndFormatFilesForDisplay(`${fileSharePathName}?subpath=${originalPathWithoutFileName}`);
   }
 
-  async function handleDialogSubmit() {
+  async function handleDialogSubmit(targetItem: File) {
     setShowAlert(false);
     if (currentFileSharePath) {
-      const path = currentFileSharePath?.name;
-      const subpath = dirArray.slice(1, dirArray.length).join('/');
+      const fileSharePathName = currentFileSharePath?.name;
+      const subpathToFile = targetItem.path;
+      const subpathWithoutFileName = subpathToFile.split('/').slice(0, -1).join('/');
       try {
         switch (namingDialogType) {
           case 'newFolder':
             console.log(
-              `Creating new folder at path: ${path}/${subpath}/${newName}`
+              `Creating new folder at path: ${fileSharePathName}/${subpathWithoutFileName}/${newName}`
             );
-            await addNewFolder(path, subpath);
+            await addNewFolder(fileSharePathName, subpathWithoutFileName);
             break;
           case 'renameItem':
             console.log(
-              `Renaming item at path: ${path}/${subpath} to ${newName}`
+              `Renaming item at path: ${fileSharePathName}/${subpathToFile} to ${newName}`
             );
-            await renameItem(path, subpath);
+            await renameItem(fileSharePathName, subpathToFile, subpathWithoutFileName);
             break;
           default:
             throw new Error('Invalid type provided to handleDialogSubmit');
         }
-        await fetchAndFormatFilesForDisplay(`${path}?subpath=${subpath}`);
-        setAlertContent(`Successfully created folder: ${newName}`);
+        const alertContent = namingDialogType === 'renameItem' ? `Renamed item at path: ${fileSharePathName}/${subpathToFile} to ${newName}` : namingDialogType === 'newFolder' ? `Created new folder at path: ${fileSharePathName}/${subpathWithoutFileName}/${newName}` : '';
+        setAlertContent(alertContent);
       } catch (error) {
+        const errorContent = namingDialogType === 'renameItem' ? `Error renaming item at path: ${fileSharePathName}/${subpathToFile} to ${newName}` : namingDialogType === 'newFolder' ? `Error creating new folder at path: ${fileSharePathName}/${subpathWithoutFileName}/${newName}` : '';
         setAlertContent(
-          `Error making new folder with path ${path}/${subpath}/${newName}: ${error instanceof Error ? error.message : 'Unknown error'}`
+          `${errorContent}. Error details: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
       }
     } else if (!currentFileSharePath) {
