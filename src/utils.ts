@@ -29,7 +29,7 @@ function getAPIPathRoot() {
 
 async function sendFetchRequest(
   url: string,
-  method: 'GET' | 'POST' | 'PUT' | 'PATCH',
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   xrsfCookie: string,
   body?: { [key: string]: any }
 ): Promise<Response> {
@@ -38,9 +38,12 @@ async function sendFetchRequest(
     credentials: 'include',
     headers: {
       'X-Xsrftoken': xrsfCookie,
-      ...(method !== 'GET' && { 'Content-Type': 'application/json' })
+      ...(method !== 'GET' &&
+        method !== 'DELETE' && { 'Content-Type': 'application/json' })
     },
-    ...(method !== 'GET' && body && { body: JSON.stringify(body) })
+    ...(method !== 'GET' &&
+      method !== 'DELETE' &&
+      body && { body: JSON.stringify(body) })
   };
   const response = await fetch(url, options);
   if (!response.ok) {
@@ -49,4 +52,19 @@ async function sendFetchRequest(
   return response;
 }
 
-export { formatFileSize, formatDate, getAPIPathRoot, sendFetchRequest };
+function removeLastSegmentFromPath(path: string): string {
+  const segments = path.split('/');
+  if (segments.length > 1) {
+    return segments.slice(0, -1).join('/');
+  } else {
+    return '';
+  }
+}
+
+export {
+  formatFileSize,
+  formatDate,
+  getAPIPathRoot,
+  sendFetchRequest,
+  removeLastSegmentFromPath
+};

@@ -7,7 +7,7 @@ import {
   Typography
 } from '@material-tailwind/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import type { File } from '../../../shared.types';
+import type { File } from '../../../../shared.types';
 
 type ItemNamingDialogProps = {
   selectedFiles: File[];

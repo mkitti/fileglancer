@@ -17,6 +17,7 @@ type ContextMenuProps = {
   setNamingDialogType: React.Dispatch<
     React.SetStateAction<'renameItem' | 'newFolder'>
   >;
+  setShowDeleteDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function ContextMenu({
@@ -27,7 +28,8 @@ export default function ContextMenu({
   setShowPropertiesDrawer,
   setShowContextMenu,
   setShowNamingDialog,
-  setNamingDialogType
+  setNamingDialogType,
+  setShowDeleteDialog
 }: ContextMenuProps): JSX.Element {
   const { currentNavigationZone, currentFileSharePath } =
     useZoneBrowserContext();
@@ -120,7 +122,8 @@ export default function ContextMenu({
         <Typography
           className="text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
           onClick={() => {
-            console.log('delete file or folder clicked');
+            setShowDeleteDialog(true);
+            setShowContextMenu(false);
           }}
         >
           Delete

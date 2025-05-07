@@ -11,7 +11,8 @@ import FileList from './ui/FileBrowser/FileList';
 import PropertiesDrawer from './ui/PropertiesDrawer/PropertiesDrawer';
 import Toolbar from './ui/FileBrowser/Toolbar';
 import ContextMenu from './ui/FileBrowser/ContextMenu';
-import ItemNamingDialog from './ui/FileBrowser/ItemNamingDialog';
+import ItemNamingDialog from './ui/FileBrowser/Dialogs/ItemNamingDialog';
+import Delete from './ui/FileBrowser/Dialogs/Delete';
 
 export default function Files() {
   const {
@@ -38,6 +39,7 @@ export default function Files() {
     setShowAlert,
     alertContent
   } = useNamingDialog();
+  const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
 
   return (
     <div className="flex-1 overflow-auto flex flex-col">
@@ -73,6 +75,7 @@ export default function Files() {
           setShowContextMenu={setShowContextMenu}
           setShowNamingDialog={setShowNamingDialog}
           setNamingDialogType={setNamingDialogType}
+          setShowDeleteDialog={setShowDeleteDialog}
         />
       ) : null}
       {showNamingDialog ? (
@@ -87,6 +90,13 @@ export default function Files() {
           setShowAlert={setShowAlert}
           alertContent={alertContent}
           namingDialogType={namingDialogType}
+        />
+      ) : null}
+      {showDeleteDialog ? (
+        <Delete
+          targetItem={selectedFiles[0]}
+          showDeleteDialog={showDeleteDialog}
+          setShowDeleteDialog={setShowDeleteDialog}
         />
       ) : null}
     </div>

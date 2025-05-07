@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import type { File } from '../shared.types';
-import { getAPIPathRoot, sendFetchRequest } from '../utils';
+import {
+  getAPIPathRoot,
+  sendFetchRequest,
+  removeLastSegmentFromPath
+} from '../utils';
 import { useFileBrowserContext } from '../contexts/FileBrowserContext';
 import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';
 import { useCookiesContext } from '../contexts/CookiesContext';
@@ -28,15 +32,21 @@ export default function useNamingDialog() {
     await fetchAndFormatFilesForDisplay(`${path}?subpath=${subpath}`);
   }
 
- async function renameItem(fileSharePathName: string, originalPath: string, originalPathWithoutFileName: string) {
-    const newPath = `${originalPathWithoutFileName}/${newName}`
+  async function renameItem(
+    fileSharePathName: string,
+    originalPath: string,
+    originalPathWithoutFileName: string
+  ) {
+    const newPath = `${originalPathWithoutFileName}/${newName}`;
     await sendFetchRequest(
       `${getAPIPathRoot()}api/fileglancer/files/${fileSharePathName}?subpath=${originalPath}`,
       'PATCH',
       cookies['_xsrf'],
       { path: newPath }
     );
-    await fetchAndFormatFilesForDisplay(`${fileSharePathName}?subpath=${originalPathWithoutFileName}`);
+    await fetchAndFormatFilesForDisplay(
+      `${fileSharePathName}?subpath=${originalPathWithoutFileName}`
+    );
   }
 
   async function handleDialogSubmit(targetItem: File) {
@@ -44,7 +54,8 @@ export default function useNamingDialog() {
     if (currentFileSharePath) {
       const fileSharePathName = currentFileSharePath?.name;
       const subpathToFile = targetItem.path;
-      const subpathWithoutFileName = subpathToFile.split('/').slice(0, -1).join('/');
+      const subpathWithoutFileName = removeLastSegmentFromPath(subpathToFile);
+
       try {
         switch (namingDialogType) {
           case 'newFolder':
@@ -57,15 +68,29 @@ export default function useNamingDialog() {
             console.log(
               `Renaming item at path: ${fileSharePathName}/${subpathToFile} to ${newName}`
             );
-            await renameItem(fileSharePathName, subpathToFile, subpathWithoutFileName);
+            await renameItem(
+              fileSharePathName,
+              subpathToFile,
+              subpathWithoutFileName
+            );
             break;
           default:
             throw new Error('Invalid type provided to handleDialogSubmit');
         }
-        const alertContent = namingDialogType === 'renameItem' ? `Renamed item at path: ${fileSharePathName}/${subpathToFile} to ${newName}` : namingDialogType === 'newFolder' ? `Created new folder at path: ${fileSharePathName}/${subpathWithoutFileName}/${newName}` : '';
+        const alertContent =
+          namingDialogType === 'renameItem'
+            ? `Renamed item at path: ${fileSharePathName}/${subpathToFile} to ${newName}`
+            : namingDialogType === 'newFolder'
+              ? `Created new folder at path: ${fileSharePathName}/${subpathWithoutFileName}/${newName}`
+              : '';
         setAlertContent(alertContent);
       } catch (error) {
-        const errorContent = namingDialogType === 'renameItem' ? `Error renaming item at path: ${fileSharePathName}/${subpathToFile} to ${newName}` : namingDialogType === 'newFolder' ? `Error creating new folder at path: ${fileSharePathName}/${subpathWithoutFileName}/${newName}` : '';
+        const errorContent =
+          namingDialogType === 'renameItem'
+            ? `Error renaming item at path: ${fileSharePathName}/${subpathToFile} to ${newName}`
+            : namingDialogType === 'newFolder'
+              ? `Error creating new folder at path: ${fileSharePathName}/${subpathWithoutFileName}/${newName}`
+              : '';
         setAlertContent(
           `${errorContent}. Error details: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
