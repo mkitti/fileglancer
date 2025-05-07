@@ -64,7 +64,10 @@ export default function DeleteDialog({
               <Alert.Content>{alertContent}</Alert.Content>
               <XMarkIcon
                 className="h-5 w-5 cursor-pointer"
-                onClick={() => setShowAlert(false)}
+                onClick={() => {
+                  setShowAlert(false);
+                  setShowDeleteDialog(false);
+                }}
               />
             </Alert>
           ) : null}
