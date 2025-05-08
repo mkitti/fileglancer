@@ -106,7 +106,7 @@ export default function Files() {
       ) : null}
       {showPermissionsDialog ? (
         <ChangePermissions
-          targetItem={propertiesTarget.targetFile}
+          targetItem={propertiesTarget}
           setPropertiesTarget={setPropertiesTarget}
           showPermissionsDialog={showPermissionsDialog}
           setShowPermissionsDialog={setShowPermissionsDialog}
