@@ -18,6 +18,7 @@ type ContextMenuProps = {
     React.SetStateAction<'renameItem' | 'newFolder'>
   >;
   setShowDeleteDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function ContextMenu({
@@ -29,7 +30,8 @@ export default function ContextMenu({
   setShowContextMenu,
   setShowNamingDialog,
   setNamingDialogType,
-  setShowDeleteDialog
+  setShowDeleteDialog,
+  setShowPermissionsDialog
 }: ContextMenuProps): JSX.Element {
   const { currentNavigationZone, currentFileSharePath } =
     useZoneBrowserContext();
@@ -106,12 +108,13 @@ export default function ContextMenu({
           </Typography>
         ) : null}
 
-        {/* Change permissions on file(s) or folder(s) */}
+        {/* Change permissions on file(s) */}
         {selectedFiles.length === 1 && !selectedFiles[0].is_dir ? (
           <Typography
             className="text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
             onClick={() => {
-              console.log('rename file or folder clicked');
+              setShowPermissionsDialog(true);
+              setShowContextMenu(false);
             }}
           >
             Change permissions

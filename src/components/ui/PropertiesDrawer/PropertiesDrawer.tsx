@@ -18,18 +18,22 @@ import PermissionsTable from './PermissionsTable';
 import OverviewTable from './OverviewTable';
 import useCopyPath from '../../../hooks/useCopyPath';
 
-export default function PropertiesDrawer({
-  propertiesTarget,
-  open,
-  setShowPropertiesDrawer
-}: {
+type PropertiesDrawerProps = {
   propertiesTarget: {
     targetFile: File | null;
     fileSharePath: FileSharePathItem | null;
   };
   open: boolean;
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
-}) {
+  setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
+};
+
+export default function PropertiesDrawer({
+  propertiesTarget,
+  open,
+  setShowPropertiesDrawer,
+  setShowPermissionsDialog
+}: PropertiesDrawerProps): JSX.Element {
   const {
     copiedText,
     showCopyAlert,
@@ -137,7 +141,13 @@ export default function PropertiesDrawer({
 
             <Tabs.Panel value="permissions" className="flex flex-col gap-2">
               <PermissionsTable file={propertiesTarget.targetFile} />
-              <Button as="a" href="#" variant="outline">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowPermissionsDialog(true);
+                }}
+                className="!rounded-md"
+              >
                 Change Permissions
               </Button>
             </Tabs.Panel>

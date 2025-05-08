@@ -13,6 +13,7 @@ import Toolbar from './ui/FileBrowser/Toolbar';
 import ContextMenu from './ui/FileBrowser/ContextMenu';
 import ItemNamingDialog from './ui/FileBrowser/Dialogs/ItemNamingDialog';
 import Delete from './ui/FileBrowser/Dialogs/Delete';
+import ChangePermissions from './ui/FileBrowser/Dialogs/ChangePermissions';
 
 export default function Files() {
   const {
@@ -40,6 +41,8 @@ export default function Files() {
     alertContent
   } = useNamingDialog();
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
+  const [showPermissionsDialog, setShowPermissionsDialog] =
+    React.useState(false);
 
   return (
     <div className="flex-1 overflow-auto flex flex-col">
@@ -55,6 +58,7 @@ export default function Files() {
           propertiesTarget={propertiesTarget}
           open={showPropertiesDrawer}
           setShowPropertiesDrawer={setShowPropertiesDrawer}
+          setShowPermissionsDialog={setShowPermissionsDialog}
         />
         <FileList
           displayFiles={displayFiles}
@@ -76,6 +80,7 @@ export default function Files() {
           setShowNamingDialog={setShowNamingDialog}
           setNamingDialogType={setNamingDialogType}
           setShowDeleteDialog={setShowDeleteDialog}
+          setShowPermissionsDialog={setShowPermissionsDialog}
         />
       ) : null}
       {showNamingDialog ? (
@@ -97,6 +102,13 @@ export default function Files() {
           targetItem={selectedFiles[0]}
           showDeleteDialog={showDeleteDialog}
           setShowDeleteDialog={setShowDeleteDialog}
+        />
+      ) : null}
+      {showPermissionsDialog ? (
+        <ChangePermissions
+          targetItem={selectedFiles[0]}
+          showPermissionsDialog={showPermissionsDialog}
+          setShowPermissionsDialog={setShowPermissionsDialog}
         />
       ) : null}
     </div>

@@ -61,10 +61,32 @@ function removeLastSegmentFromPath(path: string): string {
   }
 }
 
+// Parse the Unix-style permissions string (e.g., "drwxr-xr-x")
+const parsePermissions = (permissionString: string) => {
+  // Owner permissions (positions 1-3)
+  const ownerRead = permissionString[1] === 'r';
+  const ownerWrite = permissionString[2] === 'w';
+
+  // Group permissions (positions 4-6)
+  const groupRead = permissionString[4] === 'r';
+  const groupWrite = permissionString[5] === 'w';
+
+  // Others/everyone permissions (positions 7-9)
+  const othersRead = permissionString[7] === 'r';
+  const othersWrite = permissionString[8] === 'w';
+
+  return {
+    owner: { read: ownerRead, write: ownerWrite },
+    group: { read: groupRead, write: groupWrite },
+    others: { read: othersRead, write: othersWrite }
+  };
+};
+
 export {
   formatFileSize,
   formatDate,
   getAPIPathRoot,
   sendFetchRequest,
-  removeLastSegmentFromPath
+  removeLastSegmentFromPath,
+  parsePermissions
 };
