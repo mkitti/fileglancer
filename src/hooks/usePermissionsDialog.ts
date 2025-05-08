@@ -1,15 +1,20 @@
 import React from 'react';
-import { getAPIPathRoot, sendFetchRequest } from '../utils';
+import {
+  getAPIPathRoot,
+  sendFetchRequest,
+  removeLastSegmentFromPath
+} from '../utils';
 import { useCookiesContext } from '../contexts/CookiesContext';
 import type { File } from '../shared.types';
 import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';
+import { useFileBrowserContext } from '../contexts/FileBrowserContext';
 
 export default function usePermissionsDialog() {
-  const [, setPermissions] = React.useState({});
   const [showAlert, setShowAlert] = React.useState<boolean>(false);
   const [alertContent, setAlertContent] = React.useState<string>('');
   const { cookies } = useCookiesContext();
   const { currentFileSharePath } = useZoneBrowserContext();
+  const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
 
   async function handleChangePermissions(
     targetItem: File,
@@ -25,7 +30,9 @@ export default function usePermissionsDialog() {
           permissions: localPermissions
         }
       );
-      setPermissions(localPermissions);
+      await fetchAndFormatFilesForDisplay(
+        `${currentFileSharePath?.name}?subpath=${removeLastSegmentFromPath(targetItem.path)}`
+      );
       setAlertContent(
         `Successfully updated permissions for ${currentFileSharePath?.name}/${targetItem.path}`
       );
