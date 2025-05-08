@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import type { File } from '../shared.types';
 import {
   getAPIPathRoot,
   sendFetchRequest,
@@ -22,56 +21,53 @@ export default function useNamingDialog() {
   const { currentFileSharePath } = useZoneBrowserContext();
   const { cookies } = useCookiesContext();
 
-  async function addNewFolder(path: string, subpath: string) {
+  async function addNewFolder(subpath: string) {
     await sendFetchRequest(
-      `${getAPIPathRoot()}api/fileglancer/files/${path}?subpath=${subpath}/${newName}`,
+      `${getAPIPathRoot()}api/fileglancer/files/${currentFileSharePath?.name}?subpath=${subpath}/${newName}`,
       'POST',
       cookies['_xsrf'],
       { type: 'directory' }
     );
-    await fetchAndFormatFilesForDisplay(`${path}?subpath=${subpath}`);
+    await fetchAndFormatFilesForDisplay(`${currentFileSharePath?.name}?subpath=${subpath}`);
   }
 
   async function renameItem(
-    fileSharePathName: string,
     originalPath: string,
     originalPathWithoutFileName: string
   ) {
     const newPath = `${originalPathWithoutFileName}/${newName}`;
     await sendFetchRequest(
-      `${getAPIPathRoot()}api/fileglancer/files/${fileSharePathName}?subpath=${originalPath}`,
+      `${getAPIPathRoot()}api/fileglancer/files/${currentFileSharePath?.name}?subpath=${originalPath}`,
       'PATCH',
       cookies['_xsrf'],
       { path: newPath }
     );
     await fetchAndFormatFilesForDisplay(
-      `${fileSharePathName}?subpath=${originalPathWithoutFileName}`
+      `${currentFileSharePath?.name}?subpath=${originalPathWithoutFileName}`
     );
   }
 
-  async function handleDialogSubmit(targetItem: File) {
+  async function handleDialogSubmit(subpath: string) {
+    console.log('handleDialogSubmit called with subpath:', subpath);
     setShowAlert(false);
     if (currentFileSharePath) {
-      const fileSharePathName = currentFileSharePath?.name;
-      const subpathToFile = targetItem.path;
-      const subpathWithoutFileName = removeLastSegmentFromPath(subpathToFile);
+      const originalPathWithoutFileName = removeLastSegmentFromPath(subpath);
 
       try {
         switch (namingDialogType) {
           case 'newFolder':
             console.log(
-              `Creating new folder at path: ${fileSharePathName}/${subpathWithoutFileName}/${newName}`
+              `Creating new folder at path: ${currentFileSharePath.name}/${originalPathWithoutFileName}/${newName}`
             );
-            await addNewFolder(fileSharePathName, subpathWithoutFileName);
+            await addNewFolder(subpath);
             break;
           case 'renameItem':
             console.log(
-              `Renaming item at path: ${fileSharePathName}/${subpathToFile} to ${newName}`
+              `Renaming item at path: ${currentFileSharePath.name}/${subpath} to ${newName}`
             );
             await renameItem(
-              fileSharePathName,
-              subpathToFile,
-              subpathWithoutFileName
+              subpath,
+              originalPathWithoutFileName
             );
             break;
           default:
@@ -79,17 +75,17 @@ export default function useNamingDialog() {
         }
         const alertContent =
           namingDialogType === 'renameItem'
-            ? `Renamed item at path: ${fileSharePathName}/${subpathToFile} to ${newName}`
+            ? `Renamed item at path: ${currentFileSharePath.name}/${subpath} to ${newName}`
             : namingDialogType === 'newFolder'
-              ? `Created new folder at path: ${fileSharePathName}/${subpathWithoutFileName}/${newName}`
+              ? `Created new folder at path: ${currentFileSharePath.name}/${subpath}/${newName}`
               : '';
         setAlertContent(alertContent);
       } catch (error) {
         const errorContent =
           namingDialogType === 'renameItem'
-            ? `Error renaming item at path: ${fileSharePathName}/${subpathToFile} to ${newName}`
+            ? `Error renaming item at path: ${currentFileSharePath.name}/${subpath} to ${newName}`
             : namingDialogType === 'newFolder'
-              ? `Error creating new folder at path: ${fileSharePathName}/${subpathWithoutFileName}/${newName}`
+              ? `Error creating new folder at path: ${currentFileSharePath.name}}/${subpath}/${newName}`
               : '';
         setAlertContent(
           `${errorContent}. Error details: ${error instanceof Error ? error.message : 'Unknown error'}`

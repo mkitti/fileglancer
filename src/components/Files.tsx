@@ -85,7 +85,7 @@ export default function Files() {
       ) : null}
       {showNamingDialog ? (
         <ItemNamingDialog
-          selectedFiles={selectedFiles}
+          propertiesTarget={propertiesTarget}
           showNamingDialog={showNamingDialog}
           setShowNamingDialog={setShowNamingDialog}
           handleDialogSubmit={handleDialogSubmit}

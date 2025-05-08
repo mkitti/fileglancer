@@ -8,12 +8,13 @@ import {
 } from '@material-tailwind/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import type { File } from '../../../../shared.types';
+import { useFileBrowserContext } from '../../../../contexts/FileBrowserContext';
 
 type ItemNamingDialogProps = {
-  selectedFiles: File[];
+  propertiesTarget: File | null;
   showNamingDialog: boolean;
   setShowNamingDialog: React.Dispatch<React.SetStateAction<boolean>>;
-  handleDialogSubmit: (targetItem: File) => Promise<void>;
+  handleDialogSubmit: (targetItemPath: string) => Promise<void>;
   newName: string;
   setNewName: React.Dispatch<React.SetStateAction<string>>;
   showAlert: boolean;
@@ -23,7 +24,7 @@ type ItemNamingDialogProps = {
 };
 
 export default function ItemNamingDialog({
-  selectedFiles,
+  propertiesTarget,
   showNamingDialog,
   setShowNamingDialog,
   handleDialogSubmit,
@@ -34,6 +35,8 @@ export default function ItemNamingDialog({
   alertContent,
   namingDialogType
 }: ItemNamingDialogProps): JSX.Element {
+  const {dirArray} = useFileBrowserContext();
+
   return (
     <Dialog open={showNamingDialog}>
       <Dialog.Overlay>
@@ -55,7 +58,7 @@ export default function ItemNamingDialog({
           <form
             onSubmit={event => {
               event.preventDefault();
-              handleDialogSubmit(selectedFiles[0]);
+              handleDialogSubmit(namingDialogType === 'renameItem' ? `${propertiesTarget?.path}` : dirArray.slice(1).join('/'));
             }}
           >
             <div className="mt-8 flex flex-col gap-2">
