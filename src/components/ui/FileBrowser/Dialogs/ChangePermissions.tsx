@@ -76,8 +76,8 @@ export default function ChangePermissions({
             }}
           >
             <Typography className="mt-8">
-              Change permisions for file{}
-              <span className="font-semibold">{targetItem.path}</span>
+              Change permisions for file
+              <span className="font-semibold"> {targetItem.name}</span>
             </Typography>
             <table className="w-full my-4 border border-surface">
               <thead className="border-b border-surface bg-surface-dark text-sm font-medium">
