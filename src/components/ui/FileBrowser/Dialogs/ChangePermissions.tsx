@@ -8,16 +8,23 @@ import {
 } from '@material-tailwind/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import usePermissionsDialog from '../../../../hooks/usePermissionsDialog';
-import type { File } from '../../../../shared.types';
+import type { File, FileSharePathItem } from '../../../../shared.types';
 
 type ChangePermissionsProps = {
-  targetItem: File;
+  targetItem: File | null;
+  setPropertiesTarget: React.Dispatch<
+    React.SetStateAction<{
+      targetFile: File | null;
+      fileSharePath: FileSharePathItem | null;
+    }>
+  >;
   showPermissionsDialog: boolean;
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function ChangePermissions({
   targetItem,
+  setPropertiesTarget,
   showPermissionsDialog,
   setShowPermissionsDialog
 }: ChangePermissionsProps): JSX.Element {
@@ -69,107 +76,116 @@ export default function ChangePermissions({
           >
             <XMarkIcon className="h-5 w-5" />
           </IconButton>
-          <form
-            onSubmit={event => {
-              event.preventDefault();
-              handleChangePermissions(targetItem, localPermissions);
-            }}
-          >
-            <Typography className="mt-8">
-              Change permisions for file
-              <span className="font-semibold"> {targetItem.name}</span>
-            </Typography>
-            <table className="w-full my-4 border border-surface">
-              <thead className="border-b border-surface bg-surface-dark text-sm font-medium">
-                <tr>
-                  <th className="px-3 py-2 text-start font-medium">
-                    Who can view or edit this data?
-                  </th>
-                  <th className="px-3 py-2 text-center font-medium">Read</th>
-                  <th className="px-3 py-2 text-center font-medium">Write</th>
-                </tr>
-              </thead>
-
-              {localPermissions ? (
-                <tbody className="text-sm">
-                  <tr className="border-b border-surface">
-                    <td className="p-3 font-medium">
-                      Owner: {targetItem.owner}
-                    </td>
-                    {/* Owner read/write */}
-                    <td className="p-3">
-                      <input
-                        type="checkbox"
-                        name="r_1"
-                        checked={localPermissions[1] === 'r'}
-                        disabled
-                      />
-                    </td>
-                    <td className="p-3">
-                      <input
-                        type="checkbox"
-                        name="w_2"
-                        checked={localPermissions[2] === 'w'}
-                        onChange={event => handleLocalPermissionChange(event)}
-                        className="accent-secondary-light hover:cursor-pointer"
-                      />
-                    </td>
-                  </tr>
-
-                  <tr className="border-b border-surface">
-                    <td className="p-3 font-medium">
-                      Group: {targetItem.group}
-                    </td>
-                    {/* Group read/write */}
-                    <td className="p-3">
-                      <input
-                        type="checkbox"
-                        name="r_4"
-                        checked={localPermissions[4] === 'r'}
-                        onChange={event => handleLocalPermissionChange(event)}
-                        className="accent-secondary-light hover:cursor-pointer"
-                      />
-                    </td>
-                    <td className="p-3">
-                      <input
-                        type="checkbox"
-                        name="w_5"
-                        checked={localPermissions[5] === 'w'}
-                        onChange={event => handleLocalPermissionChange(event)}
-                        className="accent-secondary-light hover:cursor-pointer"
-                      />
-                    </td>
-                  </tr>
-
+          {targetItem ? (
+            <form
+              onSubmit={event => {
+                event.preventDefault();
+                if (!localPermissions) {
+                  return;
+                }
+                handleChangePermissions(
+                  targetItem,
+                  localPermissions,
+                  setPropertiesTarget
+                );
+              }}
+            >
+              <Typography className="mt-8">
+                Change permisions for file
+                <span className="font-semibold"> {targetItem.name}</span>
+              </Typography>
+              <table className="w-full my-4 border border-surface">
+                <thead className="border-b border-surface bg-surface-dark text-sm font-medium">
                   <tr>
-                    <td className="p-3 font-medium">Everyone else</td>
-                    {/* Everyone else read/write */}
-                    <td className="p-3">
-                      <input
-                        type="checkbox"
-                        name="r_7"
-                        checked={localPermissions[7] === 'r'}
-                        onChange={event => handleLocalPermissionChange(event)}
-                        className="accent-secondary-light hover:cursor-pointer"
-                      />
-                    </td>
-                    <td className="p-3">
-                      <input
-                        type="checkbox"
-                        name="w_8"
-                        checked={localPermissions[8] === 'w'}
-                        onChange={event => handleLocalPermissionChange(event)}
-                        className="accent-secondary-light hover:cursor-pointer"
-                      />
-                    </td>
+                    <th className="px-3 py-2 text-start font-medium">
+                      Who can view or edit this data?
+                    </th>
+                    <th className="px-3 py-2 text-center font-medium">Read</th>
+                    <th className="px-3 py-2 text-center font-medium">Write</th>
                   </tr>
-                </tbody>
-              ) : null}
-            </table>
-            <Button className="!rounded-md" type="submit">
-              Change Permissions
-            </Button>
-          </form>
+                </thead>
+
+                {localPermissions ? (
+                  <tbody className="text-sm">
+                    <tr className="border-b border-surface">
+                      <td className="p-3 font-medium">
+                        Owner: {targetItem.owner}
+                      </td>
+                      {/* Owner read/write */}
+                      <td className="p-3">
+                        <input
+                          type="checkbox"
+                          name="r_1"
+                          checked={localPermissions[1] === 'r'}
+                          disabled
+                        />
+                      </td>
+                      <td className="p-3">
+                        <input
+                          type="checkbox"
+                          name="w_2"
+                          checked={localPermissions[2] === 'w'}
+                          onChange={event => handleLocalPermissionChange(event)}
+                          className="accent-secondary-light hover:cursor-pointer"
+                        />
+                      </td>
+                    </tr>
+
+                    <tr className="border-b border-surface">
+                      <td className="p-3 font-medium">
+                        Group: {targetItem.group}
+                      </td>
+                      {/* Group read/write */}
+                      <td className="p-3">
+                        <input
+                          type="checkbox"
+                          name="r_4"
+                          checked={localPermissions[4] === 'r'}
+                          onChange={event => handleLocalPermissionChange(event)}
+                          className="accent-secondary-light hover:cursor-pointer"
+                        />
+                      </td>
+                      <td className="p-3">
+                        <input
+                          type="checkbox"
+                          name="w_5"
+                          checked={localPermissions[5] === 'w'}
+                          onChange={event => handleLocalPermissionChange(event)}
+                          className="accent-secondary-light hover:cursor-pointer"
+                        />
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td className="p-3 font-medium">Everyone else</td>
+                      {/* Everyone else read/write */}
+                      <td className="p-3">
+                        <input
+                          type="checkbox"
+                          name="r_7"
+                          checked={localPermissions[7] === 'r'}
+                          onChange={event => handleLocalPermissionChange(event)}
+                          className="accent-secondary-light hover:cursor-pointer"
+                        />
+                      </td>
+                      <td className="p-3">
+                        <input
+                          type="checkbox"
+                          name="w_8"
+                          checked={localPermissions[8] === 'w'}
+                          onChange={event => handleLocalPermissionChange(event)}
+                          className="accent-secondary-light hover:cursor-pointer"
+                        />
+                      </td>
+                    </tr>
+                  </tbody>
+                ) : null}
+              </table>
+              <Button className="!rounded-md" type="submit">
+                Change Permissions
+              </Button>
+            </form>
+          ) : null}
           {showAlert === true ? (
             <Alert
               className={`flex items-center gap-6 mt-6 border-none ${alertContent.startsWith('Error') ? 'bg-error-light/90' : 'bg-secondary-light/70'}`}

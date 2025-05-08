@@ -5,7 +5,7 @@ import {
   removeLastSegmentFromPath
 } from '../utils';
 import { useCookiesContext } from '../contexts/CookiesContext';
-import type { File } from '../shared.types';
+import type { File, FileSharePathItem } from '../shared.types';
 import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';
 import { useFileBrowserContext } from '../contexts/FileBrowserContext';
 
@@ -18,7 +18,13 @@ export default function usePermissionsDialog() {
 
   async function handleChangePermissions(
     targetItem: File,
-    localPermissions: any
+    localPermissions: File['permissions'],
+    setPropertiesTarget: React.Dispatch<
+      React.SetStateAction<{
+        targetFile: File | null;
+        fileSharePath: FileSharePathItem | null;
+      }>
+    >
   ) {
     try {
       console.log('Change permissions for item:', targetItem);
@@ -33,6 +39,18 @@ export default function usePermissionsDialog() {
       await fetchAndFormatFilesForDisplay(
         `${currentFileSharePath?.name}?subpath=${removeLastSegmentFromPath(targetItem.path)}`
       );
+      setPropertiesTarget(prev => {
+        if (!prev.targetFile) {
+          return prev;
+        }
+        return {
+          ...prev,
+          targetFile: {
+            ...prev.targetFile,
+            permissions: localPermissions
+          }
+        };
+      });
       setAlertContent(
         `Successfully updated permissions for ${currentFileSharePath?.name}/${targetItem.path}`
       );
