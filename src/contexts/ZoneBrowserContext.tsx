@@ -75,9 +75,10 @@ export const ZoneBrowserContextProvider = ({
         name: item.zone,
         fileSharePaths: []
       } as Zone;
-    } else if (newZonesAndFileSharePathsMap[`zone_${item.zone}`]) {
-      // If zone exists, check if file share path exists in the zone
-      // And update zone accordingly
+    }
+    // If/once zone exists, check if file share path exists in the zone
+    // And update zone accordingly
+    if (newZonesAndFileSharePathsMap[`zone_${item.zone}`]) {
       const existingZone = newZonesAndFileSharePathsMap[
         `zone_${item.zone}`
       ] as Zone;
