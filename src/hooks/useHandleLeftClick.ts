@@ -1,5 +1,5 @@
 import React from 'react';
-import type { File, FileSharePathItem } from '../shared.types';
+import type { File } from '../shared.types';
 
 // Hook to handle left click events on files in the file browser
 export default function useHandleLeftClick() {
@@ -9,13 +9,7 @@ export default function useHandleLeftClick() {
     selectedFiles: File[],
     setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>,
     displayFiles: File[],
-    currentFileSharePath: FileSharePathItem | null,
-    setPropertiesTarget: React.Dispatch<
-      React.SetStateAction<{
-        targetFile: File | null;
-        fileSharePath: FileSharePathItem | null;
-      }>
-    >,
+    setPropertiesTarget: React.Dispatch<React.SetStateAction<File | null>>,
     showFilePropertiesDrawer: boolean
   ) => {
     if (e.shiftKey) {
@@ -31,10 +25,7 @@ export default function useHandleLeftClick() {
       const end = Math.max(lastSelectedIndex, currentIndex);
       const newSelectedFiles = displayFiles.slice(start, end + 1);
       setSelectedFiles(newSelectedFiles);
-      setPropertiesTarget({
-        targetFile: file,
-        fileSharePath: currentFileSharePath
-      });
+      setPropertiesTarget(file);
     } else if (e.metaKey) {
       // If  "Windows/Cmd" is held down while clicking,
       // toggle the current file in the selection
@@ -49,10 +40,7 @@ export default function useHandleLeftClick() {
       }
 
       setSelectedFiles(newSelectedFiles);
-      setPropertiesTarget({
-        targetFile: file,
-        fileSharePath: currentFileSharePath
-      });
+      setPropertiesTarget(file);
     } else {
       // If no modifier keys are held down, select the current file
       const currentIndex = selectedFiles.indexOf(file);
@@ -69,10 +57,7 @@ export default function useHandleLeftClick() {
         showFilePropertiesDrawer
           ? file
           : null;
-      setPropertiesTarget({
-        targetFile: newPropertiesTarget,
-        fileSharePath: currentFileSharePath
-      });
+      setPropertiesTarget(newPropertiesTarget);
     }
   };
 

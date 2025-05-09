@@ -27,71 +27,66 @@ function getAPIPathRoot() {
   return '/';
 }
 
-async function sendGetRequest(
+async function sendFetchRequest(
   url: string,
-  xrsfCookie: string
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+  xrsfCookie: string,
+  body?: { [key: string]: any }
 ): Promise<Response> {
-  const response = await fetch(url, {
+  const options: RequestInit = {
+    method,
     credentials: 'include',
     headers: {
-      'X-Xsrftoken': xrsfCookie
-    }
-  });
+      'X-Xsrftoken': xrsfCookie,
+      ...(method !== 'GET' &&
+        method !== 'DELETE' && { 'Content-Type': 'application/json' })
+    },
+    ...(method !== 'GET' &&
+      method !== 'DELETE' &&
+      body && { body: JSON.stringify(body) })
+  };
+  const response = await fetch(url, options);
   if (!response.ok) {
     throw new Error(`Response status: ${response.status}`);
   }
   return response;
 }
 
-async function sendPostRequest<T>(
-  url: string,
-  xrsfCookie: string,
-  body: {
-    [key: string]: T;
+function removeLastSegmentFromPath(path: string): string {
+  const segments = path.split('/');
+  if (segments.length > 1) {
+    return segments.slice(0, -1).join('/');
+  } else {
+    return '';
   }
-): Promise<Response> {
-  const response = await fetch(url, {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'X-Xsrftoken': xrsfCookie,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(body)
-  });
-  if (!response.ok) {
-    throw new Error(`Response status: ${response.status}`);
-  }
-  return response;
 }
 
-async function sendPutRequest<T>(
-  url: string,
-  xrsfCookie: string,
-  body: {
-    [key: string]: T;
-  }
-): Promise<Response> {
-  const response = await fetch(url, {
-    method: 'PUT',
-    credentials: 'include',
-    headers: {
-      'X-Xsrftoken': xrsfCookie,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(body)
-  });
-  if (!response.ok) {
-    throw new Error(`Response status: ${response.status}`);
-  }
-  return response;
-}
+// Parse the Unix-style permissions string (e.g., "drwxr-xr-x")
+const parsePermissions = (permissionString: string) => {
+  // Owner permissions (positions 1-3)
+  const ownerRead = permissionString[1] === 'r';
+  const ownerWrite = permissionString[2] === 'w';
+
+  // Group permissions (positions 4-6)
+  const groupRead = permissionString[4] === 'r';
+  const groupWrite = permissionString[5] === 'w';
+
+  // Others/everyone permissions (positions 7-9)
+  const othersRead = permissionString[7] === 'r';
+  const othersWrite = permissionString[8] === 'w';
+
+  return {
+    owner: { read: ownerRead, write: ownerWrite },
+    group: { read: groupRead, write: groupWrite },
+    others: { read: othersRead, write: othersWrite }
+  };
+};
 
 export {
   formatFileSize,
   formatDate,
   getAPIPathRoot,
-  sendGetRequest,
-  sendPostRequest,
-  sendPutRequest
+  sendFetchRequest,
+  removeLastSegmentFromPath,
+  parsePermissions
 };
