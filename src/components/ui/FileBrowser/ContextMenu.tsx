@@ -13,10 +13,7 @@ type ContextMenuProps = {
   selectedFiles: File[];
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
   setShowContextMenu: React.Dispatch<React.SetStateAction<boolean>>;
-  setShowNamingDialog: React.Dispatch<React.SetStateAction<boolean>>;
-  setNamingDialogType: React.Dispatch<
-    React.SetStateAction<'renameItem' | 'newFolder'>
-  >;
+  setShowRenameDialog: React.Dispatch<React.SetStateAction<boolean>>;
   setShowDeleteDialog: React.Dispatch<React.SetStateAction<boolean>>;
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
@@ -28,8 +25,7 @@ export default function ContextMenu({
   selectedFiles,
   setShowPropertiesDrawer,
   setShowContextMenu,
-  setShowNamingDialog,
-  setNamingDialogType,
+  setShowRenameDialog,
   setShowDeleteDialog,
   setShowPermissionsDialog
 }: ContextMenuProps): JSX.Element {
@@ -98,8 +94,7 @@ export default function ContextMenu({
         {selectedFiles.length === 1 ? (
           <Typography
             onClick={() => {
-              setNamingDialogType('renameItem');
-              setShowNamingDialog(true);
+              setShowRenameDialog(true);
               setShowContextMenu(false);
             }}
             className="text-left text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"

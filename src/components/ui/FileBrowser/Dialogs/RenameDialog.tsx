@@ -8,37 +8,30 @@ import {
 } from '@material-tailwind/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import type { File } from '../../../../shared.types';
-import { useFileBrowserContext } from '../../../../contexts/FileBrowserContext';
+import useRenameDialog from '../../../../hooks/useRenameDialog';
 
 type ItemNamingDialogProps = {
   propertiesTarget: File | null;
-  showNamingDialog: boolean;
-  setShowNamingDialog: React.Dispatch<React.SetStateAction<boolean>>;
-  handleDialogSubmit: (targetItemPath: string) => Promise<void>;
-  newName: string;
-  setNewName: React.Dispatch<React.SetStateAction<string>>;
-  showAlert: boolean;
-  setShowAlert: React.Dispatch<React.SetStateAction<boolean>>;
-  alertContent: string;
-  namingDialogType: 'newFolder' | 'renameItem';
+  showRenameDialog: boolean;
+  setShowRenameDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
-export default function ItemNamingDialog({
+export default function RenameDialog({
   propertiesTarget,
-  showNamingDialog,
-  setShowNamingDialog,
-  handleDialogSubmit,
-  newName,
-  setNewName,
-  showAlert,
-  setShowAlert,
-  alertContent,
-  namingDialogType
+  showRenameDialog,
+  setShowRenameDialog
 }: ItemNamingDialogProps): JSX.Element {
-  const {dirArray} = useFileBrowserContext();
+  const {
+    handleRenameSubmit,
+    newName,
+    setNewName,
+    showAlert,
+    setShowAlert,
+    alertContent
+  } = useRenameDialog();
 
   return (
-    <Dialog open={showNamingDialog}>
+    <Dialog open={showRenameDialog}>
       <Dialog.Overlay>
         <Dialog.Content>
           <IconButton
@@ -48,7 +41,7 @@ export default function ItemNamingDialog({
             className="absolute right-2 top-2 text-secondary hover:text-background"
             isCircular
             onClick={() => {
-              setShowNamingDialog(false);
+              setShowRenameDialog(false);
               setNewName('');
               setShowAlert(false);
             }}
@@ -58,7 +51,7 @@ export default function ItemNamingDialog({
           <form
             onSubmit={event => {
               event.preventDefault();
-              handleDialogSubmit(namingDialogType === 'renameItem' ? `${propertiesTarget?.path}` : dirArray.slice(1).join('/'));
+              handleRenameSubmit(`${propertiesTarget?.path}`);
             }}
           >
             <div className="mt-8 flex flex-col gap-2">
@@ -67,11 +60,7 @@ export default function ItemNamingDialog({
                 htmlFor="new_name"
                 className="text-foreground"
               >
-                {namingDialogType === 'newFolder'
-                  ? 'New Folder Name'
-                  : namingDialogType === 'renameItem'
-                    ? 'Rename Item'
-                    : ''}
+                Rename Item
               </Typography>
               <input
                 type="text"

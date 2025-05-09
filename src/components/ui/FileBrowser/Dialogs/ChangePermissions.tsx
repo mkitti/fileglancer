@@ -12,14 +12,12 @@ import type { File } from '../../../../shared.types';
 
 type ChangePermissionsProps = {
   targetItem: File | null;
-  setPropertiesTarget: React.Dispatch<React.SetStateAction<File | null>>;
   showPermissionsDialog: boolean;
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function ChangePermissions({
   targetItem,
-  setPropertiesTarget,
   showPermissionsDialog,
   setShowPermissionsDialog
 }: ChangePermissionsProps): JSX.Element {

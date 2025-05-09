@@ -16,18 +16,14 @@ type ToolbarProps = {
   hideDotFiles: boolean;
   setHideDotFiles: React.Dispatch<React.SetStateAction<boolean>>;
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
-  setShowNamingDialog: React.Dispatch<React.SetStateAction<boolean>>;
-  setNamingDialogType: React.Dispatch<
-    React.SetStateAction<'newFolder' | 'renameItem'>
-  >;
+  setShowNewFolderDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function Toolbar({
   hideDotFiles,
   setHideDotFiles,
   setShowPropertiesDrawer,
-  setShowNamingDialog,
-  setNamingDialogType
+  setShowNewFolderDialog
 }: ToolbarProps): JSX.Element {
   return (
     <div className="flex flex-col min-w-full p-2 border-b border-surface">
@@ -59,8 +55,7 @@ export default function Toolbar({
             as={IconButton}
             variant="outline"
             onClick={() => {
-              setNamingDialogType('newFolder');
-              setShowNamingDialog(true);
+              setShowNewFolderDialog(true);
             }}
           >
             <FolderPlusIcon className="h-5 w-5" />

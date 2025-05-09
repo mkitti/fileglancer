@@ -5,13 +5,13 @@ import useShowPropertiesDrawer from '../hooks/useShowPropertiesDrawer';
 import usePropertiesTarget from '../hooks/usePropertiesTarget';
 import useHideDotFiles from '../hooks/useHideDotFiles';
 import useSelectedFiles from '../hooks/useSelectedFiles';
-import useNamingDialog from '../hooks/useNamingDialog';
 
 import FileList from './ui/FileBrowser/FileList';
 import PropertiesDrawer from './ui/PropertiesDrawer/PropertiesDrawer';
 import Toolbar from './ui/FileBrowser/Toolbar';
 import ContextMenu from './ui/FileBrowser/ContextMenu';
-import ItemNamingDialog from './ui/FileBrowser/Dialogs/ItemNamingDialog';
+import RenameDialog from './ui/FileBrowser/Dialogs/RenameDialog';
+import NewFolderDialog from './ui/FileBrowser/Dialogs/NewFolderDialog';
 import Delete from './ui/FileBrowser/Dialogs/Delete';
 import ChangePermissions from './ui/FileBrowser/Dialogs/ChangePermissions';
 
@@ -28,19 +28,10 @@ export default function Files() {
   const { propertiesTarget, setPropertiesTarget } = usePropertiesTarget();
   const { hideDotFiles, setHideDotFiles, displayFiles } = useHideDotFiles();
   const { selectedFiles, setSelectedFiles } = useSelectedFiles();
-  const {
-    namingDialogType,
-    setNamingDialogType,
-    showNamingDialog,
-    setShowNamingDialog,
-    handleDialogSubmit,
-    newName,
-    setNewName,
-    showAlert,
-    setShowAlert,
-    alertContent
-  } = useNamingDialog();
+
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
+  const [showNewFolderDialog, setShowNewFolderDialog] = React.useState(false);
+  const [showRenameDialog, setShowRenameDialog] = React.useState(false);
   const [showPermissionsDialog, setShowPermissionsDialog] =
     React.useState(false);
 
@@ -50,8 +41,7 @@ export default function Files() {
         hideDotFiles={hideDotFiles}
         setHideDotFiles={setHideDotFiles}
         setShowPropertiesDrawer={setShowPropertiesDrawer}
-        setShowNamingDialog={setShowNamingDialog}
-        setNamingDialogType={setNamingDialogType}
+        setShowNewFolderDialog={setShowNewFolderDialog}
       />
       <div className="relative grow">
         <PropertiesDrawer
@@ -77,24 +67,22 @@ export default function Files() {
           selectedFiles={selectedFiles}
           setShowPropertiesDrawer={setShowPropertiesDrawer}
           setShowContextMenu={setShowContextMenu}
-          setShowNamingDialog={setShowNamingDialog}
-          setNamingDialogType={setNamingDialogType}
+          setShowRenameDialog={setShowRenameDialog}
           setShowDeleteDialog={setShowDeleteDialog}
           setShowPermissionsDialog={setShowPermissionsDialog}
         />
       ) : null}
-      {showNamingDialog ? (
-        <ItemNamingDialog
+      {showRenameDialog ? (
+        <RenameDialog
           propertiesTarget={propertiesTarget}
-          showNamingDialog={showNamingDialog}
-          setShowNamingDialog={setShowNamingDialog}
-          handleDialogSubmit={handleDialogSubmit}
-          newName={newName}
-          setNewName={setNewName}
-          showAlert={showAlert}
-          setShowAlert={setShowAlert}
-          alertContent={alertContent}
-          namingDialogType={namingDialogType}
+          showRenameDialog={showRenameDialog}
+          setShowRenameDialog={setShowRenameDialog}
+        />
+      ) : null}
+      {showNewFolderDialog ? (
+        <NewFolderDialog
+          showNewFolderDialog={showNewFolderDialog}
+          setShowNewFolderDialog={setShowNewFolderDialog}
         />
       ) : null}
       {showDeleteDialog ? (
@@ -107,7 +95,6 @@ export default function Files() {
       {showPermissionsDialog ? (
         <ChangePermissions
           targetItem={propertiesTarget}
-          setPropertiesTarget={setPropertiesTarget}
           showPermissionsDialog={showPermissionsDialog}
           setShowPermissionsDialog={setShowPermissionsDialog}
         />
