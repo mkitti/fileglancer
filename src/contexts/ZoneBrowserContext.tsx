@@ -81,7 +81,6 @@ export const ZoneBrowserContextProvider = ({
       // If/once zone exists, add file share paths to it
       const existingZone = newZonesAndFileSharePathsMap[zoneKey] as Zone;
       existingZone.fileSharePaths.push(item);
-      newZonesAndFileSharePathsMap[zoneKey] = existingZone;
 
       // Then add file share paths to the map
       const fspKey = makeMapKey('fsp', item.name);
