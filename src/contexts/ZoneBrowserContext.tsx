@@ -5,7 +5,7 @@ import {
   FileSharePath,
   ZonesAndFileSharePathsMap
 } from '../shared.types';
-import { getAPIPathRoot, sendFetchRequest } from '../utils';
+import { getAPIPathRoot, sendFetchRequest, makeMapKey } from '../utils';
 import { useCookiesContext } from '../contexts/CookiesContext';
 
 type ZoneBrowserContextType = {
@@ -64,49 +64,40 @@ export const ZoneBrowserContextProvider = ({
     return rawData;
   }
 
-  function createZonesAndFileSharePathsMap(
-    newZonesAndFileSharePathsMap: ZonesAndFileSharePathsMap,
-    item: FileSharePath
-  ) {
-    // Zones first
-    // If the zone doesn't exist in the map, create it
-    if (!newZonesAndFileSharePathsMap[`zone_${item.zone}`]) {
-      newZonesAndFileSharePathsMap[`zone_${item.zone}`] = {
-        name: item.zone,
-        fileSharePaths: []
-      } as Zone;
-    }
-    // If/once zone exists, check if file share path exists in the zone
-    // And update zone accordingly
-    if (newZonesAndFileSharePathsMap[`zone_${item.zone}`]) {
-      const existingZone = newZonesAndFileSharePathsMap[
-        `zone_${item.zone}`
-      ] as Zone;
-      if (
-        !existingZone.fileSharePaths.some(
-          (existingItem: FileSharePath) => existingItem.name === item.name
-        )
-      ) {
-        existingZone.fileSharePaths.push(item);
-        newZonesAndFileSharePathsMap[`zone_${item.zone}`] = existingZone;
+  function createZonesAndFileSharePathsMap(rawData: {
+    paths: FileSharePath[];
+  }) {
+    const newZonesAndFileSharePathsMap: ZonesAndFileSharePathsMap = {};
+    rawData.paths.forEach(item => {
+      // Zones first
+      // If the zone doesn't exist in the map, create it
+      const zoneKey = makeMapKey('zone', item.zone);
+      if (!newZonesAndFileSharePathsMap[zoneKey]) {
+        newZonesAndFileSharePathsMap[zoneKey] = {
+          name: item.zone,
+          fileSharePaths: []
+        } as Zone;
       }
-    }
+      // If/once zone exists, add file share paths to it
+      const existingZone = newZonesAndFileSharePathsMap[zoneKey] as Zone;
+      existingZone.fileSharePaths.push(item);
+      newZonesAndFileSharePathsMap[zoneKey] = existingZone;
 
-    // Then add file share paths to the map
-    if (!newZonesAndFileSharePathsMap[`fsp_${item.name}`]) {
-      newZonesAndFileSharePathsMap[`fsp_${item.name}`] = item;
-    }
+      // Then add file share paths to the map
+      const fspKey = makeMapKey('fsp', item.name);
+      if (!newZonesAndFileSharePathsMap[fspKey]) {
+        newZonesAndFileSharePathsMap[fspKey] = item;
+      }
+    });
+    return newZonesAndFileSharePathsMap;
   }
 
   async function updateZonesAndFileSharePathsMap() {
     let rawData: { paths: FileSharePath[] } = { paths: [] };
     try {
       rawData = await getZones();
-      const newZonesAndFileSharePathsMap: Record<string, FileSharePath | Zone> =
-        {};
-      rawData.paths.forEach(item => {
-        createZonesAndFileSharePathsMap(newZonesAndFileSharePathsMap, item);
-      });
+      const newZonesAndFileSharePathsMap =
+        createZonesAndFileSharePathsMap(rawData);
       setZonesAndFileSharePathsMap(newZonesAndFileSharePathsMap);
       console.log(newZonesAndFileSharePathsMap);
     } catch (error: unknown) {
@@ -121,9 +112,7 @@ export const ZoneBrowserContextProvider = ({
   // When app first loads, fetch file share paths
   // and create a map of zones and file share paths
   React.useEffect(() => {
-    if (Object.keys(zonesAndFileSharePathsMap).length === 0) {
-      updateZonesAndFileSharePathsMap();
-    }
+    updateZonesAndFileSharePathsMap();
   }, []);
 
   return (
