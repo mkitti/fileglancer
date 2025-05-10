@@ -1,7 +1,5 @@
 import * as React from 'react';
 import {
-  Alert,
-  Button,
   IconButton,
   Typography,
   Tabs
@@ -9,14 +7,14 @@ import {
 import {
   DocumentIcon,
   FolderIcon,
-  Square2StackIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
 
 import type { File, FileSharePathItem } from '../../../shared.types';
-import PermissionsTable from './PermissionsTable';
-import OverviewTable from './OverviewTable';
 import useCopyPath from '../../../hooks/useCopyPath';
+import Overview from './Overview';
+import Permissions from './Permissions';
+import Convert from './Convert';
 
 export default function PropertiesDrawer({
   propertiesTarget,
@@ -38,7 +36,7 @@ export default function PropertiesDrawer({
     dismissCopyAlert
   } = useCopyPath();
 
-  const fullPath = `${propertiesTarget.fileSharePath?.name}/${propertiesTarget.targetFile?.path}`;
+  const fullPath = `${propertiesTarget.fileSharePath?.mount_path}/${propertiesTarget.targetFile?.path}`;
 
   return (
     <div
@@ -103,52 +101,22 @@ export default function PropertiesDrawer({
             </Tabs.List>
 
             <Tabs.Panel value="overview">
-              <div className="group flex justify-between items-center">
-                <Typography className="text-foreground font-medium text-sm">
-                  <span className="!font-bold">Path: </span>
-                  {fullPath}
-                </Typography>
-                <IconButton
-                  variant="ghost"
-                  isCircular
-                  className="text-transparent group-hover:text-foreground"
-                  onClick={() => {
-                    if (propertiesTarget.targetFile) {
-                      copyToClipboard(fullPath);
-                    }
-                  }}
-                >
-                  <Square2StackIcon className="h-4 w-4" />
-                </IconButton>
-              </div>
-              {copiedText.value === fullPath &&
-              copiedText.isCopied === true &&
-              showCopyAlert === true ? (
-                <Alert className="flex items-center justify-between bg-secondary-light/70 border-none">
-                  <Alert.Content>Path copied to clipboard!</Alert.Content>
-                  <XMarkIcon
-                    className="h-5 w-5 cursor-pointer"
-                    onClick={dismissCopyAlert}
-                  />
-                </Alert>
-              ) : null}
-              <OverviewTable file={propertiesTarget.targetFile} />
+              <Overview
+                fullPath={fullPath}
+                file={propertiesTarget.targetFile}
+                copiedText={copiedText}
+                showCopyAlert={showCopyAlert}
+                copyToClipboard={copyToClipboard}
+                dismissCopyAlert={dismissCopyAlert}
+              />
             </Tabs.Panel>
 
-            <Tabs.Panel value="permissions" className="flex flex-col gap-2">
-              <PermissionsTable file={propertiesTarget.targetFile} />
-              <Button as="a" href="#" variant="outline">
-                Change Permissions
-              </Button>
+            <Tabs.Panel value="permissions">
+              <Permissions file={propertiesTarget.targetFile} />
             </Tabs.Panel>
 
-            <Tabs.Panel value="convert" className="flex flex-col gap-2">
-              <Typography variant="small" className="font-medium">
-                Convert data to OME-Zarr
-              </Typography>
-              <Button as="a" href="#" variant="outline">
-                Submit
-              </Button>
+            <Tabs.Panel value="convert">
+              <Convert />
             </Tabs.Panel>
           </Tabs>
         ) : null}
