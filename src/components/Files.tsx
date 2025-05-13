@@ -1,5 +1,3 @@
-import React from 'react';
-
 import useContextMenu from '../hooks/useContextMenu';
 import useShowPropertiesDrawer from '../hooks/useShowPropertiesDrawer';
 import usePropertiesTarget from '../hooks/usePropertiesTarget';

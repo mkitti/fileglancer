@@ -1,4 +1,3 @@
-import React from 'react';
 import { CheckIcon, MinusIcon } from '@heroicons/react/24/outline';
 import { File } from '../../../shared.types';
 import { parsePermissions } from '../../../utils';
