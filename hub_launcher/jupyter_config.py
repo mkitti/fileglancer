@@ -21,7 +21,13 @@ import pkg_resources
 
 # the command the hub should spawn for the user. It is a single user jupyter
 # server, that defaults to the fileglancer UI
-c.Spawner.cmd = ['jupyterhub-singleuser', '--ServerApp.default_url=/fg/']
+c.Spawner.cmd = ['jupyterhub-singleuser']
+c.Spawner.args = [
+    # point the default URL at the fileglancer handler
+    "--ServerApp.default_url=/fg/",
+    #
+    "--config=" + str(Path(__file__).parent / 'jupyter_server_config.py'),
+]
 
 
 # the spawner to invoke this command
@@ -50,41 +56,6 @@ c.JupyterHub.cookie_options = {
     'Secure': True,
     'SameSite': 'None',
 }
-
-# write Cylc logging to the user config directory
-# NOTE: Parallel UIS instances will conflict over this file.
-#       See https://github.com/cylc/cylc-uiserver/issues/240
-c.CylcUIServer.logging_config = {
-    'version': 1,
-    'handlers': {
-        'file': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'level': 'INFO',
-            'filename': 'log/log',
-            'mode': 'a',
-            'backupCount': 5,
-            'maxBytes': 10485760,
-            'formatter': 'file_fmt',
-        },
-    },
-    'loggers': {
-        'CylcUIServer': {
-            'level': 'INFO',
-            'handlers': ['console', 'file'],
-        },
-        'cylc': {
-            'level': 'INFO',
-            'handlers': ['console', 'file'],
-        },
-    },
-    'formatters': {
-        'file_fmt': {
-            'format': '%(asctime)s %(levelname)-8s %(message)s',
-            'datefmt': '%Y-%m-%dT%H:%M:%S',
-        }
-    },
-}
-
 
 # Define the authorization-policy for Jupyter Server.
 # This prevents users being granted full access to extensions such as Jupyter
