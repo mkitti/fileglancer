@@ -19,8 +19,10 @@ from pathlib import Path
 import pkg_resources
 
 
-# the command the hub should spawn (i.e. the cylc uiserver itself)
-c.Spawner.cmd = ['fileglancer', 'hubapp']
+# the command the hub should spawn for the user. It is a single user jupyter
+# server, that defaults to the fileglancer UI
+c.Spawner.cmd = ['jupyterhub-singleuser', '--ServerApp.default_url=/fg/']
+
 
 # the spawner to invoke this command
 c.JupyterHub.spawner_class = 'jupyterhub.spawner.LocalProcessSpawner'
@@ -44,6 +46,10 @@ c.JupyterHub.template_paths = [Path(__file__).parent / 'templates']
 c.JupyterHub.cookie_secret_file = 'cookie_secret'
 c.JupyterHub.db_url = 'jupyterhub.sqlite'
 c.ConfigurableHTTPProxy.pid_file = 'jupyterhub-proxy.pid'
+c.JupyterHub.cookie_options = {
+    'Secure': True,
+    'SameSite': 'None',
+}
 
 # write Cylc logging to the user config directory
 # NOTE: Parallel UIS instances will conflict over this file.
