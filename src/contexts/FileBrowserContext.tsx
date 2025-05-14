@@ -120,7 +120,7 @@ export const FileBrowserContextProvider = ({
     const url = getFileFetchPath(path);
 
     try {
-      const response = await sendGetRequest(url, cookies['_xsrf']);
+      const response = await sendFetchRequest(url, 'GET', cookies['_xsrf']);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch file: ${response.statusText}`);
