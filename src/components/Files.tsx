@@ -5,6 +5,7 @@ import useShowPropertiesDrawer from '../hooks/useShowPropertiesDrawer';
 import usePropertiesTarget from '../hooks/usePropertiesTarget';
 import useHideDotFiles from '../hooks/useHideDotFiles';
 import useSelectedFiles from '../hooks/useSelectedFiles';
+import { useFileBrowserContext } from '../contexts/FileBrowserContext';
 
 import FileList from './ui/FileBrowser/FileList';
 import PropertiesDrawer from './ui/PropertiesDrawer/PropertiesDrawer';
@@ -22,8 +23,9 @@ export default function Files() {
   const { showPropertiesDrawer, setShowPropertiesDrawer } =
     useShowPropertiesDrawer();
   const { propertiesTarget, setPropertiesTarget } = usePropertiesTarget();
-  const { hideDotFiles, setHideDotFiles, displayFiles } = useHideDotFiles();
+  const { hideDotFiles, setHideDotFiles } = useHideDotFiles();
   const { selectedFiles, setSelectedFiles } = useSelectedFiles();
+  const { files } = useFileBrowserContext();
 
   return (
     <div className="flex-1 overflow-auto flex flex-col">
@@ -39,11 +41,12 @@ export default function Files() {
           setShowPropertiesDrawer={setShowPropertiesDrawer}
         />
         <FileList
-          displayFiles={displayFiles}
+          files={files}
           selectedFiles={selectedFiles}
           setSelectedFiles={setSelectedFiles}
           showPropertiesDrawer={showPropertiesDrawer}
           setPropertiesTarget={setPropertiesTarget}
+          hideDotFiles={hideDotFiles}
           handleRightClick={handleRightClick}
         />
       </div>
