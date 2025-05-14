@@ -13,23 +13,25 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 
-import type { File, FileSharePathItem } from '../../../shared.types';
+import type { File } from '../../../shared.types';
 import PermissionsTable from './PermissionsTable';
 import OverviewTable from './OverviewTable';
 import useCopyPath from '../../../hooks/useCopyPath';
+import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
+
+type PropertiesDrawerProps = {
+  propertiesTarget: File | null;
+  open: boolean;
+  setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
+};
 
 export default function PropertiesDrawer({
   propertiesTarget,
   open,
-  setShowPropertiesDrawer
-}: {
-  propertiesTarget: {
-    targetFile: File | null;
-    fileSharePath: FileSharePathItem | null;
-  };
-  open: boolean;
-  setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
-}) {
+  setShowPropertiesDrawer,
+  setShowPermissionsDialog
+}: PropertiesDrawerProps): JSX.Element {
   const {
     copiedText,
     showCopyAlert,
@@ -37,8 +39,9 @@ export default function PropertiesDrawer({
     copyToClipboard,
     dismissCopyAlert
   } = useCopyPath();
+  const { currentFileSharePath } = useZoneBrowserContext();
 
-  const fullPath = `${propertiesTarget.fileSharePath?.name}/${propertiesTarget.targetFile?.path}`;
+  const fullPath = `${currentFileSharePath?.name}/${propertiesTarget?.path}`;
 
   return (
     <div
@@ -63,15 +66,15 @@ export default function PropertiesDrawer({
           </IconButton>
         </div>
 
-        {propertiesTarget.targetFile ? (
+        {propertiesTarget ? (
           <div className="flex items-center gap-2 mt-3 mb-4 max-h-min">
-            {propertiesTarget.targetFile.is_dir ? (
+            {propertiesTarget.is_dir ? (
               <FolderIcon className="h-5 w-5" />
             ) : (
               <DocumentIcon className="h-5 w-5" />
             )}{' '}
             <Typography className="font-semibold">
-              {propertiesTarget.targetFile.name}
+              {propertiesTarget?.name}
             </Typography>
           </div>
         ) : (
@@ -79,7 +82,7 @@ export default function PropertiesDrawer({
             Click on a file or folder to view its properties
           </Typography>
         )}
-        {propertiesTarget.targetFile && propertiesTarget.fileSharePath ? (
+        {propertiesTarget ? (
           <Tabs key="file-properties-tabs" defaultValue="overview">
             <Tabs.List className="w-full rounded-none border-b border-secondary-dark  bg-transparent dark:bg-transparent py-0">
               <Tabs.Trigger
@@ -113,7 +116,7 @@ export default function PropertiesDrawer({
                   isCircular
                   className="text-transparent group-hover:text-foreground"
                   onClick={() => {
-                    if (propertiesTarget.targetFile) {
+                    if (propertiesTarget) {
                       copyToClipboard(fullPath);
                     }
                   }}
@@ -132,12 +135,18 @@ export default function PropertiesDrawer({
                   />
                 </Alert>
               ) : null}
-              <OverviewTable file={propertiesTarget.targetFile} />
+              <OverviewTable file={propertiesTarget} />
             </Tabs.Panel>
 
             <Tabs.Panel value="permissions" className="flex flex-col gap-2">
-              <PermissionsTable file={propertiesTarget.targetFile} />
-              <Button as="a" href="#" variant="outline">
+              <PermissionsTable file={propertiesTarget} />
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowPermissionsDialog(true);
+                }}
+                className="!rounded-md"
+              >
                 Change Permissions
               </Button>
             </Tabs.Panel>

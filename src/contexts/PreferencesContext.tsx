@@ -4,7 +4,7 @@ import type {
   ZonesAndFileSharePaths
 } from '../shared.types';
 import { useCookiesContext } from '../contexts/CookiesContext';
-import { getAPIPathRoot, sendGetRequest, sendPutRequest } from '../utils';
+import { getAPIPathRoot, sendFetchRequest } from '../utils';
 
 export type DirectoryFavorite = {
   fileSharePath: FileSharePathItem;
@@ -82,8 +82,9 @@ export const PreferencesProvider = ({
     setStateFunction: React.Dispatch<React.SetStateAction<T>>
   ) {
     try {
-      await sendGetRequest(
+      await sendFetchRequest(
         `${getAPIPathRoot()}api/fileglancer/preference?key=${key}`,
+        'GET',
         cookies['_xsrf']
       )
         .then(response => response.json())
@@ -118,8 +119,9 @@ export const PreferencesProvider = ({
 
   async function updatePreferences<T>(key: string, keyValue: T) {
     try {
-      await sendPutRequest(
+      await sendFetchRequest(
         `${getAPIPathRoot()}api/fileglancer/preference?key=${key}`,
+        'PUT',
         cookies['_xsrf'],
         { value: keyValue }
       );

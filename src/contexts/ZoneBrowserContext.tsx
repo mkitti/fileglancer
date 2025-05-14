@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { ZonesAndFileSharePaths, FileSharePathItem } from '../shared.types';
-import { getAPIPathRoot, sendGetRequest } from '../utils';
+import { getAPIPathRoot, sendFetchRequest } from '../utils';
 import { useCookiesContext } from '../contexts/CookiesContext';
 
 type ZoneBrowserContextType = {
@@ -54,7 +54,7 @@ export const ZoneBrowserContextProvider = ({
     const url = `${getAPIPathRoot()}api/fileglancer/file-share-paths`;
 
     try {
-      const response = await sendGetRequest(url, cookies['_xsrf']);
+      const response = await sendFetchRequest(url, 'GET', cookies['_xsrf']);
 
       const rawData: { paths: FileSharePathItem[] } = await response.json();
       const unsortedPaths: ZonesAndFileSharePaths = {};

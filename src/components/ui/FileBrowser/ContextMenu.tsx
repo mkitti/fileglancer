@@ -1,6 +1,7 @@
-import * as React from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom';
 import { Typography } from '@material-tailwind/react';
+
 import type { File } from '../../../shared.types';
 import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
 import { usePreferencesContext } from '../../../contexts/PreferencesContext';
@@ -10,8 +11,11 @@ type ContextMenuProps = {
   y: number;
   menuRef: React.RefObject<HTMLDivElement>;
   selectedFiles: File[];
-  setShowPropertiesDrawer: (show: boolean) => void;
-  setShowContextMenu: (show: boolean) => void;
+  setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowContextMenu: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowRenameDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowDeleteDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function ContextMenu({
@@ -20,7 +24,10 @@ export default function ContextMenu({
   menuRef,
   selectedFiles,
   setShowPropertiesDrawer,
-  setShowContextMenu
+  setShowContextMenu,
+  setShowRenameDialog,
+  setShowDeleteDialog,
+  setShowPermissionsDialog
 }: ContextMenuProps): JSX.Element {
   const { currentNavigationZone, currentFileSharePath } =
     useZoneBrowserContext();
@@ -35,6 +42,7 @@ export default function ContextMenu({
       }}
     >
       <div className="flex flex-col gap-2">
+        {/* Show/hide properties drawer */}
         <Typography
           className="text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
           onClick={() => {
@@ -44,6 +52,8 @@ export default function ContextMenu({
         >
           View file properties
         </Typography>
+
+        {/* Set/unset folders as favorites */}
         {(selectedFiles.length === 1 && selectedFiles[0].is_dir) ||
         (selectedFiles.length > 1 &&
           selectedFiles.some(file => file.is_dir)) ? (
@@ -70,8 +80,6 @@ export default function ContextMenu({
                       name: file.name,
                       path: file.path
                     }));
-                  console.log('directories to add:', directoriesToAdd);
-
                   handleFavoriteChange(directoriesToAdd, 'directory');
                   setShowContextMenu(false);
                 }
@@ -81,8 +89,46 @@ export default function ContextMenu({
             Set/unset as favorite
           </Typography>
         ) : null}
+
+        {/* Rename file or folder */}
+        {selectedFiles.length === 1 ? (
+          <Typography
+            onClick={() => {
+              setShowRenameDialog(true);
+              setShowContextMenu(false);
+            }}
+            className="text-left text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
+          >
+            Rename
+          </Typography>
+        ) : null}
+
+        {/* Change permissions on file(s) */}
+        {selectedFiles.length === 1 && !selectedFiles[0].is_dir ? (
+          <Typography
+            className="text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
+            onClick={() => {
+              setShowPermissionsDialog(true);
+              setShowContextMenu(false);
+            }}
+          >
+            Change permissions
+          </Typography>
+        ) : null}
+
+        {/* Delete file(s) or folder(s) */}
+        <Typography
+          className="text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
+          onClick={() => {
+            setShowDeleteDialog(true);
+            setShowContextMenu(false);
+          }}
+        >
+          Delete
+        </Typography>
       </div>
     </div>,
-    document.body // Render directly to body
+
+    document.body // Render context menu directly to body
   );
 }

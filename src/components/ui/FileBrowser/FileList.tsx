@@ -3,7 +3,7 @@ import { Typography } from '@material-tailwind/react';
 import * as zarr from "zarrita";
 import * as omezarr from "ome-zarr.js";
 
-import type { File, FileSharePathItem } from '../../../shared.types';
+import type { File } from '../../../shared.types';
 import FileListCrumbs from './Crumbs';
 import FileRow from './FileRow';
 import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
@@ -14,25 +14,14 @@ type FileListProps = {
   selectedFiles: File[];
   setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>;
   showPropertiesDrawer: boolean;
-  setPropertiesTarget: React.Dispatch<
-    React.SetStateAction<{
-      targetFile: File | null;
-      fileSharePath: FileSharePathItem | null;
-    }>
-  >;
+  setPropertiesTarget: React.Dispatch<React.SetStateAction<File | null>>;
   hideDotFiles: boolean;
   handleRightClick: (
     e: React.MouseEvent<HTMLDivElement>,
     file: File,
     selectedFiles: File[],
     setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>,
-    currentFileSharePath: FileSharePathItem | null,
-    setPropertiesTarget: React.Dispatch<
-      React.SetStateAction<{
-        targetFile: File | null;
-        fileSharePath: FileSharePathItem | null;
-      }>
-    >
+    setPropertiesTarget: React.Dispatch<React.SetStateAction<File | null>>
   ) => void;
 };
 

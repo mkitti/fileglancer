@@ -7,7 +7,7 @@ import {
   FolderIcon
 } from '@heroicons/react/24/outline';
 
-import type { File, FileSharePathItem } from '../../../shared.types';
+import type { File } from '../../../shared.types';
 import { useFileBrowserContext } from '../../../contexts/FileBrowserContext';
 import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
 import useHandleLeftClick from '../../../hooks/useHandleLeftClick';
@@ -20,24 +20,13 @@ type FileRowProps = {
   setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>;
   displayFiles: File[];
   showPropertiesDrawer: boolean;
-  setPropertiesTarget: React.Dispatch<
-    React.SetStateAction<{
-      targetFile: File | null;
-      fileSharePath: FileSharePathItem | null;
-    }>
-  >;
+  setPropertiesTarget: React.Dispatch<React.SetStateAction<File | null>>;
   handleRightClick: (
     e: React.MouseEvent<HTMLDivElement>,
     file: File,
     selectedFiles: File[],
     setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>,
-    currentFileSharePath: FileSharePathItem | null,
-    setPropertiesTarget: React.Dispatch<
-      React.SetStateAction<{
-        targetFile: File | null;
-        fileSharePath: FileSharePathItem | null;
-      }>
-    >
+    setPropertiesTarget: React.Dispatch<React.SetStateAction<File | null>>
   ) => void;
 };
 
@@ -68,7 +57,6 @@ export default function FileRow({
           selectedFiles,
           setSelectedFiles,
           displayFiles,
-          currentFileSharePath,
           setPropertiesTarget,
           showPropertiesDrawer
         )
@@ -79,7 +67,6 @@ export default function FileRow({
           file,
           selectedFiles,
           setSelectedFiles,
-          currentFileSharePath,
           setPropertiesTarget
         )
       }
@@ -102,10 +89,7 @@ export default function FileRow({
               fetchAndFormatFilesForDisplay(
                 `${currentFileSharePath?.name}?subpath=${file.path}`
               );
-              setPropertiesTarget({
-                targetFile: file,
-                fileSharePath: currentFileSharePath
-              });
+              setPropertiesTarget(file);
             }
           }}
         >
@@ -148,7 +132,6 @@ export default function FileRow({
             file,
             selectedFiles,
             setSelectedFiles,
-            currentFileSharePath,
             setPropertiesTarget
           );
         }}
