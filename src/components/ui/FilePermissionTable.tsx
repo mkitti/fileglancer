@@ -1,16 +1,40 @@
 import React from 'react';
-import { CheckIcon, MinusIcon } from '@heroicons/react/24/outline';
-import { File } from '../../../shared.types';
-import { parsePermissions } from '../../../utils';
+import { Check, Minus } from 'iconoir-react';
+import { File } from '../../hooks/useFileBrowser';
 
-export default function PermissionsTable({ file }: { file: File | null }) {
+type FileTableProps = {
+  file: File | null;
+};
+
+export default function FilePermissionTable({ file }: FileTableProps) {
+  // Parse the Unix-style permissions string (e.g., "drwxr-xr-x")
+  const parsePermissions = (permissionString: string) => {
+    // Owner permissions (positions 1-3)
+    const ownerRead = permissionString[1] === 'r';
+    const ownerWrite = permissionString[2] === 'w';
+
+    // Group permissions (positions 4-6)
+    const groupRead = permissionString[4] === 'r';
+    const groupWrite = permissionString[5] === 'w';
+
+    // Others/everyone permissions (positions 7-9)
+    const othersRead = permissionString[7] === 'r';
+    const othersWrite = permissionString[8] === 'w';
+
+    return {
+      owner: { read: ownerRead, write: ownerWrite },
+      group: { read: groupRead, write: groupWrite },
+      others: { read: othersRead, write: othersWrite }
+    };
+  };
+
   const permissions = file ? parsePermissions(file.permissions) : null;
 
   const PermissionIcon = ({ hasPermission }: { hasPermission: boolean }) =>
     hasPermission ? (
-      <CheckIcon className="h-5 w-5" />
+      <Check className="h-5 w-5" />
     ) : (
-      <MinusIcon className="h-5 w-5" />
+      <Minus className="h-5 w-5" />
     );
 
   return (

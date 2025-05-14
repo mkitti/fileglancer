@@ -1,3 +1,4 @@
+import React from 'react';
 import { Outlet } from 'react-router';
 import { CookiesProvider } from '../contexts/CookiesContext';
 import { FileBrowserContextProvider } from '../contexts/FileBrowserContext';

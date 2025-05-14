@@ -34,7 +34,7 @@ export default function FileList({
   setPropertiesTarget,
   hideDotFiles,
   handleRightClick
-}: FileListProps): JSX.Element {
+}: FileListProps): React.ReactNode {
   const { currentNavigationPath, getFileFetchPath } = useFileBrowserContext();
   const { currentFileSharePath } = useZoneBrowserContext();
   const { cookies } = useCookiesContext();
