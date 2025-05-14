@@ -77,10 +77,17 @@ class FileSharePathsHandler(StreamingProxy):
         self.finish()
 
 
+
 class FileShareHandler(APIHandler):
     """
     API handler for file access using the Filestore class
     """
+    def set_cors_headers(self):
+        self.set_header('Access-Control-Allow-Origin', '*')  # Or your specific domain
+        self.set_header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
+        self.set_header('Access-Control-Allow-Headers', 'Content-Type, X-XSRFToken')
+        self.set_header('Access-Control-Allow-Credentials', 'true')
+
 
     def _get_filestore(self, path_name):
         """
@@ -104,15 +111,21 @@ class FileShareHandler(APIHandler):
         return filestore
 
 
-    @web.authenticated
     def get(self, path=""):
         """
         Handle GET requests to list directory contents or stream file contents
         """
         subpath = self.get_argument("subpath", '')
-        self.log.info(f"GET /api/fileglancer/files/{path} subpath={subpath}")
+        self.set_cors_headers()
 
-        filestore = self._get_filestore(path)
+        if subpath:
+            self.log.info(f"GET /api/fileglancer/files/{path} subpath={subpath}")
+            filestore_name = path
+        else:
+            self.log.info(f"GET /api/fileglancer/files/{path}")
+            filestore_name, _, subpath = path.partition('/')
+            
+        filestore = self._get_filestore(filestore_name)
         if filestore is None:
             return
 
@@ -229,6 +242,12 @@ class FileShareHandler(APIHandler):
             return
 
         filestore.remove_file_or_dir(subpath)
+        self.set_status(204)
+        self.finish()
+
+
+    def options(self, *args, **kwargs):
+        self.set_cors_headers()
         self.set_status(204)
         self.finish()
 
@@ -436,6 +455,7 @@ class StaticHandler(JupyterHandler, web.StaticFileHandler):
         # Ensure XSRF cookie is set for index.html
         if self.get_absolute_path == "index.html":
             self.xsrf_token
+
 
 def setup_handlers(web_app):
     """
