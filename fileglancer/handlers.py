@@ -112,6 +112,8 @@ class FileShareHandler(APIHandler):
         return filestore
 
 
+    # TODO: Uncomment once we have a file server for Neuroglancer
+    #@web.authenticated
     def get(self, path=""):
         """
         Handle GET requests to list directory contents or stream file contents
@@ -247,6 +249,8 @@ class FileShareHandler(APIHandler):
         self.finish()
 
 
+    # TODO: Uncomment once we have a file server for Neuroglancer
+    #@web.authenticated
     def options(self, *args, **kwargs):
         self.set_cors_headers()
         self.set_status(204)
