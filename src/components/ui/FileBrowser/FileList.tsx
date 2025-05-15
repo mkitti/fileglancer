@@ -82,26 +82,26 @@ export default function FileList({
     >
       <FileListCrumbs />
 
-      {hasMultiscales && (
+      {hasMultiscales ? (
         <div className="my-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md">
           <Typography variant="small" className="text-blue-600 dark:text-blue-400">
             This directory contains an OME-Zarr image
           </Typography>
 
-          {thumbnailSrc && (
+          {thumbnailSrc ? (
             <img id="thumbnail" src={thumbnailSrc} alt="Thumbnail" />
-          )}
+          ): null}
 
-          {neuroglancerUrl && (
+          {neuroglancerUrl ? (
             <a href={neuroglancerUrl} target="_blank" rel="noopener noreferrer">
               <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 dark:bg-blue-400 dark:hover:bg-blue-500">
                 View in Neuroglancer
               </button>
             </a>
-          )}
+          ) : null}
 
         </div>
-      )}
+      ): null}
 
       <div className="min-w-full bg-background select-none">
         {/* Header row */}
