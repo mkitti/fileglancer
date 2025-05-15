@@ -24,18 +24,19 @@ def _get_mounted_filestore(fsp):
     return filestore
 
 
-def get_current_user(api):
-    """
-    Get the current user's username.
-    
-    Returns:
-        str: The username of the current user.
-    """
-    #return api.current_user.name
-    return os.getenv("USER") or os.getenv("USERNAME")
+class BaseHandler(APIHandler):
+    def get_current_user(self):
+        """
+        Get the current user's username. Uses the USER environment variable 
+        if available, otherwise uses the current Jupyter user's name.
+        
+        Returns:
+            str: The username of the current user.
+        """
+        return os.getenv("USER", self.current_user.name)
 
 
-class StreamingProxy(APIHandler):
+class StreamingProxy(BaseHandler):
     """
     API handler for proxying responses from the central server
     """
@@ -78,7 +79,7 @@ class FileSharePathsHandler(StreamingProxy):
 
 
 
-class FileShareHandler(APIHandler):
+class FileShareHandler(BaseHandler):
     """
     API handler for file access using the Filestore class
     """
@@ -257,7 +258,7 @@ class FileShareHandler(APIHandler):
         self.finish()
 
 
-class PreferencesHandler(APIHandler):
+class PreferencesHandler(BaseHandler):
     """
     Handler for user preferences API endpoints.
     """
@@ -268,7 +269,7 @@ class PreferencesHandler(APIHandler):
         Get all preferences or a specific preference for the current user.
         """
         key = self.get_argument("key", None)
-        username = get_current_user(self)
+        username = self.get_current_user()
         self.log.info(f"GET /api/fileglancer/preference username={username} key={key}")
 
         try:
@@ -292,7 +293,7 @@ class PreferencesHandler(APIHandler):
         Set a preference for the current user.
         """
         key = self.get_argument("key")
-        username = get_current_user(self)
+        username = self.get_current_user()
         value = self.get_json_body()
         self.log.info(f"PUT /api/fileglancer/preference username={username} key={key}")
 
@@ -313,7 +314,7 @@ class PreferencesHandler(APIHandler):
         Delete a preference for the current user.
         """
         key = self.get_argument("key")
-        username = get_current_user(self)
+        username = self.get_current_user()
         self.log.info(f"DELETE /api/fileglancer/preference username={username} key={key}")
 
         try:
@@ -331,7 +332,7 @@ class PreferencesHandler(APIHandler):
             self.finish(json.dumps({"error": str(e)}))
 
 
-class TicketHandler(APIHandler):
+class TicketHandler(BaseHandler):
     """
     API handler for ticket operations
     """
@@ -403,7 +404,7 @@ class TicketHandler(APIHandler):
             self.finish(json.dumps({"error": str(e)}))
 
 
-class VersionHandler(APIHandler):
+class VersionHandler(BaseHandler):
     """
     API handler for returning the version of the fileglancer extension
     """
