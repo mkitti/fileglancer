@@ -17,7 +17,7 @@ export default function ZonesBrowser({
   toggleOpenZones: (zone: string) => void;
   //   filteredZonesAndFileSharePaths: ZonesAndFileSharePathsMap;
 }) {
-  const { zonesAndFileSharePaths } = useZoneBrowserContext();
+  const { zonesAndFileSharePathsMap } = useZoneBrowserContext();
 
   const displayZones: ZonesAndFileSharePathsMap = zonesAndFileSharePathsMap;
   // Object.keys(filteredZonesAndFileSharePaths).length > 0 ||
@@ -50,15 +50,16 @@ export default function ZonesBrowser({
         className="!overflow-y-auto overflow-x-hidden flex-grow"
       >
         <List className="!overflow-y-auto h-full py-0 gap-0 pr-2 bg-background">
-          {Object.entries(displayZones).map(([zoneName, fileSharePaths]) => {
-            return (
-              <Zone
-                zoneName={zoneName}
-                fileSharePaths={fileSharePaths}
-                openZones={openZones}
-                toggleOpenZones={toggleOpenZones}
-              />
-            );
+          {Object.entries(displayZones).map(([key, value]) => {
+            if (key.startsWith('zone') && 'fileSharePaths' in value) {
+              return (
+                <Zone
+                  zone={value}
+                  openZones={openZones}
+                  toggleOpenZones={toggleOpenZones}
+                />
+              );
+            }
           })}
         </List>
       </Collapse>
