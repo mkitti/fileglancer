@@ -97,8 +97,12 @@ export const ZoneBrowserContextProvider = ({
       rawData = await getZones();
       const newZonesAndFileSharePathsMap =
         createZonesAndFileSharePathsMap(rawData);
+
       setZonesAndFileSharePathsMap(newZonesAndFileSharePathsMap);
-      console.log(newZonesAndFileSharePathsMap);
+      console.log(
+        'zones and fsp map in ZoneBrowserContext:',
+        newZonesAndFileSharePathsMap
+      );
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error(error.message);

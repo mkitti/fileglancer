@@ -1,74 +1,75 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+// import { Link } from 'react-router-dom';
 import {
   Collapse,
-  IconButton,
+  //   IconButton,
   Typography,
   List
 } from '@material-tailwind/react';
 import {
-  ChevronRightIcon,
-  FolderIcon,
-  StarIcon as StarOutline
+  ChevronRightIcon
+  //   FolderIcon,
+  //   StarIcon as StarOutline
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
 import Zone from './Zone';
-import FileSharePath from './FileSharePath';
+// import FileSharePathComponent from './FileSharePath';
 import {
-  DirectoryFavorite,
+  //   DirectoryFavorite,
   usePreferencesContext
 } from '../../../contexts/PreferencesContext';
-import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
-import { useFileBrowserContext } from '../../../contexts/FileBrowserContext';
+// import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
+// import { useFileBrowserContext } from '../../../contexts/FileBrowserContext';
 import useToggleOpenFavorites from '../../../hooks/useToggleOpenFavorites';
-import {
-  FileSharePathItem,
-  ZonesAndFileSharePaths
-} from '../../../shared.types';
+// import {
+//   FileSharePath
+//   //   ZonesAndFileSharePathsMap
+// } from '../../../shared.types';
 
-export default function FavoritesBrowser({
-  searchQuery,
-  setOpenZones,
-  filteredZoneFavorites,
-  filteredFileSharePathFavorites,
-  filteredDirectoryFavorites
-}: {
-  searchQuery: string;
-  setOpenZones: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-  filteredZoneFavorites: ZonesAndFileSharePaths[];
-  filteredFileSharePathFavorites: FileSharePathItem[];
-  filteredDirectoryFavorites: DirectoryFavorite[];
-}) {
+export default function FavoritesBrowser() {
+  //   {
+  //     //   searchQuery,
+  //     //   setOpenZones
+  //     //   filteredZoneFavorites,
+  //     //   filteredFileSharePathFavorites,
+  //     //   filteredDirectoryFavorites
+  //   }: {
+  //     //   searchQuery: string;
+  //     //   setOpenZones: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  //     //   filteredZoneFavorites: ZonesAndFileSharePaths[];
+  //     //   filteredFileSharePathFavorites: FileSharePath[];
+  //     //   filteredDirectoryFavorites: DirectoryFavorite[];
+  //   }
   const { openFavorites, toggleOpenFavorites } = useToggleOpenFavorites();
   const {
-    zoneFavorites,
-    fileSharePathFavorites,
-    directoryFavorites,
-    pathPreference,
-    handleFavoriteChange
+    zoneFavorites
+    // fileSharePathFavorites,
+    // directoryFavorites,
+    // pathPreference,
+    // handleFavoriteChange
   } = usePreferencesContext();
-  const { currentDir, fetchAndFormatFilesForDisplay } = useFileBrowserContext();
-  const {
-    setCurrentNavigationZone,
-    currentFileSharePath,
-    setCurrentFileSharePath
-  } = useZoneBrowserContext();
+  //   const { currentDir, fetchAndFormatFilesForDisplay } = useFileBrowserContext();
+  //   const {
+  //     setCurrentNavigationZone,
+  //     currentFileSharePath,
+  //     setCurrentFileSharePath
+  //   } = useZoneBrowserContext();
 
-  const displayZones =
-    filteredZoneFavorites.length > 0 || searchQuery.length > 0
-      ? filteredZoneFavorites
-      : zoneFavorites;
+  const displayZones = zoneFavorites;
+  // filteredZoneFavorites.length > 0 || searchQuery.length > 0
+  //   ? filteredZoneFavorites
+  //   : zoneFavorites;
 
-  const displayFileSharePaths =
-    filteredFileSharePathFavorites.length > 0 || searchQuery.length > 0
-      ? filteredFileSharePathFavorites
-      : fileSharePathFavorites;
+  //   const displayFileSharePaths =
+  //     filteredFileSharePathFavorites.length > 0 || searchQuery.length > 0
+  //       ? filteredFileSharePathFavorites
+  //       : fileSharePathFavorites;
 
-  const displayDirectories =
-    filteredDirectoryFavorites.length > 0 || searchQuery.length > 0
-      ? filteredDirectoryFavorites
-      : directoryFavorites;
+  //   const displayDirectories =
+  //     filteredDirectoryFavorites.length > 0 || searchQuery.length > 0
+  //       ? filteredDirectoryFavorites
+  //       : directoryFavorites;
 
   return (
     <div className="w-[calc(100%-1.5rem)] min-h-fit flex flex-col overflow-hidden h-full mt-3 mx-3 pb-1">
@@ -105,12 +106,14 @@ export default function FavoritesBrowser({
             })}
 
             {/* File share path favorites */}
-            {displayFileSharePaths.map((path, index) => {
-              return <FileSharePath pathItem={path} pathIndex={index} />;
-            })}
+            {/* {displayFileSharePaths.map((path, index) => {
+              return (
+                <FileSharePathComponent pathItem={path} pathIndex={index} />
+              );
+            })} */}
 
             {/* Directory favorites */}
-            {displayDirectories.map(directoryItem => {
+            {/* {displayDirectories.map(directoryItem => {
               const fileSharePath =
                 pathPreference[0] === 'linux_path'
                   ? directoryItem.fileSharePath.linux_path
@@ -181,7 +184,7 @@ export default function FavoritesBrowser({
                   </div>
                 </List.Item>
               );
-            })}
+            })} */}
           </List>
         </Collapse>
       </div>

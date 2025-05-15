@@ -68,7 +68,7 @@ export const FileBrowserContextProvider = ({
   }
 
   async function fetchAndFormatFilesForDisplay(
-    path: File['path']
+    path: FileOrFolder['path']
   ): Promise<void> {
     let cleanPath = path;
 

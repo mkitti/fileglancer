@@ -7,12 +7,12 @@ import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
 import Zone from './Zone';
 
 export default function ZonesBrowser({
-  searchQuery,
+  //   searchQuery,
   openZones,
-  toggleOpenZones,
-  filteredZonesAndFileSharePaths
+  toggleOpenZones
+  //   filteredZonesAndFileSharePaths
 }: {
-  searchQuery: string;
+  //   searchQuery: string;
   openZones: Record<string, boolean>;
   toggleOpenZones: (zone: string) => void;
   //   filteredZonesAndFileSharePaths: ZonesAndFileSharePathsMap;
