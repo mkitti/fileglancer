@@ -1,6 +1,7 @@
 import React from 'react';
 import type { FileOrFolder, FileSharePath, Zone } from '../shared.types';
 import { useCookiesContext } from '../contexts/CookiesContext';
+import { useZoneBrowserContext } from './ZoneBrowserContext';
 import { getAPIPathRoot, sendFetchRequest, makeMapKey } from '../utils';
 
 type PreferencesContextType = {
@@ -11,16 +12,16 @@ type PreferencesContextType = {
     event: React.FormEvent<HTMLFormElement>,
     localPathPreference: PreferencesContextType['pathPreference']
   ) => void;
-  zoneFavorites: Record<string, null>;
-  setZoneFavorites: React.Dispatch<React.SetStateAction<Record<string, null>>>;
-  fileSharePathFavorites: Record<string, null>;
-  setFileSharePathFavorites: React.Dispatch<
-    React.SetStateAction<Record<string, null>>
-  >;
-  folderFavorites: Record<string, null>;
-  setFolderFavorites: React.Dispatch<
-    React.SetStateAction<Record<string, null>>
-  >;
+  zoneFavorites: Record<string, Zone>;
+  setZoneFavorites: React.Dispatch<React.SetStateAction<Record<string, Zone>>>;
+  // fileSharePathFavorites: Record<string, FileSharePath>;
+  // setFileSharePathFavorites: React.Dispatch<
+  //   React.SetStateAction<Record<string, FileSharePath>>
+  // >;
+  // folderFavorites: Record<string, FileSharePath>;
+  // setFolderFavorites: React.Dispatch<
+  //   React.SetStateAction<Record<string, FileSharePath>>
+  // >;
   handleFavoriteChange: (
     item: Zone | FileSharePath | { fsp_name: string; folders: FileOrFolder[] },
     type: string
@@ -52,7 +53,7 @@ export const PreferencesProvider = ({
   const [showPathPrefAlert, setShowPathPrefAlert] = React.useState(false);
 
   const [zoneFavorites, setZoneFavorites] = React.useState<
-    Record<string, null>
+    Record<string, Zone>
   >({});
   const [fileSharePathFavorites, setFileSharePathFavorites] = React.useState<
     Record<string, null>
@@ -61,23 +62,19 @@ export const PreferencesProvider = ({
     Record<string, null>
   >({});
   const { cookies } = useCookiesContext();
+  const { zonesAndFileSharePathsMap } = useZoneBrowserContext();
 
-  async function fetchPreferences<T>(
-    key: string,
-    setStateFunction: React.Dispatch<React.SetStateAction<T>>
+  async function fetchPreferences(
+    key: string
+    // setStateFunction: React.Dispatch<React.SetStateAction<T>>
   ) {
     try {
-      await sendFetchRequest(
+      const data = await sendFetchRequest(
         `${getAPIPathRoot()}api/fileglancer/preference?key=${key}`,
         'GET',
         cookies['_xsrf']
-      )
-        .then(response => response.json())
-        .then(data => {
-          if (data.value) {
-            setStateFunction(data.value);
-          }
-        });
+      ).then(response => response.json());
+      return data?.value;
     } catch (error) {
       console.log(
         `Potential error fetching preferences, or preference with key ${key} is not set:`,
@@ -131,23 +128,25 @@ export const PreferencesProvider = ({
   }
 
   function updateFavoriteState(
-    favoritesMap: Record<string, null>,
-    newItemKey: string
+    key: string,
+    favoritesMap: Record<string, Zone | FileSharePath>
   ) {
-    if (!favoritesMap[newItemKey]) {
-      favoritesMap[newItemKey] = null;
-    } else if (favoritesMap[newItemKey]) {
-      delete favoritesMap[newItemKey];
+    const updatedFavorites = { ...favoritesMap };
+    if (!updatedFavorites[key]) {
+      updatedFavorites[key] = zonesAndFileSharePathsMap[key];
+    } else if (updatedFavorites[key]) {
+      delete updatedFavorites[key];
     }
-    return favoritesMap;
+    return updatedFavorites;
   }
 
   function handleZoneFavoriteChange(item: Zone) {
-    const newItemKey = makeMapKey('zone', item.name);
-    const newZoneFavorites = { ...zoneFavorites };
+    const key = makeMapKey('zone', item.name);
+    const updatedZoneFavorites = updateFavoriteState(key, zoneFavorites);
     try {
-      savePreferencesToBackend('zone', { type: 'zone', name: item.name });
-      setZoneFavorites(updateFavoriteState(newZoneFavorites, newItemKey));
+      console.log('saving pref to backend: ', updatedZoneFavorites);
+      savePreferencesToBackend('zone', updatedZoneFavorites);
+      setZoneFavorites(updatedZoneFavorites as Record<string, Zone>);
     } catch (error) {
       console.error('Error updating zone favorites:', error);
     }
