@@ -111,8 +111,7 @@ ext-clean = "rm -rf fileglancer/labextension && rm -rf .pixi/envs/default/share/
 pip-install = { cmd = "pip install -e .", depends-on = ["ext-clean"] }
 pip-uninstall = "pip uninstall -y fileglancer"
 node-install = "npm install"
-node-build = { depends-on = ["build-frontend", "copy-frontend"] }
-build-frontend = "npm run build"
+node-build = "npm run build"
 copy-frontend = "cp -r dist/* fileglancer/ui/"
 ext-overwrite = { cmd = "jupyter labextension develop . --overwrite" }
 ext-enable = { cmd = "jupyter server extension enable fileglancer", depends-on = ["ext-overwrite"] }
