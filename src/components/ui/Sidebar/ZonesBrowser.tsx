@@ -2,7 +2,7 @@ import React from 'react';
 import { Collapse, Typography, List } from '@material-tailwind/react';
 import { ChevronRightIcon, Squares2X2Icon } from '@heroicons/react/24/outline';
 
-import { ZonesAndFileSharePaths } from '../../../shared.types';
+import { ZonesAndFileSharePathsMap } from '../../../shared.types';
 import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
 import Zone from './Zone';
 
@@ -15,15 +15,15 @@ export default function ZonesBrowser({
   searchQuery: string;
   openZones: Record<string, boolean>;
   toggleOpenZones: (zone: string) => void;
-  filteredZonesAndFileSharePaths: ZonesAndFileSharePaths;
+  //   filteredZonesAndFileSharePaths: ZonesAndFileSharePathsMap;
 }) {
   const { zonesAndFileSharePaths } = useZoneBrowserContext();
 
-  const displayZones: ZonesAndFileSharePaths =
-    Object.keys(filteredZonesAndFileSharePaths).length > 0 ||
-    searchQuery.length > 0
-      ? filteredZonesAndFileSharePaths
-      : zonesAndFileSharePaths;
+  const displayZones: ZonesAndFileSharePathsMap = zonesAndFileSharePathsMap;
+  // Object.keys(filteredZonesAndFileSharePaths).length > 0 ||
+  // searchQuery.length > 0
+  //   ? filteredZonesAndFileSharePaths
+  //   : zonesAndFileSharePathsMap;
 
   return (
     <div className="flex flex-col h-full overflow-hidden w-[calc(100%-1.5rem)] my-3 mx-3 bg-surface/50">

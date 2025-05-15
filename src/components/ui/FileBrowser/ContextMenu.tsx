@@ -2,15 +2,15 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { Typography } from '@material-tailwind/react';
 
-import type { File } from '../../../shared.types';
-import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
-import { usePreferencesContext } from '../../../contexts/PreferencesContext';
+import type { FileOrFolder } from '../../../shared.types';
+// import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
+// import { usePreferencesContext } from '../../../contexts/PreferencesContext';
 
 type ContextMenuProps = {
   x: number;
   y: number;
   menuRef: React.RefObject<HTMLDivElement>;
-  selectedFiles: File[];
+  selectedFiles: FileOrFolder[];
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
   setShowContextMenu: React.Dispatch<React.SetStateAction<boolean>>;
   setShowRenameDialog: React.Dispatch<React.SetStateAction<boolean>>;
