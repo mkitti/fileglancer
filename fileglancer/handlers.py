@@ -83,10 +83,11 @@ class FileShareHandler(APIHandler):
     API handler for file access using the Filestore class
     """
     def set_cors_headers(self):
-        self.set_header('Access-Control-Allow-Origin', '*')  # Or your specific domain
-        self.set_header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
-        self.set_header('Access-Control-Allow-Headers', 'Content-Type, X-XSRFToken')
+        self.set_header('Access-Control-Allow-Origin', '*')
         self.set_header('Access-Control-Allow-Credentials', 'true')
+        self.set_header('Access-Control-Allow-Methods', 'GET, POST')
+        self.set_header('Access-Control-Allow-Headers', 'Content-Type, X-XSRFToken')
+        self.set_header('Expose-Headers', 'Range, Content-Range')
 
 
     def _get_filestore(self, path_name):
