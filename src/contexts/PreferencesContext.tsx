@@ -12,13 +12,10 @@ type PreferencesContextType = {
     event: React.FormEvent<HTMLFormElement>,
     localPathPreference: PreferencesContextType['pathPreference']
   ) => void;
-  zoneFavorites: Zone[];
-  setZoneFavorites: React.Dispatch<React.SetStateAction<Zone[]>>;
   zonePreferenceKeys: string[];
-  // fileSharePathFavorites: Record<string, FileSharePath>;
-  // setFileSharePathFavorites: React.Dispatch<
-  //   React.SetStateAction<Record<string, FileSharePath>>
-  // >;
+  zoneFavorites: Zone[];
+  fileSharePathPreferenceKeys: string[];
+  fileSharePathFavorites: FileSharePath[];
   // folderFavorites: Record<string, FileSharePath>;
   // setFolderFavorites: React.Dispatch<
   //   React.SetStateAction<Record<string, FileSharePath>>
@@ -57,9 +54,11 @@ export const PreferencesProvider = ({
     []
   );
   const [zoneFavorites, setZoneFavorites] = React.useState<Zone[]>([]);
-  // const [fileSharePathFavorites, setFileSharePathFavorites] = React.useState<
-  //   Record<string, null>
-  // >({});
+  const [fileSharePathPreferenceKeys, setFileSharePathPreferenceKeys] =
+    React.useState<string[]>([]);
+  const [fileSharePathFavorites, setFileSharePathFavorites] = React.useState<
+    FileSharePath[]
+  >([]);
   // const [folderFavorites, setFolderFavorites] = React.useState<
   //   Record<string, null>
   // >({});
@@ -89,13 +88,34 @@ export const PreferencesProvider = ({
 
   function accessMapItems(keys: string[]) {
     console.log('keys in accessMapItems: ', keys);
-    return keys.map(key => {
+    const itemsArray = keys.map(key => {
       console.log(
         'item accessed by key in accessMapItems: ',
         zonesAndFileSharePathsMap[key]
       );
       return zonesAndFileSharePathsMap[key];
     });
+    // To help with debugging edge cases
+    console.log(
+      'length of preference keys list: ',
+      keys.length,
+      '\n',
+      'length of accessed items list: ',
+      itemsArray.length
+    );
+    return itemsArray;
+  }
+
+  function updateLocalZonePreferenceStates(updatedKeys: string[]) {
+    setZonePreferenceKeys(updatedKeys);
+    const updatedZoneFavorites = accessMapItems(updatedKeys);
+    setZoneFavorites(updatedZoneFavorites as Zone[]);
+  }
+
+  function updateLocalFspPreferenceStates(updatedKeys: string[]) {
+    setFileSharePathPreferenceKeys(updatedKeys);
+    const updatedFspFavorites = accessMapItems(updatedKeys);
+    setFileSharePathFavorites(updatedFspFavorites as FileSharePath[]);
   }
 
   React.useEffect(() => {
@@ -117,21 +137,25 @@ export const PreferencesProvider = ({
     }
 
     (async function () {
-      const rawZonePreferences = await fetchPreferences('zone');
-      if (rawZonePreferences) {
-        // const zonePreferences = rawZonePreferences as Record<string, Zone>;
-        setZonePreferenceKeys(rawZonePreferences);
-        console.log('zone prefs from initial use effect: ', rawZonePreferences);
-        const zoneFavorites = accessMapItems(rawZonePreferences) as Zone[];
-        console.log('zone favs in initial use effect: ', zoneFavorites);
-        setZoneFavorites(zoneFavorites);
+      const backendKeys = await fetchPreferences('zone');
+      if (backendKeys) {
+        updateLocalZonePreferenceStates(backendKeys);
       }
     })();
   }, [isZonesMapReady]);
 
-  // React.useEffect(() => {
-  //   fetchPreferences('fileSharePathFavorites', setFileSharePathFavorites);
-  // }, []);
+  React.useEffect(() => {
+    if (!isZonesMapReady) {
+      return;
+    }
+
+    (async function () {
+      const backendKeys = await fetchPreferences('fileSharePath');
+      if (backendKeys) {
+        updateLocalFspPreferenceStates(backendKeys);
+      }
+    })();
+  }, []);
 
   // React.useEffect(() => {
   //   fetchPreferences('folderFavorites', setFolderFavorites);
@@ -186,30 +210,30 @@ export const PreferencesProvider = ({
     try {
       console.log('saving pref to backend: ', updatedZonePreferenceKeys);
       await savePreferencesToBackend('zone', updatedZonePreferenceKeys);
-      setZonePreferenceKeys(updatedZonePreferenceKeys);
-
-      const updatedZoneFavorites = accessMapItems(updatedZonePreferenceKeys);
-      setZoneFavorites(updatedZoneFavorites as Zone[]);
+      updateLocalZonePreferenceStates(updatedZonePreferenceKeys);
     } catch (error) {
       console.error('Error updating zone favorites:', error);
     }
   }
 
-  // function handleFileSharePathFavoriteChange(item: FileSharePath) {
-  //   const newItemKey = makeMapKey('fsp', item.name);
-  //   const newFileSharePathFavorites = { ...fileSharePathFavorites };
-  //   try {
-  //     savePreferencesToBackend('fileSharePath', {
-  //       type: 'fileSharePath',
-  //       name: item.name
-  //     });
-  //     setFileSharePathFavorites(
-  //       updateFavoriteState(newFileSharePathFavorites, newItemKey)
-  //     );
-  //   } catch (error) {
-  //     console.error('Error updating file share path favorites:', error);
-  //   }
-  // }
+  async function handleFileSharePathFavoriteChange(item: FileSharePath) {
+    const key = makeMapKey('fsp', item.name);
+    const updatedFileSharePathKeys = updatePreferenceKeyList(
+      key,
+      fileSharePathPreferenceKeys
+    );
+
+    try {
+      console.log(
+        'saving file share path pref to backend: ',
+        updatedFileSharePathKeys
+      );
+      await savePreferencesToBackend('fileSharePath', updatedFileSharePathKeys);
+      updateLocalFspPreferenceStates(updatedFileSharePathKeys);
+    } catch (error) {
+      console.error('Error updating file share path favorites:', error);
+    }
+  }
 
   // function handleFolderFavoriteChange(item: {
   //   fsp_name: string;
@@ -250,9 +274,9 @@ export const PreferencesProvider = ({
           console.log(error);
         }
         break;
-      // case 'fileSharePath':
-      //   handleFileSharePathFavoriteChange(item as FileSharePath);
-      //   break;
+      case 'fileSharePath':
+        handleFileSharePathFavoriteChange(item as FileSharePath);
+        break;
       // case 'directory':
       //   handleFolderFavoriteChange(
       //     item as { fsp_name: string; folders: FileOrFolder[] }
@@ -273,9 +297,8 @@ export const PreferencesProvider = ({
         handlePathPreferenceSubmit,
         zonePreferenceKeys,
         zoneFavorites,
-        setZoneFavorites,
-        // fileSharePathFavorites,
-        // setFileSharePathFavorites,
+        fileSharePathPreferenceKeys,
+        fileSharePathFavorites,
         // folderFavorites,
         // setFolderFavorites,
         handleFavoriteChange

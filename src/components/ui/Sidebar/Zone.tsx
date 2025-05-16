@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   List,
-  //   Collapse,
+  Collapse,
   Typography,
   IconButton
 } from '@material-tailwind/react';
@@ -12,7 +12,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
-// import FileSharePathComponent from './FileSharePath';
+import FileSharePathComponent from './FileSharePath';
 import type { Zone } from '../../../shared.types';
 import { usePreferencesContext } from '../../../contexts/PreferencesContext';
 import { makeMapKey } from '../../../utils';
@@ -66,18 +66,13 @@ export default function Zone({
           />
         </List.ItemEnd>
       </List.Item>
-      {/* <Collapse open={isOpen}>
+      <Collapse open={isOpen}>
         <List className="bg-background !gap-0">
-          {zone.fileSharePaths.map((pathItem, pathIndex) => {
-            return (
-              <FileSharePathComponent
-                pathItem={pathItem}
-                pathIndex={pathIndex}
-              />
-            );
+          {zone.fileSharePaths.map((fsp, index) => {
+            return <FileSharePathComponent fsp={fsp} index={index} />;
           })}
         </List>
-      </Collapse> */}
+      </Collapse>
     </React.Fragment>
   );
 }

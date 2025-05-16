@@ -14,7 +14,7 @@ import {
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
 import Zone from './Zone';
-// import FileSharePathComponent from './FileSharePath';
+import FileSharePathComponent from './FileSharePath';
 import {
   //   DirectoryFavorite,
   usePreferencesContext
@@ -43,8 +43,8 @@ export default function FavoritesBrowser() {
   //   }
   const { openFavorites, toggleOpenFavorites } = useToggleOpenFavorites();
   const {
-    zoneFavorites
-    // fileSharePathFavorites,
+    zoneFavorites,
+    fileSharePathFavorites
     // directoryFavorites,
     // pathPreference,
     // handleFavoriteChange
@@ -61,7 +61,7 @@ export default function FavoritesBrowser() {
   //   ? filteredZoneFavorites
   //   : zoneFavorites;
 
-  //   const displayFileSharePaths =
+  const displayFileSharePaths = fileSharePathFavorites;
   //     filteredFileSharePathFavorites.length > 0 || searchQuery.length > 0
   //       ? filteredFileSharePathFavorites
   //       : fileSharePathFavorites;
@@ -106,11 +106,9 @@ export default function FavoritesBrowser() {
             })}
 
             {/* File share path favorites */}
-            {/* {displayFileSharePaths.map((path, index) => {
-              return (
-                <FileSharePathComponent pathItem={path} pathIndex={index} />
-              );
-            })} */}
+            {displayFileSharePaths.map((fsp, index) => {
+              return <FileSharePathComponent fsp={fsp} index={index} />;
+            })}
 
             {/* Directory favorites */}
             {/* {displayDirectories.map(directoryItem => {
