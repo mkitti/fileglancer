@@ -19,7 +19,6 @@ export default function Crumbs(): JSX.Element {
   const { currentFileSharePath } = useZoneBrowserContext();
 
   const dirDepth = dirArray.length;
-
   return (
     <div className="w-full py-2 px-3">
       <Breadcrumb className="bg-transparent p-0">
@@ -68,7 +67,7 @@ export default function Crumbs(): JSX.Element {
               <React.Fragment key={index}>
                 <Typography
                   variant="small"
-                  className="font-medium text-primary-light"
+                  className="font-medium text-primary-default"
                 >
                   {item}
                 </Typography>
