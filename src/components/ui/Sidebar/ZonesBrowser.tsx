@@ -7,23 +7,22 @@ import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
 import Zone from './Zone';
 
 export default function ZonesBrowser({
-  //   searchQuery,
+  searchQuery,
   openZones,
-  toggleOpenZones
-  //   filteredZonesAndFileSharePaths
+  toggleOpenZones,
+  filteredZonesMap
 }: {
-  //   searchQuery: string;
+  searchQuery: string;
   openZones: Record<string, boolean>;
   toggleOpenZones: (zone: string) => void;
-  //   filteredZonesAndFileSharePaths: ZonesAndFileSharePathsMap;
+  filteredZonesMap: ZonesAndFileSharePathsMap;
 }) {
   const { zonesAndFileSharePathsMap } = useZoneBrowserContext();
 
-  const displayZones: ZonesAndFileSharePathsMap = zonesAndFileSharePathsMap;
-  // Object.keys(filteredZonesAndFileSharePaths).length > 0 ||
-  // searchQuery.length > 0
-  //   ? filteredZonesAndFileSharePaths
-  //   : zonesAndFileSharePathsMap;
+  const displayZones: ZonesAndFileSharePathsMap =
+    Object.keys(filteredZonesMap).length > 0 || searchQuery.length > 0
+      ? filteredZonesMap
+      : zonesAndFileSharePathsMap;
 
   return (
     <div className="flex flex-col h-full overflow-hidden w-[calc(100%-1.5rem)] my-3 mx-3 bg-surface/50">

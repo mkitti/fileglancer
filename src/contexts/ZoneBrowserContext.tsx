@@ -93,6 +93,8 @@ export const ZoneBrowserContextProvider = ({
     return newZonesAndFileSharePathsMap;
   }
 
+  // function alphabetizeZonesAndFsps(map: ZonesAndFileSharePathsMap) {}
+
   async function updateZonesAndFileSharePathsMap() {
     let rawData: { paths: FileSharePath[] } = { paths: [] };
     try {

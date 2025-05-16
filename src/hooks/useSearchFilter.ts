@@ -1,19 +1,15 @@
 import React from 'react';
-import type {
-  Zone,
-  ZonesAndFileSharePathsMap,
-  FileSharePath
-} from '../shared.types';
+import type { Zone, ZonesAndFileSharePathsMap } from '../shared.types';
 // import type { DirectoryFavorite } from '../contexts/PreferencesContext';
 import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';
-import { usePreferencesContext } from '../contexts/PreferencesContext';
+// import { usePreferencesContext } from '../contexts/PreferencesContext';
 
 export default function useSearchFilter() {
   const { zonesAndFileSharePathsMap } = useZoneBrowserContext();
-  const { zoneFavorites } = usePreferencesContext();
+  // const { zoneFavorites } = usePreferencesContext();
 
   const [searchQuery, setSearchQuery] = React.useState<string>('');
-  const [filteredZonesAndFileSharePaths, setFilteredZonesAndFileSharePaths] =
+  const [filteredZonesMap, setFilteredZonesMap] =
     React.useState<ZonesAndFileSharePathsMap>({});
   //   const [filteredZoneFavorites, setFilteredZoneFavorites] = React.useState<
   //     Record<string, Zone>
@@ -23,21 +19,35 @@ export default function useSearchFilter() {
   //   const [filteredDirectoryFavorites, setFilteredDirectoryFavorites] =
   //     React.useState<DirectoryFavorite[]>([]);
 
-  function filterObjectByQuery(
-    obj: Record<string, Zone | FileSharePath>,
-    query: string
-  ) {
-    return Object.fromEntries(
-      Object.entries(obj).filter(
-        ([key, value]) => value.name.toLowerCase() === query
-      )
-    );
-  }
+  const filterZonesMap = (query: string) => {
+    const matches = Object.fromEntries(
+      Object.entries(zonesAndFileSharePathsMap).filter(([key, value]) => {
+        // Only filter zones the 'uber' map, since this is where fsps are
+        // populated from in the zone browser
+        if (key.startsWith('zone')) {
+          const zone = value as Zone;
+          const zoneNameMatches = zone.name.toLowerCase().includes(query);
 
-  const filterZonesAndFileSharePaths = (query: string) => {
-    const matches = filterObjectByQuery(zonesAndFileSharePathsMap, query);
+          // filter the fsps inside the zone
+          const matchingFileSharePaths = zone.fileSharePaths.filter(fsp =>
+            fsp.name.toLowerCase().includes(query)
+          );
+
+          // If Zone.name matches or any FileSharePath.name inside the zone matches,
+          // keep the Zone
+          if (zoneNameMatches || matchingFileSharePaths.length > 0) {
+            // Update the Zone's fileSharePaths to only include matching ones
+            zone.fileSharePaths = matchingFileSharePaths;
+            return true;
+          }
+        } else if (!key.startsWith('zone')) {
+          return false;
+        }
+      })
+    );
+    console.log('matches: ', matches);
     if (matches) {
-      setFilteredZonesAndFileSharePaths(matches);
+      setFilteredZonesMap(matches);
     }
   };
 
@@ -80,26 +90,26 @@ export default function useSearchFilter() {
 
   React.useEffect(() => {
     if (searchQuery !== '') {
-      filterZonesAndFileSharePaths(searchQuery);
+      filterZonesMap(searchQuery);
       //   filterAllFavorites(searchQuery);
     } else if (searchQuery === '') {
       // When search query is empty, use all the original paths
-      setFilteredZonesAndFileSharePaths({});
+      setFilteredZonesMap({});
       //   setFilteredZoneFavorites([]);
       //   setFilteredFileSharePathFavorites([]);
       //   setFilteredDirectoryFavorites([]);
     }
   }, [
     searchQuery,
-    // zonesAndFileSharePaths,
-    zoneFavorites
+    zonesAndFileSharePathsMap
+    // zoneFavorites
     // fileSharePathFavorites,
     // directoryFavorites
   ]);
 
   return {
     searchQuery,
-    filteredZonesAndFileSharePaths,
+    filteredZonesMap,
     // filteredZoneFavorites,
     // filteredFileSharePathFavorites,
     // filteredDirectoryFavorites,

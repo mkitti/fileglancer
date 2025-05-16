@@ -1,25 +1,25 @@
 import React from 'react';
-import { Card } from '@material-tailwind/react';
-// import { FunnelIcon } from '@heroicons/react/24/outline';
+import { Card, Input } from '@material-tailwind/react';
+import { FunnelIcon } from '@heroicons/react/24/outline';
 
 import FavoritesBrowser from './FavoritesBrowser';
 import ZonesBrowser from './ZonesBrowser';
-// import useSearchFilter from '../../../hooks/useSearchFilter';
+import useSearchFilter from '../../../hooks/useSearchFilter';
 import useOpenZones from '../../../hooks/useOpenZones';
 
 export default function Sidebar() {
   const { openZones, setOpenZones, toggleOpenZones } = useOpenZones();
-  //   const {
-  //     searchQuery,
-  //     handleSearchChange
-  //     // filteredZonesAndFileSharePaths
-  //     // filteredZoneFavorites,
-  //     // filteredFileSharePathFavorites,
-  //     // filteredDirectoryFavorites
-  //   } = useSearchFilter();
+  const {
+    searchQuery,
+    handleSearchChange,
+    filteredZonesMap
+    // filteredZoneFavorites,
+    // filteredFileSharePathFavorites,
+    // filteredDirectoryFavorites
+  } = useSearchFilter();
   return (
     <Card className="max-w-[280px] max-h-full overflow-hidden rounded-none bg-surface shadow-lg flex flex-col">
-      {/* <div className="w-[calc(100%-1.5rem)] mx-3 my-3">
+      <div className="w-[calc(100%-1.5rem)] mx-3 my-3">
         <Input
           className="bg-background text-foreground"
           type="search"
@@ -33,7 +33,7 @@ export default function Sidebar() {
             <FunnelIcon className="h-full w-full" />
           </Input.Icon>
         </Input>
-      </div> */}
+      </div>
       <div className="flex flex-col overflow-hidden flex-grow mb-3 gap-3">
         <div
           className={`flex-shrink ${openZones['all'] ? 'max-h-[50%]' : 'max-h-[100%]'}`}
@@ -48,10 +48,10 @@ export default function Sidebar() {
         </div>
         <div className="flex-grow overflow-hidden">
           <ZonesBrowser
-            // searchQuery={searchQuery}
+            searchQuery={searchQuery}
             openZones={openZones}
             toggleOpenZones={toggleOpenZones}
-            // filteredZonesAndFileSharePaths={filteredZonesAndFileSharePaths}
+            filteredZonesMap={filteredZonesMap}
           />
         </div>
       </div>
