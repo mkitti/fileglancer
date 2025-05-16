@@ -11,6 +11,7 @@ import stat
 import pwd
 import grp
 import logging
+import shutil
 
 from fileglancer.paths import FileSharePath
 
@@ -205,7 +206,7 @@ class Filestore:
             raise ValueError("Path cannot be None or empty")
         full_path = self._check_path_in_root(path)
         if os.path.isdir(full_path):
-            os.rmdir(full_path)
+            shutil.rmtree(full_path)
         else:
             os.remove(full_path)
 
