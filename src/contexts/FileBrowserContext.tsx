@@ -1,6 +1,6 @@
 import React from 'react';
 import { File } from '../shared.types';
-import { getAPIPathRoot, sendFetchRequest } from '../utils';
+import { getFileFetchPath, sendFetchRequest } from '../utils';
 import { useCookiesContext } from './CookiesContext';
 
 type FileBrowserContextType = {
@@ -8,6 +8,7 @@ type FileBrowserContextType = {
   currentNavigationPath: File['path'];
   dirArray: string[];
   currentDir: string;
+  getFileFetchPath: (path: string) => string;
   setCurrentNavigationPath: React.Dispatch<React.SetStateAction<File['path']>>;
   fetchAndFormatFilesForDisplay: (path: File['path']) => Promise<void>;
 };
@@ -19,7 +20,7 @@ const FileBrowserContext = React.createContext<FileBrowserContextType | null>(
 export const useFileBrowserContext = () => {
   const context = React.useContext(FileBrowserContext);
   if (!context) {
-    throw new Error('useFilesContext must be used within a FilesProvider');
+    throw new Error('useFileBrowserContext must be used within a FileBrowserContextProvider');
   }
   return context;
 };
@@ -68,16 +69,7 @@ export const FileBrowserContextProvider = ({
   async function fetchAndFormatFilesForDisplay(
     path: File['path']
   ): Promise<void> {
-    let cleanPath = path;
-
-    if (path && path.trim() !== '') {
-      // Remove leading slash from path if present to avoid double slashes
-      cleanPath = path.trim().startsWith('/')
-        ? path.trim().substring(1)
-        : path.trim();
-    }
-
-    const url = `${getAPIPathRoot()}api/fileglancer/files/${cleanPath}`;
+    const url = getFileFetchPath(path);
 
     let data = [];
     try {
@@ -114,6 +106,7 @@ export const FileBrowserContextProvider = ({
         currentNavigationPath,
         dirArray,
         currentDir,
+        getFileFetchPath,
         setCurrentNavigationPath,
         fetchAndFormatFilesForDisplay
       }}
