@@ -8,7 +8,8 @@ from tornado import web
 
 from fileglancer.filestore import Filestore
 from fileglancer.paths import get_fsp_manager
-from fileglancer.preferences import PreferenceManager, get_preference_manager
+from fileglancer.preferences import get_preference_manager
+from fileglancer.proxiedpath import get_proxiedpath_manager
 
 
 def _get_mounted_filestore(fsp):
@@ -332,7 +333,36 @@ class PreferencesHandler(BaseHandler):
             self.finish(json.dumps({"error": str(e)}))
 
 
-class TicketHandler(BaseHandler):
+class ProxiedPathHandler(APIHandler):
+    """
+    API handler for ProxiedPath (user shared data paths)
+    """
+    @web.authenticated
+    def get(self):
+        """
+        Get all proxied paths or a specific proxied path for the current user.
+        """
+        username = self.get_current_user()
+        key = self.get_argument("key", None)
+        self.log.info(f"GET /api/fileglancer/proxied-path username={username} key={key}")
+        try:
+            proxied_path_manager = get_proxiedpath_manager(self.settings)
+            result = proxied_path_manager.get_proxied_paths(username, key)
+            if result is not None:
+                self.set_header('Content-Type', 'application/json')
+                self.set_status(200)
+                self.finish(json.dumps(result))
+                self.finish()
+            else:
+                self.set_status(404)
+                self.finish(json.dumps({"error": "Proxied path not found"}))
+        except Exception as e:
+            self.log.error(f"Error getting proxied paths: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
+
+class TicketHandler(APIHandler):
     """
     API handler for ticket operations
     """
@@ -421,6 +451,7 @@ class VersionHandler(BaseHandler):
         self.set_status(200)
         self.write(json.dumps({"version": version}))
         self.finish()
+
 
 class StaticHandler(JupyterHandler, web.StaticFileHandler):
     """
