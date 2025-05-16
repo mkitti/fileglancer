@@ -9,7 +9,7 @@ import FileRow from './FileRow';
 import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
 import { useFileBrowserContext } from '../../../contexts/FileBrowserContext';
 import { fetchFileAsJson } from '../../../utils';
-
+import { useCookiesContext } from '../../../contexts/CookiesContext';
 type FileListProps = {
   files: File[];
   selectedFiles: File[];
@@ -37,7 +37,7 @@ export default function FileList({
 }: FileListProps): JSX.Element {
   const { currentNavigationPath, getFileFetchPath } = useFileBrowserContext();
   const { currentFileSharePath } = useZoneBrowserContext();
-
+  const { cookies } = useCookiesContext();
   const displayFiles = React.useMemo(() => {
     return hideDotFiles
       ? files.filter(file => !file.name.startsWith('.'))
@@ -55,7 +55,7 @@ export default function FileList({
       setHasMultiscales(false);
       if (zattrsFile && currentFileSharePath) {
         const zattrsUrl = `${currentFileSharePath.name}/${zattrsFile.path}`;
-        const zattrsContent = await fetchFileAsJson(zattrsUrl);
+        const zattrsContent = await fetchFileAsJson(zattrsUrl, cookies);
         if (zattrsContent && 'multiscales' in zattrsContent) {
           setHasMultiscales(true);
           const fileFetchPath = getFileFetchPath(currentNavigationPath.replace('?subpath=', '/'));

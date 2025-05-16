@@ -83,7 +83,21 @@ const parsePermissions = (permissionString: string) => {
 };
 
 
-async function fetchFileContent(path: File['path']): Promise<Uint8Array | null> {
+function getCleanPath(path: string): string {
+  if (path && path.trim() !== '') {
+    // Remove leading slash from path if present to avoid double slashes
+    return path.trim().startsWith('/')
+      ? path.trim().substring(1)
+      : path.trim();
+  }
+  return path;
+}
+
+function getFileFetchPath(path: string): string {
+  return `${getAPIPathRoot()}api/fileglancer/files/${getCleanPath(path)}`;
+}
+
+async function fetchFileContent(path: string, cookies: Record<string, string>): Promise<Uint8Array | null> {
   const url = getFileFetchPath(path);
 
   try {
@@ -110,9 +124,9 @@ async function fetchFileContent(path: File['path']): Promise<Uint8Array | null> 
   }
 }
 
-async function fetchFileAsText(path: File['path']): Promise<string | null> {
+async function fetchFileAsText(path: string, cookies: Record<string, string>): Promise<string | null> {
   try {
-    const fileContent = await fetchFileContent(path);
+    const fileContent = await fetchFileContent(path, cookies);
     if (fileContent === null) {
       console.warn(`No content fetched for path: ${path}`);
       return null;
@@ -129,9 +143,9 @@ async function fetchFileAsText(path: File['path']): Promise<string | null> {
   }
 }
 
-async function fetchFileAsJson(path: File['path']): Promise<object | null> {
+async function fetchFileAsJson(path: string, cookies: Record<string, string>): Promise<object | null> {
   try {
-    const fileText = await fetchFileAsText(path);
+    const fileText = await fetchFileAsText(path, cookies);
     if (fileText === null) {
       console.warn(`No text content fetched for path: ${path}`);
       return null;
@@ -156,6 +170,8 @@ export {
   sendFetchRequest,
   removeLastSegmentFromPath,
   parsePermissions,
+  getCleanPath,
+  getFileFetchPath,
   fetchFileContent,
   fetchFileAsText,
   fetchFileAsJson

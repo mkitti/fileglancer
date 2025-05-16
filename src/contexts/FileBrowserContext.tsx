@@ -1,6 +1,6 @@
 import React from 'react';
 import { File } from '../shared.types';
-import { getAPIPathRoot, sendFetchRequest } from '../utils';
+import { getFileFetchPath, sendFetchRequest } from '../utils';
 import { useCookiesContext } from './CookiesContext';
 
 type FileBrowserContextType = {
@@ -8,7 +8,7 @@ type FileBrowserContextType = {
   currentNavigationPath: File['path'];
   dirArray: string[];
   currentDir: string;
-  getFileFetchPath: (path: File['path']) => string;
+  getFileFetchPath: (path: string) => string;
   setCurrentNavigationPath: React.Dispatch<React.SetStateAction<File['path']>>;
   fetchAndFormatFilesForDisplay: (path: File['path']) => Promise<void>;
 };
@@ -64,20 +64,6 @@ export const FileBrowserContextProvider = ({
     } else {
       return [path];
     }
-  }
-
-  function getCleanPath(path: File['path']): File['path'] {
-    if (path && path.trim() !== '') {
-      // Remove leading slash from path if present to avoid double slashes
-      return path.trim().startsWith('/')
-        ? path.trim().substring(1)
-        : path.trim();
-    }
-    return path;
-  }
-
-  function getFileFetchPath(path: File['path']): string {
-    return `${getAPIPathRoot()}api/fileglancer/files/${getCleanPath(path)}`;
   }
 
   async function fetchAndFormatFilesForDisplay(
