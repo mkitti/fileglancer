@@ -90,12 +90,7 @@ export const PreferencesProvider = ({
   }
 
   function accessMapItems(keys: string[]) {
-    console.log('keys in accessMapItems: ', keys);
     const itemsArray = keys.map(key => {
-      console.log(
-        'item accessed by key in accessMapItems: ',
-        zonesAndFileSharePathsMap[key]
-      );
       return zonesAndFileSharePathsMap[key];
     });
     // To help with debugging edge cases
@@ -227,7 +222,6 @@ export const PreferencesProvider = ({
     );
 
     try {
-      console.log('saving pref to backend: ', updatedZonePreferenceKeys);
       await savePreferencesToBackend('zone', updatedZonePreferenceKeys);
       updateLocalZonePreferenceStates(updatedZonePreferenceKeys);
     } catch (error) {
@@ -243,10 +237,6 @@ export const PreferencesProvider = ({
     );
 
     try {
-      console.log(
-        'saving file share path pref to backend: ',
-        updatedFileSharePathKeys
-      );
       await savePreferencesToBackend('fileSharePath', updatedFileSharePathKeys);
       updateLocalFspPreferenceStates(updatedFileSharePathKeys);
     } catch (error) {

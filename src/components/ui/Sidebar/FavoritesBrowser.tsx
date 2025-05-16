@@ -13,24 +13,32 @@ import {
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
-import Zone from './Zone';
+import ZoneComponent from './Zone';
 import FileSharePathComponent from './FileSharePath';
-import { usePreferencesContext } from '../../../contexts/PreferencesContext';
+import {
+  usePreferencesContext,
+  FolderFavorite
+} from '../../../contexts/PreferencesContext';
 import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
 import { useFileBrowserContext } from '../../../contexts/FileBrowserContext';
 import useToggleOpenFavorites from '../../../hooks/useToggleOpenFavorites';
-// import {
-//   FileSharePath
-//   //   ZonesAndFileSharePathsMap
-// } from '../../../shared.types';
+import type { Zone, FileSharePath } from '../../../shared.types';
 import { makeMapKey } from '../../../utils';
 
 type FavoritesBrowserProps = {
+  searchQuery: string;
   setOpenZones: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  filteredZoneFavorites: Zone[];
+  filteredFileSharePathFavorites: FileSharePath[];
+  filteredFolderFavorites: FolderFavorite[];
 };
 
 export default function FavoritesBrowser({
-  setOpenZones
+  searchQuery,
+  setOpenZones,
+  filteredZoneFavorites,
+  filteredFileSharePathFavorites,
+  filteredFolderFavorites
 }: FavoritesBrowserProps) {
   const { openFavorites, toggleOpenFavorites } = useToggleOpenFavorites();
   const {
@@ -49,20 +57,20 @@ export default function FavoritesBrowser({
     setCurrentFileSharePath
   } = useZoneBrowserContext();
 
-  const displayZones = zoneFavorites;
-  // filteredZoneFavorites.length > 0 || searchQuery.length > 0
-  //   ? filteredZoneFavorites
-  //   : zoneFavorites;
+  const displayZones =
+    filteredZoneFavorites.length > 0 || searchQuery.length > 0
+      ? filteredZoneFavorites
+      : zoneFavorites;
 
-  const displayFileSharePaths = fileSharePathFavorites;
-  //     filteredFileSharePathFavorites.length > 0 || searchQuery.length > 0
-  //       ? filteredFileSharePathFavorites
-  //       : fileSharePathFavorites;
+  const displayFileSharePaths =
+    filteredFileSharePathFavorites.length > 0 || searchQuery.length > 0
+      ? filteredFileSharePathFavorites
+      : fileSharePathFavorites;
 
-  const displayFolders = folderFavorites;
-  //     filteredDirectoryFavorites.length > 0 || searchQuery.length > 0
-  //       ? filteredDirectoryFavorites
-  //       : folderFavorites;
+  const displayFolders =
+    filteredFolderFavorites.length > 0 || searchQuery.length > 0
+      ? filteredFolderFavorites
+      : folderFavorites;
 
   return (
     <div className="w-[calc(100%-1.5rem)] min-h-fit flex flex-col overflow-hidden h-full mt-3 mx-3 pb-1">
@@ -90,7 +98,7 @@ export default function FavoritesBrowser({
             {/* Zone favorites */}
             {displayZones.map(zone => {
               return (
-                <Zone
+                <ZoneComponent
                   zone={zone}
                   openZones={openFavorites}
                   toggleOpenZones={toggleOpenFavorites}

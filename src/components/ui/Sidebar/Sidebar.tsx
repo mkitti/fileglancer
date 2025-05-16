@@ -12,10 +12,10 @@ export default function Sidebar() {
   const {
     searchQuery,
     handleSearchChange,
-    filteredZonesMap
-    // filteredZoneFavorites,
-    // filteredFileSharePathFavorites,
-    // filteredDirectoryFavorites
+    filteredZonesMap,
+    filteredZoneFavorites,
+    filteredFileSharePathFavorites,
+    filteredFolderFavorites
   } = useSearchFilter();
   return (
     <Card className="max-w-[280px] max-h-full overflow-hidden rounded-none bg-surface shadow-lg flex flex-col">
@@ -39,11 +39,11 @@ export default function Sidebar() {
           className={`flex-shrink ${openZones['all'] ? 'max-h-[50%]' : 'max-h-[100%]'}`}
         >
           <FavoritesBrowser
-            // searchQuery={searchQuery}
+            searchQuery={searchQuery}
             setOpenZones={setOpenZones}
-            // filteredZoneFavorites={filteredZoneFavorites}
-            // filteredFileSharePathFavorites={filteredFileSharePathFavorites}
-            // filteredDirectoryFavorites={filteredDirectoryFavorites}
+            filteredZoneFavorites={filteredZoneFavorites}
+            filteredFileSharePathFavorites={filteredFileSharePathFavorites}
+            filteredFolderFavorites={filteredFolderFavorites}
           />
         </div>
         <div className="flex-grow overflow-hidden">
