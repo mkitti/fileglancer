@@ -112,7 +112,6 @@ pip-install = { cmd = "pip install -e .", depends-on = ["ext-clean"] }
 pip-uninstall = "pip uninstall -y fileglancer"
 node-install = "npm install"
 node-build = "npm run build"
-copy-frontend = "cp -r dist/* fileglancer/ui/"
 ext-overwrite = { cmd = "jupyter labextension develop . --overwrite" }
 ext-enable = { cmd = "jupyter server extension enable fileglancer", depends-on = ["ext-overwrite"] }
 dev-install = { depends-on = ["pip-install", "node-install", "ext-enable"] }
