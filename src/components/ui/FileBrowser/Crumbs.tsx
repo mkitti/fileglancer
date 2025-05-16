@@ -30,40 +30,51 @@ export default function Crumbs(): JSX.Element {
 
         {/* Path segments */}
         {dirArray.map((item, index) => {
-          // Render a breadcrumb link for each segment in the path
-          return (
-            <React.Fragment key={index}>
-              <BreadcrumbLink
-                variant="text"
-                className="rounded-md hover:bg-primary-light/20 hover:!text-black focus:!text-black transition-colors cursor-pointer"
-                onClick={() => {
-                  if (index === 0 && currentFileSharePath) {
-                    fetchAndFormatFilesForDisplay(
-                      `${currentFileSharePath.name}`
-                    );
-                  } else if (currentFileSharePath) {
-                    fetchAndFormatFilesForDisplay(
-                      `${currentFileSharePath.name}?subpath=${dirArray.slice(1, index + 1).join('/')}`
-                    );
-                  }
-                }}
-              >
+          if (index < dirDepth - 1) {
+            // Render a breadcrumb link for each segment in the parent path
+            return (
+              <React.Fragment key={index}>
+                <BreadcrumbLink
+                  variant="text"
+                  className="rounded-md hover:bg-primary-light/20 hover:!text-black focus:!text-black transition-colors cursor-pointer"
+                  onClick={() => {
+                    if (index === 0 && currentFileSharePath) {
+                      fetchAndFormatFilesForDisplay(
+                        `${currentFileSharePath.name}`
+                      );
+                    } else if (currentFileSharePath) {
+                      fetchAndFormatFilesForDisplay(
+                        `${currentFileSharePath.name}?subpath=${dirArray.slice(1, index + 1).join('/')}`
+                      );
+                    }
+                  }}
+                >
+                  <Typography
+                    variant="small"
+                    className="font-medium text-primary-light"
+                  >
+                    {item}
+                  </Typography>
+                </BreadcrumbLink>
+                {/* Add separator since is not the last segment */}
+                <BreadcrumbSeparator>
+                  <SlashIcon className="h-5 w-5" />
+                </BreadcrumbSeparator>
+              </React.Fragment>
+            );
+          } else {
+            // Render the last path component as text only
+            return (
+              <React.Fragment key={index}>
                 <Typography
                   variant="small"
                   className="font-medium text-primary-light"
                 >
                   {item}
                 </Typography>
-              </BreadcrumbLink>
-
-              {/* Add separator only if not the last segment */}
-              {index < dirDepth - 1 && (
-                <BreadcrumbSeparator>
-                  <SlashIcon className="h-5 w-5" />
-                </BreadcrumbSeparator>
-              )}
-            </React.Fragment>
-          );
+              </React.Fragment>
+            );
+          }
         })}
       </Breadcrumb>
     </div>
