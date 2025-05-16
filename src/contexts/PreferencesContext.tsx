@@ -165,7 +165,7 @@ export const PreferencesProvider = ({
     }
   }
 
-  function updateFavoriteState(key: string, favoritesList: string[]) {
+  function updatePreferenceKeyList(key: string, favoritesList: string[]) {
     const updatedFavorites = [...favoritesList];
     const keyIndex = updatedFavorites.indexOf(key);
     if (keyIndex < 0) {
@@ -178,7 +178,7 @@ export const PreferencesProvider = ({
 
   async function handleZoneFavoriteChange(item: Zone) {
     const key = makeMapKey('zone', item.name);
-    const updatedZonePreferenceKeys = updateFavoriteState(
+    const updatedZonePreferenceKeys = updatePreferenceKeyList(
       key,
       zonePreferenceKeys
     );
