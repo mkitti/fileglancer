@@ -95,7 +95,7 @@ export default function FavoritesBrowser() {
         <Collapse open={openFavorites['all'] ? true : false}>
           <List className="bg-surface-light !py-0 !gap-0">
             {/* Zone favorites */}
-            {Object.entries(displayZones).map(([key, zone]) => {
+            {displayZones.map(zone => {
               return (
                 <Zone
                   zone={zone}

@@ -12,8 +12,9 @@ type PreferencesContextType = {
     event: React.FormEvent<HTMLFormElement>,
     localPathPreference: PreferencesContextType['pathPreference']
   ) => void;
-  zoneFavorites: Record<string, Zone>;
-  setZoneFavorites: React.Dispatch<React.SetStateAction<Record<string, Zone>>>;
+  zoneFavorites: Zone[];
+  setZoneFavorites: React.Dispatch<React.SetStateAction<Zone[]>>;
+  zonePreferenceKeys: string[];
   // fileSharePathFavorites: Record<string, FileSharePath>;
   // setFileSharePathFavorites: React.Dispatch<
   //   React.SetStateAction<Record<string, FileSharePath>>
@@ -52,9 +53,10 @@ export const PreferencesProvider = ({
   >(['linux_path']);
   const [showPathPrefAlert, setShowPathPrefAlert] = React.useState(false);
 
-  const [zoneFavorites, setZoneFavorites] = React.useState<
-    Record<string, Zone>
-  >({});
+  const [zonePreferenceKeys, setZonePreferenceKeys] = React.useState<string[]>(
+    []
+  );
+  const [zoneFavorites, setZoneFavorites] = React.useState<Zone[]>([]);
   // const [fileSharePathFavorites, setFileSharePathFavorites] = React.useState<
   //   Record<string, null>
   // >({});
@@ -63,7 +65,8 @@ export const PreferencesProvider = ({
   // >({});
 
   const { cookies } = useCookiesContext();
-  const { zonesAndFileSharePathsMap } = useZoneBrowserContext();
+  const { isZonesMapReady, zonesAndFileSharePathsMap } =
+    useZoneBrowserContext();
 
   async function fetchPreferences(
     key: string
@@ -84,6 +87,17 @@ export const PreferencesProvider = ({
     }
   }
 
+  function accessMapItems(keys: string[]) {
+    console.log('keys in accessMapItems: ', keys);
+    return keys.map(key => {
+      console.log(
+        'item accessed by key in accessMapItems: ',
+        zonesAndFileSharePathsMap[key]
+      );
+      return zonesAndFileSharePathsMap[key];
+    });
+  }
+
   React.useEffect(() => {
     (async function () {
       const rawPathPreference = await fetchPreferences('pathPreference');
@@ -98,15 +112,22 @@ export const PreferencesProvider = ({
   }, []);
 
   React.useEffect(() => {
+    if (!isZonesMapReady) {
+      return;
+    }
+
     (async function () {
       const rawZonePreferences = await fetchPreferences('zone');
       if (rawZonePreferences) {
         // const zonePreferences = rawZonePreferences as Record<string, Zone>;
-        setZoneFavorites(rawZonePreferences);
+        setZonePreferenceKeys(rawZonePreferences);
         console.log('zone prefs from initial use effect: ', rawZonePreferences);
+        const zoneFavorites = accessMapItems(rawZonePreferences) as Zone[];
+        console.log('zone favs in initial use effect: ', zoneFavorites);
+        setZoneFavorites(zoneFavorites);
       }
     })();
-  }, []);
+  }, [isZonesMapReady]);
 
   // React.useEffect(() => {
   //   fetchPreferences('fileSharePathFavorites', setFileSharePathFavorites);
@@ -144,26 +165,31 @@ export const PreferencesProvider = ({
     }
   }
 
-  function updateFavoriteState(
-    key: string,
-    favoritesMap: Record<string, Zone | FileSharePath>
-  ) {
-    const updatedFavorites = { ...favoritesMap };
-    if (!updatedFavorites[key]) {
-      updatedFavorites[key] = zonesAndFileSharePathsMap[key];
-    } else if (updatedFavorites[key]) {
-      delete updatedFavorites[key];
+  function updateFavoriteState(key: string, favoritesList: string[]) {
+    const updatedFavorites = [...favoritesList];
+    const keyIndex = updatedFavorites.indexOf(key);
+    if (keyIndex < 0) {
+      updatedFavorites.push(key);
+    } else if (keyIndex >= 0) {
+      updatedFavorites.splice(keyIndex, 1);
     }
     return updatedFavorites;
   }
 
-  function handleZoneFavoriteChange(item: Zone) {
+  async function handleZoneFavoriteChange(item: Zone) {
     const key = makeMapKey('zone', item.name);
-    const updatedZoneFavorites = updateFavoriteState(key, zoneFavorites);
+    const updatedZonePreferenceKeys = updateFavoriteState(
+      key,
+      zonePreferenceKeys
+    );
+
     try {
-      console.log('saving pref to backend: ', updatedZoneFavorites);
-      savePreferencesToBackend('zone', updatedZoneFavorites);
-      setZoneFavorites(updatedZoneFavorites as Record<string, Zone>);
+      console.log('saving pref to backend: ', updatedZonePreferenceKeys);
+      await savePreferencesToBackend('zone', updatedZonePreferenceKeys);
+      setZonePreferenceKeys(updatedZonePreferenceKeys);
+
+      const updatedZoneFavorites = accessMapItems(updatedZonePreferenceKeys);
+      setZoneFavorites(updatedZoneFavorites as Zone[]);
     } catch (error) {
       console.error('Error updating zone favorites:', error);
     }
@@ -218,7 +244,11 @@ export const PreferencesProvider = ({
   ) {
     switch (type) {
       case 'zone':
-        handleZoneFavoriteChange(item as Zone);
+        try {
+          await handleZoneFavoriteChange(item as Zone);
+        } catch (error) {
+          console.log(error);
+        }
         break;
       // case 'fileSharePath':
       //   handleFileSharePathFavoriteChange(item as FileSharePath);
@@ -241,6 +271,7 @@ export const PreferencesProvider = ({
         showPathPrefAlert,
         setShowPathPrefAlert,
         handlePathPreferenceSubmit,
+        zonePreferenceKeys,
         zoneFavorites,
         setZoneFavorites,
         // fileSharePathFavorites,

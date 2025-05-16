@@ -9,6 +9,7 @@ import { getAPIPathRoot, sendFetchRequest, makeMapKey } from '../utils';
 import { useCookiesContext } from '../contexts/CookiesContext';
 
 type ZoneBrowserContextType = {
+  isZonesMapReady: boolean;
   zonesAndFileSharePathsMap: ZonesAndFileSharePathsMap;
   currentNavigationZone: string | null;
   setCurrentNavigationZone: React.Dispatch<React.SetStateAction<string | null>>;
@@ -38,6 +39,7 @@ export const ZoneBrowserContextProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
+  const [isZonesMapReady, setIsZonesMapReady] = React.useState(false);
   const [zonesAndFileSharePathsMap, setZonesAndFileSharePathsMap] =
     React.useState<ZonesAndFileSharePathsMap>({});
   const [currentNavigationZone, setCurrentNavigationZone] = React.useState<
@@ -99,6 +101,7 @@ export const ZoneBrowserContextProvider = ({
         createZonesAndFileSharePathsMap(rawData);
 
       setZonesAndFileSharePathsMap(newZonesAndFileSharePathsMap);
+      setIsZonesMapReady(true);
       console.log(
         'zones and fsp map in ZoneBrowserContext:',
         newZonesAndFileSharePathsMap
@@ -121,6 +124,7 @@ export const ZoneBrowserContextProvider = ({
   return (
     <ZoneBrowserContext.Provider
       value={{
+        isZonesMapReady,
         zonesAndFileSharePathsMap,
         currentNavigationZone,
         setCurrentNavigationZone,
