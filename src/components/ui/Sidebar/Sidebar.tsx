@@ -8,7 +8,7 @@ import ZonesBrowser from './ZonesBrowser';
 import useOpenZones from '../../../hooks/useOpenZones';
 
 export default function Sidebar() {
-  const { openZones, toggleOpenZones } = useOpenZones();
+  const { openZones, setOpenZones, toggleOpenZones } = useOpenZones();
   //   const {
   //     searchQuery,
   //     handleSearchChange
@@ -39,11 +39,11 @@ export default function Sidebar() {
           className={`flex-shrink ${openZones['all'] ? 'max-h-[50%]' : 'max-h-[100%]'}`}
         >
           <FavoritesBrowser
-          // searchQuery={searchQuery}
-          // setOpenZones={setOpenZones}
-          // filteredZoneFavorites={filteredZoneFavorites}
-          // filteredFileSharePathFavorites={filteredFileSharePathFavorites}
-          // filteredDirectoryFavorites={filteredDirectoryFavorites}
+            // searchQuery={searchQuery}
+            setOpenZones={setOpenZones}
+            // filteredZoneFavorites={filteredZoneFavorites}
+            // filteredFileSharePathFavorites={filteredFileSharePathFavorites}
+            // filteredDirectoryFavorites={filteredDirectoryFavorites}
           />
         </div>
         <div className="flex-grow overflow-hidden">

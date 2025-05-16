@@ -1,60 +1,53 @@
 import React from 'react';
-// import { Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Collapse,
-  //   IconButton,
+  IconButton,
   Typography,
   List
 } from '@material-tailwind/react';
 import {
-  ChevronRightIcon
-  //   FolderIcon,
-  //   StarIcon as StarOutline
+  ChevronRightIcon,
+  FolderIcon,
+  StarIcon as StarOutline
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
 import Zone from './Zone';
 import FileSharePathComponent from './FileSharePath';
-import {
-  //   DirectoryFavorite,
-  usePreferencesContext
-} from '../../../contexts/PreferencesContext';
-// import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
-// import { useFileBrowserContext } from '../../../contexts/FileBrowserContext';
+import { usePreferencesContext } from '../../../contexts/PreferencesContext';
+import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
+import { useFileBrowserContext } from '../../../contexts/FileBrowserContext';
 import useToggleOpenFavorites from '../../../hooks/useToggleOpenFavorites';
 // import {
 //   FileSharePath
 //   //   ZonesAndFileSharePathsMap
 // } from '../../../shared.types';
+import { makeMapKey } from '../../../utils';
 
-export default function FavoritesBrowser() {
-  //   {
-  //     //   searchQuery,
-  //     //   setOpenZones
-  //     //   filteredZoneFavorites,
-  //     //   filteredFileSharePathFavorites,
-  //     //   filteredDirectoryFavorites
-  //   }: {
-  //     //   searchQuery: string;
-  //     //   setOpenZones: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-  //     //   filteredZoneFavorites: ZonesAndFileSharePaths[];
-  //     //   filteredFileSharePathFavorites: FileSharePath[];
-  //     //   filteredDirectoryFavorites: DirectoryFavorite[];
-  //   }
+type FavoritesBrowserProps = {
+  setOpenZones: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+};
+
+export default function FavoritesBrowser({
+  setOpenZones
+}: FavoritesBrowserProps) {
   const { openFavorites, toggleOpenFavorites } = useToggleOpenFavorites();
   const {
     zoneFavorites,
-    fileSharePathFavorites
-    // directoryFavorites,
-    // pathPreference,
-    // handleFavoriteChange
+    fileSharePathFavorites,
+    folderFavorites,
+    folderPreferenceKeys,
+    pathPreference,
+    handleFavoriteChange
   } = usePreferencesContext();
-  //   const { currentDir, fetchAndFormatFilesForDisplay } = useFileBrowserContext();
-  //   const {
-  //     setCurrentNavigationZone,
-  //     currentFileSharePath,
-  //     setCurrentFileSharePath
-  //   } = useZoneBrowserContext();
+
+  const { currentDir, fetchAndFormatFilesForDisplay } = useFileBrowserContext();
+  const {
+    setCurrentNavigationZone,
+    currentFileSharePath,
+    setCurrentFileSharePath
+  } = useZoneBrowserContext();
 
   const displayZones = zoneFavorites;
   // filteredZoneFavorites.length > 0 || searchQuery.length > 0
@@ -66,10 +59,10 @@ export default function FavoritesBrowser() {
   //       ? filteredFileSharePathFavorites
   //       : fileSharePathFavorites;
 
-  //   const displayDirectories =
+  const displayFolders = folderFavorites;
   //     filteredDirectoryFavorites.length > 0 || searchQuery.length > 0
   //       ? filteredDirectoryFavorites
-  //       : directoryFavorites;
+  //       : folderFavorites;
 
   return (
     <div className="w-[calc(100%-1.5rem)] min-h-fit flex flex-col overflow-hidden h-full mt-3 mx-3 pb-1">
@@ -111,39 +104,41 @@ export default function FavoritesBrowser() {
             })}
 
             {/* Directory favorites */}
-            {/* {displayDirectories.map(directoryItem => {
+            {displayFolders.map(folderFavorite => {
               const fileSharePath =
                 pathPreference[0] === 'linux_path'
-                  ? directoryItem.fileSharePath.linux_path
+                  ? folderFavorite.fsp.linux_path
                   : pathPreference[0] === 'windows_path'
-                    ? directoryItem.fileSharePath.windows_path
+                    ? folderFavorite.fsp.windows_path
                     : pathPreference[0] === 'mac_path'
-                      ? directoryItem.fileSharePath.mac_path
-                      : directoryItem.fileSharePath.linux_path;
+                      ? folderFavorite.fsp.mac_path
+                      : folderFavorite.fsp.linux_path;
 
-              const isFavoriteDir = directoryFavorites.some(
-                fav =>
-                  fav.name === directoryItem.name &&
-                  fav.fileSharePath.name === directoryItem.fileSharePath.name
-              )
+              const mapKey = makeMapKey(
+                'folder',
+                `${folderFavorite.fsp.name}_${folderFavorite.folderPath}`
+              );
+              const isFavoriteDir = folderPreferenceKeys.includes(mapKey)
                 ? true
                 : false;
+              const splitPath = folderFavorite.folderPath.split('/');
+              const folderName = splitPath[splitPath.length - 1];
 
               return (
                 <List.Item
-                  key={`favorite-directory-${directoryItem.name}`}
+                  key={mapKey}
                   onClick={() => {
                     setOpenZones({
                       all: true,
-                      [directoryItem.fileSharePath.zone]: true
+                      [folderFavorite.fsp.zone]: true
                     });
-                    setCurrentNavigationZone(directoryItem.fileSharePath.zone);
-                    setCurrentFileSharePath(directoryItem.fileSharePath);
+                    setCurrentNavigationZone(folderFavorite.fsp.zone);
+                    setCurrentFileSharePath(folderFavorite.fsp);
                     fetchAndFormatFilesForDisplay(
-                      `${directoryItem.fileSharePath.name}?subpath=${directoryItem.path}`
+                      `${folderFavorite.fsp.name}?subpath=${folderFavorite.folderPath}`
                     );
                   }}
-                  className={`flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 ${directoryItem.fileSharePath === currentFileSharePath && directoryItem.name === currentDir ? '!bg-primary-light/30' : '!bg-background'}`}
+                  className={`flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 ${folderFavorite.fsp.name === currentFileSharePath?.name && folderName === currentDir ? '!bg-primary-light/30' : '!bg-background'}`}
                 >
                   <Link
                     to="/files"
@@ -152,11 +147,11 @@ export default function FavoritesBrowser() {
                     <div className="flex gap-1 items-center">
                       <FolderIcon className="h-4 w-4" />
                       <Typography className="text-sm font-medium leading-4">
-                        {directoryItem.name}
+                        {folderName}
                       </Typography>
                     </div>
                     <Typography className="text-xs">
-                      {`${fileSharePath}/${directoryItem.path}`}
+                      {`${fileSharePath}/${folderFavorite.folderPath}`}
                     </Typography>
                   </Link>
                   <div
@@ -170,7 +165,7 @@ export default function FavoritesBrowser() {
                       isCircular
                       onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                         e.stopPropagation();
-                        handleFavoriteChange(directoryItem, 'directory');
+                        handleFavoriteChange(folderFavorite, 'folder');
                       }}
                     >
                       {isFavoriteDir ? (
@@ -182,7 +177,7 @@ export default function FavoritesBrowser() {
                   </div>
                 </List.Item>
               );
-            })} */}
+            })}
           </List>
         </Collapse>
       </div>

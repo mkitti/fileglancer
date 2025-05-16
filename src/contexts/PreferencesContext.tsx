@@ -1,8 +1,13 @@
 import React from 'react';
-import type { FileOrFolder, FileSharePath, Zone } from '../shared.types';
+import type { FileSharePath, Zone } from '../shared.types';
 import { useCookiesContext } from '../contexts/CookiesContext';
 import { useZoneBrowserContext } from './ZoneBrowserContext';
 import { getAPIPathRoot, sendFetchRequest, makeMapKey } from '../utils';
+
+export type FolderFavorite = {
+  folderPath: string;
+  fsp: FileSharePath;
+};
 
 type PreferencesContextType = {
   pathPreference: ['linux_path'] | ['windows_path'] | ['mac_path'];
@@ -16,12 +21,10 @@ type PreferencesContextType = {
   zoneFavorites: Zone[];
   fileSharePathPreferenceKeys: string[];
   fileSharePathFavorites: FileSharePath[];
-  // folderFavorites: Record<string, FileSharePath>;
-  // setFolderFavorites: React.Dispatch<
-  //   React.SetStateAction<Record<string, FileSharePath>>
-  // >;
+  folderPreferenceKeys: string[];
+  folderFavorites: FolderFavorite[];
   handleFavoriteChange: (
-    item: Zone | FileSharePath | { fsp_name: string; folders: FileOrFolder[] },
+    item: Zone | FileSharePath | FolderFavorite,
     type: string
   ) => Promise<void>;
 };
@@ -59,18 +62,18 @@ export const PreferencesProvider = ({
   const [fileSharePathFavorites, setFileSharePathFavorites] = React.useState<
     FileSharePath[]
   >([]);
-  // const [folderFavorites, setFolderFavorites] = React.useState<
-  //   Record<string, null>
-  // >({});
+  const [folderPreferenceKeys, setFolderPreferenceKeys] = React.useState<
+    string[]
+  >([]);
+  const [folderFavorites, setFolderFavorites] = React.useState<
+    FolderFavorite[]
+  >([]);
 
   const { cookies } = useCookiesContext();
   const { isZonesMapReady, zonesAndFileSharePathsMap } =
     useZoneBrowserContext();
 
-  async function fetchPreferences(
-    key: string
-    // setStateFunction: React.Dispatch<React.SetStateAction<T>>
-  ) {
+  async function fetchPreferences(key: string) {
     try {
       const data = await sendFetchRequest(
         `${getAPIPathRoot()}api/fileglancer/preference?key=${key}`,
@@ -118,14 +121,21 @@ export const PreferencesProvider = ({
     setFileSharePathFavorites(updatedFspFavorites as FileSharePath[]);
   }
 
+  function updateLocalFolderPreferenceStates(updatedKeys: string[]) {
+    setFolderPreferenceKeys(updatedKeys);
+    const updatedFolderFavorites = updatedKeys.map(key => {
+      const [, fspName, folderPath] = key.split('_');
+      const fspKey = makeMapKey('fsp', fspName); // FSP key corresponding to the folder
+      const fsp = zonesAndFileSharePathsMap[fspKey] as FileSharePath; // Access the corresponding FSP
+      return { folderPath, fsp };
+    });
+    setFolderFavorites(updatedFolderFavorites as FolderFavorite[]);
+  }
+
   React.useEffect(() => {
     (async function () {
       const rawPathPreference = await fetchPreferences('pathPreference');
       if (rawPathPreference) {
-        // const pathPreference = rawPathPreference as
-        //   | ['linux_path']
-        //   | ['windows_path']
-        //   | ['mac_path'];
         setPathPreference(rawPathPreference);
       }
     })();
@@ -155,11 +165,20 @@ export const PreferencesProvider = ({
         updateLocalFspPreferenceStates(backendKeys);
       }
     })();
-  }, []);
+  }, [isZonesMapReady]);
 
-  // React.useEffect(() => {
-  //   fetchPreferences('folderFavorites', setFolderFavorites);
-  // }, []);
+  React.useEffect(() => {
+    if (!isZonesMapReady) {
+      return;
+    }
+
+    (async function () {
+      const backendKeys = await fetchPreferences('folder');
+      if (backendKeys) {
+        updateLocalFolderPreferenceStates(backendKeys);
+      }
+    })();
+  }, [isZonesMapReady]);
 
   async function savePreferencesToBackend<T>(key: string, value: T) {
     try {
@@ -235,35 +254,26 @@ export const PreferencesProvider = ({
     }
   }
 
-  // function handleFolderFavoriteChange(item: {
-  //   fsp_name: string;
-  //   folders: FileOrFolder[];
-  // }) {
-  //   let newFolderFavorites = { ...folderFavorites };
-  //   try {
-  //     item.folders.forEach(folder => {
-  //       const newItemKey = makeMapKey(
-  //         'folder',
-  //         `${item.fsp_name}_${folder.path}`
-  //       );
-  //       newFolderFavorites = updateFavoriteState(
-  //         newFolderFavorites,
-  //         newItemKey
-  //       );
-  //       savePreferencesToBackend('folder', {
-  //         type: 'folder',
-  //         fsp_name: item.fsp_name,
-  //         path: folder.path
-  //       });
-  //     });
-  //     setFolderFavorites(newFolderFavorites);
-  //   } catch (error) {
-  //     console.error('Error updating folder favorites:', error);
-  //   }
-  // }
+  async function handleFolderFavoriteChange(item: FolderFavorite) {
+    const folderPrefKey = makeMapKey(
+      'folder',
+      `${item.fsp.name}_${item.folderPath}`
+    );
+    const updatedFolderKeys = updatePreferenceKeyList(
+      folderPrefKey,
+      folderPreferenceKeys
+    );
+
+    try {
+      await savePreferencesToBackend('folder', updatedFolderKeys);
+      updateLocalFolderPreferenceStates(updatedFolderKeys);
+    } catch (error) {
+      console.error('Error updating folder favorites:', error);
+    }
+  }
 
   async function handleFavoriteChange(
-    item: Zone | FileSharePath | { fsp_name: string; folders: FileOrFolder[] },
+    item: Zone | FileSharePath | FolderFavorite,
     type: string
   ) {
     switch (type) {
@@ -277,11 +287,9 @@ export const PreferencesProvider = ({
       case 'fileSharePath':
         handleFileSharePathFavoriteChange(item as FileSharePath);
         break;
-      // case 'directory':
-      //   handleFolderFavoriteChange(
-      //     item as { fsp_name: string; folders: FileOrFolder[] }
-      //   );
-      // break;
+      case 'folder':
+        handleFolderFavoriteChange(item as FolderFavorite);
+        break;
       default:
         console.error('Invalid type provided for handleFavoriteChange:', type);
         break;
@@ -299,8 +307,8 @@ export const PreferencesProvider = ({
         zoneFavorites,
         fileSharePathPreferenceKeys,
         fileSharePathFavorites,
-        // folderFavorites,
-        // setFolderFavorites,
+        folderPreferenceKeys,
+        folderFavorites,
         handleFavoriteChange
       }}
     >

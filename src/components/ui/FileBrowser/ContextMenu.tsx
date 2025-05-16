@@ -3,8 +3,8 @@ import ReactDOM from 'react-dom';
 import { Typography } from '@material-tailwind/react';
 
 import type { FileOrFolder } from '../../../shared.types';
-// import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
-// import { usePreferencesContext } from '../../../contexts/PreferencesContext';
+import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
+import { usePreferencesContext } from '../../../contexts/PreferencesContext';
 
 type ContextMenuProps = {
   x: number;
@@ -29,9 +29,8 @@ export default function ContextMenu({
   setShowDeleteDialog,
   setShowPermissionsDialog
 }: ContextMenuProps): JSX.Element {
-  //   const { currentNavigationZone, currentFileSharePath } =
-  //     useZoneBrowserContext();
-  //   const { handleFavoriteChange } = usePreferencesContext();
+  const { currentFileSharePath } = useZoneBrowserContext();
+  const { handleFavoriteChange } = usePreferencesContext();
   return ReactDOM.createPortal(
     <div
       ref={menuRef}
@@ -52,44 +51,25 @@ export default function ContextMenu({
         >
           View file properties
         </Typography>
-
-        {/* Set/unset folders as favorites
-        {(selectedFiles.length === 1 && selectedFiles[0].is_dir) ||
-        (selectedFiles.length > 1 &&
-          selectedFiles.some(file => file.is_dir)) ? (
+        {/* Set/unset folders as favorites */}
+        {selectedFiles.length === 1 && selectedFiles[0].is_dir ? (
           <Typography
             className="text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
             onClick={() => {
-              if (currentNavigationZone && currentFileSharePath) {
-                if (selectedFiles.length === 1) {
-                  handleFavoriteChange(
-                    {
-                      fileSharePath: currentFileSharePath,
-                      name: selectedFiles[0].name,
-                      path: selectedFiles[0].path
-                    },
-                    'directory'
-                  );
-                } else if (selectedFiles.length > 1) {
-                  console.log('selected files:', selectedFiles);
-                  const directoriesToAdd = selectedFiles
-                    .filter(file => file.is_dir)
-                    .map(file => ({
-                      navigationZone: currentNavigationZone,
-                      fileSharePath: currentFileSharePath,
-                      name: file.name,
-                      path: file.path
-                    }));
-                  handleFavoriteChange(directoriesToAdd, 'directory');
-                  setShowContextMenu(false);
-                }
+              if (currentFileSharePath) {
+                handleFavoriteChange(
+                  {
+                    folderPath: selectedFiles[0].path,
+                    fsp: currentFileSharePath
+                  },
+                  'folder'
+                );
               }
             }}
           >
             Set/unset as favorite
           </Typography>
-        ) : null} */}
-
+        ) : null}
         {/* Rename file or folder */}
         {selectedFiles.length === 1 ? (
           <Typography
@@ -102,7 +82,6 @@ export default function ContextMenu({
             Rename
           </Typography>
         ) : null}
-
         {/* Change permissions on file(s) */}
         {selectedFiles.length === 1 && !selectedFiles[0].is_dir ? (
           <Typography
@@ -115,7 +94,6 @@ export default function ContextMenu({
             Change permissions
           </Typography>
         ) : null}
-
         {/* Delete file(s) or folder(s) */}
         <Typography
           className="text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
