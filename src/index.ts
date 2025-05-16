@@ -55,7 +55,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
       console.log('Running in test mode, skipping demos.');
       return;
     }
-
   }
 };
 

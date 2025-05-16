@@ -28,7 +28,9 @@ function getAPIPathRoot() {
 
   for (const pattern of patterns) {
     const match = path.match(pattern);
-    if (match) return match[0];
+    if (match) {
+      return match[0];
+    }
   }
 
   return '/';
@@ -89,13 +91,10 @@ const parsePermissions = (permissionString: string) => {
   };
 };
 
-
 function getCleanPath(path: string): string {
   if (path && path.trim() !== '') {
     // Remove leading slash from path if present to avoid double slashes
-    return path.trim().startsWith('/')
-      ? path.trim().substring(1)
-      : path.trim();
+    return path.trim().startsWith('/') ? path.trim().substring(1) : path.trim();
   }
   return path;
 }
@@ -104,12 +103,15 @@ function getFileFetchPath(path: string): string {
   return `${getAPIPathRoot()}api/fileglancer/files/${getCleanPath(path)}`;
 }
 
-async function fetchFileContent(path: string, cookies: Record<string, string>): Promise<Uint8Array | null> {
+async function fetchFileContent(
+  path: string,
+  cookies: Record<string, string>
+): Promise<Uint8Array | null> {
   const url = getFileFetchPath(path);
 
   try {
     const response = await sendFetchRequest(url, 'GET', cookies['_xsrf']);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch file: ${response.statusText}`);
     }
@@ -131,7 +133,10 @@ async function fetchFileContent(path: string, cookies: Record<string, string>): 
   }
 }
 
-async function fetchFileAsText(path: string, cookies: Record<string, string>): Promise<string | null> {
+async function fetchFileAsText(
+  path: string,
+  cookies: Record<string, string>
+): Promise<string | null> {
   try {
     const fileContent = await fetchFileContent(path, cookies);
     if (fileContent === null) {
@@ -142,15 +147,22 @@ async function fetchFileAsText(path: string, cookies: Record<string, string>): P
     return decoder.decode(fileContent);
   } catch (error: unknown) {
     if (error instanceof Error) {
-      console.error(`Error in fetchFileAsText for path ${path}: ${error.message}`);
+      console.error(
+        `Error in fetchFileAsText for path ${path}: ${error.message}`
+      );
     } else {
-      console.error(`An unknown error occurred in fetchFileAsText for path ${path}`);
+      console.error(
+        `An unknown error occurred in fetchFileAsText for path ${path}`
+      );
     }
     return null;
   }
 }
 
-async function fetchFileAsJson(path: string, cookies: Record<string, string>): Promise<object | null> {
+async function fetchFileAsJson(
+  path: string,
+  cookies: Record<string, string>
+): Promise<object | null> {
   try {
     const fileText = await fetchFileAsText(path, cookies);
     if (fileText === null) {
@@ -162,9 +174,13 @@ async function fetchFileAsJson(path: string, cookies: Record<string, string>): P
     if (error instanceof SyntaxError) {
       console.error(`JSON parsing error for path ${path}: ${error.message}`);
     } else if (error instanceof Error) {
-      console.error(`Error in fetchFileAsJson for path ${path}: ${error.message}`);
+      console.error(
+        `Error in fetchFileAsJson for path ${path}: ${error.message}`
+      );
     } else {
-      console.error(`An unknown error occurred in fetchFileAsJson for path ${path}`);
+      console.error(
+        `An unknown error occurred in fetchFileAsJson for path ${path}`
+      );
     }
     return null;
   }
