@@ -8,6 +8,7 @@ import FileListCrumbs from './Crumbs';
 import FileRow from './FileRow';
 import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
 import { useFileBrowserContext } from '../../../contexts/FileBrowserContext';
+import { fetchFileAsJson } from '../../../utils';
 
 type FileListProps = {
   files: File[];
@@ -34,7 +35,7 @@ export default function FileList({
   hideDotFiles,
   handleRightClick
 }: FileListProps): JSX.Element {
-  const { currentNavigationPath, getFileFetchPath, fetchFileAsJson } = useFileBrowserContext();
+  const { currentNavigationPath, getFileFetchPath } = useFileBrowserContext();
   const { currentFileSharePath } = useZoneBrowserContext();
 
   const displayFiles = React.useMemo(() => {

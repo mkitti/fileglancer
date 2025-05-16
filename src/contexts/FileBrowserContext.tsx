@@ -11,9 +11,6 @@ type FileBrowserContextType = {
   getFileFetchPath: (path: File['path']) => string;
   setCurrentNavigationPath: React.Dispatch<React.SetStateAction<File['path']>>;
   fetchAndFormatFilesForDisplay: (path: File['path']) => Promise<void>;
-  fetchFileContent: (path: File['path']) => Promise<Uint8Array | null>;
-  fetchFileAsText: (path: File['path']) => Promise<string | null>;
-  fetchFileAsJson: (path: File['path']) => Promise<object | null>;
 };
 
 const FileBrowserContext = React.createContext<FileBrowserContextType | null>(
@@ -116,72 +113,6 @@ export const FileBrowserContextProvider = ({
     }
   }
 
-  async function fetchFileContent(path: File['path']): Promise<Uint8Array | null> {
-    const url = getFileFetchPath(path);
-
-    try {
-      const response = await sendFetchRequest(url, 'GET', cookies['_xsrf']);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch file: ${response.statusText}`);
-      }
-
-      const contentDisposition = response.headers.get('Content-Disposition');
-      if (!contentDisposition || !contentDisposition.includes('attachment')) {
-        throw new Error('Invalid response: Expected an attachment');
-      }
-
-      const fileBuffer = await response.arrayBuffer();
-      return new Uint8Array(fileBuffer);
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error(error.message);
-      } else {
-        console.error('An unknown error occurred');
-      }
-      return null;
-    }
-  }
-
-  async function fetchFileAsText(path: File['path']): Promise<string | null> {
-    try {
-      const fileContent = await fetchFileContent(path);
-      if (fileContent === null) {
-        console.warn(`No content fetched for path: ${path}`);
-        return null;
-      }
-      const decoder = new TextDecoder('utf-8');
-      return decoder.decode(fileContent);
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error(`Error in fetchFileAsText for path ${path}: ${error.message}`);
-      } else {
-        console.error(`An unknown error occurred in fetchFileAsText for path ${path}`);
-      }
-      return null;
-    }
-  }
-
-  async function fetchFileAsJson(path: File['path']): Promise<object | null> {
-    try {
-      const fileText = await fetchFileAsText(path);
-      if (fileText === null) {
-        console.warn(`No text content fetched for path: ${path}`);
-        return null;
-      }
-      return JSON.parse(fileText);
-    } catch (error: unknown) {
-      if (error instanceof SyntaxError) {
-        console.error(`JSON parsing error for path ${path}: ${error.message}`);
-      } else if (error instanceof Error) {
-        console.error(`Error in fetchFileAsJson for path ${path}: ${error.message}`);
-      } else {
-        console.error(`An unknown error occurred in fetchFileAsJson for path ${path}`);
-      }
-      return null;
-    }
-  }
-
   return (
     <FileBrowserContext.Provider
       value={{
@@ -191,10 +122,7 @@ export const FileBrowserContextProvider = ({
         currentDir,
         getFileFetchPath,
         setCurrentNavigationPath,
-        fetchAndFormatFilesForDisplay,
-        fetchFileContent,
-        fetchFileAsText,
-        fetchFileAsJson
+        fetchAndFormatFilesForDisplay
       }}
     >
       {children}
