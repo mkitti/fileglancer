@@ -28,7 +28,7 @@
     "build:labextension": "jupyter labextension build .",
     "build:labextension:dev": "jupyter labextension build --development True .",
     "watch": "run-p watch:src watch:labextension",
-    "watch:src": "tsc -b --watch && vite build --watch",
+    "watch:src": "vite build --watch",
     "watch:labextension": "jupyter labextension watch .",
     "lint": "eslint .",
     "install:extension": "npm run build",
