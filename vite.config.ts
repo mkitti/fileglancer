@@ -8,5 +8,25 @@ export default defineConfig({
   build: {
     sourcemap: true,
     outDir: 'fileglancer/ui'
+  },
+  test: {
+    exclude: [
+      '**/.pixi/**',
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/ui-tests/**'
+    ],
+    globals: true,
+    environment: 'jsdom',
+    coverage: {
+      reporter: ['text', 'html'],
+      include: ['src/**/*.{ts,tsx,js,jsx}'],
+      exclude: [
+        '**/.pixi/**',
+        '**/node_modules/**',
+        '**/dist/**',
+        '**/ui-tests/**'
+      ]
+    }
   }
 });
