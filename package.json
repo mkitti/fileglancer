@@ -13,6 +13,10 @@
     },
     "license": "BSD-3-Clause",
     "author": "allison-truhlar",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/JaneliaSciComp/fileglancer.git"
+    },
     "files": [
         "lib/**/*.{d.ts,eot,gif,html,jpg,js,js.map,json,png,svg,woff2,ttf}",
         "style/**/*.{css,js,eot,gif,html,jpg,json,png,svg,woff2,ttf}",
