@@ -6,6 +6,7 @@ import Home from './components/Home';
 import Files from './components/Files';
 import Help from './components/Help';
 import Jobs from './components/Jobs';
+import Preferences from './components/Preferences';
 
 function Profile() {
   return (
@@ -19,14 +20,6 @@ function Login() {
   return (
     <div className="p-4">
       <h2 className="text-foreground text-lg">Login Page</h2>
-    </div>
-  );
-}
-
-function Preferences() {
-  return (
-    <div className="p-4">
-      <h2 className="text-foreground text-lg">Preferences Page</h2>
     </div>
   );
 }
