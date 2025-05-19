@@ -24,7 +24,19 @@ def _get_mounted_filestore(fsp):
     return filestore
 
 
-class StreamingProxy(APIHandler):
+class BaseHandler(APIHandler):
+    def get_current_user(self):
+        """
+        Get the current user's username. Uses the USER environment variable 
+        if available, otherwise uses the current Jupyter user's name.
+        
+        Returns:
+            str: The username of the current user.
+        """
+        return os.getenv("USER", self.current_user.name)
+
+
+class StreamingProxy(BaseHandler):
     """
     API handler for proxying responses from the central server
     """
@@ -66,10 +78,18 @@ class FileSharePathsHandler(StreamingProxy):
         self.finish()
 
 
-class FileShareHandler(APIHandler):
+
+class FileShareHandler(BaseHandler):
     """
     API handler for file access using the Filestore class
     """
+    def set_cors_headers(self):
+        self.set_header('Access-Control-Allow-Origin', '*')
+        self.set_header('Access-Control-Allow-Credentials', 'true')
+        self.set_header('Access-Control-Allow-Methods', 'GET, POST')
+        self.set_header('Access-Control-Allow-Headers', 'Content-Type, X-XSRFToken')
+        self.set_header('Expose-Headers', 'Range, Content-Range')
+
 
     def _get_filestore(self, path_name):
         """
@@ -93,15 +113,23 @@ class FileShareHandler(APIHandler):
         return filestore
 
 
-    @web.authenticated
+    # TODO: Uncomment once we have a file server for Neuroglancer
+    #@web.authenticated
     def get(self, path=""):
         """
         Handle GET requests to list directory contents or stream file contents
         """
         subpath = self.get_argument("subpath", '')
-        self.log.info(f"GET /api/fileglancer/files/{path} subpath={subpath}")
+        self.set_cors_headers()
 
-        filestore = self._get_filestore(path)
+        if subpath:
+            self.log.info(f"GET /api/fileglancer/files/{path} subpath={subpath}")
+            filestore_name = path
+        else:
+            self.log.info(f"GET /api/fileglancer/files/{path}")
+            filestore_name, _, subpath = path.partition('/')
+            
+        filestore = self._get_filestore(filestore_name)
         if filestore is None:
             return
 
@@ -222,7 +250,15 @@ class FileShareHandler(APIHandler):
         self.finish()
 
 
-class PreferencesHandler(APIHandler):
+    # TODO: Uncomment once we have a file server for Neuroglancer
+    #@web.authenticated
+    def options(self, *args, **kwargs):
+        self.set_cors_headers()
+        self.set_status(204)
+        self.finish()
+
+
+class PreferencesHandler(BaseHandler):
     """
     Handler for user preferences API endpoints.
     """
@@ -233,7 +269,7 @@ class PreferencesHandler(APIHandler):
         Get all preferences or a specific preference for the current user.
         """
         key = self.get_argument("key", None)
-        username = self.current_user.name
+        username = self.get_current_user()
         self.log.info(f"GET /api/fileglancer/preference username={username} key={key}")
 
         try:
@@ -257,7 +293,7 @@ class PreferencesHandler(APIHandler):
         Set a preference for the current user.
         """
         key = self.get_argument("key")
-        username = self.current_user.name
+        username = self.get_current_user()
         value = self.get_json_body()
         self.log.info(f"PUT /api/fileglancer/preference username={username} key={key}")
 
@@ -278,7 +314,7 @@ class PreferencesHandler(APIHandler):
         Delete a preference for the current user.
         """
         key = self.get_argument("key")
-        username = self.current_user.name
+        username = self.get_current_user()
         self.log.info(f"DELETE /api/fileglancer/preference username={username} key={key}")
 
         try:
@@ -296,7 +332,7 @@ class PreferencesHandler(APIHandler):
             self.finish(json.dumps({"error": str(e)}))
 
 
-class TicketHandler(APIHandler):
+class TicketHandler(BaseHandler):
     """
     API handler for ticket operations
     """
@@ -368,7 +404,7 @@ class TicketHandler(APIHandler):
             self.finish(json.dumps({"error": str(e)}))
 
 
-class VersionHandler(APIHandler):
+class VersionHandler(BaseHandler):
     """
     API handler for returning the version of the fileglancer extension
     """
@@ -425,6 +461,7 @@ class StaticHandler(JupyterHandler, web.StaticFileHandler):
         # Ensure XSRF cookie is set for index.html
         if self.get_absolute_path == "index.html":
             self.xsrf_token
+
 
 def setup_handlers(web_app):
     """
