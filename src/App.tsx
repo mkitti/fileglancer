@@ -1,14 +1,13 @@
 import { ReactWidget } from '@jupyterlab/ui-components';
 import React from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router';
-// import { CookiesProvider } from 'react-cookie';
 import { MainLayout } from './layouts/MainLayout';
 import { FilesLayout } from './layouts/FilesLayout';
 import Home from './components/Home';
 import Files from './components/Files';
 import Help from './components/Help';
 import Jobs from './components/Jobs';
-// import Preferences from './components/Preferences';
+import Preferences from './components/Preferences';
 
 function Profile() {
   return (
@@ -57,7 +56,7 @@ const AppComponent = (): JSX.Element => {
           <Route path="jobs" element={<Jobs />} />
           <Route path="help" element={<Help />} />
           <Route path="profile" element={<Profile />} />
-          {/* <Route path="preferences" element={<Preferences />} /> */}
+          <Route path="preferences" element={<Preferences />} />
           <Route element={<FilesLayout />}>
             <Route path="files" element={<Files />} />
             <Route index path="*" element={<Home />} />

@@ -138,8 +138,9 @@ export const PreferencesProvider = ({
 
   React.useEffect(() => {
     (async function () {
-      const rawPathPreference = await fetchPreferences('pathPreference');
+      const rawPathPreference = await fetchPreferences('path');
       if (rawPathPreference) {
+        console.log('setting initial path preference:', rawPathPreference);
         setPathPreference(rawPathPreference);
       }
     })();
