@@ -1,6 +1,9 @@
 import * as React from 'react';
 import { Typography } from '@material-tailwind/react';
 
+import * as zarr from 'zarrita';
+import * as omezarr from 'ome-zarr.js';
+
 import type { File } from '../../../shared.types';
 import FileListCrumbs from './Crumbs';
 import FileRow from './FileRow';
@@ -32,7 +35,7 @@ export default function FileList({
   setPropertiesTarget,
   hideDotFiles,
   handleRightClick
-}: FileListProps): JSX.Element {
+}: FileListProps): React.ReactNode {
   const { currentNavigationPath, getFileFetchPath } = useFileBrowserContext();
   const { currentFileSharePath } = useZoneBrowserContext();
   const displayFiles = React.useMemo(() => {
