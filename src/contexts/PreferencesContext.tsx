@@ -1,10 +1,7 @@
 import React from 'react';
-import type {
-  FileSharePathItem,
-  ZonesAndFileSharePaths
-} from '../shared.types';
-import { useCookiesContext } from '../contexts/CookiesContext';
-import { getAPIPathRoot, sendFetchRequest } from '../utils';
+import type { FileSharePathItem, ZonesAndFileSharePaths } from '@/shared.types';
+import { useCookiesContext } from '@/contexts/CookiesContext';
+import { getAPIPathRoot, sendFetchRequest } from '@/utils';
 
 export type DirectoryFavorite = {
   fileSharePath: FileSharePathItem;

@@ -1,11 +1,8 @@
 import React from 'react';
-import type {
-  ZonesAndFileSharePaths,
-  FileSharePathItem
-} from '../shared.types';
-import type { DirectoryFavorite } from '../contexts/PreferencesContext';
-import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';
-import { usePreferencesContext } from '../contexts/PreferencesContext';
+import type { ZonesAndFileSharePaths, FileSharePathItem } from '@/shared.types';
+import type { DirectoryFavorite } from '@/contexts/PreferencesContext';
+import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
 
 export default function useSearchFilter() {
   const { zonesAndFileSharePaths } = useZoneBrowserContext();

@@ -22,10 +22,7 @@ import {
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import useToggleOpenFavorites from '@/hooks/useToggleOpenFavorites';
-import {
-  FileSharePathItem,
-  ZonesAndFileSharePaths
-} from '@/shared.types';
+import { FileSharePathItem, ZonesAndFileSharePaths } from '@/shared.types';
 
 export default function FavoritesBrowser({
   searchQuery,
