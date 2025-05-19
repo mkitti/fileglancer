@@ -121,7 +121,7 @@ export default function PropertiesDrawer({
                     }
                   }}
                 >
-                  <Square2StackIcon className="h-4 w-4" />
+                  <Square2StackIcon className="icon-small" />
                 </IconButton>
               </div>
               {copiedText.value === fullPath &&

@@ -40,13 +40,15 @@ export default function Zone({
     <React.Fragment>
       <List.Item
         onClick={() => toggleOpenZones(zoneName)}
-        className="cursor-pointer rounded-none py-1 flex-shrink-0 hover:!bg-primary-light/30 focus:!bg-primary-light/30  !bg-background"
+        className="cursor-pointer rounded-none py-1 x-short:py-0 short:py-0 flex-shrink-0 hover:!bg-primary-light/30 focus:!bg-primary-light/30 !bg-background"
       >
         <List.ItemStart>
-          <Squares2X2Icon className="h-4 w-4" />
+          <Squares2X2Icon className="icon-small x-short:icon-xsmall" />
         </List.ItemStart>
         <div className="flex-1 min-w-0 flex items-center gap-1">
-          <Typography className="text-sm">{zoneName}</Typography>
+          <Typography className="x-short:text-xs short:text-xs text-sm">
+            {zoneName}
+          </Typography>
           <div className="flex items-center" onClick={e => e.stopPropagation()}>
             <IconButton
               variant="ghost"
@@ -56,16 +58,16 @@ export default function Zone({
               }
             >
               {isFavoriteZone ? (
-                <StarFilled className="h-4 w-4 mb-[2px]" />
+                <StarFilled className="icon-small x-short:icon-xsmall mb-[2px]" />
               ) : (
-                <StarOutline className="h-4 w-4 mb-[2px]" />
+                <StarOutline className="icon-small x-short:icon-xsmall mb-[2px]" />
               )}
             </IconButton>
           </div>
         </div>
         <List.ItemEnd>
           <ChevronRightIcon
-            className={`h-4 w-4 ${isOpen ? 'rotate-90' : ''}`}
+            className={`icon-small x-short:icon-xsmall ${isOpen ? 'rotate-90' : ''}`}
           />
         </List.ItemEnd>
       </List.Item>
