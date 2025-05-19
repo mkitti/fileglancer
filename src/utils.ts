@@ -161,10 +161,10 @@ async function fetchFileAsText(
 
 async function fetchFileAsJson(
   path: string,
-  cookies: Record<string, string>
+  cookies?: Record<string, string>
 ): Promise<object | null> {
   try {
-    const fileText = await fetchFileAsText(path, cookies);
+    const fileText = await fetchFileAsText(path, cookies || {});
     if (fileText === null) {
       console.warn(`No text content fetched for path: ${path}`);
       return null;
