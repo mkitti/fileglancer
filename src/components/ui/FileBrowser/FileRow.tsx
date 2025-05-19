@@ -100,9 +100,9 @@ export default function FileRow({
       {/* Type column */}
       <div className="flex items-center w-full gap-3 py-1 text-grey-700 overflow-x-auto">
         {file.is_dir ? (
-          <FolderIcon className="text-foreground h-5 w-5" />
+          <FolderIcon className="text-foreground icon-default" />
         ) : (
-          <DocumentIcon className="text-foreground h-5 w-5" />
+          <DocumentIcon className="text-foreground icon-default" />
         )}
         <Typography variant="small" className="font-medium">
           {file.is_dir ? 'Folder' : 'File'}
@@ -137,7 +137,7 @@ export default function FileRow({
         }}
       >
         <IconButton variant="ghost">
-          <EllipsisHorizontalCircleIcon className="h-5 w-5 text-foreground" />
+          <EllipsisHorizontalCircleIcon className="icon-default text-foreground" />
         </IconButton>
       </div>
     </div>

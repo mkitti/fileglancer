@@ -62,16 +62,16 @@ export default function PropertiesDrawer({
               setShowPropertiesDrawer((prev: boolean) => !prev);
             }}
           >
-            <XMarkIcon className="h-5 w-5" />
+            <XMarkIcon className="icon-default" />
           </IconButton>
         </div>
 
         {propertiesTarget ? (
           <div className="flex items-center gap-2 mt-3 mb-4 max-h-min">
             {propertiesTarget.is_dir ? (
-              <FolderIcon className="h-5 w-5" />
+              <FolderIcon className="icon-default" />
             ) : (
-              <DocumentIcon className="h-5 w-5" />
+              <DocumentIcon className="icon-default" />
             )}{' '}
             <Typography className="font-semibold">
               {propertiesTarget?.name}
@@ -130,7 +130,7 @@ export default function PropertiesDrawer({
                 <Alert className="flex items-center justify-between bg-secondary-light/70 border-none">
                   <Alert.Content>Path copied to clipboard!</Alert.Content>
                   <XMarkIcon
-                    className="h-5 w-5 cursor-pointer"
+                    className="icon-default cursor-pointer"
                     onClick={dismissCopyAlert}
                   />
                 </Alert>

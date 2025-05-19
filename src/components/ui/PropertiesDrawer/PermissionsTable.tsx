@@ -8,9 +8,9 @@ export default function PermissionsTable({ file }: { file: File | null }) {
 
   const PermissionIcon = ({ hasPermission }: { hasPermission: boolean }) =>
     hasPermission ? (
-      <CheckIcon className="h-5 w-5" />
+      <CheckIcon className="icon-default" />
     ) : (
-      <MinusIcon className="h-5 w-5" />
+      <MinusIcon className="icon-default" />
     );
 
   return (

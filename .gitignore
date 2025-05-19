@@ -134,5 +134,8 @@ dmypy.json
 pixi.lock
 package-lock.json
 
+# Zarr files
+*.zarr
+
 # Converted Tailwind CSS
 style/tailwind_converted.css

@@ -106,7 +106,7 @@ export default function Preferences() {
               <Alert className="flex items-center gap-6 mt-6 bg-secondary-light/70 border-none">
                 <Alert.Content>Preference updated!</Alert.Content>
                 <XMarkIcon
-                  className="h-5 w-5 cursor-pointer"
+                  className="icon-default cursor-pointer"
                   onClick={() => setShowPathPrefAlert(false)}
                 />
               </Alert>

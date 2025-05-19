@@ -53,7 +53,7 @@ function NavList() {
           className="flex items-center dark:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark hover:!text-foreground focus:!text-foreground"
         >
           <List.ItemStart className="flex items-center mr-1.5">
-            <Icon className="h-5 w-5" />
+            <Icon className="icon-default" />
           </List.ItemStart>
           <Typography type="small">{title}</Typography>
         </List.Item>

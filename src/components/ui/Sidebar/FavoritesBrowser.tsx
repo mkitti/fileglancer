@@ -78,7 +78,7 @@ export default function FavoritesBrowser({
           className="cursor-pointer rounded-none py-3 bg-surface/50 hover:!bg-surface-light focus:!bg-surface-light"
         >
           <List.ItemStart>
-            <StarFilled className="h-5 w-5 text-surface-foreground" />
+            <StarFilled className="icon-default text-surface-foreground" />
           </List.ItemStart>
           <Typography className="font-semibold text-surface-foreground">
             Favorites
