@@ -208,7 +208,7 @@ function generateNeuroglancerState(dataUrl: string, zarr_version: 2 | 3, multisc
   console.log("Axes map: ", axesMap);
 
   const { min: dtypeMin, max: dtypeMax } = getMinMaxValues(arr);
-  console.log("Inferring min/max values:", dtypeMin, dtypeMax);
+  console.log("Inferred min/max values:", dtypeMin, dtypeMax);
 
   // Create the scaffold for theNeuroglancer viewer state
   const state: any = {
@@ -296,7 +296,6 @@ function generateNeuroglancerState(dataUrl: string, zarr_version: 2 | 3, multisc
       }
     }
   }
-  console.log("Channels: ", channels);
 
   if (channels.length === 0) {
     console.warn("No channels found in metadata, using default shader");
@@ -367,8 +366,6 @@ function generateNeuroglancerState(dataUrl: string, zarr_version: 2 | 3, multisc
 
   // Convert the state to a URL-friendly format
   const stateJson = JSON.stringify(state);
-  console.log("Neuroglancer state: ", stateJson);
-
   return encodeURIComponent(stateJson);
 }
 
@@ -387,15 +384,13 @@ async function getOmeZarrMetadata(dataUrl: string, thumbnailSize: number = 300, 
 }> {
   const store = new zarr.FetchStore(dataUrl);
   let { arr, shapes, multiscale, omero, scales, zarr_version } = await omezarr.getMultiscaleWithArray(store, 0);
-  const neuroglancerState = generateNeuroglancerState(dataUrl, zarr_version, multiscale as Multiscale, arr, omero as Omero);
-  const thumbnail = await omezarr.renderThumbnail(store, thumbnailSize, autoBoost, maxThumbnailSize);
-
   console.log("Zarr version: ", zarr_version);
   console.log("Multiscale: ", multiscale);
   console.log("Omero: ", omero);
-  console.log("Arr: ", arr);
+  console.log("Array: ", arr);
   console.log("Shapes: ", shapes);
-
+  const neuroglancerState = generateNeuroglancerState(dataUrl, zarr_version, multiscale as Multiscale, arr, omero as Omero);
+  const thumbnail = await omezarr.renderThumbnail(store, thumbnailSize, autoBoost, maxThumbnailSize);
   return { arr, shapes, multiscale, omero, scales, zarr_version, neuroglancerState, thumbnail };
 }
 
