@@ -187,9 +187,20 @@ function getAxesMap(multiscale: Multiscale): Record<string, any> {
 }
 
 /**
+ * Get the Neuroglancer source for a given Zarr array.
+ */
+function getNeuroglancerSource(dataUrl: string, zarr_version: 2 | 3): string {
+  // Neuroglancer expects a trailing slash
+  if (!dataUrl.endsWith('/')) {
+    dataUrl = dataUrl + '/';
+  }
+  return dataUrl + "|zarr" + zarr_version + ":";
+}
+
+/**
  * Generate a Neuroglancer state for a given Zarr array.
  */
-function generateNeuroglancerState(dataUrl: string, multiscale: Multiscale, arr: zarr.Array<any>, omero?: Omero): string | null {
+function generateNeuroglancerState(dataUrl: string, zarr_version: 2 | 3, multiscale: Multiscale, arr: zarr.Array<any>, omero?: Omero): string | null {
   console.log("Generating Neuroglancer state for", dataUrl);
 
   // Convert axes array to a map for easier access
@@ -254,22 +265,23 @@ function generateNeuroglancerState(dataUrl: string, multiscale: Multiscale, arr:
 
   let colorIndex = 0;
   const channels = [];
-  if (omero) {
-    if (omero.channels) {
-      for (let i = 0; i < omero.channels.length; i++) {
-        const channelMeta = omero.channels[i];
-        const window = channelMeta.window || {};
-        channels.push({
-          name: channelMeta.label || `Ch${i}`,
-          color: channelMeta.color || COLORS[colorIndex++ % COLORS.length],
-          pixel_intensity_min: window.min,
-          pixel_intensity_max: window.max,
-          contrast_limit_start: window.start,
-          contrast_limit_end: window.end
-        });
-      }
-    } else {
-      // If there is no omero metadata, we do the best we can
+  if (omero && omero.channels) {
+    console.log("Omero channels: ", omero.channels);
+    for (let i = 0; i < omero.channels.length; i++) {
+      const channelMeta = omero.channels[i];
+      const window = channelMeta.window || {};
+      channels.push({
+        name: channelMeta.label || `Ch${i}`,
+        color: channelMeta.color || COLORS[colorIndex++ % COLORS.length],
+        pixel_intensity_min: window.min,
+        pixel_intensity_max: window.max,
+        contrast_limit_start: window.start,
+        contrast_limit_end: window.end
+      });
+    }
+  } else {
+    // If there is no omero metadata, try to infer channels from the axes
+    if ('c' in axesMap) {
       const channelAxis = axesMap['c'].index;
       const numChannels = arr.shape[channelAxis];
       for (let i = 0; i < numChannels; i++) {
@@ -284,51 +296,74 @@ function generateNeuroglancerState(dataUrl: string, multiscale: Multiscale, arr:
       }
     }
   }
+  console.log("Channels: ", channels);
 
-  // If there is only one channel, make it white
-  if (channels.length === 1) {
-    channels[0].color = 'white';
-  }
-
-  // Add layers for each channel
-  channels.forEach((channel, i) => {
-    const minValue = channel.pixel_intensity_min ?? dtypeMin;
-    const maxValue = channel.pixel_intensity_max ?? dtypeMax;
-
-    // Format color
-    let color = channel.color;
-    if (/^[\dA-F]{6}$/.test(color)) {
-      // Bare hex color, add leading hash for rendering
-      color = '#' + color;
-    }
-
+  if (channels.length === 0) {
+    console.warn("No channels found in metadata, using default shader");
     const layer: Record<string, any> = {
       type: 'image',
-      source: 'zarr://' + dataUrl,
+      source: getNeuroglancerSource(dataUrl, zarr_version),
       tab: 'rendering',
       opacity: 1,
       blend: 'additive',
-      shader: getShader(color, minValue, maxValue),
-      localDimensions: { "c'": [1, ''] },
-      localPosition: [i]
-    };
-
-    // Add shader controls if contrast limits are defined
-    const start = channel.contrast_limit_start ?? dtypeMin;
-    const end = (channel.contrast_limit_end ?? dtypeMax) * 0.25;
-    if (start !== null && end !== null) {
-      layer.shaderControls = {
+      shaderControls: {
         normalized: {
-          range: [start, end]
+          range: [dtypeMin, dtypeMax]
         }
-      };
-    }
-
+      }
+    };
     state.layers.push({
-      name: channel.name,
+      name: 'Default',
       ...layer
     });
-  });
+
+  }
+  else {
+    // If there is only one channel, make it white
+    if (channels.length === 1) {
+      channels[0].color = 'white';
+    }
+
+    // Add layers for each channel
+    channels.forEach((channel, i) => {
+      const minValue = channel.pixel_intensity_min ?? dtypeMin;
+      const maxValue = channel.pixel_intensity_max ?? dtypeMax;
+
+      // Format color
+      let color = channel.color;
+      if (/^[\dA-F]{6}$/.test(color)) {
+        // Bare hex color, add leading hash for rendering
+        color = '#' + color;
+      }
+
+      const layer: Record<string, any> = {
+        type: 'image',
+        source: getNeuroglancerSource(dataUrl, zarr_version),
+        tab: 'rendering',
+        opacity: 1,
+        blend: 'additive',
+        shader: getShader(color, minValue, maxValue),
+        localDimensions: { "c'": [1, ''] },
+        localPosition: [i]
+      };
+
+      // Add shader controls if contrast limits are defined
+      const start = channel.contrast_limit_start ?? dtypeMin;
+      const end = (channel.contrast_limit_end ?? dtypeMax) * 0.25;
+      if (start !== null && end !== null) {
+        layer.shaderControls = {
+          normalized: {
+            range: [start, end]
+          }
+        };
+      }
+
+      state.layers.push({
+        name: channel.name,
+        ...layer
+      });
+    });
+  }
 
   // Convert the state to a URL-friendly format
   const stateJson = JSON.stringify(state);
@@ -352,7 +387,7 @@ async function getOmeZarrMetadata(dataUrl: string, thumbnailSize: number = 300, 
 }> {
   const store = new zarr.FetchStore(dataUrl);
   let { arr, shapes, multiscale, omero, scales, zarr_version } = await omezarr.getMultiscaleWithArray(store, 0);
-  const neuroglancerState = generateNeuroglancerState(dataUrl, multiscale as Multiscale, arr, omero as Omero);
+  const neuroglancerState = generateNeuroglancerState(dataUrl, zarr_version, multiscale as Multiscale, arr, omero as Omero);
   const thumbnail = await omezarr.renderThumbnail(store, thumbnailSize, autoBoost, maxThumbnailSize);
 
   console.log("Zarr version: ", zarr_version);
