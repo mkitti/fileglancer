@@ -27,7 +27,7 @@
     "style": "style/index.css",
     "scripts": {
         "dev": "vite",
-        "build": "tsc -p tsconfig.extension.json && tsc -b && vite build && npm run build:labextension:dev",
+        "build": "tsc -p tsconfig.extension.json && vite build && npm run build:labextension:dev",
         "build:prod": "tsc -p tsconfig.extension.json && vite build --mode production && npm run build:labextension",
         "build:labextension": "jupyter labextension build .",
         "build:labextension:dev": "jupyter labextension build --development True .",
