@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button, IconButton, Typography, Tabs } from '@material-tailwind/react';
 import { EmptyPage, Folder, Xmark } from 'iconoir-react';
 
-import { File } from '../../hooks/useFileBrowser';
+import { File } from '@/hooks/useFileBrowser';
 
 import FilePermissionTable from './FilePermissionTable';
 import FileOverviewTable from './FileOverviewTable';

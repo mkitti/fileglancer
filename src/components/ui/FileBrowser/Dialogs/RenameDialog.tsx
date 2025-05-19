@@ -7,8 +7,8 @@ import {
   Typography
 } from '@material-tailwind/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import type { File } from '../../../../shared.types';
-import useRenameDialog from '../../../../hooks/useRenameDialog';
+import type { File } from '@/shared.types';
+import useRenameDialog from '@/hooks/useRenameDialog';
 
 type ItemNamingDialogProps = {
   propertiesTarget: File | null;

@@ -1,11 +1,11 @@
 import React from 'react';
 
-import useContextMenu from '../hooks/useContextMenu';
-import useShowPropertiesDrawer from '../hooks/useShowPropertiesDrawer';
-import usePropertiesTarget from '../hooks/usePropertiesTarget';
-import useHideDotFiles from '../hooks/useHideDotFiles';
-import useSelectedFiles from '../hooks/useSelectedFiles';
-import { useFileBrowserContext } from '../contexts/FileBrowserContext';
+import useContextMenu from '@/hooks/useContextMenu';
+import useShowPropertiesDrawer from '@/hooks/useShowPropertiesDrawer';
+import usePropertiesTarget from '@/hooks/usePropertiesTarget';
+import useHideDotFiles from '@/hooks/useHideDotFiles';
+import useSelectedFiles from '@/hooks/useSelectedFiles';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
 import FileList from './ui/FileBrowser/FileList';
 import PropertiesDrawer from './ui/PropertiesDrawer/PropertiesDrawer';

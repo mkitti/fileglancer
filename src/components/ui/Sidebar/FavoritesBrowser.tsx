@@ -18,14 +18,14 @@ import FileSharePath from './FileSharePath';
 import {
   DirectoryFavorite,
   usePreferencesContext
-} from '../../../contexts/PreferencesContext';
-import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
-import { useFileBrowserContext } from '../../../contexts/FileBrowserContext';
-import useToggleOpenFavorites from '../../../hooks/useToggleOpenFavorites';
+} from '@/contexts/PreferencesContext';
+import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import useToggleOpenFavorites from '@/hooks/useToggleOpenFavorites';
 import {
   FileSharePathItem,
   ZonesAndFileSharePaths
-} from '../../../shared.types';
+} from '@/shared.types';
 
 export default function FavoritesBrowser({
   searchQuery,

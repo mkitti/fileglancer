@@ -1,15 +1,12 @@
 import * as React from 'react';
 import { Typography } from '@material-tailwind/react';
 
-import * as zarr from 'zarrita';
-import * as omezarr from 'ome-zarr.js';
-
-import type { File } from '../../../shared.types';
+import type { File } from '@/shared.types';
 import FileListCrumbs from './Crumbs';
 import FileRow from './FileRow';
-import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
-import { useFileBrowserContext } from '../../../contexts/FileBrowserContext';
-import { getOmeZarrMetadata } from '../../../omezarr-helper';
+import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { getOmeZarrMetadata } from '@/omezarr-helper';
 
 type FileListProps = {
   files: File[];

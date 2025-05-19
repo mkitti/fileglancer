@@ -1,6 +1,6 @@
 import React from 'react';
 import { Check, Minus } from 'iconoir-react';
-import { File } from '../../hooks/useFileBrowser';
+import { File } from '@/hooks/useFileBrowser';
 
 type FileTableProps = {
   file: File | null;

@@ -1,7 +1,7 @@
 import React from 'react';
 import { CheckIcon, MinusIcon } from '@heroicons/react/24/outline';
-import { File } from '../../../shared.types';
-import { parsePermissions } from '../../../utils';
+import { File } from '@/shared.types';
+import { parsePermissions } from '@/utils';
 
 export default function PermissionsTable({ file }: { file: File | null }) {
   const permissions = file ? parsePermissions(file.permissions) : null;

@@ -1,6 +1,6 @@
 import React from 'react';
-import { File } from '../../../shared.types';
-import { formatDate, formatFileSize } from '../../../utils';
+import { File } from '@/shared.types';
+import { formatDate, formatFileSize } from '@/utils';
 
 export default function OverviewTable({ file }: { file: File | null }) {
   return (

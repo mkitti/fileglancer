@@ -13,8 +13,8 @@ import {
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
 import FileSharePath from './FileSharePath';
-import type { FileSharePathItem } from '../../../shared.types';
-import { usePreferencesContext } from '../../../contexts/PreferencesContext';
+import type { FileSharePathItem } from '@/shared.types';
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
 
 export default function Zone({
   zoneName,

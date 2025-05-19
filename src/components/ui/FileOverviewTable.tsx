@@ -1,6 +1,6 @@
 import React from 'react';
-import { File } from '../../hooks/useFileBrowser';
-import { formatDate, formatFileSize } from '../../utils';
+import { File } from '@/hooks/useFileBrowser';
+import { formatDate, formatFileSize } from '@/utils';
 
 type FileOverviewTableProps = {
   file: File | null;
