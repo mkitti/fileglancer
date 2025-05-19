@@ -3,6 +3,7 @@ import * as omezarr from 'ome-zarr.js';
 
 // Copied since ome-zarr.js doesn't export the types
 // TODO: use the types from ome-zarr.js when they become available
+/* eslint-disable @typescript-eslint/naming-convention */
 export interface Multiscale {
   axes: Axis[];
   /**
@@ -72,6 +73,7 @@ export interface Window {
   end?: number;
   [k: string]: unknown;
 }
+/* eslint-enable @typescript-eslint/naming-convention */
 
 const COLORS = ['magenta', 'green', 'cyan', 'white', 'red', 'green', 'blue'];
 
