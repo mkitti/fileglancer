@@ -51,19 +51,17 @@ export default function FileList({
     const checkZattrsForMultiscales = async () => {
       const zattrsFile = files.find(file => file.name === '.zattrs');
 
-
       if (zattrsFile && currentFileSharePath) {
         try {
           const fileFetchPath = getFileFetchPath(currentNavigationPath.replace('?subpath=', '/'));
           const imageUrl = `${window.location.origin}${fileFetchPath}`;
-          console.log("Getting metadata for ", imageUrl);
           const metadata = await getOmeZarrMetadata(imageUrl);
           setThumbnailSrc(metadata.thumbnail);
           setNeuroglancerUrl(neuroglancerBaseUrl + metadata.neuroglancerState);
           setHasMultiscales(true);
         } catch (error) {
           setHasMultiscales(false);
-          console.error("Error getting metadata", error);
+          console.error("Error getting OME-Zarrmetadata", error);
         }
       }
     };

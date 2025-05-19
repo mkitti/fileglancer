@@ -1,8 +1,8 @@
 import * as zarr from "zarrita";
 import * as omezarr from "ome-zarr.js";
 
-
 // Copied since ome-zarr.js doesn't export the types
+// TODO: use the types from ome-zarr.js when they become available
 export interface Multiscale {
   axes: Axis[];
   /**
@@ -73,22 +73,99 @@ export interface Window {
   [k: string]: unknown;
 }
 
+const unitMap: Record<string, string> = {
+  "micron": "um",       // Micron is not a valid UDUNITS-2, but some data still uses it
+  "micrometer": "um",
+  "millimeter": "mm",
+  "nanometer": "nm",
+  "centimeter": "cm",
+  "meter": "m",
+  "second": "s",
+  "millisecond": "ms",
+  "microsecond": "us",
+  "nanosecond": "ns"
+};
+
+/**
+ * Convert UDUNITS-2 units to Neuroglancer SI units.
+ */
 function translateUnitToNeuroglancer(unit: string): string {
-  if (unit === 'micrometer' || unit === 'micron') {
-    return 'um';
-  }
-  else if (unit === 'nanometer') {
-    return 'nm';
-  }
-  else if (unit === null || unit === undefined) {
+  if (unit === null || unit === undefined) {
     return '';
   }
-  // TODO: add more unit translations
+  if (unitMap[unit]) {
+    return unitMap[unit];
+  }
   return unit;
 }
 
-function generateNeuroglancerLink(dataUrl: string, multiscale: Multiscale, arr: zarr.Array<any>, omero?: Omero): string | null {
-  console.log("Generating Neuroglancer link for ", dataUrl);
+/**
+ * Get the min and max values for a given Zarr array, based on the dtype:
+ * https://zarr-specs.readthedocs.io/en/latest/v2/v2.0.html#data-type-encoding
+ */
+function getMinMaxValues(arr: zarr.Array<any>): { min: number, max: number } {
+
+  // Default values
+  let dtypeMin = 0;
+  let dtypeMax = 65535;
+  
+  if (arr.dtype) {
+    const dtype = arr.dtype;
+    console.log("Parsing dtype:", dtype);
+    // Parse numpy-style dtype strings (int8, int16, uint8, etc.)
+    if (dtype.includes('int') || dtype.includes('uint')) {
+      // Extract the numeric part for bit depth
+      const bitMatch = dtype.match(/\d+/);
+      if (bitMatch) {
+        const bitCount = parseInt(bitMatch[0]);
+        if (dtype.startsWith('u')) {
+          // Unsigned integer (uint8, uint16, etc.)
+          console.log("Unsigned integer");
+          dtypeMin = 0;
+          dtypeMax = 2 ** bitCount - 1;
+        } else {
+          // Signed integer (int8, int16, etc.)
+          console.log("Signed integer");
+          dtypeMin = -(2 ** (bitCount - 1));
+          dtypeMax = 2 ** (bitCount - 1) - 1;
+        }
+      } 
+      else {
+        // Try explicit endianness format: <byteorder><type><bytes>
+        const oldFormatMatch = dtype.match(/^[<>|]([iuf])(\d+)$/);
+        if (oldFormatMatch) {
+          const typeCode = oldFormatMatch[1];
+          const bytes = parseInt(oldFormatMatch[2], 10);
+          const bitCount = bytes * 8;
+          if (typeCode === 'i') {
+            // Signed integer
+            console.log("Signed integer");
+            dtypeMin = -(2 ** (bitCount - 1));
+            dtypeMax = 2 ** (bitCount - 1) - 1;
+          } else if (typeCode === 'u') {
+            // Unsigned integer
+            console.log("Unsigned integer");
+            dtypeMin = 0;
+            dtypeMax = 2 ** bitCount - 1;
+          }
+        } else {
+          console.warn("Could not determine min/max values for dtype: ", dtype);
+        }
+      }
+    }
+    else {
+      console.warn("Unrecognized dtype format: ", dtype);
+    }
+  }
+
+  return { min: dtypeMin, max: dtypeMax };
+}
+
+/**
+ * Generate a Neuroglancer state for a given Zarr array.
+ */
+function generateNeuroglancerState(dataUrl: string, multiscale: Multiscale, arr: zarr.Array<any>, omero?: Omero): string | null {
+  console.log("Generating Neuroglancer state for", dataUrl);
 
   // Convert axes array to a map for easier access
   const axesMap: Record<string, any> = {};
@@ -102,6 +179,9 @@ function generateNeuroglancerLink(dataUrl: string, multiscale: Multiscale, arr: 
     console.error("No axes found in multiscale metadata");
     return null;
   }
+
+  const { min: dtypeMin, max: dtypeMax } = getMinMaxValues(arr);
+  console.log("Inferring min/max values:", dtypeMin, dtypeMax);
 
   // Create the scaffold for theNeuroglancer viewer state
   const state: any = {
@@ -158,64 +238,6 @@ function generateNeuroglancerLink(dataUrl: string, multiscale: Multiscale, arr: 
   state.crossSectionScale = 4.5;
   state.projectionScale = 2048;
 
-  // Extract min/max values based on data type encoding spec
-  // https://zarr-specs.readthedocs.io/en/latest/v2/v2.0.html#data-type-encoding
-  let dtypeMin = 0;
-  let dtypeMax = 65535; // Default fallback
-  
-  if (arr.dtype) {
-    const dtype = arr.dtype;
-    console.log("Parsing dtype:", dtype);
-    // Parse numpy-style dtype strings (int8, int16, uint8, etc.)
-    if (dtype.includes('int') || dtype.includes('uint')) {
-      // Extract the numeric part for bit depth
-      const bitMatch = dtype.match(/\d+/);
-      if (bitMatch) {
-        const bitCount = parseInt(bitMatch[0]);
-        if (dtype.startsWith('u')) {
-          // Unsigned integer (uint8, uint16, etc.)
-          console.log("Unsigned integer");
-          dtypeMin = 0;
-          dtypeMax = 2 ** bitCount - 1;
-        } else {
-          // Signed integer (int8, int16, etc.)
-          console.log("Signed integer");
-          dtypeMin = -(2 ** (bitCount - 1));
-          dtypeMax = 2 ** (bitCount - 1) - 1;
-        }
-      } 
-      else {
-        // Try explicit endianness format: <byteorder><type><bytes>
-        const oldFormatMatch = dtype.match(/^[<>|]([iuf])(\d+)$/);
-        if (oldFormatMatch) {
-          const typeCode = oldFormatMatch[1];
-          const bytes = parseInt(oldFormatMatch[2], 10);
-          const bitCount = bytes * 8;
-          if (typeCode === 'i') {
-            // Signed integer
-            console.log("Signed integer");
-            dtypeMin = -(2 ** (bitCount - 1));
-            dtypeMax = 2 ** (bitCount - 1) - 1;
-          } else if (typeCode === 'u') {
-            // Unsigned integer
-            console.log("Unsigned integer");
-            dtypeMin = 0;
-            dtypeMax = 2 ** bitCount - 1;
-          }
-        } else {
-          console.warn("Could not determine min/max values for dtype: ", dtype);
-        }
-      }
-      console.log("Dtype range:", dtypeMin, dtypeMax);  
-    } 
-    else if (dtype.includes('float')) {
-      // For float types, we don't set specific min/max as they're handled differently
-      console.log("Float type detected, using default range");
-    } 
-    else {
-      console.warn("Unrecognized dtype format: ", dtype);
-    }
-  }
 
   const colors = ['magenta', 'green', 'cyan', 'white', 'red', 'green', 'blue'];
   let colorIndex = 0;
@@ -306,10 +328,12 @@ void main(){emitRGBA(vec4(hue*normalized(),1));}`,
   return encodeURIComponent(stateJson);
 }
 
-
-async function getOmeZarrMetadata(dataUrl: string): Promise<{
+/**
+ * Process the given OME-Zarr array and return the metadata, thumbnail, and Neuroglancer link.
+ */
+async function getOmeZarrMetadata(dataUrl: string, thumbnailSize: number = 300, maxThumbnailSize: number = 1024, autoBoost: boolean = true): Promise<{
   arr: zarr.Array<any>;
-  shapes: number[][] | undefined;
+  shapes: number[][] | undefined; 
   multiscale: Multiscale;
   omero: Omero | null | undefined;
   scales: number[][];
@@ -319,12 +343,12 @@ async function getOmeZarrMetadata(dataUrl: string): Promise<{
 }> {
   const store = new zarr.FetchStore(dataUrl);
   let { arr, shapes, multiscale, omero, scales, zarr_version } = await omezarr.getMultiscaleWithArray(store, 0);
-  const neuroglancerState = generateNeuroglancerLink(dataUrl, multiscale as Multiscale, arr, omero as Omero);
-  const thumbnail = await omezarr.renderThumbnail(store, 300, false, 1024);
+  const neuroglancerState = generateNeuroglancerState(dataUrl, multiscale as Multiscale, arr, omero as Omero);
+  const thumbnail = await omezarr.renderThumbnail(store, thumbnailSize, autoBoost, maxThumbnailSize);
 
+  console.log("Zarr version: ", zarr_version);
   console.log("Multiscale: ", multiscale);
   console.log("Omero: ", omero);
-  console.log("Zarr version: ", zarr_version);
   console.log("Arr: ", arr);
   console.log("Shapes: ", shapes);
 
