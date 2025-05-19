@@ -6,7 +6,6 @@ import FileListCrumbs from './Crumbs';
 import FileRow from './FileRow';
 import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
 import { useFileBrowserContext } from '../../../contexts/FileBrowserContext';
-import { fetchFileAsJson } from '../../../utils';
 import { getOmeZarrMetadata } from '../../../omezarr-helper';
 
 type FileListProps = {
@@ -50,7 +49,6 @@ export default function FileList({
   React.useEffect(() => {
     const checkZattrsForMultiscales = async () => {
       const zattrsFile = files.find(file => file.name === '.zattrs');
-
       if (zattrsFile && currentFileSharePath) {
         try {
           const fileFetchPath = getFileFetchPath(currentNavigationPath.replace('?subpath=', '/'));
@@ -64,10 +62,13 @@ export default function FileList({
           console.error("Error getting OME-Zarrmetadata", error);
         }
       }
+      else {
+        setHasMultiscales(false);
+      }
     };
 
     checkZattrsForMultiscales();
-  }, [files, fetchFileAsJson, currentFileSharePath]);
+  }, [currentNavigationPath]);
 
   return (
     <div
