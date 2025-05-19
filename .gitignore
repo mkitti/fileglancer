@@ -8,6 +8,7 @@ node_modules/
 .ipynb_checkpoints
 *.tsbuildinfo
 fileglancer/labextension
+fileglancer/ui
 # Version file is handled by hatchling
 fileglancer/_version.py
 
@@ -135,6 +136,3 @@ package-lock.json
 
 # Converted Tailwind CSS
 style/tailwind_converted.css
-
-# Sample zarr files
-*.zarr/

@@ -20,10 +20,19 @@ const formatDate = (timestamp: number): string => {
 };
 
 function getAPIPathRoot() {
-  const match = window.location.pathname.match(/^\/jupyter\/user\/[^/]+\//);
-  if (match) {
-    return match[0];
+  const path = window.location.pathname;
+  const patterns = [
+    /^\/jupyter\/user\/[^/]+\//, // JupyterLab
+    /^\/user\/[^/]+\// // Jupyter Single User
+  ];
+
+  for (const pattern of patterns) {
+    const match = path.match(pattern);
+    if (match) {
+      return match[0];
+    }
   }
+
   return '/';
 }
 
@@ -156,10 +165,10 @@ async function fetchFileAsText(
 
 async function fetchFileAsJson(
   path: string,
-  cookies: Record<string, string>
+  cookies?: Record<string, string>
 ): Promise<object | null> {
   try {
-    const fileText = await fetchFileAsText(path, cookies);
+    const fileText = await fetchFileAsText(path, cookies || {});
     if (fileText === null) {
       console.warn(`No text content fetched for path: ${path}`);
       return null;

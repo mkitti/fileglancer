@@ -9,7 +9,7 @@ import { usePreferencesContext } from '../../../contexts/PreferencesContext';
 type ContextMenuProps = {
   x: number;
   y: number;
-  menuRef: React.RefObject<HTMLDivElement>;
+  menuRef: React.RefObject<HTMLDivElement | null>;
   selectedFiles: FileOrFolder[];
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
   setShowContextMenu: React.Dispatch<React.SetStateAction<boolean>>;
@@ -28,8 +28,9 @@ export default function ContextMenu({
   setShowRenameDialog,
   setShowDeleteDialog,
   setShowPermissionsDialog
-}: ContextMenuProps): JSX.Element {
-  const { currentFileSharePath } = useZoneBrowserContext();
+}: ContextMenuProps): React.ReactNode {
+  const { currentNavigationZone, currentFileSharePath } =
+    useZoneBrowserContext();
   const { handleFavoriteChange } = usePreferencesContext();
   return ReactDOM.createPortal(
     <div
