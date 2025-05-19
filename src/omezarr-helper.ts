@@ -73,7 +73,9 @@ export interface Window {
   [k: string]: unknown;
 }
 
-const unitMap: Record<string, string> = {
+const COLORS = ['magenta', 'green', 'cyan', 'white', 'red', 'green', 'blue'];
+
+const UNIT_CONVERSIONS: Record<string, string> = {
   "micron": "um",       // Micron is not a valid UDUNITS-2, but some data still uses it
   "micrometer": "um",
   "millimeter": "mm",
@@ -93,8 +95,8 @@ function translateUnitToNeuroglancer(unit: string): string {
   if (unit === null || unit === undefined) {
     return '';
   }
-  if (unitMap[unit]) {
-    return unitMap[unit];
+  if (UNIT_CONVERSIONS[unit]) {
+    return UNIT_CONVERSIONS[unit];
   }
   return unit;
 }
@@ -162,23 +164,37 @@ function getMinMaxValues(arr: zarr.Array<any>): { min: number, max: number } {
 }
 
 /**
- * Generate a Neuroglancer state for a given Zarr array.
+ * Generate a Neuroglancer shader for a given color and min/max values.
  */
-function generateNeuroglancerState(dataUrl: string, multiscale: Multiscale, arr: zarr.Array<any>, omero?: Omero): string | null {
-  console.log("Generating Neuroglancer state for", dataUrl);
+function getShader(color: string, minValue: number, maxValue: number): string {
+  return `#uicontrol vec3 hue color(default="${color}")
+#uicontrol invlerp normalized(range=[${minValue},${maxValue}])
+void main(){emitRGBA(vec4(hue*normalized(),1));}`;
+}
 
-  // Convert axes array to a map for easier access
+/**
+ * Get a map of axes names to their details.
+ */
+function getAxesMap(multiscale: Multiscale): Record<string, any> {
   const axesMap: Record<string, any> = {};
   const axes = multiscale.axes;
   if (axes) {
     axes.forEach((axis, i) => {
       axesMap[axis.name] = { ...axis, index: i };
     });
-    console.log("Axes map: ", axesMap);
-  } else {
-    console.error("No axes found in multiscale metadata");
-    return null;
   }
+  return axesMap;
+}
+
+/**
+ * Generate a Neuroglancer state for a given Zarr array.
+ */
+function generateNeuroglancerState(dataUrl: string, multiscale: Multiscale, arr: zarr.Array<any>, omero?: Omero): string | null {
+  console.log("Generating Neuroglancer state for", dataUrl);
+
+  // Convert axes array to a map for easier access
+  const axesMap = getAxesMap(multiscale);
+  console.log("Axes map: ", axesMap);
 
   const { min: dtypeMin, max: dtypeMax } = getMinMaxValues(arr);
   console.log("Inferring min/max values:", dtypeMin, dtypeMax);
@@ -201,20 +217,18 @@ function generateNeuroglancerState(dataUrl: string, multiscale: Multiscale, arr:
   const scale = scaleTransform.scale;
 
   // Set up Neuroglancer dimensions with the expected order
-  const imageDimensions = new Set(Object.keys(axesMap));
   const dimensionNames = ['x', 'y', 'z', 't'];
+  const imageDimensions = new Set(Object.keys(axesMap));
   for (const name of dimensionNames) {
     if (axesMap[name]) {
       const axis = axesMap[name];
       const unit = translateUnitToNeuroglancer(axis.unit)
-
       state.dimensions[name] = [
         scale[axis.index],
         unit
       ]
       // Center the image in the viewer
       const extent = arr.shape[axis.index];
-      console.log("Extent: ", extent);
       state.position.push(Math.floor(extent / 2));
       imageDimensions.delete(name);
     }
@@ -223,8 +237,8 @@ function generateNeuroglancerState(dataUrl: string, multiscale: Multiscale, arr:
     }
   }
 
-  console.log("State dimensions: ", state.dimensions);
-  console.log("State position: ", state.position);
+  console.log("Dimensions: ", state.dimensions);
+  console.log("Positions: ", state.position);
 
   // Remove the channel dimension, which will be handled by layers
   imageDimensions.delete('c');
@@ -238,10 +252,7 @@ function generateNeuroglancerState(dataUrl: string, multiscale: Multiscale, arr:
   state.crossSectionScale = 4.5;
   state.projectionScale = 2048;
 
-
-  const colors = ['magenta', 'green', 'cyan', 'white', 'red', 'green', 'blue'];
   let colorIndex = 0;
-  
   const channels = [];
   if (omero) {
     if (omero.channels) {
@@ -250,7 +261,7 @@ function generateNeuroglancerState(dataUrl: string, multiscale: Multiscale, arr:
         const window = channelMeta.window || {};
         channels.push({
           name: channelMeta.label || `Ch${i}`,
-          color: channelMeta.color || colors[colorIndex++ % colors.length],
+          color: channelMeta.color || COLORS[colorIndex++ % COLORS.length],
           pixel_intensity_min: window.min,
           pixel_intensity_max: window.max,
           contrast_limit_start: window.start,
@@ -264,7 +275,7 @@ function generateNeuroglancerState(dataUrl: string, multiscale: Multiscale, arr:
       for (let i = 0; i < numChannels; i++) {
         channels.push({ 
           name: `Ch${i}`, 
-          color: colors[colorIndex++ % colors.length],
+          color: COLORS[colorIndex++ % COLORS.length],
           pixel_intensity_min: dtypeMin,
           pixel_intensity_max: dtypeMax,
           contrast_limit_start: dtypeMin,
@@ -297,9 +308,7 @@ function generateNeuroglancerState(dataUrl: string, multiscale: Multiscale, arr:
       tab: 'rendering',
       opacity: 1,
       blend: 'additive',
-      shader: `#uicontrol vec3 hue color(default="${color}")
-#uicontrol invlerp normalized(range=[${minValue},${maxValue}])
-void main(){emitRGBA(vec4(hue*normalized(),1));}`,
+      shader: getShader(color, minValue, maxValue),
       localDimensions: { "c'": [1, ''] },
       localPosition: [i]
     };
