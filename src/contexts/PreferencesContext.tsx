@@ -113,8 +113,9 @@ export const PreferencesProvider = ({
 
   function updateLocalFspPreferenceStates(updatedKeys: string[]) {
     setFileSharePathPreferenceKeys(updatedKeys);
-    const updatedFspFavorites = accessMapItems(updatedKeys);
-    updatedFspFavorites.sort((a, b) => a.name.localeCompare(b.name));
+    const updatedFspFavorites = accessMapItems(updatedKeys) as FileSharePath[];
+    // Sort based on the storage name, which is what is displayed in the UI
+    updatedFspFavorites.sort((a, b) => a.storage.localeCompare(b.storage));
     setFileSharePathFavorites(updatedFspFavorites as FileSharePath[]);
   }
 
@@ -128,9 +129,9 @@ export const PreferencesProvider = ({
     });
     // Sort by the last segment of folderPath, which is the folder name
     updatedFolderFavorites.sort((a, b) => {
-      const fullPathA = a.fsp.name + '/' + a.folderPath;
-      const fullPathB = b.fsp.name + '/' + b.folderPath;
-      return fullPathA.localeCompare(fullPathB);
+      const aLastSegment = a.folderPath.split('/').pop() || '';
+      const bLastSegment = b.folderPath.split('/').pop() || '';
+      return aLastSegment.localeCompare(bLastSegment);
     });
     setFolderFavorites(updatedFolderFavorites as FolderFavorite[]);
   }
