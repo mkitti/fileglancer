@@ -338,6 +338,62 @@ class ProxiedPathHandler(APIHandler):
     API handler for ProxiedPath (user shared data paths)
     """
     @web.authenticated
+    def post(self):
+        """
+        Create a shared path for the current user.
+        """
+        username = self.get_current_user()
+        mount_path = self.get_argument("mount-path", None)
+        self.log.info(f"POST /api/fileglancer/proxied-path username={username} mount_path={mount_path}")
+        try:
+            if mount_path is None:
+                self.log.warning("Mount path is required to create a proxied path")
+                self.set_status(400)
+                self.finish(json.dumps({"error": "Mount path is required to create a proxied path"}))
+                return
+
+            proxied_path_manager = get_proxiedpath_manager(self.settings)
+            response = proxied_path_manager.create_proxied_path(username, mount_path)
+            response.raise_for_status()
+            self.set_status(201)
+            self.finish(response.json())
+        except Exception as e:
+            self.log.error(f"Error creating proxied path: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
+    @web.authenticated
+    def put(self):
+        """
+        Update a shared path for the current user.
+        """
+        username = self.get_current_user()
+        key = self.get_argument("key", None)
+        mount_path = self.get_argument("mount-path", None)
+        sharing_name = self.get_argument("sharing-name", None)
+        self.log.info((
+            "PUT /api/fileglancer/proxied-path "
+            f"username={username} key={key} "
+            f"mount_path={mount_path} sharing_name={sharing_name}"
+        ))
+        try:
+            if key is None:
+                self.log.warning("Key is required to update a proxied path")
+                self.set_status(400)
+                self.finish(json.dumps({"error": "Key is required to update a proxied path"}))
+                return
+
+            proxied_path_manager = get_proxiedpath_manager(self.settings)
+            response = proxied_path_manager.update_proxied_path(username, key, mount_path, sharing_name)
+            response.raise_for_status()
+            self.set_status(204)
+            self.finish()
+        except Exception as e:
+            self.log.error(f"Error updating proxied path: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
+    @web.authenticated
     def get(self):
         """
         Get all proxied paths or a specific proxied path for the current user.
@@ -358,6 +414,34 @@ class ProxiedPathHandler(APIHandler):
                 self.finish(json.dumps({"error": "Proxied path not found"}))
         except Exception as e:
             self.log.error(f"Error getting proxied paths: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
+    @web.authenticated
+    def delete(self):
+        """
+        Delete the specified proxied path for the current user.
+        """
+        username = self.get_current_user()
+        key = self.get_argument("key", None)
+        self.log.info(f"DELETE /api/fileglancer/proxied-path username={username} key={key}")
+        if key is None:
+            self.log.warning("Key is required to delete a proxied path")
+            self.set_status(400)
+            self.finish(json.dumps({"error": "Key is required to delete a proxied path"}))
+            return
+        try:
+            proxied_path_manager = get_proxiedpath_manager(self.settings)
+            response = proxied_path_manager.delete_proxied_path(username, key)
+            response.raise_for_status()
+            self.set_status(204)
+            self.finish()
+        except KeyError as e:
+            self.log.warning(f"Proxied path not found: {str(e)}")
+            self.set_status(404)
+            self.finish(json.dumps({"error": str(e)}))
+        except Exception as e:
+            self.log.error(f"Error deleting proxied paths: {str(e)}")
             self.set_status(500)
             self.finish(json.dumps({"error": str(e)}))
 

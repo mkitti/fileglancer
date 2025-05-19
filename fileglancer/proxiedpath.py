@@ -9,8 +9,6 @@ from uimodels import ProxiedPath, CachedEntry
 log = logging.getLogger("tornado.application")
 
 
-
-
 class ProxiedPathManager:
     """Manage the list of user shared data paths from the central server."""
 
@@ -32,24 +30,23 @@ class ProxiedPathManager:
         else:
             return user_proxied_paths
 
-    def create_proxied_path(self, username: str, a_path: str) -> ProxiedPath:
+    def create_proxied_path(self, username: str, mount_path: str) -> requests.Response:
         """Create a proxied path with <a_path> as the mount_point"""
         del self._cache_user_proxied_paths[username] # invalidate the cache
-        ppr = requests.post(
+        return requests.post(
             f"{self.central_url}/proxied-path/{username}",
             params = {
-                "mount_path": a_path
+                "mount_path": mount_path
             }
         )
-        return ProxiedPath(**ppr.json())
 
-    def delete_proxied_path(self, username: str, sharing_key: str) -> None:
+    def delete_proxied_path(self, username: str, sharing_key: str) -> requests.Response:
         del self._cache_user_proxied_paths[username] # invalidate the cache
-        requests.delete(
+        return requests.delete(
             f"{self.central_url}/proxied-path/{username}/{sharing_key}"
         )
 
-    def update_proxied_path(self, username: str, sharing_key, new_path: str, new_name) -> ProxiedPath:
+    def update_proxied_path(self, username: str, sharing_key, new_path: Optional[str], new_name: Optional[str]) -> requests.Response:
         """Update a proxied path with <a_path> as the mount_point"""
         del self._cache_user_proxied_paths[username] # invalidate the cache
         pp_updates = {}
@@ -57,11 +54,10 @@ class ProxiedPathManager:
             pp_updates["mount_path"] = new_path
         if new_name:
             pp_updates["sharing_name"] = new_name
-        ppr = requests.put(
+        return requests.put(
             f"{self.central_url}/proxied-path/{username}/{sharing_key}",
             params = pp_updates
         )
-        return ProxiedPath(**ppr.json())
 
     def _cache_user_proxied_paths(self, username: str) -> list[ProxiedPath] | None:
         """Retrieve and cache user ."""
