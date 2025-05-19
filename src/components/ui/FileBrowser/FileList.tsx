@@ -43,15 +43,19 @@ export default function FileList({
 
   const [hasMultiscales, setHasMultiscales] = React.useState(false);
   const [thumbnailSrc, setThumbnailSrc] = React.useState<string | null>(null);
-  const [neuroglancerUrl, setNeuroglancerUrl] = React.useState<string | null>(null);
-  const neuroglancerBaseUrl = "https://neuroglancer-demo.appspot.com/#!"
+  const [neuroglancerUrl, setNeuroglancerUrl] = React.useState<string | null>(
+    null
+  );
+  const neuroglancerBaseUrl = 'https://neuroglancer-demo.appspot.com/#!';
 
   React.useEffect(() => {
     const checkZattrsForMultiscales = async () => {
       const zattrsFile = files.find(file => file.name === '.zattrs');
       if (zattrsFile && currentFileSharePath) {
         try {
-          const fileFetchPath = getFileFetchPath(currentNavigationPath.replace('?subpath=', '/'));
+          const fileFetchPath = getFileFetchPath(
+            currentNavigationPath.replace('?subpath=', '/')
+          );
           const imageUrl = `${window.location.origin}${fileFetchPath}`;
           const metadata = await getOmeZarrMetadata(imageUrl);
           setThumbnailSrc(metadata.thumbnail);
@@ -59,10 +63,9 @@ export default function FileList({
           setHasMultiscales(true);
         } catch (error) {
           setHasMultiscales(false);
-          console.error("Error getting OME-Zarrmetadata", error);
+          console.error('Error getting OME-Zarrmetadata', error);
         }
-      }
-      else {
+      } else {
         setHasMultiscales(false);
       }
     };
@@ -78,13 +81,16 @@ export default function FileList({
 
       {hasMultiscales ? (
         <div className="my-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md">
-          <Typography variant="small" className="text-blue-600 dark:text-blue-400">
+          <Typography
+            variant="small"
+            className="text-blue-600 dark:text-blue-400"
+          >
             This directory contains an OME-Zarr image
           </Typography>
 
           {thumbnailSrc ? (
             <img id="thumbnail" src={thumbnailSrc} alt="Thumbnail" />
-          ): null}
+          ) : null}
 
           {neuroglancerUrl ? (
             <a href={neuroglancerUrl} target="_blank" rel="noopener noreferrer">
@@ -93,9 +99,8 @@ export default function FileList({
               </button>
             </a>
           ) : null}
-
         </div>
-      ): null}
+      ) : null}
 
       <div className="min-w-full bg-background select-none">
         {/* Header row */}
