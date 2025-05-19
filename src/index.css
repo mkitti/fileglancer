@@ -11,7 +11,7 @@
     @apply w-5 h-5;
   }
   .icon-small {
-    @apply icon-small;
+    @apply w-4 h-4;
   }
   .icon-xsmall {
     @apply w-3 h-3;
