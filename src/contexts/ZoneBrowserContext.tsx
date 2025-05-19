@@ -93,7 +93,37 @@ export const ZoneBrowserContextProvider = ({
     return newZonesAndFileSharePathsMap;
   }
 
-  // function alphabetizeZonesAndFsps(map: ZonesAndFileSharePathsMap) {}
+  function alphabetizeZonesAndFsps(map: ZonesAndFileSharePathsMap) {
+    const sortedMap: ZonesAndFileSharePathsMap = {};
+
+    const zoneKeys = Object.keys(map)
+      .filter(key => key.startsWith('zone'))
+      .sort((a, b) => map[a].name.localeCompare(map[b].name));
+
+    // Add sorted zones to the new map
+    zoneKeys.forEach(zoneKey => {
+      const zone = map[zoneKey] as Zone;
+
+      // Sort file share paths within the zone
+      const sortedFileSharePaths = [...zone.fileSharePaths].sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
+
+      sortedMap[zoneKey] = {
+        ...zone,
+        fileSharePaths: sortedFileSharePaths
+      };
+    });
+
+    // Add the remaining keys (e.g., FSPs) without sorting
+    Object.keys(map)
+      .filter(key => key.startsWith('fsp'))
+      .forEach(fspKey => {
+        sortedMap[fspKey] = map[fspKey];
+      });
+
+    return sortedMap;
+  }
 
   async function updateZonesAndFileSharePathsMap() {
     let rawData: { paths: FileSharePath[] } = { paths: [] };
@@ -101,13 +131,10 @@ export const ZoneBrowserContextProvider = ({
       rawData = await getZones();
       const newZonesAndFileSharePathsMap =
         createZonesAndFileSharePathsMap(rawData);
-
-      setZonesAndFileSharePathsMap(newZonesAndFileSharePathsMap);
+      const sortedMap = alphabetizeZonesAndFsps(newZonesAndFileSharePathsMap);
+      setZonesAndFileSharePathsMap(sortedMap);
       setIsZonesMapReady(true);
-      console.log(
-        'zones and fsp map in ZoneBrowserContext:',
-        newZonesAndFileSharePathsMap
-      );
+      console.log('zones and fsp map in ZoneBrowserContext:', sortedMap);
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error(error.message);

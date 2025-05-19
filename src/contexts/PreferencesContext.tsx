@@ -107,12 +107,14 @@ export const PreferencesProvider = ({
   function updateLocalZonePreferenceStates(updatedKeys: string[]) {
     setZonePreferenceKeys(updatedKeys);
     const updatedZoneFavorites = accessMapItems(updatedKeys);
+    updatedZoneFavorites.sort((a, b) => a.name.localeCompare(b.name));
     setZoneFavorites(updatedZoneFavorites as Zone[]);
   }
 
   function updateLocalFspPreferenceStates(updatedKeys: string[]) {
     setFileSharePathPreferenceKeys(updatedKeys);
     const updatedFspFavorites = accessMapItems(updatedKeys);
+    updatedFspFavorites.sort((a, b) => a.name.localeCompare(b.name));
     setFileSharePathFavorites(updatedFspFavorites as FileSharePath[]);
   }
 
@@ -123,6 +125,12 @@ export const PreferencesProvider = ({
       const fspKey = makeMapKey('fsp', fspName); // FSP key corresponding to the folder
       const fsp = zonesAndFileSharePathsMap[fspKey] as FileSharePath; // Access the corresponding FSP
       return { folderPath, fsp };
+    });
+    // Sort by the last segment of folderPath, which is the folder name
+    updatedFolderFavorites.sort((a, b) => {
+      const fullPathA = a.fsp.name + '/' + a.folderPath;
+      const fullPathB = b.fsp.name + '/' + b.folderPath;
+      return fullPathA.localeCompare(fullPathB);
     });
     setFolderFavorites(updatedFolderFavorites as FolderFavorite[]);
   }
@@ -275,10 +283,18 @@ export const PreferencesProvider = ({
         }
         break;
       case 'fileSharePath':
-        handleFileSharePathFavoriteChange(item as FileSharePath);
+        try {
+          await handleFileSharePathFavoriteChange(item as FileSharePath);
+        } catch (error) {
+          console.log(error);
+        }
         break;
       case 'folder':
-        handleFolderFavoriteChange(item as FolderFavorite);
+        try {
+          await handleFolderFavoriteChange(item as FolderFavorite);
+        } catch (error) {
+          console.log(error);
+        }
         break;
       default:
         console.error('Invalid type provided for handleFavoriteChange:', type);
