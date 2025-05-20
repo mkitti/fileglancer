@@ -53,9 +53,11 @@ function NavList() {
           className="flex items-center dark:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark hover:!text-foreground focus:!text-foreground"
         >
           <List.ItemStart className="flex items-center mr-1.5">
-            <Icon className="h-5 w-5" />
+            <Icon className="icon-default x-short:icon-xsmall short-icon-xsmall" />
           </List.ItemStart>
-          <Typography type="small">{title}</Typography>
+          <Typography type="small" className="x-short:text-xs">
+            {title}
+          </Typography>
         </List.Item>
       ))}
     </>
@@ -71,9 +73,9 @@ function ProfileMenu() {
         size="sm"
         variant="ghost"
         color="secondary"
-        className="flex items-center justify-center p-1 rounded-full h-8 w-8 text-foreground dark:text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
+        className="flex items-center justify-center p-1 rounded-full h-8 w-8 x-short:h-6 x-short:w-6 text-foreground dark:text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
       >
-        <UserCircleIcon className="h-6 w-6" />
+        <UserCircleIcon className="icon-large x-short:icon-default" />
       </Menu.Trigger>
       <Menu.Content>
         <Menu.Item
@@ -81,14 +83,14 @@ function ProfileMenu() {
           to="/profile"
           className="dark:text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark hover:!text-foreground focus:!text-foreground"
         >
-          <UserCircleIcon className="mr-2 h-[18px] w-[18px]" /> Profile
+          <UserCircleIcon className="mr-2 icon-default" /> Profile
         </Menu.Item>
         <Menu.Item
           as={Link}
           to="/preferences"
           className="dark:text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark hover:!text-foreground focus:!text-foreground"
         >
-          <AdjustmentsHorizontalIcon className="mr-2 h-[18px] w-[18px]" />{' '}
+          <AdjustmentsHorizontalIcon className="mr-2 icon-default" />{' '}
           Preferences
         </Menu.Item>
         <hr className="!my-1 -mx-1 border-surface" />
@@ -124,13 +126,13 @@ export default function FileglancerNavbar() {
   }, []);
 
   return (
-    <Navbar className="mx-auto w-full rounded-none bg-background p-4 dark:shadow-surface">
+    <Navbar className="mx-auto w-full rounded-none bg-background p-4 short:py-3 x-short:py-1 dark:shadow-surface">
       <div className="flex items-center justify-between ">
         {/* Logo */}
         <Link to="/">
           <div className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent flex items-center">
             <svg
-              className="w-6 h-6 text-primary"
+              className="icon-large x-short:icon-small text-primary"
               viewBox="0 0 18 24"
               version="1.1"
               xmlns="http://www.w3.org/2000/svg"
@@ -158,7 +160,7 @@ export default function FileglancerNavbar() {
             </svg>
             <Typography
               type="h6"
-              className="ml-2 mr-2 block font-semibold pointer-events-none"
+              className="ml-2 mr-2 block font-semibold pointer-events-none x-short:text-base"
             >
               Janelia Fileglancer
             </Typography>
@@ -182,9 +184,9 @@ export default function FileglancerNavbar() {
             onClick={toggleTheme}
           >
             {isLightTheme ? (
-              <SunIcon className="h-6 w-6" />
+              <SunIcon className="icon-large x-short:icon-default" />
             ) : (
-              <MoonIcon className="h-6 w-6" />
+              <MoonIcon className="icon-large x-short:icon-default" />
             )}
           </IconButton>
           <ProfileMenu />
@@ -197,9 +199,9 @@ export default function FileglancerNavbar() {
             className="mr-2 grid ml-auto text-foreground dark:text-foreground hover:!text-foreground focus:!text-foreground lg:hidden hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
           >
             {openNav ? (
-              <XMarkIcon className="h-6 w-6" />
+              <XMarkIcon className="icon-large x-short:icon-default" />
             ) : (
-              <MenuIcon className="h-6 w-6" />
+              <MenuIcon className="icon-large x-short:icon-default" />
             )}
           </IconButton>
         </div>

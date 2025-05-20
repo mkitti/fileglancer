@@ -46,7 +46,7 @@ export default function RenameDialog({
               setShowAlert(false);
             }}
           >
-            <XMarkIcon className="h-5 w-5" />
+            <XMarkIcon className="icon-default" />
           </IconButton>
           <form
             onSubmit={event => {
@@ -83,7 +83,7 @@ export default function RenameDialog({
               >
                 <Alert.Content>{alertContent}</Alert.Content>
                 <XMarkIcon
-                  className="h-5 w-5 cursor-pointer"
+                  className="icon-default cursor-pointer"
                   onClick={() => setShowAlert(false)}
                 />
               </Alert>

@@ -36,7 +36,7 @@ export default function Preferences() {
           <Card.Body className="flex flex-col gap-4 pb-4">
             <div className="flex items-center gap-2">
               <input
-                className="w-4 h-4 checked:accent-secondary-light"
+                className="icon-small checked:accent-secondary-light"
                 type="radio"
                 id="linux_path"
                 value="linux_path"
@@ -58,7 +58,7 @@ export default function Preferences() {
 
             <div className="flex items-center gap-2">
               <input
-                className="w-4 h-4 checked:accent-secondary-light"
+                className="icon-small checked:accent-secondary-light"
                 type="radio"
                 id="windows_path"
                 value="windows_path"
@@ -79,7 +79,7 @@ export default function Preferences() {
 
             <div className="flex items-center gap-2">
               <input
-                className="w-4 h-4 checked:accent-secondary-light"
+                className="icon-small checked:accent-secondary-light"
                 type="radio"
                 id="mac_path"
                 value="mac_path"
@@ -106,7 +106,7 @@ export default function Preferences() {
               <Alert className="flex items-center gap-6 mt-6 bg-secondary-light/70 border-none">
                 <Alert.Content>Preference updated!</Alert.Content>
                 <XMarkIcon
-                  className="h-5 w-5 cursor-pointer"
+                  className="icon-default cursor-pointer"
                   onClick={() => setShowPathPrefAlert(false)}
                 />
               </Alert>

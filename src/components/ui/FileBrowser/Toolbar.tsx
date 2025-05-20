@@ -36,9 +36,9 @@ export default function Toolbar({
             onClick={() => setHideDotFiles((prev: boolean) => !prev)}
           >
             {hideDotFiles ? (
-              <EyeSlashIcon className="h-5 w-5" />
+              <EyeSlashIcon className="icon-default" />
             ) : (
-              <EyeIcon className="h-5 w-5" />
+              <EyeIcon className="icon-default" />
             )}
             <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
               <Typography type="small" className="opacity-90">
@@ -58,7 +58,7 @@ export default function Toolbar({
               setShowNewFolderDialog(true);
             }}
           >
-            <FolderPlusIcon className="h-5 w-5" />
+            <FolderPlusIcon className="icon-default" />
           </Tooltip.Trigger>
           <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
             <Typography type="small" className="opacity-90">
@@ -75,7 +75,7 @@ export default function Toolbar({
             variant="outline"
             onClick={() => setShowPropertiesDrawer((prev: boolean) => !prev)}
           >
-            <ListBulletIcon className="h-5 w-5" />
+            <ListBulletIcon className="icon-default" />
             <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
               <Typography type="small" className="opacity-90">
                 View file properties

@@ -26,21 +26,21 @@ export default function ZonesBrowser({
       : zonesAndFileSharePaths;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden w-[calc(100%-1.5rem)] my-3 mx-3 bg-surface/50">
+    <div className="flex flex-col h-full overflow-hidden w-[calc(100%-1.5rem)] my-3 x-short:my-1 mx-3 bg-surface/50">
       <List className="bg-background py-0">
         <List.Item
           onClick={() => toggleOpenZones('all')}
-          className="cursor-pointer rounded-none py-3 bg-surface/50 hover:!bg-surface-light focus:!bg-surface-light"
+          className="cursor-pointer rounded-none py-3 x-short:py-1 bg-surface/50 hover:!bg-surface-light focus:!bg-surface-light"
         >
           <List.ItemStart>
-            <Squares2X2Icon className="h-5 w-5 text-surface-foreground" />
+            <Squares2X2Icon className="icon-default x-short:icon-xsmall text-surface-foreground" />
           </List.ItemStart>
-          <Typography className="font-semibold text-surface-foreground">
+          <Typography className="x-short:text-xs short:text-xs font-semibold text-surface-foreground">
             Zones
           </Typography>
           <List.ItemEnd className="pr-2">
             <ChevronRightIcon
-              className={`h-4 w-4 ${openZones['all'] ? 'rotate-90' : ''}`}
+              className={`icon-small x-short:icon-xsmall ${openZones['all'] ? 'rotate-90' : ''}`}
             />
           </List.ItemEnd>
         </List.Item>

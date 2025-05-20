@@ -3,6 +3,21 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .icon-large {
+    @apply w-6 h-6;
+  }
+  .icon-default {
+    @apply w-5 h-5;
+  }
+  .icon-small {
+    @apply w-4 h-4;
+  }
+  .icon-xsmall {
+    @apply w-3 h-3;
+  }
+}
+
 /* Override built-in Jupyter Lab extension CSS */
 .jp-ThemedContainer a:hover {
   color: rgb(var(--color-primary-foreground) / var(--tw-text-opacity, 1));

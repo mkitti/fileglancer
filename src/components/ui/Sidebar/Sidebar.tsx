@@ -19,9 +19,9 @@ export default function Sidebar() {
   } = useSearchFilter();
   return (
     <Card className="max-w-[280px] max-h-full overflow-hidden rounded-none bg-surface shadow-lg flex flex-col">
-      <div className="w-[calc(100%-1.5rem)] mx-3 my-3">
+      <div className="w-[calc(100%-1.5rem)] mx-3 my-3 x-short:my-1">
         <Input
-          className="bg-background text-foreground"
+          className="bg-background text-foreground x-short:text-xs"
           type="search"
           placeholder="Type to filter zones"
           value={searchQuery}
@@ -34,7 +34,7 @@ export default function Sidebar() {
           </Input.Icon>
         </Input>
       </div>
-      <div className="flex flex-col overflow-hidden flex-grow mb-3 gap-3">
+      <div className="flex flex-col overflow-hidden flex-grow mb-3 gap-3 x-short:gap-1">
         <div
           className={`flex-shrink ${openZones['all'] ? 'max-h-[50%]' : 'max-h-[100%]'}`}
         >

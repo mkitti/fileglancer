@@ -40,7 +40,7 @@ export default function DeleteDialog({
               setShowAlert(false);
             }}
           >
-            <XMarkIcon className="h-5 w-5" />
+            <XMarkIcon className="icon-default" />
           </IconButton>
           <Typography className="my-8 text-large">
             Are you sure you want to delete{' '}
@@ -63,7 +63,7 @@ export default function DeleteDialog({
             >
               <Alert.Content>{alertContent}</Alert.Content>
               <XMarkIcon
-                className="h-5 w-5 cursor-pointer"
+                className="icon-default cursor-pointer"
                 onClick={() => {
                   setShowAlert(false);
                   setShowDeleteDialog(false);
