@@ -13,11 +13,11 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 
-import type { File } from '../../../shared.types';
+import type { File } from '@/shared.types';
 import PermissionsTable from './PermissionsTable';
 import OverviewTable from './OverviewTable';
-import useCopyPath from '../../../hooks/useCopyPath';
-import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
+import useCopyPath from '@/hooks/useCopyPath';
+import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 
 type PropertiesDrawerProps = {
   propertiesTarget: File | null;
@@ -62,16 +62,16 @@ export default function PropertiesDrawer({
               setShowPropertiesDrawer((prev: boolean) => !prev);
             }}
           >
-            <XMarkIcon className="h-5 w-5" />
+            <XMarkIcon className="icon-default" />
           </IconButton>
         </div>
 
         {propertiesTarget ? (
           <div className="flex items-center gap-2 mt-3 mb-4 max-h-min">
             {propertiesTarget.is_dir ? (
-              <FolderIcon className="h-5 w-5" />
+              <FolderIcon className="icon-default" />
             ) : (
-              <DocumentIcon className="h-5 w-5" />
+              <DocumentIcon className="icon-default" />
             )}{' '}
             <Typography className="font-semibold">
               {propertiesTarget?.name}
@@ -121,7 +121,7 @@ export default function PropertiesDrawer({
                     }
                   }}
                 >
-                  <Square2StackIcon className="h-4 w-4" />
+                  <Square2StackIcon className="icon-small" />
                 </IconButton>
               </div>
               {copiedText.value === fullPath &&
@@ -130,7 +130,7 @@ export default function PropertiesDrawer({
                 <Alert className="flex items-center justify-between bg-secondary-light/70 border-none">
                   <Alert.Content>Path copied to clipboard!</Alert.Content>
                   <XMarkIcon
-                    className="h-5 w-5 cursor-pointer"
+                    className="icon-default cursor-pointer"
                     onClick={dismissCopyAlert}
                   />
                 </Alert>

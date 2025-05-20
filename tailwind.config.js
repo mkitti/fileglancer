@@ -1,7 +1,7 @@
-import type { Config } from 'tailwindcss';
 import { mtConfig } from '@material-tailwind/react';
 
-const config: Config = {
+/** @type {import('tailwindcss').Config} */
+const config = {
   content: [
     './src/**/*.{html,js,jsx,ts,tsx}',
     './node_modules/@material-tailwind/react/**/*.{js,ts,jsx,tsx}'
@@ -13,6 +13,9 @@ const config: Config = {
           'linear-gradient(120deg, rgb(var(--color-primary-light) / 0.2) , rgb(var(--color-secondary-light) / 0.2))',
         'hover-gradient-dark':
           'linear-gradient(120deg, rgb(var(--color-primary-dark) / 0.4), rgb(var(--color-secondary-dark) / 0.4))'
+      },
+      screens: {
+        'x-short': { raw: '(min-height: 0px) and (max-height: 420px)' }
       }
     }
   },

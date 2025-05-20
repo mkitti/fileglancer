@@ -18,14 +18,11 @@ import FileSharePath from './FileSharePath';
 import {
   DirectoryFavorite,
   usePreferencesContext
-} from '../../../contexts/PreferencesContext';
-import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
-import { useFileBrowserContext } from '../../../contexts/FileBrowserContext';
-import useToggleOpenFavorites from '../../../hooks/useToggleOpenFavorites';
-import {
-  FileSharePathItem,
-  ZonesAndFileSharePaths
-} from '../../../shared.types';
+} from '@/contexts/PreferencesContext';
+import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import useToggleOpenFavorites from '@/hooks/useToggleOpenFavorites';
+import { FileSharePathItem, ZonesAndFileSharePaths } from '@/shared.types';
 
 export default function FavoritesBrowser({
   searchQuery,
@@ -71,21 +68,21 @@ export default function FavoritesBrowser({
       : directoryFavorites;
 
   return (
-    <div className="w-[calc(100%-1.5rem)] min-h-fit flex flex-col overflow-hidden h-full mt-3 mx-3 pb-1">
+    <div className="w-[calc(100%-1.5rem)] min-h-fit flex flex-col overflow-hidden h-full mt-3 x-short:mt-1 mx-3 pb-1">
       <List className="bg-background">
         <List.Item
           onClick={() => toggleOpenFavorites('all')}
-          className="cursor-pointer rounded-none py-3 bg-surface/50 hover:!bg-surface-light focus:!bg-surface-light"
+          className="cursor-pointer rounded-none py-3 x-short:py-1 bg-surface/50 hover:!bg-surface-light focus:!bg-surface-light"
         >
           <List.ItemStart>
-            <StarFilled className="h-5 w-5 text-surface-foreground" />
+            <StarFilled className="icon-default x-short:icon-xsmall text-surface-foreground" />
           </List.ItemStart>
-          <Typography className="font-semibold text-surface-foreground">
+          <Typography className="font-semibold text-surface-foreground x-short:text-xs short:text-xs">
             Favorites
           </Typography>
           <List.ItemEnd className="pr-2">
             <ChevronRightIcon
-              className={`h-4 w-4 ${openFavorites['all'] ? 'rotate-90' : ''}`}
+              className={`icon-small x-short:icon-xsmall ${openFavorites['all'] ? 'rotate-90' : ''}`}
             />
           </List.ItemEnd>
         </List.Item>
@@ -145,15 +142,15 @@ export default function FavoritesBrowser({
                       `${directoryItem.fileSharePath.name}?subpath=${directoryItem.path}`
                     );
                   }}
-                  className={`flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 ${directoryItem.fileSharePath === currentFileSharePath && directoryItem.name === currentDir ? '!bg-primary-light/30' : '!bg-background'}`}
+                  className={`x-short:py-0 flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 ${directoryItem.fileSharePath === currentFileSharePath && directoryItem.name === currentDir ? '!bg-primary-light/30' : '!bg-background'}`}
                 >
                   <Link
                     to="/files"
-                    className="flex flex-col gap-2 !text-foreground hover:!text-black focus:!text-black hover:dark:!text-white focus:dark:!text-white"
+                    className="flex flex-col gap-2 x-short:gap-1 !text-foreground hover:!text-black focus:!text-black hover:dark:!text-white focus:dark:!text-white"
                   >
                     <div className="flex gap-1 items-center">
-                      <FolderIcon className="h-4 w-4" />
-                      <Typography className="text-sm font-medium leading-4">
+                      <FolderIcon className="icon-small x-short:icon-xsmall" />
+                      <Typography className="text-sm font-medium leading-4 x-short:text-xs">
                         {directoryItem.name}
                       </Typography>
                     </div>
@@ -176,9 +173,9 @@ export default function FavoritesBrowser({
                       }}
                     >
                       {isFavoriteDir ? (
-                        <StarFilled className="h-4 w-4 mb-[2px]" />
+                        <StarFilled className="icon-small x-short:icon-xsmall mb-[2px]" />
                       ) : (
-                        <StarOutline className="h-4 w-4 mb-[2px]" />
+                        <StarOutline className="icon-small x-short:icon-xsmall mb-[2px]" />
                       )}
                     </IconButton>
                   </div>

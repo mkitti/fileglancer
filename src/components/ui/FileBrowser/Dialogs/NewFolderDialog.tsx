@@ -7,8 +7,8 @@ import {
   Typography
 } from '@material-tailwind/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { useFileBrowserContext } from '../../../../contexts/FileBrowserContext';
-import useNewFolderDialog from '../../../../hooks/useNewFolderDialog';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import useNewFolderDialog from '@/hooks/useNewFolderDialog';
 
 type ItemNamingDialogProps = {
   showNewFolderDialog: boolean;
@@ -46,7 +46,7 @@ export default function NewFolderDialog({
               setShowAlert(false);
             }}
           >
-            <XMarkIcon className="h-5 w-5" />
+            <XMarkIcon className="icon-default" />
           </IconButton>
           <form
             onSubmit={event => {
@@ -83,7 +83,7 @@ export default function NewFolderDialog({
               >
                 <Alert.Content>{alertContent}</Alert.Content>
                 <XMarkIcon
-                  className="h-5 w-5 cursor-pointer"
+                  className="icon-default cursor-pointer"
                   onClick={() => setShowAlert(false)}
                 />
               </Alert>

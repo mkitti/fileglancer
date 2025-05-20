@@ -2,14 +2,14 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { Typography } from '@material-tailwind/react';
 
-import type { File } from '../../../shared.types';
-import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
-import { usePreferencesContext } from '../../../contexts/PreferencesContext';
+import type { File } from '@/shared.types';
+import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
 
 type ContextMenuProps = {
   x: number;
   y: number;
-  menuRef: React.RefObject<HTMLDivElement>;
+  menuRef: React.RefObject<HTMLDivElement | null>;
   selectedFiles: File[];
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
   setShowContextMenu: React.Dispatch<React.SetStateAction<boolean>>;
@@ -28,7 +28,7 @@ export default function ContextMenu({
   setShowRenameDialog,
   setShowDeleteDialog,
   setShowPermissionsDialog
-}: ContextMenuProps): JSX.Element {
+}: ContextMenuProps): React.ReactNode {
   const { currentNavigationZone, currentFileSharePath } =
     useZoneBrowserContext();
   const { handleFavoriteChange } = usePreferencesContext();
