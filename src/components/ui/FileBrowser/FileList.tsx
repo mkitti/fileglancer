@@ -2,13 +2,11 @@ import * as React from 'react';
 import { Typography } from '@material-tailwind/react';
 
 import type { FileOrFolder } from '@/shared.types';
-import type { Metadata } from '@/omezarr-helper';
 import FileListCrumbs from './Crumbs';
 import FileRow from './FileRow';
-import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
-import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import { getOmeZarrMetadata } from '@/omezarr-helper';
 import ZarrPreview from './ZarrPreview';
+import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
+import useZarrMetadata from '@/hooks/useZarrMetadata';
 
 type FileListProps = {
   files: FileOrFolder[];
@@ -39,50 +37,20 @@ export default function FileList({
   hideDotFiles,
   handleRightClick
 }: FileListProps): React.ReactNode {
-  const { currentNavigationPath, getFileFetchPath } = useFileBrowserContext();
   const { currentFileSharePath } = useZoneBrowserContext();
+  const {
+    thumbnailSrc,
+    neuroglancerUrl,
+    metadata,
+    hasMultiscales,
+    loadingThumbnail
+  } = useZarrMetadata(files, currentFileSharePath);
+
   const displayFiles = React.useMemo(() => {
     return hideDotFiles
       ? files.filter(file => !file.name.startsWith('.'))
       : files;
   }, [files, hideDotFiles]);
-
-  const [loadingThumbnail, setLoadingThumbnail] = React.useState(false);
-  const [hasMultiscales, setHasMultiscales] = React.useState(false);
-  const [thumbnailSrc, setThumbnailSrc] = React.useState<string | null>(null);
-  const [neuroglancerUrl, setNeuroglancerUrl] = React.useState<string | null>(
-    null
-  );
-  const [metadata, setMetadata] = React.useState<Metadata | null>(null);
-  const neuroglancerBaseUrl = 'https://neuroglancer-demo.appspot.com/#!';
-
-  React.useEffect(() => {
-    const checkZattrsForMultiscales = async () => {
-      setHasMultiscales(false);
-      const zattrsFile = files.find(file => file.name === '.zattrs');
-      if (zattrsFile && currentFileSharePath) {
-        setHasMultiscales(true);
-        setLoadingThumbnail(true);
-        try {
-          const fileFetchPath = getFileFetchPath(
-            currentNavigationPath.replace('?subpath=', '/')
-          );
-          const imageUrl = `${window.location.origin}${fileFetchPath}`;
-          const metadata = await getOmeZarrMetadata(imageUrl);
-          setMetadata(metadata);
-          setThumbnailSrc(metadata.thumbnail);
-          setNeuroglancerUrl(neuroglancerBaseUrl + metadata.neuroglancerState);
-        } catch (error) {
-          console.error('Error getting OME-Zarrmetadata', error);
-        }
-        setLoadingThumbnail(false);
-      } else {
-        setHasMultiscales(false);
-        setMetadata(null);
-      }
-    };
-    checkZattrsForMultiscales();
-  }, [currentNavigationPath]);
 
   return (
     <div
