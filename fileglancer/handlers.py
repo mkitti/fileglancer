@@ -337,7 +337,8 @@ class ProxiedPathHandler(BaseHandler):
         Create a shared path for the current user.
         """
         username = self.get_current_user()
-        mount_path = self.get_argument("mount-path", None)
+        data = self.get_json_body()
+        mount_path = data.get("mount_path", None)
         self.log.info(f"POST /api/fileglancer/proxied-path username={username} mount_path={mount_path}")
         try:
             if mount_path is None:

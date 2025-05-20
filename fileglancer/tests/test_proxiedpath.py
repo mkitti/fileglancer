@@ -141,15 +141,27 @@ async def test_delete_user_proxied_path_exception(test_current_user, jp_fetch, r
         assert rj["error"] == f"404 Client Error: None for url: {test_delete_url}"
 
 
-@patch("fileglancer.handlers.ProxiedPathHandler.get_current_user", return_value=TEST_USER)
-async def test_delete_user_proxied_path_without_key(test_current_user, jp_fetch, requests_mock):
+async def test_delete_user_proxied_path_without_key(jp_fetch):
     try:
-        test_key = "test_key_2"
-        test_delete_url = f"{TEST_URL}/{test_key}"
-        requests_mock.delete(test_delete_url, status_code=404)
         await jp_fetch("api", "fileglancer", "proxied-path", method="DELETE", params={"username": TEST_USER})
         assert False, "Expected 400 error"
     except Exception as e:
         assert e.code == 400
         rj = json.loads(e.response.body)
         assert rj["error"] == "Key is required to delete a proxied path"
+
+
+async def test_post_user_proxied_path_without_mountpath(jp_fetch):
+    try:
+        payload = {
+            "mount": "/test/path" # intentionally wrong mount path arg
+        }
+        await jp_fetch("api", "fileglancer", "proxied-path",
+                       method="POST",
+                       body=json.dumps(payload),
+                       headers={"Content-Type": "application/json"})
+        assert False, "Expected 400 error"
+    except Exception as e:
+        assert e.code == 400
+        rj = json.loads(e.response.body)
+        assert rj["error"] == "Mount path is required to create a proxied path"
