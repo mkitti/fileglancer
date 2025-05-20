@@ -151,14 +151,37 @@ async def test_delete_user_proxied_path_without_key(jp_fetch):
         assert rj["error"] == "Key is required to delete a proxied path"
 
 
+@patch("fileglancer.handlers.ProxiedPathHandler.get_current_user", return_value=TEST_USER)
+async def test_post_user_proxied_path(test_current_user, jp_fetch, requests_mock):
+    payload = {
+        "mount_path": "/test/path"
+    }
+    requests_mock.post(f"{TEST_URL}?mount_path=/test/path",
+                       status_code=201,
+                       json={
+                           "username": TEST_USER,
+                           "sharing_key": "test_key",
+                           "sharing_name": "test_name",
+                           "mount_path": "/test/path"
+                       })
+
+    response = await jp_fetch("api", "fileglancer", "proxied-path",
+                              method="POST",
+                              body=json.dumps(payload),
+                              headers={"Content-Type": "application/json"})
+    rj = json.loads(response.body)
+    assert response.code == 201
+    assert rj["username"] == TEST_USER
+    assert rj["sharing_key"] == "test_key"
+    assert rj["sharing_name"] == "test_name"
+    assert rj["mount_path"] == "/test/path"
+
+
 async def test_post_user_proxied_path_without_mountpath(jp_fetch):
     try:
-        payload = {
-            "mount": "/test/path" # intentionally wrong mount path arg
-        }
         await jp_fetch("api", "fileglancer", "proxied-path",
                        method="POST",
-                       body=json.dumps(payload),
+                       body=json.dumps({}), # empty payload
                        headers={"Content-Type": "application/json"})
         assert False, "Expected 400 error"
     except Exception as e:

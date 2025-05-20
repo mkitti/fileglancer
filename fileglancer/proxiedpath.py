@@ -65,9 +65,7 @@ class ProxiedPathManager:
         if self.central_url and username:
             log.info(f"Cache proxied paths for user {username} from central server")
             response = requests.get(f"{self.central_url}/proxied-path/{username}")
-            print('!!!!!!!! RESPONSE CODE:', response.status_code)
             response.raise_for_status()
-            print('!!!!!!!! AFTER RAISE RESPONSE CODE:', response.status_code)
             pps_json = response.json()["paths"]
             cached_proxied_paths = CachedEntry([ProxiedPath(**pp_json) for pp_json in pps_json])
             self._cached_proxied_paths[username] = cached_proxied_paths

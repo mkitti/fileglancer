@@ -350,8 +350,9 @@ class ProxiedPathHandler(BaseHandler):
             proxied_path_manager = get_proxiedpath_manager(self.settings)
             response = proxied_path_manager.create_proxied_path(username, mount_path)
             response.raise_for_status()
+            rjson = response.json()
             self.set_status(201)
-            self.finish(response.json())
+            self.finish(rjson)
         except Exception as e:
             self.log.error(f"Error creating proxied path: {str(e)}")
             self.set_status(500)
