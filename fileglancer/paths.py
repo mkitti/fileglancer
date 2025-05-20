@@ -57,7 +57,6 @@ class FileSharePathManager:
                             FileSharePath(
                                 zone=zone,
                                 name=name,
-                                owner=zone.lower().replace(' ', '_'),
                                 group=zone.lower().replace(' ', '_'),
                                 storage=path_type.lower(),
                                 mount_path=root_dir_expanded,
@@ -74,7 +73,6 @@ class FileSharePathManager:
                     FileSharePath(
                         zone="Local",
                         name="local",
-                        owner="local",
                         group="local",
                         storage="home",
                         mount_path=root_dir_expanded,
