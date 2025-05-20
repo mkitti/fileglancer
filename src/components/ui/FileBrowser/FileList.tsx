@@ -7,6 +7,7 @@ import FileRow from './FileRow';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { getOmeZarrMetadata } from '@/omezarr-helper';
+import ZarrPreview from './ZarrPreview';
 
 type FileListProps = {
   files: FileOrFolder[];
@@ -86,38 +87,11 @@ export default function FileList({
       <FileListCrumbs />
 
       {hasMultiscales ? (
-        <div className="flex flex-col my-4 p-4 bg-primary-light/30 rounded-md w-full h-96">
-          <div className="flex flex-col gap-2 max-h-full">
-            <Typography
-              variant="small"
-              className="text-blue-600 dark:text-blue-400"
-            >
-              {loadingThumbnail ? 'Loading OME-Zarr image...' : ''}
-            </Typography>
-            {loadingThumbnail ? (
-              <div
-                className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"
-                title="Loading Thumbnail..."
-              ></div>
-            ) : null}
-            {!loadingThumbnail && thumbnailSrc ? (
-              <img
-                id="thumbnail"
-                src={thumbnailSrc}
-                alt="Thumbnail"
-                className="max-h-72 max-w-max rounded-sm"
-              />
-            ) : null}
-          </div>
-
-          {neuroglancerUrl ? (
-            <a href={neuroglancerUrl} target="_blank" rel="noopener noreferrer">
-              <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 dark:bg-blue-400 dark:hover:bg-blue-500">
-                View in Neuroglancer
-              </button>
-            </a>
-          ) : null}
-        </div>
+        <ZarrPreview
+          thumbnailSrc={thumbnailSrc}
+          loadingThumbnail={loadingThumbnail}
+          neuroglancerUrl={neuroglancerUrl}
+        />
       ) : null}
 
       <div className="min-w-full bg-background select-none">
