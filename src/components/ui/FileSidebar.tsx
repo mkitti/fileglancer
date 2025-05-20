@@ -89,7 +89,7 @@ export default function FileSidebar({
                         onClick={() => handlePathClick(path)}
                         className={`pl-5 rounded-none cursor-pointer hover:bg-primary-light/30 focus:bg-primary-light/30 hover:!text-foreground focus:!text-foreground ${index % 2 === 0 ? 'bg-surface/50' : 'bg-background'}`}
                         as={Link}
-                        to="/files"
+                        to="/browse"
                       >
                         <List.ItemStart>
                           <Folder className="h-[18px] w-[18px]" />
