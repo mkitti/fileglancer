@@ -177,6 +177,29 @@ async def test_post_user_proxied_path(test_current_user, jp_fetch, requests_mock
     assert rj["mount_path"] == "/test/path"
 
 
+@patch("fileglancer.handlers.ProxiedPathHandler.get_current_user", return_value=TEST_USER)
+async def test_post_user_proxied_path_exception(test_current_user, jp_fetch, requests_mock):
+    try:
+        payload = {
+            "mount_path": "/test/path"
+        }
+        requests_mock.post(f"{TEST_URL}?mount_path=/test/path",
+                        status_code=404,
+                        json={
+                            "error": "Some error"
+                        })
+
+        await jp_fetch("api", "fileglancer", "proxied-path",
+                        method="POST",
+                        body=json.dumps(payload),
+                        headers={"Content-Type": "application/json"})
+        assert False, "Expected 404 error"        
+    except Exception as e:
+        assert e.code == 404
+        rj = json.loads(e.response.body)
+        assert rj["error"] == "{\"error\": \"Some error\"}"
+
+
 async def test_post_user_proxied_path_without_mountpath(jp_fetch):
     try:
         await jp_fetch("api", "fileglancer", "proxied-path",

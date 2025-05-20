@@ -353,6 +353,10 @@ class ProxiedPathHandler(BaseHandler):
             rjson = response.json()
             self.set_status(201)
             self.finish(rjson)
+        except HTTPError as e:
+            self.log.error(f"Error getting proxied paths: {str(e)}")
+            self.set_status(e.response.status_code)
+            self.finish(json.dumps({"error": str(e.response.text)}))
         except Exception as e:
             self.log.error(f"Error creating proxied path: {str(e)}")
             self.set_status(500)
