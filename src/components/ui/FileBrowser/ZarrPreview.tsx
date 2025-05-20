@@ -34,7 +34,7 @@ export default function ZarrPreview({
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2 max-h-full">
           <Typography variant="small" className="text-surface-foreground">
-            {loadingThumbnail ? 'Loading OME-Zarr image and metadata...' : ''}
+            {loadingThumbnail ? 'Loading OME-Zarr image thumbnail...' : ''}
           </Typography>
           {loadingThumbnail ? (
             <div
@@ -54,7 +54,7 @@ export default function ZarrPreview({
 
         {neuroglancerUrl ? (
           <div>
-            <Typography variant="small" className="text-surface-foreground">
+            <Typography className="font-semibold text-sm text-surface-foreground">
               Open with:
             </Typography>
             <ButtonGroup className="relative">

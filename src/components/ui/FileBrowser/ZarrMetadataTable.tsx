@@ -12,7 +12,7 @@ export default function ZarrMetadataTable({
 
   return (
     <div className="flex flex-col max-h-min">
-      <Typography className="font-semibold text-sm my-2">
+      <Typography className="font-semibold text-sm my-2 text-surface-foreground">
         OME-Zarr metadata:
       </Typography>
       <table className="bg-background/90  ">
