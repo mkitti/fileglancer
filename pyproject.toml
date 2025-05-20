@@ -44,8 +44,16 @@ source = "nodejs"
 fields = ["description", "authors", "urls", "keywords"]
 
 [tool.hatch.build.targets.sdist]
-artifacts = ["fileglancer/labextension"]
+artifacts = [
+  "fileglancer/labextension",
+  "fileglancer/ui"
+]
 exclude = [".github", "binder"]
+
+[tool.hatch.build.targets.wheel]
+artifacts = [
+  "fileglancer/ui"
+]
 
 [tool.hatch.build.targets.wheel.shared-data]
 "fileglancer/labextension" = "share/jupyter/labextensions/fileglancer"
