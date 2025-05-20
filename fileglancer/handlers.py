@@ -405,7 +405,7 @@ class ProxiedPathHandler(BaseHandler):
         try:
             proxied_path_manager = get_proxiedpath_manager(self.settings)
             result = proxied_path_manager.get_proxied_paths(username, key)
-            if result is not None:
+            if result is not None and len(result) > 0:
                 self.set_header('Content-Type', 'application/json')
                 self.set_status(200)
                 self.write("{\n")
