@@ -4,7 +4,7 @@ import pytest
 import tempfile
 import shutil
 from fileglancer.filestore import Filestore, FileInfo
-from fileglancer.paths import FileSharePath
+from fileglancer.uimodels import FileSharePath
 
 @pytest.fixture
 def test_dir():
@@ -54,25 +54,27 @@ def test_get_root_info(filestore, test_dir):
     file_info = filestore.get_file_info(None)
     assert file_info is not None
     assert file_info.name == os.path.basename(test_dir)
-    assert file_info.path == None
+    assert file_info.path is None
     assert file_info.size == 0
     assert file_info.is_dir
 
 
-def test_yield_file_infos(filestore, test_dir):
-    # Test file info
-    file_info = next(filestore.yield_file_infos("test.txt"))
-    assert isinstance(file_info, FileInfo)
-    assert file_info.name == "test.txt"
-    assert file_info.path == os.path.join(test_dir, "test.txt")
-    assert file_info.size == len("test content")
-    assert not file_info.is_dir
-    
+def test_yield_file_and_dir_infos(filestore, test_dir):
+    fs_iterator = filestore.yield_file_infos("")
+
     # Test directory info
-    dir_info = next(filestore.yield_file_infos("subdir"))
+    dir_info = next(fs_iterator)
     assert dir_info.name == "subdir"
     assert dir_info.is_dir
 
+    # Test file info
+    file_info = next(fs_iterator)
+    assert isinstance(file_info, FileInfo)
+    assert file_info.name == "test.txt"
+    assert file_info.path == "test.txt"
+    assert file_info.size == len("test content")
+    assert not file_info.is_dir
+    
 
 def test_yield_file_infos(filestore):
     files = list(filestore.yield_file_infos(""))

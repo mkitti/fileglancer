@@ -5,6 +5,7 @@ from fileglancer.handlers import (
     VersionHandler,
     StaticHandler,
     PreferencesHandler,
+    ProxiedPathHandler,
     TicketHandler,
 )
 from pathlib import Path, PurePath
@@ -81,6 +82,7 @@ class Fileglancer(ExtensionApp):
     def initialize_handlers(self):
         self.handlers.extend([
             (r"/api/fileglancer/file-share-paths", FileSharePathsHandler),
+            (r"/api/fileglancer/proxied-path", ProxiedPathHandler),
             (r"/api/fileglancer/files/(.*)", FileShareHandler),
             (r"/api/fileglancer/files", FileShareHandler),
             (r"/api/fileglancer/version", VersionHandler),

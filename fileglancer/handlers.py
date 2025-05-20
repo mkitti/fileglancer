@@ -34,7 +34,7 @@ class BaseHandler(APIHandler):
         Returns:
             str: The username of the current user.
         """
-        return os.getenv("USER", self.current_user.name)
+        return os.getenv("USER", self.current_user.username)
 
 
 class StreamingProxy(BaseHandler):
@@ -59,7 +59,7 @@ class StreamingProxy(BaseHandler):
             self.log.error(f"Error fetching {url}: {str(e)}")
             self.set_status(500)
             self.finish(json.dumps({
-                "error": f"Error streaming response"
+                "error": "Error streaming response"
             }))
 
 
@@ -123,13 +123,14 @@ class FileShareHandler(BaseHandler):
         subpath = self.get_argument("subpath", '')
         self.set_cors_headers()
 
+
         if subpath:
             self.log.info(f"GET /api/fileglancer/files/{path} subpath={subpath}")
             filestore_name = path
         else:
             self.log.info(f"GET /api/fileglancer/files/{path}")
             filestore_name, _, subpath = path.partition('/')
-            
+        
         filestore = self._get_filestore(filestore_name)
         if filestore is None:
             return
@@ -333,7 +334,7 @@ class PreferencesHandler(BaseHandler):
             self.finish(json.dumps({"error": str(e)}))
 
 
-class ProxiedPathHandler(APIHandler):
+class ProxiedPathHandler(BaseHandler):
     """
     API handler for ProxiedPath (user shared data paths)
     """
@@ -407,7 +408,14 @@ class ProxiedPathHandler(APIHandler):
             if result is not None:
                 self.set_header('Content-Type', 'application/json')
                 self.set_status(200)
-                self.finish(json.dumps(result))
+                self.write("{\n")
+                self.write("\"paths\": [\n")
+                for i, p in enumerate(result):
+                    if i > 0:
+                        self.write(",\n")
+                    self.write(json.dumps(p.model_dump(), indent=4))
+                self.write("]\n")
+                self.write("}\n")
                 self.finish()
             else:
                 self.set_status(404)
