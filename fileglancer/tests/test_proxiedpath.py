@@ -8,6 +8,7 @@ from . import (server_config_with_central_server, TEST_CENTRAL_SERVER)
 
 TEST_USER = "test_user"
 TEST_URL = f"{TEST_CENTRAL_SERVER}/proxied-path/{TEST_USER}"
+TEST_INVALID_USER = "invalid_user"
 
 
 @pytest.fixture
@@ -102,3 +103,53 @@ async def test_get_user_proxied_path_when_key_not_present(test_current_user, jp_
         assert rj["error"] == "Proxied path not found"
 
 
+@patch("fileglancer.handlers.ProxiedPathHandler.get_current_user", return_value=TEST_INVALID_USER)
+async def test_get_user_proxied_path_when_central_responds_with_404(test_current_user, jp_fetch, requests_mock):
+    url_for_invalid_user = f"{TEST_CENTRAL_SERVER}/proxied-path/{TEST_INVALID_USER}"
+
+    requests_mock.get(url_for_invalid_user, json={"error": "Returned an error"}, status_code=404)
+
+    try:
+        await jp_fetch("api", "fileglancer", "proxied-path")
+        assert False, "Expected 404 error"
+    except Exception as e:
+        assert e.code == 404
+        rj = json.loads(e.response.body)
+        assert rj["error"] == "{\"error\": \"Returned an error\"}"
+
+
+@patch("fileglancer.handlers.ProxiedPathHandler.get_current_user", return_value=TEST_USER)
+async def test_delete_user_proxied(test_current_user, jp_fetch, requests_mock):
+    test_key = "test_key_2"
+    test_delete_url = f"{TEST_URL}/{test_key}"
+    requests_mock.delete(test_delete_url, status_code=204)
+    response = await jp_fetch("api", "fileglancer", "proxied-path", method="DELETE", params={"username": TEST_USER, "key": test_key})
+    assert response.code == 204
+
+
+@patch("fileglancer.handlers.ProxiedPathHandler.get_current_user", return_value=TEST_USER)
+async def test_delete_user_proxied_path_exception(test_current_user, jp_fetch, requests_mock):
+    try:
+        test_key = "test_key_2"
+        test_delete_url = f"{TEST_URL}/{test_key}"
+        requests_mock.delete(test_delete_url, status_code=404)
+        await jp_fetch("api", "fileglancer", "proxied-path", method="DELETE", params={"username": TEST_USER, "key": test_key})
+        assert False, "Expected 404 error"
+    except Exception as e:
+        assert e.code == 404
+        rj = json.loads(e.response.body)
+        assert rj["error"] == f"404 Client Error: None for url: {test_delete_url}"
+
+
+@patch("fileglancer.handlers.ProxiedPathHandler.get_current_user", return_value=TEST_USER)
+async def test_delete_user_proxied_path_without_key(test_current_user, jp_fetch, requests_mock):
+    try:
+        test_key = "test_key_2"
+        test_delete_url = f"{TEST_URL}/{test_key}"
+        requests_mock.delete(test_delete_url, status_code=404)
+        await jp_fetch("api", "fileglancer", "proxied-path", method="DELETE", params={"username": TEST_USER})
+        assert False, "Expected 400 error"
+    except Exception as e:
+        assert e.code == 400
+        rj = json.loads(e.response.body)
+        assert rj["error"] == "Key is required to delete a proxied path"

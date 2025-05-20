@@ -4,6 +4,7 @@ import requests
 
 from jupyter_server.base.handlers import APIHandler, JupyterHandler
 from jupyter_server.utils import url_path_join
+from requests.exceptions import HTTPError
 from tornado import web
 
 from fileglancer.filestore import Filestore
@@ -79,7 +80,6 @@ class FileSharePathsHandler(StreamingProxy):
         self.finish()
 
 
-
 class FileShareHandler(BaseHandler):
     """
     API handler for file access using the Filestore class
@@ -90,7 +90,6 @@ class FileShareHandler(BaseHandler):
         self.set_header('Access-Control-Allow-Methods', 'GET, POST')
         self.set_header('Access-Control-Allow-Headers', 'Content-Type, X-XSRFToken')
         self.set_header('Expose-Headers', 'Range, Content-Range')
-
 
     def _get_filestore(self, path_name):
         """
@@ -112,7 +111,6 @@ class FileShareHandler(BaseHandler):
             return None
 
         return filestore
-
 
     # TODO: Uncomment once we have a file server for Neuroglancer
     #@web.authenticated
@@ -169,7 +167,6 @@ class FileShareHandler(BaseHandler):
             self.set_status(403)
             self.finish(json.dumps({"error": "Permission denied"}))
 
-
     @web.authenticated
     def post(self, path=""):
         """
@@ -197,7 +194,6 @@ class FileShareHandler(BaseHandler):
 
         self.set_status(201)
         self.finish()
-
 
     @web.authenticated
     def patch(self, path=""):
@@ -234,7 +230,6 @@ class FileShareHandler(BaseHandler):
         self.set_status(204)
         self.finish()
 
-
     @web.authenticated
     def delete(self, path=""):
         """
@@ -249,7 +244,6 @@ class FileShareHandler(BaseHandler):
         filestore.remove_file_or_dir(subpath)
         self.set_status(204)
         self.finish()
-
 
     # TODO: Uncomment once we have a file server for Neuroglancer
     #@web.authenticated
@@ -419,6 +413,10 @@ class ProxiedPathHandler(BaseHandler):
             else:
                 self.set_status(404)
                 self.finish(json.dumps({"error": "Proxied path not found"}))
+        except HTTPError as e:
+            self.log.error(f"Error getting proxied paths: {str(e)}")
+            self.set_status(e.response.status_code)
+            self.finish(json.dumps({"error": str(e.response.text)}))
         except Exception as e:
             self.log.error(f"Error getting proxied paths: {str(e)}")
             self.set_status(500)
@@ -443,11 +441,12 @@ class ProxiedPathHandler(BaseHandler):
             response.raise_for_status()
             self.set_status(204)
             self.finish()
-        except KeyError as e:
+        except HTTPError as e:
             self.log.warning(f"Proxied path not found: {str(e)}")
-            self.set_status(404)
+            self.set_status(e.response.status_code)
             self.finish(json.dumps({"error": str(e)}))
         except Exception as e:
+            # Handle the case where the proxied path is not found
             self.log.error(f"Error deleting proxied paths: {str(e)}")
             self.set_status(500)
             self.finish(json.dumps({"error": str(e)}))
@@ -593,8 +592,6 @@ class StaticHandler(JupyterHandler, web.StaticFileHandler):
             # (doesn't prevent browser storing the response):
             self.set_header('Cache-Control', 'no-cache')
         return web.StaticFileHandler.get(self, path)
-
-
 
 
 def setup_handlers(web_app):

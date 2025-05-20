@@ -33,7 +33,7 @@ class ProxiedPathManager:
 
     def create_proxied_path(self, username: str, mount_path: str) -> requests.Response:
         """Create a proxied path with <a_path> as the mount_point"""
-        del self._cached_proxied_paths[username]  # invalidate the cache
+        self._cached_proxied_paths.pop(username, None)  # invalidate the cache
         return requests.post(
             f"{self.central_url}/proxied-path/{username}",
             params = {
@@ -42,14 +42,14 @@ class ProxiedPathManager:
         )
 
     def delete_proxied_path(self, username: str, sharing_key: str) -> requests.Response:
-        del self._cached_proxied_paths[username]  # invalidate the cache
+        self._cached_proxied_paths.pop(username, None)  # invalidate the cache
         return requests.delete(
             f"{self.central_url}/proxied-path/{username}/{sharing_key}"
         )
 
     def update_proxied_path(self, username: str, sharing_key, new_path: Optional[str], new_name: Optional[str]) -> requests.Response:
         """Update a proxied path with <a_path> as the mount_point"""
-        del self._cached_proxied_paths[username]  # invalidate the cache
+        self._cached_proxied_paths.pop(username, None)  # invalidate the cache
         pp_updates = {}
         if new_path:
             pp_updates["mount_path"] = new_path
@@ -65,7 +65,9 @@ class ProxiedPathManager:
         if self.central_url and username:
             log.info(f"Cache proxied paths for user {username} from central server")
             response = requests.get(f"{self.central_url}/proxied-path/{username}")
+            print('!!!!!!!! RESPONSE CODE:', response.status_code)
             response.raise_for_status()
+            print('!!!!!!!! AFTER RAISE RESPONSE CODE:', response.status_code)
             pps_json = response.json()["paths"]
             cached_proxied_paths = CachedEntry([ProxiedPath(**pp_json) for pp_json in pps_json])
             self._cached_proxied_paths[username] = cached_proxied_paths
