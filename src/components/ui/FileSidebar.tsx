@@ -9,8 +9,8 @@ import {
 } from '@material-tailwind/react';
 import { Folder, FilterList, NavArrowRight, Server } from 'iconoir-react';
 
-import useZoneFilter from '../../hooks/useZoneFilter';
-import { FileSharePaths } from '../../hooks/useFileBrowser';
+import useZoneFilter from '@/hooks/useZoneFilter';
+import { FileSharePaths } from '@/hooks/useFileBrowser';
 
 type FileSidebarProps = {
   fileSharePaths: FileSharePaths;

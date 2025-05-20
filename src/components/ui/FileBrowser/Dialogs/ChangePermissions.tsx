@@ -7,8 +7,8 @@ import {
   Typography
 } from '@material-tailwind/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import usePermissionsDialog from '../../../../hooks/usePermissionsDialog';
-import type { File } from '../../../../shared.types';
+import usePermissionsDialog from '@/hooks/usePermissionsDialog';
+import type { File } from '@/shared.types';
 
 type ChangePermissionsProps = {
   targetItem: File | null;

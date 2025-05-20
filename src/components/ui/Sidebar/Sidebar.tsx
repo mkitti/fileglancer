@@ -4,8 +4,8 @@ import { FunnelIcon } from '@heroicons/react/24/outline';
 
 import FavoritesBrowser from './FavoritesBrowser';
 import ZonesBrowser from './ZonesBrowser';
-import useSearchFilter from '../../../hooks/useSearchFilter';
-import useOpenZones from '../../../hooks/useOpenZones';
+import useSearchFilter from '@/hooks/useSearchFilter';
+import useOpenZones from '@/hooks/useOpenZones';
 
 export default function Sidebar() {
   const { openZones, setOpenZones, toggleOpenZones } = useOpenZones();

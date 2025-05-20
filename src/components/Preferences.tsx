@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Alert, Button, Card, Typography } from '@material-tailwind/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { usePreferencesContext } from '../contexts/PreferencesContext';
-import useLocalPathPreference from '../hooks/useLocalPathPreference';
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import useLocalPathPreference from '@/hooks/useLocalPathPreference';
 
 export default function Preferences() {
   const {

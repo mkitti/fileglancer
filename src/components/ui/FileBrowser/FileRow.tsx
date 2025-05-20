@@ -7,11 +7,11 @@ import {
   FolderIcon
 } from '@heroicons/react/24/outline';
 
-import type { File } from '../../../shared.types';
-import { useFileBrowserContext } from '../../../contexts/FileBrowserContext';
-import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
-import useHandleLeftClick from '../../../hooks/useHandleLeftClick';
-import { formatDate, formatFileSize } from '../../../utils';
+import type { File } from '@/shared.types';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
+import useHandleLeftClick from '@/hooks/useHandleLeftClick';
+import { formatDate, formatFileSize } from '@/utils';
 
 type FileRowProps = {
   file: File;

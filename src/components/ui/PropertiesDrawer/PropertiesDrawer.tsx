@@ -13,11 +13,11 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 
-import type { File } from '../../../shared.types';
+import type { File } from '@/shared.types';
 import PermissionsTable from './PermissionsTable';
 import OverviewTable from './OverviewTable';
-import useCopyPath from '../../../hooks/useCopyPath';
-import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
+import useCopyPath from '@/hooks/useCopyPath';
+import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 
 type PropertiesDrawerProps = {
   propertiesTarget: File | null;

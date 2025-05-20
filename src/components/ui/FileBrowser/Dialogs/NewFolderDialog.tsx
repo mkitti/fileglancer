@@ -7,8 +7,8 @@ import {
   Typography
 } from '@material-tailwind/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { useFileBrowserContext } from '../../../../contexts/FileBrowserContext';
-import useNewFolderDialog from '../../../../hooks/useNewFolderDialog';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import useNewFolderDialog from '@/hooks/useNewFolderDialog';
 
 type ItemNamingDialogProps = {
   showNewFolderDialog: boolean;
