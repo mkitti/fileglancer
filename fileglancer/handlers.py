@@ -123,7 +123,6 @@ class FileShareHandler(BaseHandler):
         subpath = self.get_argument("subpath", '')
         self.set_cors_headers()
 
-
         if subpath:
             self.log.info(f"GET /api/fileglancer/files/{path} subpath={subpath}")
             filestore_name = path
