@@ -47,7 +47,7 @@ export default function PropertiesDrawer({
     <div
       className={`fixed top-[68px] right-0 bottom-0 w-[90%] max-w-[350px] bg-background shadow-lg border-l border-surface shadow-surface transform transition-transform duration-300 ease-in-out ${open ? 'translate-x-0 z-50' : 'translate-x-full'}`}
     >
-      <div className="flex flex-col h-full overflow-y-auto p-4">
+      <div className="flex flex-col h-full overflow-y-auto overflow-x-hidden p-4">
         <div className="flex items-center justify-between gap-4 mb-1">
           <Typography type="h6">Properties</Typography>
           <IconButton
@@ -67,7 +67,7 @@ export default function PropertiesDrawer({
         </div>
 
         {propertiesTarget ? (
-          <div className="flex items-center gap-2 mt-3 mb-4 max-h-min">
+          <div className="flex items-center gap-2 mt-3 mb-4 max-h-min overflow-x-auto">
             {propertiesTarget.is_dir ? (
               <FolderIcon className="icon-default" />
             ) : (
@@ -106,8 +106,8 @@ export default function PropertiesDrawer({
             </Tabs.List>
 
             <Tabs.Panel value="overview">
-              <div className="group flex justify-between items-center">
-                <Typography className="text-foreground font-medium text-sm">
+              <div className="group flex justify-between items-center overflow-x-hidden">
+                <Typography className="text-foreground font-medium text-sm overflow-x-scroll">
                   <span className="!font-bold">Path: </span>
                   {fullPath}
                 </Typography>
