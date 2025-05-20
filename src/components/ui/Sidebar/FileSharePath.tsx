@@ -42,7 +42,7 @@ export default function FileSharePath({
         setCurrentFileSharePath(pathItem);
         fetchAndFormatFilesForDisplay(pathItem.name);
       }}
-      className={`x-short:py-0 flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30 ${isCurrentPath ? '!bg-primary-light/30' : pathIndex % 2 !== 0 ? '!bg-background' : '!bg-surface/50'}`}
+      className={`overflow-x-auto x-short:py-0 flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30 ${isCurrentPath ? '!bg-primary-light/30' : pathIndex % 2 !== 0 ? '!bg-background' : '!bg-surface/50'}`}
     >
       <Link
         to="/browse"

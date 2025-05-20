@@ -142,7 +142,7 @@ export default function FavoritesBrowser({
                       `${directoryItem.fileSharePath.name}?subpath=${directoryItem.path}`
                     );
                   }}
-                  className={`x-short:py-0 flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 ${directoryItem.fileSharePath === currentFileSharePath && directoryItem.name === currentDir ? '!bg-primary-light/30' : '!bg-background'}`}
+                  className={`overflow-x-auto x-short:py-0 flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 ${directoryItem.fileSharePath === currentFileSharePath && directoryItem.name === currentDir ? '!bg-primary-light/30' : '!bg-background'}`}
                 >
                   <Link
                     to="/browse"
