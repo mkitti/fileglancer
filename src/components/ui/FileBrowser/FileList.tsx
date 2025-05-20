@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Typography } from '@material-tailwind/react';
 
 import type { FileOrFolder } from '@/shared.types';
+import type { Metadata } from '@/omezarr-helper';
 import FileListCrumbs from './Crumbs';
 import FileRow from './FileRow';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
@@ -52,6 +53,7 @@ export default function FileList({
   const [neuroglancerUrl, setNeuroglancerUrl] = React.useState<string | null>(
     null
   );
+  const [metadata, setMetadata] = React.useState<Metadata | null>(null);
   const neuroglancerBaseUrl = 'https://neuroglancer-demo.appspot.com/#!';
 
   React.useEffect(() => {
@@ -67,6 +69,7 @@ export default function FileList({
           );
           const imageUrl = `${window.location.origin}${fileFetchPath}`;
           const metadata = await getOmeZarrMetadata(imageUrl);
+          setMetadata(metadata);
           setThumbnailSrc(metadata.thumbnail);
           setNeuroglancerUrl(neuroglancerBaseUrl + metadata.neuroglancerState);
         } catch (error) {
@@ -75,6 +78,7 @@ export default function FileList({
         setLoadingThumbnail(false);
       } else {
         setHasMultiscales(false);
+        setMetadata(null);
       }
     };
     checkZattrsForMultiscales();
@@ -91,6 +95,7 @@ export default function FileList({
           thumbnailSrc={thumbnailSrc}
           loadingThumbnail={loadingThumbnail}
           neuroglancerUrl={neuroglancerUrl}
+          metadata={metadata}
         />
       ) : null}
 

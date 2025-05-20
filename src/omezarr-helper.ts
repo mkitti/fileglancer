@@ -73,6 +73,17 @@ export interface Window {
   end?: number;
   [k: string]: unknown;
 }
+
+export type Metadata = {
+  arr: zarr.Array<any>;
+  shapes: number[][] | undefined;
+  multiscale: Multiscale;
+  omero: Omero | null | undefined;
+  scales: number[][];
+  zarr_version: 2 | 3;
+  neuroglancerState: string | null;
+  thumbnail: string | null;
+};
 /* eslint-enable @typescript-eslint/naming-convention */
 
 const COLORS = ['magenta', 'green', 'cyan', 'white', 'red', 'green', 'blue'];
@@ -378,16 +389,7 @@ async function getOmeZarrMetadata(
   thumbnailSize: number = 300,
   maxThumbnailSize: number = 1024,
   autoBoost: boolean = true
-): Promise<{
-  arr: zarr.Array<any>;
-  shapes: number[][] | undefined;
-  multiscale: Multiscale;
-  omero: Omero | null | undefined;
-  scales: number[][];
-  zarr_version: 2 | 3;
-  neuroglancerState: string | null;
-  thumbnail: string | null;
-}> {
+): Promise<Metadata> {
   const store = new zarr.FetchStore(dataUrl);
   const { arr, shapes, multiscale, omero, scales, zarr_version } =
     await omezarr.getMultiscaleWithArray(store, 0);
