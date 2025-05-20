@@ -45,6 +45,7 @@ export default function FileList({
       : files;
   }, [files, hideDotFiles]);
 
+  const [loadingThumbnail, setLoadingThumbnail] = React.useState(false);
   const [hasMultiscales, setHasMultiscales] = React.useState(false);
   const [thumbnailSrc, setThumbnailSrc] = React.useState<string | null>(null);
   const [neuroglancerUrl, setNeuroglancerUrl] = React.useState<string | null>(
@@ -54,8 +55,11 @@ export default function FileList({
 
   React.useEffect(() => {
     const checkZattrsForMultiscales = async () => {
+      setHasMultiscales(false);
       const zattrsFile = files.find(file => file.name === '.zattrs');
       if (zattrsFile && currentFileSharePath) {
+        setHasMultiscales(true);
+        setLoadingThumbnail(true);
         try {
           const fileFetchPath = getFileFetchPath(
             currentNavigationPath.replace('?subpath=', '/')
@@ -64,16 +68,14 @@ export default function FileList({
           const metadata = await getOmeZarrMetadata(imageUrl);
           setThumbnailSrc(metadata.thumbnail);
           setNeuroglancerUrl(neuroglancerBaseUrl + metadata.neuroglancerState);
-          setHasMultiscales(true);
         } catch (error) {
-          setHasMultiscales(false);
           console.error('Error getting OME-Zarrmetadata', error);
         }
+        setLoadingThumbnail(false);
       } else {
         setHasMultiscales(false);
       }
     };
-
     checkZattrsForMultiscales();
   }, [currentNavigationPath]);
 
@@ -84,17 +86,29 @@ export default function FileList({
       <FileListCrumbs />
 
       {hasMultiscales ? (
-        <div className="my-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md">
-          <Typography
-            variant="small"
-            className="text-blue-600 dark:text-blue-400"
-          >
-            This directory contains an OME-Zarr image
-          </Typography>
-
-          {thumbnailSrc ? (
-            <img id="thumbnail" src={thumbnailSrc} alt="Thumbnail" />
-          ) : null}
+        <div className="flex flex-col my-4 p-4 bg-primary-light/30 rounded-md w-full h-96">
+          <div className="flex flex-col gap-2 max-h-full">
+            <Typography
+              variant="small"
+              className="text-blue-600 dark:text-blue-400"
+            >
+              {loadingThumbnail ? 'Loading OME-Zarr image...' : ''}
+            </Typography>
+            {loadingThumbnail ? (
+              <div
+                className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"
+                title="Loading Thumbnail..."
+              ></div>
+            ) : null}
+            {!loadingThumbnail && thumbnailSrc ? (
+              <img
+                id="thumbnail"
+                src={thumbnailSrc}
+                alt="Thumbnail"
+                className="max-h-72 max-w-max rounded-sm"
+              />
+            ) : null}
+          </div>
 
           {neuroglancerUrl ? (
             <a href={neuroglancerUrl} target="_blank" rel="noopener noreferrer">
