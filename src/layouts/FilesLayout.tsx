@@ -1,6 +1,8 @@
 import React from 'react';
 import { Outlet } from 'react-router';
-import Sidebar from '../components/ui/Sidebar/Sidebar';
+
+import Sidebar from '@/components/ui/Sidebar/Sidebar';
+
 
 export const FilesLayout = () => {
   return (

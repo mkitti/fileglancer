@@ -1,8 +1,10 @@
 import React from 'react';
-import type { FileSharePath, Zone } from '../shared.types';
-import { useCookiesContext } from '../contexts/CookiesContext';
+
+import type { FileSharePath, Zone } from '@/shared.types';
+import { useCookiesContext } from '@/contexts/CookiesContext';
 import { useZoneBrowserContext } from './ZoneBrowserContext';
-import { getAPIPathRoot, sendFetchRequest, makeMapKey } from '../utils';
+import { getAPIPathRoot, sendFetchRequest, makeMapKey } from '@/utils';
+
 
 export type FolderFavorite = {
   folderPath: string;

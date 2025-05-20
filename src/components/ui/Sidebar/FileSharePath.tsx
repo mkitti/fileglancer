@@ -7,11 +7,13 @@ import {
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
-import type { FileSharePath } from '../../../shared.types';
-import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
-import { useFileBrowserContext } from '../../../contexts/FileBrowserContext';
-import { usePreferencesContext } from '../../../contexts/PreferencesContext';
-import { makeMapKey } from '../../../utils';
+
+import type { FileSharePath } from '@/shared.types';
+import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import { makeMapKey } from '@/utils';
+
 
 type FileSharePathComponentProps = {
   fsp: FileSharePath;
@@ -47,16 +49,20 @@ export default function FileSharePathComponent({
         setCurrentFileSharePath(fsp);
         fetchAndFormatFilesForDisplay(fsp.name);
       }}
-      className={`flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30 ${isCurrentPath ? '!bg-primary-light/30' : index % 2 !== 0 ? '!bg-background' : '!bg-surface/50'}`}
+
+      className={`x-short:py-0 flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30 ${isCurrentPath ? '!bg-primary-light/30' : pathIndex % 2 !== 0 ? '!bg-background' : '!bg-surface/50'}`}
+
     >
       <Link
         to="/files"
         className="grow flex flex-col gap-2 !text-foreground hover:!text-black focus:!text-black dark:hover:!text-white dark:focus:!text-white"
       >
         <div className="flex gap-1 items-center">
-          <RectangleStackIcon className="h-4 w-4" />
-          <Typography className="text-sm font-medium leading-4">
+
+          <RectangleStackIcon className="icon-small x-short:icon-xsmall" />
+          <Typography className="text-sm font-medium leading-4 x-short:text-xs">
             {fsp.storage}
+
           </Typography>
         </div>
 
@@ -88,9 +94,9 @@ export default function FileSharePathComponent({
           }}
         >
           {isFavoritePath ? (
-            <StarFilled className="h-4 w-4 mb-[2px]" />
+            <StarFilled className="icon-small x-short:icon-xsmall mb-[2px]" />
           ) : (
-            <StarOutline className="h-4 w-4 mb-[2px]" />
+            <StarOutline className="icon-small x-short:icon-xsmall mb-[2px]" />
           )}
         </IconButton>
       </div>

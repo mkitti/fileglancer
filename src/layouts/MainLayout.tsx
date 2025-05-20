@@ -1,10 +1,11 @@
 import React from 'react';
 import { Outlet } from 'react-router';
-import { CookiesProvider } from '../contexts/CookiesContext';
-import { ZoneBrowserContextProvider } from '../contexts/ZoneBrowserContext';
-import { FileBrowserContextProvider } from '../contexts/FileBrowserContext';
-import { PreferencesProvider } from '../contexts/PreferencesContext';
-import FileglancerNavbar from '../components/ui/Navbar';
+
+import { CookiesProvider } from '@/contexts/CookiesContext';
+import { ZoneBrowserContextProvider } from '@/contexts/ZoneBrowserContext';
+import { FileBrowserContextProvider } from '@/contexts/FileBrowserContext';
+import { PreferencesProvider } from '@/contexts/PreferencesContext';
+import FileglancerNavbar from '@/components/ui/Navbar';
 
 export const MainLayout = () => {
   return (

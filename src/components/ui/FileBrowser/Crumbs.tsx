@@ -11,8 +11,8 @@ import {
   Squares2X2Icon
 } from '@heroicons/react/24/outline';
 
-import { useFileBrowserContext } from '../../../contexts/FileBrowserContext';
-import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 
 export default function Crumbs(): ReactNode {
   const { dirArray, fetchAndFormatFilesForDisplay } = useFileBrowserContext();
@@ -23,8 +23,8 @@ export default function Crumbs(): ReactNode {
     <div className="w-full py-2 px-3">
       <Breadcrumb className="bg-transparent p-0">
         <div className="flex items-center gap-1 h-5">
-          <Squares2X2Icon className="h-5 w-5 text-primary-light" />
-          <ChevronRightIcon className="h-5 w-5" />
+          <Squares2X2Icon className="icon-default text-primary-light" />
+          <ChevronRightIcon className="icon-default" />
         </div>
 
         {/* Path segments */}
@@ -57,7 +57,7 @@ export default function Crumbs(): ReactNode {
                 </BreadcrumbLink>
                 {/* Add separator since is not the last segment */}
                 <BreadcrumbSeparator>
-                  <SlashIcon className="h-5 w-5" />
+                  <SlashIcon className="icon-default" />
                 </BreadcrumbSeparator>
               </React.Fragment>
             );

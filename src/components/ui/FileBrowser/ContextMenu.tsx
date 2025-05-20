@@ -2,9 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { Typography } from '@material-tailwind/react';
 
-import type { FileOrFolder } from '../../../shared.types';
-import { useZoneBrowserContext } from '../../../contexts/ZoneBrowserContext';
-import { usePreferencesContext } from '../../../contexts/PreferencesContext';
+import type { FileOrFolder } from '@/shared.types';
+import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
 
 type ContextMenuProps = {
   x: number;

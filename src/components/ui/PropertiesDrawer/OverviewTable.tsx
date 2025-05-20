@@ -1,6 +1,7 @@
 import React from 'react';
-import { FileOrFolder } from '../../../shared.types';
-import { formatDate, formatFileSize } from '../../../utils';
+
+import { FileOrFolder } from '@/shared.types';
+import { formatDate, formatFileSize } from '@/utils';
 
 export default function OverviewTable({ file }: { file: FileOrFolder | null }) {
   return (

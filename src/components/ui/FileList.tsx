@@ -4,8 +4,8 @@ import { EmptyPage, Folder } from 'iconoir-react';
 
 import FileListCrumbs from './FileListCrumbs';
 
-import { File } from '../../hooks/useFileBrowser';
-import { formatDate, formatFileSize } from '../../utils';
+import { File } from '@/hooks/useFileBrowser';
+import { formatDate, formatFileSize } from '@/utils';
 
 type FileListProps = {
   displayFiles: File[];

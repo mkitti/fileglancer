@@ -7,8 +7,9 @@ import {
   Typography
 } from '@material-tailwind/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import type { FileOrFolder } from '../../../../shared.types';
-import useRenameDialog from '../../../../hooks/useRenameDialog';
+
+import type { FileOrFolder } from '@/shared.types';
+import useRenameDialog from '@/hooks/useRenameDialog';
 
 type ItemNamingDialogProps = {
   propertiesTarget: FileOrFolder | null;
@@ -46,7 +47,7 @@ export default function RenameDialog({
               setShowAlert(false);
             }}
           >
-            <XMarkIcon className="h-5 w-5" />
+            <XMarkIcon className="icon-default" />
           </IconButton>
           <form
             onSubmit={event => {
@@ -83,7 +84,7 @@ export default function RenameDialog({
               >
                 <Alert.Content>{alertContent}</Alert.Content>
                 <XMarkIcon
-                  className="h-5 w-5 cursor-pointer"
+                  className="icon-default cursor-pointer"
                   onClick={() => setShowAlert(false)}
                 />
               </Alert>

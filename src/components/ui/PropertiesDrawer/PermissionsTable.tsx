@@ -1,7 +1,9 @@
 import React from 'react';
 import { CheckIcon, MinusIcon } from '@heroicons/react/24/outline';
-import { FileOrFolder } from '../../../shared.types';
-import { parsePermissions } from '../../../utils';
+
+import { FileOrFolder } from '@/shared.types';
+import { parsePermissions } from '@/utils';
+
 
 export default function PermissionsTable({
   file
@@ -12,9 +14,9 @@ export default function PermissionsTable({
 
   const PermissionIcon = ({ hasPermission }: { hasPermission: boolean }) =>
     hasPermission ? (
-      <CheckIcon className="h-5 w-5" />
+      <CheckIcon className="icon-default" />
     ) : (
-      <MinusIcon className="h-5 w-5" />
+      <MinusIcon className="icon-default" />
     );
 
   return (

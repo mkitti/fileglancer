@@ -2,11 +2,11 @@ import { BrowserRouter, Route, Routes } from 'react-router';
 import { CookiesProvider } from 'react-cookie';
 import { MainLayout } from './layouts/MainLayout';
 import { FilesLayout } from './layouts/FilesLayout';
-import Home from './components/Home';
-import Files from './components/Files';
-import Help from './components/Help';
-import Jobs from './components/Jobs';
-import Preferences from './components/Preferences';
+import Home from '@/components/Home';
+import Files from '@/components/Files';
+import Help from '@/components/Help';
+import Jobs from '@/components/Jobs';
+import Preferences from '@/components/Preferences';
 
 function Profile() {
   return (

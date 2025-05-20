@@ -7,8 +7,9 @@ import {
   Typography
 } from '@material-tailwind/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import usePermissionsDialog from '../../../../hooks/usePermissionsDialog';
-import type { FileOrFolder } from '../../../../shared.types';
+
+import usePermissionsDialog from '@/hooks/usePermissionsDialog';
+import type { FileOrFolder } from '@/shared.types';
 
 type ChangePermissionsProps = {
   targetItem: FileOrFolder | null;
@@ -67,7 +68,7 @@ export default function ChangePermissions({
               setShowAlert(false);
             }}
           >
-            <XMarkIcon className="h-5 w-5" />
+            <XMarkIcon className="icon-default" />
           </IconButton>
           {targetItem ? (
             <form
@@ -181,7 +182,7 @@ export default function ChangePermissions({
             >
               <Alert.Content>{alertContent}</Alert.Content>
               <XMarkIcon
-                className="h-5 w-5 cursor-pointer"
+                className="icon-default cursor-pointer"
                 onClick={() => {
                   setShowAlert(false);
                 }}
