@@ -47,3 +47,14 @@ async def test_patch_files(jp_fetch):
     # Remove the empty directory
     response = await jp_fetch(path, method="DELETE", params={"subpath": "newdir"})
     assert response.code == 204
+
+
+async def test_get_local_file_share_paths(jp_fetch, requests_mock):
+    response = await jp_fetch("api", "fileglancer", "file-share-paths")
+    assert response.code == 200
+    payload = json.loads(response.body)
+    assert isinstance(payload, dict)
+    assert "paths" in payload
+    assert isinstance(payload["paths"], list)
+    assert payload["paths"][0]["zone"] == "Local"
+    assert payload["paths"][0]["name"] == "local"
