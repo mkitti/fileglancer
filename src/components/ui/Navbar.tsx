@@ -26,8 +26,8 @@ import useTheme from '@/hooks/useTheme';
 const LINKS = [
   {
     icon: FolderIcon,
-    title: 'Files',
-    href: '/files'
+    title: 'Browse',
+    href: '/browse'
   },
   {
     icon: BriefcaseIcon,
