@@ -16,7 +16,6 @@ import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 import ZoneComponent from './Zone';
 import FileSharePathComponent from './FileSharePath';
 import {
-  FolderPreference,
   FolderFavorite,
   usePreferencesContext
 } from '@/contexts/PreferencesContext';
@@ -127,8 +126,7 @@ export default function FavoritesBrowser({
                 'folder',
                 `${folderFavorite.fsp.name}_${folderFavorite.folderPath}`
               ) as string;
-              const match = folderPreferenceMap[mapKey];
-              const isFavoriteDir = match ? true : false;
+              const isFavoriteDir = folderPreferenceMap[mapKey] ? true : false;
               const splitPath = folderFavorite.folderPath.split('/');
               const folderName = splitPath[splitPath.length - 1];
 
