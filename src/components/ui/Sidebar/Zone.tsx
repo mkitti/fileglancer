@@ -12,12 +12,10 @@ import {
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
-
 import FileSharePathComponent from './FileSharePath';
 import type { Zone, FileSharePath } from '@/shared.types';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { makeMapKey } from '@/utils';
-
 
 export default function Zone({
   zone,
@@ -40,16 +38,13 @@ export default function Zone({
   return (
     <React.Fragment>
       <List.Item
-
         onClick={() => toggleOpenZones(zone.name)}
-        className="cursor-pointer rounded-none py-1 x-short:py-0 short:py-0 flex-shrink-0 hover:!bg-primary-light/30 focus:!bg-primary-light/30 !bg-background"
-
+        className="overflow-x-auto cursor-pointer rounded-none py-1 x-short:py-0 short:py-0 flex-shrink-0 hover:!bg-primary-light/30 focus:!bg-primary-light/30 !bg-background"
       >
         <List.ItemStart>
           <Squares2X2Icon className="icon-small x-short:icon-xsmall" />
         </List.ItemStart>
         <div className="flex-1 min-w-0 flex items-center gap-1">
-
           <Typography className="x-short:text-xs short:text-xs text-sm">
             {zone.name}
           </Typography>

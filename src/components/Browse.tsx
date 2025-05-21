@@ -16,7 +16,7 @@ import NewFolderDialog from './ui/FileBrowser/Dialogs/NewFolderDialog';
 import Delete from './ui/FileBrowser/Dialogs/Delete';
 import ChangePermissions from './ui/FileBrowser/Dialogs/ChangePermissions';
 
-export default function Files() {
+export default function Browse() {
   const {
     contextMenuCoords,
     showContextMenu,

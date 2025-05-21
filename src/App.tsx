@@ -1,9 +1,9 @@
 import { BrowserRouter, Route, Routes } from 'react-router';
 import { CookiesProvider } from 'react-cookie';
 import { MainLayout } from './layouts/MainLayout';
-import { FilesLayout } from './layouts/FilesLayout';
+import { BrowseLayout } from './layouts/BrowseLayout';
 import Home from '@/components/Home';
-import Files from '@/components/Files';
+import Browse from '@/components/Browse';
 import Help from '@/components/Help';
 import Jobs from '@/components/Jobs';
 import Preferences from '@/components/Preferences';
@@ -56,8 +56,8 @@ const AppComponent = () => {
           <Route path="help" element={<Help />} />
           <Route path="profile" element={<Profile />} />
           <Route path="preferences" element={<Preferences />} />
-          <Route element={<FilesLayout />}>
-            <Route path="files" element={<Files />} />
+          <Route element={<BrowseLayout />}>
+            <Route path="browse" element={<Browse />} />
             <Route index path="*" element={<Home />} />
           </Route>
         </Route>
