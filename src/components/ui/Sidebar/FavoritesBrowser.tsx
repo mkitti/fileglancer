@@ -6,11 +6,7 @@ import {
   Typography,
   List
 } from '@material-tailwind/react';
-import {
-  ChevronRightIcon,
-  FolderIcon,
-  StarIcon as StarOutline
-} from '@heroicons/react/24/outline';
+import { ChevronRightIcon, FolderIcon } from '@heroicons/react/24/outline';
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
 import ZoneComponent from './Zone';
@@ -45,7 +41,6 @@ export default function FavoritesBrowser({
     zoneFavorites,
     fileSharePathFavorites,
     folderFavorites,
-    folderPreferenceMap,
     pathPreference,
     handleFavoriteChange
   } = usePreferencesContext();
@@ -126,7 +121,6 @@ export default function FavoritesBrowser({
                 'folder',
                 `${folderFavorite.fsp.name}_${folderFavorite.folderPath}`
               ) as string;
-              const isFavoriteDir = folderPreferenceMap[mapKey] ? true : false;
               const splitPath = folderFavorite.folderPath.split('/');
               const folderName = splitPath[splitPath.length - 1];
 
@@ -174,11 +168,7 @@ export default function FavoritesBrowser({
                         handleFavoriteChange(folderFavorite, 'folder');
                       }}
                     >
-                      {isFavoriteDir ? (
-                        <StarFilled className="icon-small x-short:icon-xsmall mb-[2px]" />
-                      ) : (
-                        <StarOutline className="icon-small x-short:icon-xsmall mb-[2px]" />
-                      )}
+                      <StarFilled className="icon-small x-short:icon-xsmall mb-[2px]" />
                     </IconButton>
                   </div>
                 </List.Item>
