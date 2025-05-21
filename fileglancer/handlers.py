@@ -368,9 +368,10 @@ class ProxiedPathHandler(BaseHandler):
         Update a shared path for the current user.
         """
         username = self.get_current_user()
+        data = self.get_json_body()
         key = self.get_argument("key", None)
-        mount_path = self.get_argument("mount-path", None)
-        sharing_name = self.get_argument("sharing-name", None)
+        mount_path = data.get("mount_path", None)
+        sharing_name = data.get("sharing_name", None)
         self.log.info((
             "PUT /api/fileglancer/proxied-path "
             f"username={username} key={key} "
