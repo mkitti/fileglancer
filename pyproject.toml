@@ -126,6 +126,7 @@ dev-install = { depends-on = ["pip-install", "node-install", "ext-enable"] }
 dev-watch = { cmd = "npm run watch" }
 dev-launch = { cmd = "jupyter lab --autoreload" }
 dev-launch-remote = { cmd = "jupyter lab --autoreload --ip=0.0.0.0 --no-browser" }
+pypi-build = { cmd = "python -m build", depends-on = ["node-install"] }
 
 [tool.pixi.dependencies]
 python = ">=3.13.2,<4"
