@@ -1,47 +1,15 @@
 import os
 import requests
 import logging
+
 from typing import Optional
 from datetime import datetime, timedelta
 from functools import cache
-from pydantic import BaseModel, Field
 
-log = logging.getLogger("tornado.application")
+from .uimodels import FileSharePath
 
-# Copied from fileglancer-central/fileglancer_central/app.py
-# TODO: consider extracting this to a shared library
-class FileSharePath(BaseModel):
-    """A file share path from the database"""
-    name: str = Field(
-        description="The name of the file share, which uniquely identifies the file share."
-    )
-    zone: str = Field(
-        description="The zone of the file share, for grouping paths in the UI."
-    )
-    group: Optional[str] = Field(
-        description="The group that owns the file share",
-        default=None
-    )
-    storage: Optional[str] = Field(
-        description="The storage type of the file share (home, primary, scratch, etc.)",
-        default=None
-    )
-    mount_path: str = Field(
-        description="The path where the file share is mounted on the local machine"
-    )
-    mac_path: Optional[str] = Field(
-        description="The path used to mount the file share on Mac (e.g. smb://server/share)",
-        default=None
-    )
-    windows_path: Optional[str] = Field(
-        description="The path used to mount the file share on Windows (e.g. \\\\server\\share)",
-        default=None
-    )
-    linux_path: Optional[str] = Field(
-        description="The path used to mount the file share on Linux (e.g. /unix/style/path)",
-        default=None
-    )
-        
+log = logging.getLogger(__name__)
+
 
 class FileSharePathManager:
     """Manage the list of file share paths from the central server.
@@ -142,6 +110,7 @@ class FileSharePathManager:
 @cache
 def _get_fsp_manager(central_url: str, dev_mode: bool, jupyter_root_dir: str):
     return FileSharePathManager(central_url, dev_mode, jupyter_root_dir)
+
 
 def get_fsp_manager(settings):
     # Extract the relevant settings from the settings dictionary, 

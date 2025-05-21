@@ -4,11 +4,13 @@ import requests
 
 from jupyter_server.base.handlers import APIHandler, JupyterHandler
 from jupyter_server.utils import url_path_join
+from requests.exceptions import HTTPError
 from tornado import web
 
 from fileglancer.filestore import Filestore
 from fileglancer.paths import get_fsp_manager
-from fileglancer.preferences import PreferenceManager, get_preference_manager
+from fileglancer.preferences import get_preference_manager
+from fileglancer.proxiedpath import get_proxiedpath_manager
 
 
 def _get_mounted_filestore(fsp):
@@ -33,7 +35,7 @@ class BaseHandler(APIHandler):
         Returns:
             str: The username of the current user.
         """
-        return os.getenv("USER", self.current_user.name)
+        return os.getenv("USER", self.current_user.username)
 
 
 class StreamingProxy(BaseHandler):
@@ -58,7 +60,7 @@ class StreamingProxy(BaseHandler):
             self.log.error(f"Error fetching {url}: {str(e)}")
             self.set_status(500)
             self.finish(json.dumps({
-                "error": f"Error streaming response"
+                "error": "Error streaming response"
             }))
 
 
@@ -78,7 +80,6 @@ class FileSharePathsHandler(StreamingProxy):
         self.finish()
 
 
-
 class FileShareHandler(BaseHandler):
     """
     API handler for file access using the Filestore class
@@ -89,7 +90,6 @@ class FileShareHandler(BaseHandler):
         self.set_header('Access-Control-Allow-Methods', 'GET, POST')
         self.set_header('Access-Control-Allow-Headers', 'Content-Type, X-XSRFToken')
         self.set_header('Expose-Headers', 'Range, Content-Range')
-
 
     def _get_filestore(self, path_name):
         """
@@ -112,7 +112,6 @@ class FileShareHandler(BaseHandler):
 
         return filestore
 
-
     # TODO: Uncomment once we have a file server for Neuroglancer
     #@web.authenticated
     def get(self, path=""):
@@ -128,7 +127,7 @@ class FileShareHandler(BaseHandler):
         else:
             self.log.info(f"GET /api/fileglancer/files/{path}")
             filestore_name, _, subpath = path.partition('/')
-            
+        
         filestore = self._get_filestore(filestore_name)
         if filestore is None:
             return
@@ -168,7 +167,6 @@ class FileShareHandler(BaseHandler):
             self.set_status(403)
             self.finish(json.dumps({"error": "Permission denied"}))
 
-
     @web.authenticated
     def post(self, path=""):
         """
@@ -196,7 +194,6 @@ class FileShareHandler(BaseHandler):
 
         self.set_status(201)
         self.finish()
-
 
     @web.authenticated
     def patch(self, path=""):
@@ -233,7 +230,6 @@ class FileShareHandler(BaseHandler):
         self.set_status(204)
         self.finish()
 
-
     @web.authenticated
     def delete(self, path=""):
         """
@@ -248,7 +244,6 @@ class FileShareHandler(BaseHandler):
         filestore.remove_file_or_dir(subpath)
         self.set_status(204)
         self.finish()
-
 
     # TODO: Uncomment once we have a file server for Neuroglancer
     #@web.authenticated
@@ -332,7 +327,130 @@ class PreferencesHandler(BaseHandler):
             self.finish(json.dumps({"error": str(e)}))
 
 
-class TicketHandler(BaseHandler):
+class ProxiedPathHandler(BaseHandler):
+    """
+    API handler for ProxiedPath (user shared data paths)
+    """
+    @web.authenticated
+    def post(self):
+        """
+        Create a shared path for the current user.
+        """
+        username = self.get_current_user()
+        data = self.get_json_body()
+        mount_path = data.get("mount_path", None)
+        self.log.info(f"POST /api/fileglancer/proxied-path username={username} mount_path={mount_path}")
+        try:
+            if mount_path is None:
+                self.log.warning("Mount path is required to create a proxied path")
+                self.set_status(400)
+                self.finish(json.dumps({"error": "Mount path is required to create a proxied path"}))
+                return
+
+            proxied_path_manager = get_proxiedpath_manager(self.settings)
+            response = proxied_path_manager.create_proxied_path(username, mount_path)
+            response.raise_for_status()
+            rjson = response.json()
+            self.set_status(201)
+            self.finish(rjson)
+        except HTTPError as e:
+            self.log.error(f"Error getting proxied paths: {str(e)}")
+            self.set_status(e.response.status_code)
+            self.finish(json.dumps({"error": str(e.response.text)}))
+        except Exception as e:
+            self.log.error(f"Error creating proxied path: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
+    @web.authenticated
+    def put(self):
+        """
+        Update a shared path for the current user.
+        """
+        username = self.get_current_user()
+        key = self.get_argument("key", None)
+        mount_path = self.get_argument("mount-path", None)
+        sharing_name = self.get_argument("sharing-name", None)
+        self.log.info((
+            "PUT /api/fileglancer/proxied-path "
+            f"username={username} key={key} "
+            f"mount_path={mount_path} sharing_name={sharing_name}"
+        ))
+        try:
+            if key is None:
+                self.log.warning("Key is required to update a proxied path")
+                self.set_status(400)
+                self.finish(json.dumps({"error": "Key is required to update a proxied path"}))
+                return
+
+            proxied_path_manager = get_proxiedpath_manager(self.settings)
+            response = proxied_path_manager.update_proxied_path(username, key, mount_path, sharing_name)
+            response.raise_for_status()
+            self.set_status(200)
+            self.finish(response.json())
+        except HTTPError as e:
+            self.log.error(f"Error getting proxied paths: {str(e)}")
+            self.set_status(e.response.status_code)
+            self.finish(json.dumps({"error": str(e.response.text)}))
+        except Exception as e:
+            self.log.error(f"Error updating proxied path: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
+    @web.authenticated
+    def get(self):
+        """
+        Get all proxied paths or a specific proxied path for the current user.
+        """
+        username = self.get_current_user()
+        key = self.get_argument("key", None)
+        self.log.info(f"GET /api/fileglancer/proxied-path username={username} key={key}")
+        try:
+            proxied_path_manager = get_proxiedpath_manager(self.settings)
+            response = proxied_path_manager.get_proxied_paths(username, key)
+            response.raise_for_status()
+            self.set_status(200)
+            self.finish(response.json())
+        except HTTPError as e:
+            self.log.error(f"Error getting proxied paths: {str(e)}")
+            self.set_status(e.response.status_code)
+            self.finish(json.dumps({"error": str(e.response.text)}))
+        except Exception as e:
+            self.log.error(f"Error getting proxied paths: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
+    @web.authenticated
+    def delete(self):
+        """
+        Delete the specified proxied path for the current user.
+        """
+        username = self.get_current_user()
+        key = self.get_argument("key", None)
+        self.log.info(f"DELETE /api/fileglancer/proxied-path username={username} key={key}")
+        if key is None:
+            self.log.warning("Key is required to delete a proxied path")
+            self.set_status(400)
+            self.finish(json.dumps({"error": "Key is required to delete a proxied path"}))
+            return
+        try:
+            proxied_path_manager = get_proxiedpath_manager(self.settings)
+            response = proxied_path_manager.delete_proxied_path(username, key)
+            response.raise_for_status()
+            self.set_status(204)
+            self.finish()
+        except HTTPError as e:
+            self.log.warning(f"Proxied path not found: {str(e)}")
+            self.set_status(e.response.status_code)
+            self.finish(json.dumps({"error": str(e)}))
+        except Exception as e:
+            # Handle the case where the proxied path is not found
+            self.log.error(f"Error deleting proxied paths: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
+
+class TicketHandler(APIHandler):
     """
     API handler for ticket operations
     """
@@ -422,6 +540,7 @@ class VersionHandler(BaseHandler):
         self.write(json.dumps({"version": version}))
         self.finish()
 
+
 class StaticHandler(JupyterHandler, web.StaticFileHandler):
     """
     Static file handler for serving files from the fileglancer extension.
@@ -471,8 +590,6 @@ class StaticHandler(JupyterHandler, web.StaticFileHandler):
             # (doesn't prevent browser storing the response):
             self.set_header('Cache-Control', 'no-cache')
         return web.StaticFileHandler.get(self, path)
-
-
 
 
 def setup_handlers(web_app):
