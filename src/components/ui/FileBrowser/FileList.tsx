@@ -1,7 +1,11 @@
 import * as React from 'react';
 import { Typography } from '@material-tailwind/react';
 
-import type { File } from '@/shared.types';
+
+import * as zarr from 'zarrita';
+import * as omezarr from 'ome-zarr.js';
+
+import type { FileOrFolder } from '@/shared.types';
 import FileListCrumbs from './Crumbs';
 import FileRow from './FileRow';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
@@ -9,18 +13,22 @@ import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { getOmeZarrMetadata } from '@/omezarr-helper';
 
 type FileListProps = {
-  files: File[];
-  selectedFiles: File[];
-  setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>;
+  files: FileOrFolder[];
+  selectedFiles: FileOrFolder[];
+  setSelectedFiles: React.Dispatch<React.SetStateAction<FileOrFolder[]>>;
   showPropertiesDrawer: boolean;
-  setPropertiesTarget: React.Dispatch<React.SetStateAction<File | null>>;
+  setPropertiesTarget: React.Dispatch<
+    React.SetStateAction<FileOrFolder | null>
+  >;
   hideDotFiles: boolean;
   handleRightClick: (
     e: React.MouseEvent<HTMLDivElement>,
-    file: File,
-    selectedFiles: File[],
-    setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>,
-    setPropertiesTarget: React.Dispatch<React.SetStateAction<File | null>>
+    file: FileOrFolder,
+    selectedFiles: FileOrFolder[],
+    setSelectedFiles: React.Dispatch<React.SetStateAction<FileOrFolder[]>>,
+    setPropertiesTarget: React.Dispatch<
+      React.SetStateAction<FileOrFolder | null>
+    >
   ) => void;
 };
 

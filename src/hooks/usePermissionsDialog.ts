@@ -5,7 +5,7 @@ import {
   removeLastSegmentFromPath
 } from '../utils';
 import { useCookiesContext } from '../contexts/CookiesContext';
-import type { File } from '../shared.types';
+import type { FileOrFolder } from '../shared.types';
 import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';
 import { useFileBrowserContext } from '../contexts/FileBrowserContext';
 
@@ -17,8 +17,8 @@ export default function usePermissionsDialog() {
   const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
 
   async function handleChangePermissions(
-    targetItem: File,
-    localPermissions: File['permissions']
+    targetItem: FileOrFolder,
+    localPermissions: FileOrFolder['permissions']
   ) {
     try {
       console.log('Change permissions for item:', targetItem);

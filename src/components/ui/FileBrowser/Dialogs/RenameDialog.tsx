@@ -7,11 +7,12 @@ import {
   Typography
 } from '@material-tailwind/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import type { File } from '@/shared.types';
+
+import type { FileOrFolder } from '@/shared.types';
 import useRenameDialog from '@/hooks/useRenameDialog';
 
 type ItemNamingDialogProps = {
-  propertiesTarget: File | null;
+  propertiesTarget: FileOrFolder | null;
   showRenameDialog: boolean;
   setShowRenameDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };

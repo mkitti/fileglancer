@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { File } from '../shared.types';
+import { FileOrFolder } from '../shared.types';
 
 export default function useContextMenu() {
   const [contextMenuCoords, setContextMenuCoords] = React.useState({
@@ -51,10 +51,12 @@ export default function useContextMenu() {
 
   function handleRightClick(
     e: React.MouseEvent<HTMLDivElement>,
-    file: File,
-    selectedFiles: File[],
-    setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>,
-    setPropertiesTarget: React.Dispatch<React.SetStateAction<File | null>>
+    file: FileOrFolder,
+    selectedFiles: FileOrFolder[],
+    setSelectedFiles: React.Dispatch<React.SetStateAction<FileOrFolder[]>>,
+    setPropertiesTarget: React.Dispatch<
+      React.SetStateAction<FileOrFolder | null>
+    >
   ) {
     e.preventDefault();
     e.stopPropagation();

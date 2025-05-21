@@ -13,14 +13,15 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 
-import type { File } from '@/shared.types';
+import type { FileOrFolder } from '@/shared.types';
+
 import PermissionsTable from './PermissionsTable';
 import OverviewTable from './OverviewTable';
 import useCopyPath from '@/hooks/useCopyPath';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 
 type PropertiesDrawerProps = {
-  propertiesTarget: File | null;
+  propertiesTarget: FileOrFolder | null;
   open: boolean;
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;

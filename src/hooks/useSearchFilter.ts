@@ -1,48 +1,72 @@
 import React from 'react';
-import type { ZonesAndFileSharePaths, FileSharePathItem } from '@/shared.types';
-import type { DirectoryFavorite } from '@/contexts/PreferencesContext';
+
+import type {
+  Zone,
+  ZonesAndFileSharePathsMap,
+  FileSharePath
+} from '@/shared.types';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
-import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import {
+  FolderFavorite,
+  usePreferencesContext
+} from '@/contexts/PreferencesContext';
 
 export default function useSearchFilter() {
-  const { zonesAndFileSharePaths } = useZoneBrowserContext();
-  const { zoneFavorites, fileSharePathFavorites, directoryFavorites } =
+  const { zonesAndFileSharePathsMap } = useZoneBrowserContext();
+  const { zoneFavorites, fileSharePathFavorites, folderFavorites } =
     usePreferencesContext();
 
   const [searchQuery, setSearchQuery] = React.useState<string>('');
-  const [filteredZonesAndFileSharePaths, setFilteredZonesAndFileSharePaths] =
-    React.useState<ZonesAndFileSharePaths>({});
+  const [filteredZonesMap, setFilteredZonesMap] =
+    React.useState<ZonesAndFileSharePathsMap>({});
   const [filteredZoneFavorites, setFilteredZoneFavorites] = React.useState<
-    ZonesAndFileSharePaths[]
+    Zone[]
   >([]);
   const [filteredFileSharePathFavorites, setFilteredFileSharePathFavorites] =
-    React.useState<FileSharePathItem[]>([]);
-  const [filteredDirectoryFavorites, setFilteredDirectoryFavorites] =
-    React.useState<DirectoryFavorite[]>([]);
+    React.useState<FileSharePath[]>([]);
+  const [filteredFolderFavorites, setFilteredFolderFavorites] = React.useState<
+    FolderFavorite[]
+  >([]);
 
-  const filterZonesAndFileSharePaths = (query: string) => {
-    const filteredPaths: ZonesAndFileSharePaths = {};
+  function filterZonesMap(query: string) {
+    const matches = Object.entries(zonesAndFileSharePathsMap)
+      .map(([key, value]) => {
+        if (key.startsWith('zone')) {
+          const zone = value as Zone;
+          const zoneNameMatches = zone.name.toLowerCase().includes(query);
 
-    Object.entries(zonesAndFileSharePaths).forEach(([zone, pathItems]) => {
-      const zoneMatches = zone.toLowerCase().includes(query);
-      const matchingPathItems = pathItems.filter(
-        (pathItem: FileSharePathItem) =>
-          pathItem.name.toLowerCase().includes(query) ||
-          pathItem.linux_path.toLowerCase().includes(query)
-      );
-      if (zoneMatches) {
-        filteredPaths[zone] = pathItems;
-      } else if (matchingPathItems.length > 0) {
-        filteredPaths[zone] = matchingPathItems;
-      }
-    });
+          // Filter the file share paths inside the zone
+          const matchingFileSharePaths = zone.fileSharePaths.filter(fsp =>
+            fsp.name.toLowerCase().includes(query)
+          );
 
-    setFilteredZonesAndFileSharePaths(filteredPaths);
-  };
+          // If Zone.name matches or any FileSharePath.name inside the zone matches,
+          // return a modified Zone object with only the matching file share paths
+          if (zoneNameMatches || matchingFileSharePaths.length > 0) {
+            return [
+              key,
+              {
+                ...zone,
+                fileSharePaths: matchingFileSharePaths
+              }
+            ];
+          }
+        }
+        return null; // Return null for non-matching entries
+      })
+      .filter(Boolean); // Remove null entries
 
-  const filterAllFavorites = (query: string) => {
-    const filteredZoneFavorites = zoneFavorites.filter(zone =>
-      Object.keys(zone)[0].toLowerCase().includes(query)
+    setFilteredZonesMap(Object.fromEntries(matches as [string, Zone][]));
+  }
+
+  function filterAllFavorites(query: string) {
+    const filteredZoneFavorites = zoneFavorites.filter(
+      zone =>
+        zone.name.toLowerCase().includes(query) ||
+        // any of the file share paths inside the zone match
+        zone.fileSharePaths.some(fileSharePath =>
+          fileSharePath.name.toLowerCase().includes(query)
+        )
     );
 
     const filteredFileSharePathFavorites = fileSharePathFavorites.filter(
@@ -50,25 +74,22 @@ export default function useSearchFilter() {
         fileSharePath.zone.toLowerCase().includes(query) ||
         fileSharePath.name.toLowerCase().includes(query) ||
         fileSharePath.group.toLowerCase().includes(query) ||
-        fileSharePath.storage.toLowerCase().includes(query) ||
-        fileSharePath.mount_path.toLowerCase().includes(query) ||
-        fileSharePath.linux_path.toLowerCase().includes(query) ||
-        fileSharePath.mac_path?.toLowerCase().includes(query) ||
-        fileSharePath.windows_path?.toLowerCase().includes(query)
+        fileSharePath.storage.toLowerCase().includes(query)
     );
 
-    const filteredDirectoryFavorites = directoryFavorites.filter(
-      directory =>
-        directory.fileSharePath.zone.toLowerCase().includes(query) ||
-        directory.fileSharePath.name.toLowerCase().includes(query) ||
-        directory.name.toLowerCase().includes(query) ||
-        directory.path.toLowerCase().includes(query)
+    const filteredFolderFavorites = folderFavorites.filter(
+      folder =>
+        folder.folderPath.toLowerCase().includes(query) ||
+        folder.fsp.name.toLowerCase().includes(query) ||
+        folder.fsp.zone.toLowerCase().includes(query) ||
+        folder.fsp.group.toLowerCase().includes(query) ||
+        folder.fsp.storage.toLowerCase().includes(query)
     );
 
     setFilteredZoneFavorites(filteredZoneFavorites);
     setFilteredFileSharePathFavorites(filteredFileSharePathFavorites);
-    setFilteredDirectoryFavorites(filteredDirectoryFavorites);
-  };
+    setFilteredFolderFavorites(filteredFolderFavorites);
+  }
 
   const handleSearchChange = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -79,29 +100,29 @@ export default function useSearchFilter() {
 
   React.useEffect(() => {
     if (searchQuery !== '') {
-      filterZonesAndFileSharePaths(searchQuery);
+      filterZonesMap(searchQuery);
       filterAllFavorites(searchQuery);
     } else if (searchQuery === '') {
       // When search query is empty, use all the original paths
-      setFilteredZonesAndFileSharePaths({});
+      setFilteredZonesMap({});
       setFilteredZoneFavorites([]);
       setFilteredFileSharePathFavorites([]);
-      setFilteredDirectoryFavorites([]);
+      setFilteredFolderFavorites([]);
     }
   }, [
     searchQuery,
-    zonesAndFileSharePaths,
+    zonesAndFileSharePathsMap,
     zoneFavorites,
     fileSharePathFavorites,
-    directoryFavorites
+    folderFavorites
   ]);
 
   return {
     searchQuery,
-    filteredZonesAndFileSharePaths,
+    filteredZonesMap,
     filteredZoneFavorites,
     filteredFileSharePathFavorites,
-    filteredDirectoryFavorites,
+    filteredFolderFavorites,
     handleSearchChange
   };
 }

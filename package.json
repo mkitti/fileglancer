@@ -1,6 +1,6 @@
 {
     "name": "fileglancer",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "Browse, share, and publish files on the Janelia file system",
     "keywords": [
         "jupyter",

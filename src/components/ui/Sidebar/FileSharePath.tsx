@@ -7,42 +7,45 @@ import {
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
-import type { FileSharePathItem } from '@/shared.types';
+import type { FileSharePath } from '@/shared.types';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import { makeMapKey } from '@/utils';
 
-export default function FileSharePath({
-  pathItem,
-  pathIndex
-}: {
-  pathItem: FileSharePathItem;
-  pathIndex: number;
-}) {
+type FileSharePathComponentProps = {
+  fsp: FileSharePath;
+  index: number;
+};
+
+export default function FileSharePathComponent({
+  fsp,
+  index
+}: FileSharePathComponentProps) {
   const {
     currentFileSharePath,
     setCurrentFileSharePath,
     setCurrentNavigationZone
   } = useZoneBrowserContext();
 
-  const { pathPreference, fileSharePathFavorites, handleFavoriteChange } =
+  const { pathPreference, fileSharePathPreferenceMap, handleFavoriteChange } =
     usePreferencesContext();
 
   const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
 
-  const isCurrentPath = currentFileSharePath === pathItem;
-  const isFavoritePath = fileSharePathFavorites.includes(pathItem)
+  const isCurrentPath = currentFileSharePath?.name === fsp.name;
+  const isFavoritePath = fileSharePathPreferenceMap[makeMapKey('fsp', fsp.name)]
     ? true
     : false;
 
   return (
     <List.Item
       onClick={() => {
-        setCurrentNavigationZone(pathItem.zone);
-        setCurrentFileSharePath(pathItem);
-        fetchAndFormatFilesForDisplay(pathItem.name);
+        setCurrentNavigationZone(fsp.zone);
+        setCurrentFileSharePath(fsp);
+        fetchAndFormatFilesForDisplay(fsp.name);
       }}
-      className={`overflow-x-auto x-short:py-0 flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30 ${isCurrentPath ? '!bg-primary-light/30' : pathIndex % 2 !== 0 ? '!bg-background' : '!bg-surface/50'}`}
+      className={`overflow-x-auto x-short:py-0 flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30 ${isCurrentPath ? '!bg-primary-light/30' : index % 2 !== 0 ? '!bg-background' : '!bg-surface/50'}`}
     >
       <Link
         to="/browse"
@@ -51,19 +54,19 @@ export default function FileSharePath({
         <div className="flex gap-1 items-center">
           <RectangleStackIcon className="icon-small x-short:icon-xsmall" />
           <Typography className="text-sm font-medium leading-4 x-short:text-xs">
-            {pathItem.storage}
+            {fsp.storage}
           </Typography>
         </div>
 
-        {pathItem.linux_path ? (
+        {fsp.linux_path ? (
           <Typography className="text-xs">
             {pathPreference[0] === 'linux_path'
-              ? pathItem.linux_path
+              ? fsp.linux_path
               : pathPreference[0] === 'windows_path'
-                ? pathItem.windows_path
+                ? fsp.windows_path
                 : pathPreference[0] === 'mac_path'
-                  ? pathItem.mac_path
-                  : pathItem.linux_path}
+                  ? fsp.mac_path
+                  : fsp.linux_path}
           </Typography>
         ) : null}
       </Link>
@@ -79,7 +82,7 @@ export default function FileSharePath({
           isCircular
           onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
             e.stopPropagation();
-            handleFavoriteChange(pathItem, 'fileSharePath');
+            handleFavoriteChange(fsp, 'fileSharePath');
           }}
         >
           {isFavoritePath ? (

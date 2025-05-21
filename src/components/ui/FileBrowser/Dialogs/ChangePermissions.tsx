@@ -7,11 +7,12 @@ import {
   Typography
 } from '@material-tailwind/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+
 import usePermissionsDialog from '@/hooks/usePermissionsDialog';
-import type { File } from '@/shared.types';
+import type { FileOrFolder } from '@/shared.types';
 
 type ChangePermissionsProps = {
-  targetItem: File | null;
+  targetItem: FileOrFolder | null;
   showPermissionsDialog: boolean;
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };

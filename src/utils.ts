@@ -91,6 +91,10 @@ const parsePermissions = (permissionString: string) => {
   };
 };
 
+function makeMapKey(type: string, name: string): string {
+  return `${type}_${name}`;
+}
+
 function getCleanPath(path: string): string {
   if (path && path.trim() !== '') {
     // Remove leading slash from path if present to avoid double slashes
@@ -191,6 +195,7 @@ export {
   formatDate,
   getAPIPathRoot,
   sendFetchRequest,
+  makeMapKey,
   removeLastSegmentFromPath,
   parsePermissions,
   getCleanPath,
