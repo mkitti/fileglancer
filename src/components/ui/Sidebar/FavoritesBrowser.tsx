@@ -16,13 +16,14 @@ import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 import ZoneComponent from './Zone';
 import FileSharePathComponent from './FileSharePath';
 import {
-  DirectoryFavorite,
+  FolderFavorite,
   usePreferencesContext
 } from '@/contexts/PreferencesContext';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import useToggleOpenFavorites from '@/hooks/useToggleOpenFavorites';
-import { FileSharePathItem, ZonesAndFileSharePaths } from '@/shared.types';
+import { FileSharePath, Zone } from '@/shared.types';
+import { makeMapKey } from '@/utils';
 
 type FavoritesBrowserProps = {
   searchQuery: string;
@@ -145,19 +146,16 @@ export default function FavoritesBrowser({
                       `${folderFavorite.fsp.name}?subpath=${folderFavorite.folderPath}`
                     );
                   }}
-
-                  className={`x-short:py-0 flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 ${directoryItem.fileSharePath === currentFileSharePath && directoryItem.name === currentDir ? '!bg-primary-light/30' : '!bg-background'}`}
+                  className={`x-short:py-0 flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 ${folderFavorite.fsp === currentFileSharePath && folderFavorite.fsp.name === currentDir ? '!bg-primary-light/30' : '!bg-background'}`}
                 >
                   <Link
                     to="/files"
                     className="flex flex-col gap-2 x-short:gap-1 !text-foreground hover:!text-black focus:!text-black hover:dark:!text-white focus:dark:!text-white"
                   >
                     <div className="flex gap-1 items-center">
-
                       <FolderIcon className="icon-small x-short:icon-xsmall" />
                       <Typography className="text-sm font-medium leading-4 x-short:text-xs">
-                        {directoryItem.name}
-
+                        {folderName}
                       </Typography>
                     </div>
                     <Typography className="text-xs">
