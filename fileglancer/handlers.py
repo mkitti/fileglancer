@@ -407,22 +407,10 @@ class ProxiedPathHandler(BaseHandler):
         self.log.info(f"GET /api/fileglancer/proxied-path username={username} key={key}")
         try:
             proxied_path_manager = get_proxiedpath_manager(self.settings)
-            result = proxied_path_manager.get_proxied_paths(username, key)
-            if result is not None and len(result) > 0:
-                self.set_header('Content-Type', 'application/json')
-                self.set_status(200)
-                self.write("{\n")
-                self.write("\"paths\": [\n")
-                for i, p in enumerate(result):
-                    if i > 0:
-                        self.write(",\n")
-                    self.write(json.dumps(p.model_dump(), indent=4))
-                self.write("]\n")
-                self.write("}\n")
-                self.finish()
-            else:
-                self.set_status(404)
-                self.finish(json.dumps({"error": "Proxied path not found"}))
+            response = proxied_path_manager.get_proxied_paths(username, key)
+            response.raise_for_status()
+            self.set_status(200)
+            self.finish(response.json())
         except HTTPError as e:
             self.log.error(f"Error getting proxied paths: {str(e)}")
             self.set_status(e.response.status_code)

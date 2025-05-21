@@ -4,7 +4,7 @@ import logging
 from typing import Optional
 from functools import cache
 
-from .uimodels import ProxiedPath, CachedEntry
+from .uimodels import ProxiedPath, ProxiedPathResponse
 
 
 log = logging.getLogger(__name__)
@@ -17,23 +17,20 @@ class ProxiedPathManager:
         self.central_url = central_url
         self._cached_proxied_paths = {}
     
-    def get_proxied_paths(self, username: str, sharing_key: Optional[str] = None) -> list[ProxiedPath]:
-        """Lookup a user shared path by its sharing key."""
-        cached_user_proxied_paths = self._cached_proxied_paths.get(username)
-        if cached_user_proxied_paths is not None and cached_user_proxied_paths.is_not_expired():
-            user_proxied_paths = cached_user_proxied_paths.entry()
+    def get_proxied_paths(self, username: str, sharing_key: Optional[str] = None) -> ProxiedPath | ProxiedPathResponse:
+        """
+        Retrieve user proxied paths.
+        If no sharing_key is provided, all shared paths of the specified user are returned.
+        """
+        if sharing_key:
+            log.info(f"Retrieve proxied path {sharing_key} for user {username} from {self.central_url}")
+            return requests.get(f"{self.central_url}/proxied-path/{username}/{sharing_key}")
         else:
-            user_proxied_paths = self._cache_user_proxied_paths(username).entry()
-        if user_proxied_paths is None:
-            return None
-        elif sharing_key is not None:
-            return [p for p in user_proxied_paths if p.sharing_key == sharing_key]
-        else:
-            return user_proxied_paths
+            log.info(f"Retrieve all proxied paths for user {username} from {self.central_url}")
+            return requests.get(f"{self.central_url}/proxied-path/{username}")
 
     def create_proxied_path(self, username: str, mount_path: str) -> requests.Response:
         """Create a proxied path with <a_path> as the mount_point"""
-        self._cached_proxied_paths.pop(username, None)  # invalidate the cache
         return requests.post(
             f"{self.central_url}/proxied-path/{username}",
             params = {
@@ -42,14 +39,12 @@ class ProxiedPathManager:
         )
 
     def delete_proxied_path(self, username: str, sharing_key: str) -> requests.Response:
-        self._cached_proxied_paths.pop(username, None)  # invalidate the cache
         return requests.delete(
             f"{self.central_url}/proxied-path/{username}/{sharing_key}"
         )
 
     def update_proxied_path(self, username: str, sharing_key, new_path: Optional[str], new_name: Optional[str]) -> requests.Response:
         """Update a proxied path with <a_path> as the mount_point"""
-        self._cached_proxied_paths.pop(username, None)  # invalidate the cache
         pp_updates = {}
         if new_path:
             pp_updates["mount_path"] = new_path
@@ -59,20 +54,6 @@ class ProxiedPathManager:
             f"{self.central_url}/proxied-path/{username}/{sharing_key}",
             params = pp_updates
         )
-
-    def _cache_user_proxied_paths(self, username: str) -> list[ProxiedPath] | None:
-        """Retrieve and cache user ."""
-        if self.central_url and username:
-            log.info(f"Cache proxied paths for user {username} from central server")
-            response = requests.get(f"{self.central_url}/proxied-path/{username}")
-            response.raise_for_status()
-            pps_json = response.json()["paths"]
-            cached_proxied_paths = CachedEntry([ProxiedPath(**pp_json) for pp_json in pps_json])
-            self._cached_proxied_paths[username] = cached_proxied_paths
-            return cached_proxied_paths
-        else:
-            # wrap a None value in a CachedEntry
-            return CachedEntry(None)
 
 
 def get_proxiedpath_manager(settings) -> ProxiedPathManager:

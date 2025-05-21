@@ -1,5 +1,4 @@
-from typing import Optional, Generic, TypeVar
-from datetime import datetime, timedelta
+from typing import Optional
 from pydantic import BaseModel, Field
 
 
@@ -56,21 +55,7 @@ class ProxiedPath(BaseModel):
     )
 
 
-T = TypeVar("T")
-
-
-class CachedEntry(Generic[T]):
-
-    def __init__(self, entry: T):
-        self._cached_entry = entry
-        self._entry_time = datetime.now()
-    
-    def is_expired(self) -> bool:
-        now = datetime.now()
-        return now - self._entry_time > timedelta(hours=1)
-
-    def is_not_expired(self) -> bool:
-        return not self.is_expired()
-    
-    def entry(self) -> T:
-        return self._cached_entry
+class ProxiedPathResponse(BaseModel):
+    paths: list[ProxiedPath] = Field(
+        description="A list of proxied paths"
+    )
