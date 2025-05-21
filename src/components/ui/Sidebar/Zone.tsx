@@ -26,12 +26,10 @@ export default function Zone({
   openZones: Record<string, boolean>;
   toggleOpenZones: (zone: string) => void;
 }) {
-  const { zonePreferenceKeys, handleFavoriteChange } = usePreferencesContext();
+  const { zonePreferenceMap, handleFavoriteChange } = usePreferencesContext();
 
   const isOpen = openZones[zone.name] || false;
-  const isFavoriteZone = zonePreferenceKeys.includes(
-    makeMapKey('zone', zone.name)
-  )
+  const isFavoriteZone = zonePreferenceMap[makeMapKey('zone', zone.name)]
     ? true
     : false;
 

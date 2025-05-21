@@ -28,15 +28,13 @@ export default function FileSharePathComponent({
     setCurrentNavigationZone
   } = useZoneBrowserContext();
 
-  const { pathPreference, fileSharePathPreferenceKeys, handleFavoriteChange } =
+  const { pathPreference, fileSharePathPreferenceMap, handleFavoriteChange } =
     usePreferencesContext();
 
   const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
 
   const isCurrentPath = currentFileSharePath?.name === fsp.name;
-  const isFavoritePath = fileSharePathPreferenceKeys.includes(
-    makeMapKey('fsp', fsp.name)
-  )
+  const isFavoritePath = fileSharePathPreferenceMap[makeMapKey('fsp', fsp.name)]
     ? true
     : false;
 

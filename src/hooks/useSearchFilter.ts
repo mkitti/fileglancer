@@ -1,10 +1,15 @@
 import React from 'react';
 
-import type { Zone, ZonesAndFileSharePathsMap, FileSharePath } from '@/shared.types';
+import type {
+  Zone,
+  ZonesAndFileSharePathsMap,
+  FileSharePath
+} from '@/shared.types';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
-import { FolderFavorite,
-  usePreferencesContext } from '@/contexts/PreferencesContext';
-
+import {
+  FolderFavorite,
+  usePreferencesContext
+} from '@/contexts/PreferencesContext';
 
 export default function useSearchFilter() {
   const { zonesAndFileSharePathsMap } = useZoneBrowserContext();
