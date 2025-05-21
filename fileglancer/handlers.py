@@ -386,8 +386,12 @@ class ProxiedPathHandler(BaseHandler):
             proxied_path_manager = get_proxiedpath_manager(self.settings)
             response = proxied_path_manager.update_proxied_path(username, key, mount_path, sharing_name)
             response.raise_for_status()
-            self.set_status(204)
-            self.finish()
+            self.set_status(200)
+            self.finish(response.json())
+        except HTTPError as e:
+            self.log.error(f"Error getting proxied paths: {str(e)}")
+            self.set_status(e.response.status_code)
+            self.finish(json.dumps({"error": str(e.response.text)}))
         except Exception as e:
             self.log.error(f"Error updating proxied path: {str(e)}")
             self.set_status(500)

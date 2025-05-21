@@ -211,3 +211,35 @@ async def test_post_user_proxied_path_without_mountpath(jp_fetch):
         assert e.code == 400
         rj = json.loads(e.response.body)
         assert rj["error"] == "Mount path is required to create a proxied path"
+
+
+@patch("fileglancer.handlers.ProxiedPathHandler.get_current_user", return_value=TEST_USER)
+async def test_put_user_proxied_path(test_current_user, jp_fetch, requests_mock):
+    test_key = "test_key"
+    new_mount_path = "/test/path"
+    new_sharing_name = "newname"
+    requests_mock.put(f"{TEST_URL}/{test_key}?mount_path={new_mount_path}&sharing_name={new_sharing_name}",
+                       status_code=200,
+                       json={
+                            "username": TEST_USER,
+                            "sharing_key": test_key,
+                            "sharing_name": new_sharing_name,
+                            "mount_path": new_mount_path
+                       })
+
+    response = await jp_fetch("api", "fileglancer", "proxied-path",
+                              method="PUT",
+                              params={
+                                  "key": test_key,
+                                  "mount-path": new_mount_path,
+                                  "sharing-name": new_sharing_name
+                              },
+                              body=json.dumps({}),
+                              headers={"Content-Type": "application/json"})
+    rj = json.loads(response.body)
+    assert response.code == 200
+    assert rj["username"] == TEST_USER
+    assert rj["sharing_key"] == test_key
+    assert rj["sharing_name"] == new_sharing_name
+    assert rj["mount_path"] == new_mount_path
+
