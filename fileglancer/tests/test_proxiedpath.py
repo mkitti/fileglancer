@@ -243,3 +243,43 @@ async def test_put_user_proxied_path(test_current_user, jp_fetch, requests_mock)
     assert rj["sharing_name"] == new_sharing_name
     assert rj["mount_path"] == new_mount_path
 
+
+@patch("fileglancer.handlers.ProxiedPathHandler.get_current_user", return_value=TEST_USER)
+async def test_put_user_proxied_path_exception(test_current_user, jp_fetch, requests_mock):
+    try:
+        test_key = "test_key"
+        new_mount_path = "/test/path"
+        new_sharing_name = "newname"
+        requests_mock.put(f"{TEST_URL}/{test_key}?mount_path={new_mount_path}&sharing_name={new_sharing_name}",
+                          status_code=404,
+                          json={
+                            "error": "Some error"
+                          })
+
+        await jp_fetch("api", "fileglancer", "proxied-path",
+                        method="PUT",
+                        params={
+                            "key": test_key,
+                            "mount-path": new_mount_path,
+                            "sharing-name": new_sharing_name
+                        },
+                        body=json.dumps({}),
+                        headers={"Content-Type": "application/json"})
+        assert False, "Expected 404 error"        
+    except Exception as e:
+        assert e.code == 404
+        rj = json.loads(e.response.body)
+        assert rj["error"] == "{\"error\": \"Some error\"}"
+
+
+async def test_post_user_proxied_path_without_sharingkey(jp_fetch):
+    try:
+        await jp_fetch("api", "fileglancer", "proxied-path",
+                       method="PUT",
+                       body=json.dumps({}), # empty payload
+                       headers={"Content-Type": "application/json"})
+        assert False, "Expected 400 error"
+    except Exception as e:
+        assert e.code == 400
+        rj = json.loads(e.response.body)
+        assert rj["error"] == "Key is required to update a proxied path"
