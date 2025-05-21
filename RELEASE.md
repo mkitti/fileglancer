@@ -41,4 +41,4 @@ To upload the package to the PyPI, you'll need one of the project owners to add 
 pixi run twine upload dist/*
 ```
 
-The new version should now be [available on PyPI](https://pypi.org/manage/project/fileglancer/).
+The new version should now be [available on PyPI](https://pypi.org/project/fileglancer/).
