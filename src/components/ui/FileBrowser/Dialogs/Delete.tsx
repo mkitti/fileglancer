@@ -7,12 +7,13 @@ import {
   Typography
 } from '@material-tailwind/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+
 import useDeleteDialog from '@/hooks/useDeleteDialog';
-import type { File } from '@/shared.types';
+import type { FileOrFolder } from '@/shared.types';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 
 type DeleteDialogProps = {
-  targetItem: File;
+  targetItem: FileOrFolder;
   showDeleteDialog: boolean;
   setShowDeleteDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };

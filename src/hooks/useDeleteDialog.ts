@@ -5,7 +5,7 @@ import {
   removeLastSegmentFromPath
 } from '../utils';
 import { useCookiesContext } from '../contexts/CookiesContext';
-import type { File } from '../shared.types';
+import type { FileOrFolder } from '../shared.types';
 import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';
 import { useFileBrowserContext } from '../contexts/FileBrowserContext';
 
@@ -16,7 +16,7 @@ export default function useDeleteDialog() {
   const { currentFileSharePath } = useZoneBrowserContext();
   const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
 
-  async function handleDelete(targetItem: File) {
+  async function handleDelete(targetItem: FileOrFolder) {
     try {
       console.log('Deleting item:', targetItem);
       await sendFetchRequest(

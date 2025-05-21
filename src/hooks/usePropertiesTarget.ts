@@ -1,12 +1,11 @@
 import React from 'react';
-import type { File } from '../shared.types';
+import type { FileOrFolder } from '../shared.types';
 import { useFileBrowserContext } from '../contexts/FileBrowserContext';
 import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';
 
 export default function usePropertiesTarget() {
-  const [propertiesTarget, setPropertiesTarget] = React.useState<File | null>(
-    null
-  );
+  const [propertiesTarget, setPropertiesTarget] =
+    React.useState<FileOrFolder | null>(null);
   const { currentFileSharePath, currentNavigationZone } =
     useZoneBrowserContext();
   const { files } = useFileBrowserContext();

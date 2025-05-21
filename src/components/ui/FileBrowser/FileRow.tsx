@@ -7,26 +7,31 @@ import {
   FolderIcon
 } from '@heroicons/react/24/outline';
 
-import type { File } from '@/shared.types';
+import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 import useHandleLeftClick from '@/hooks/useHandleLeftClick';
 import { formatDate, formatFileSize } from '@/utils';
 
+
 type FileRowProps = {
-  file: File;
+  file: FileOrFolder;
   index: number;
-  selectedFiles: File[];
-  setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>;
-  displayFiles: File[];
+  selectedFiles: FileOrFolder[];
+  setSelectedFiles: React.Dispatch<React.SetStateAction<FileOrFolder[]>>;
+  displayFiles: FileOrFolder[];
   showPropertiesDrawer: boolean;
-  setPropertiesTarget: React.Dispatch<React.SetStateAction<File | null>>;
+  setPropertiesTarget: React.Dispatch<
+    React.SetStateAction<FileOrFolder | null>
+  >;
   handleRightClick: (
     e: React.MouseEvent<HTMLDivElement>,
-    file: File,
-    selectedFiles: File[],
-    setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>,
-    setPropertiesTarget: React.Dispatch<React.SetStateAction<File | null>>
+    file: FileOrFolder,
+    selectedFiles: FileOrFolder[],
+    setSelectedFiles: React.Dispatch<React.SetStateAction<FileOrFolder[]>>,
+    setPropertiesTarget: React.Dispatch<
+      React.SetStateAction<FileOrFolder | null>
+    >
   ) => void;
 };
 

@@ -1,8 +1,9 @@
 import React from 'react';
-import { File } from '@/shared.types';
+
+import { FileOrFolder } from '@/shared.types';
 import { formatDate, formatFileSize } from '@/utils';
 
-export default function OverviewTable({ file }: { file: File | null }) {
+export default function OverviewTable({ file }: { file: FileOrFolder | null }) {
   return (
     <div className="w-full overflow-hidden rounded-lg border border-surface mt-4">
       <table className="w-full">

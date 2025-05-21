@@ -13,38 +13,43 @@ import {
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
-import Zone from './Zone';
-import FileSharePath from './FileSharePath';
+import ZoneComponent from './Zone';
+import FileSharePathComponent from './FileSharePath';
 import {
-  DirectoryFavorite,
+  FolderFavorite,
   usePreferencesContext
 } from '@/contexts/PreferencesContext';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import useToggleOpenFavorites from '@/hooks/useToggleOpenFavorites';
-import { FileSharePathItem, ZonesAndFileSharePaths } from '@/shared.types';
+import { FileSharePath, Zone } from '@/shared.types';
+import { makeMapKey } from '@/utils';
+
+type FavoritesBrowserProps = {
+  searchQuery: string;
+  setOpenZones: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  filteredZoneFavorites: Zone[];
+  filteredFileSharePathFavorites: FileSharePath[];
+  filteredFolderFavorites: FolderFavorite[];
+};
 
 export default function FavoritesBrowser({
   searchQuery,
   setOpenZones,
   filteredZoneFavorites,
   filteredFileSharePathFavorites,
-  filteredDirectoryFavorites
-}: {
-  searchQuery: string;
-  setOpenZones: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-  filteredZoneFavorites: ZonesAndFileSharePaths[];
-  filteredFileSharePathFavorites: FileSharePathItem[];
-  filteredDirectoryFavorites: DirectoryFavorite[];
-}) {
+  filteredFolderFavorites
+}: FavoritesBrowserProps) {
   const { openFavorites, toggleOpenFavorites } = useToggleOpenFavorites();
   const {
     zoneFavorites,
     fileSharePathFavorites,
-    directoryFavorites,
+    folderFavorites,
+    folderPreferenceMap,
     pathPreference,
     handleFavoriteChange
   } = usePreferencesContext();
+
   const { currentDir, fetchAndFormatFilesForDisplay } = useFileBrowserContext();
   const {
     setCurrentNavigationZone,
@@ -62,10 +67,10 @@ export default function FavoritesBrowser({
       ? filteredFileSharePathFavorites
       : fileSharePathFavorites;
 
-  const displayDirectories =
-    filteredDirectoryFavorites.length > 0 || searchQuery.length > 0
-      ? filteredDirectoryFavorites
-      : directoryFavorites;
+  const displayFolders =
+    filteredFolderFavorites.length > 0 || searchQuery.length > 0
+      ? filteredFolderFavorites
+      : folderFavorites;
 
   return (
     <div className="w-[calc(100%-1.5rem)] min-h-fit flex flex-col overflow-hidden h-full mt-3 x-short:mt-1 mx-3 pb-1">
@@ -91,13 +96,10 @@ export default function FavoritesBrowser({
         <Collapse open={openFavorites['all'] ? true : false}>
           <List className="bg-surface-light !py-0 !gap-0">
             {/* Zone favorites */}
-            {displayZones.map(zoneWithPaths => {
-              const zoneName = Object.keys(zoneWithPaths)[0];
-              const fileSharePaths = zoneWithPaths[zoneName];
+            {displayZones.map(zone => {
               return (
-                <Zone
-                  zoneName={zoneName}
-                  fileSharePaths={fileSharePaths}
+                <ZoneComponent
+                  zone={zone}
                   openZones={openFavorites}
                   toggleOpenZones={toggleOpenFavorites}
                 />
@@ -105,44 +107,44 @@ export default function FavoritesBrowser({
             })}
 
             {/* File share path favorites */}
-            {displayFileSharePaths.map((path, index) => {
-              return <FileSharePath pathItem={path} pathIndex={index} />;
+            {displayFileSharePaths.map((fsp, index) => {
+              return <FileSharePathComponent fsp={fsp} index={index} />;
             })}
 
             {/* Directory favorites */}
-            {displayDirectories.map(directoryItem => {
+            {displayFolders.map(folderFavorite => {
               const fileSharePath =
                 pathPreference[0] === 'linux_path'
-                  ? directoryItem.fileSharePath.linux_path
+                  ? folderFavorite.fsp.linux_path
                   : pathPreference[0] === 'windows_path'
-                    ? directoryItem.fileSharePath.windows_path
+                    ? folderFavorite.fsp.windows_path
                     : pathPreference[0] === 'mac_path'
-                      ? directoryItem.fileSharePath.mac_path
-                      : directoryItem.fileSharePath.linux_path;
+                      ? folderFavorite.fsp.mac_path
+                      : folderFavorite.fsp.linux_path;
 
-              const isFavoriteDir = directoryFavorites.some(
-                fav =>
-                  fav.name === directoryItem.name &&
-                  fav.fileSharePath.name === directoryItem.fileSharePath.name
-              )
-                ? true
-                : false;
+              const mapKey = makeMapKey(
+                'folder',
+                `${folderFavorite.fsp.name}_${folderFavorite.folderPath}`
+              ) as string;
+              const isFavoriteDir = folderPreferenceMap[mapKey] ? true : false;
+              const splitPath = folderFavorite.folderPath.split('/');
+              const folderName = splitPath[splitPath.length - 1];
 
               return (
                 <List.Item
-                  key={`favorite-directory-${directoryItem.name}`}
+                  key={mapKey}
                   onClick={() => {
                     setOpenZones({
                       all: true,
-                      [directoryItem.fileSharePath.zone]: true
+                      [folderFavorite.fsp.zone]: true
                     });
-                    setCurrentNavigationZone(directoryItem.fileSharePath.zone);
-                    setCurrentFileSharePath(directoryItem.fileSharePath);
+                    setCurrentNavigationZone(folderFavorite.fsp.zone);
+                    setCurrentFileSharePath(folderFavorite.fsp);
                     fetchAndFormatFilesForDisplay(
-                      `${directoryItem.fileSharePath.name}?subpath=${directoryItem.path}`
+                      `${folderFavorite.fsp.name}?subpath=${folderFavorite.folderPath}`
                     );
                   }}
-                  className={`overflow-x-auto x-short:py-0 flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 ${directoryItem.fileSharePath === currentFileSharePath && directoryItem.name === currentDir ? '!bg-primary-light/30' : '!bg-background'}`}
+                  className={`overflow-x-auto x-short:py-0 flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 ${folderFavorite.fsp === currentFileSharePath && folderFavorite.fsp.name === currentDir ? '!bg-primary-light/30' : '!bg-background'}`}
                 >
                   <Link
                     to="/browse"
@@ -151,11 +153,11 @@ export default function FavoritesBrowser({
                     <div className="flex gap-1 items-center">
                       <FolderIcon className="icon-small x-short:icon-xsmall" />
                       <Typography className="text-sm font-medium leading-4 x-short:text-xs">
-                        {directoryItem.name}
+                        {folderName}
                       </Typography>
                     </div>
                     <Typography className="text-xs">
-                      {`${fileSharePath}/${directoryItem.path}`}
+                      {`${fileSharePath}/${folderFavorite.folderPath}`}
                     </Typography>
                   </Link>
                   <div
@@ -169,7 +171,7 @@ export default function FavoritesBrowser({
                       isCircular
                       onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                         e.stopPropagation();
-                        handleFavoriteChange(directoryItem, 'directory');
+                        handleFavoriteChange(folderFavorite, 'folder');
                       }}
                     >
                       {isFavoriteDir ? (
