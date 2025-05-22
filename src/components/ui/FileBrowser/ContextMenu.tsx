@@ -60,7 +60,8 @@ export default function ContextMenu({
               if (currentFileSharePath) {
                 handleFavoriteChange(
                   {
-                    folderPath: selectedFiles[0].path,
+                    type: 'folder',
+                    folderPath: `${currentFileSharePath.name}/${selectedFiles[0].path}`,
                     fsp: currentFileSharePath
                   },
                   'folder'
