@@ -143,7 +143,7 @@ export const PreferencesProvider = ({
   ) {
     setFolderPreferenceMap(updatedMap);
     const updatedFolderFavorites = Object.entries(updatedMap).map(
-      ([, value]) => {
+      ([_, value]) => {
         const fspKey = makeMapKey('fsp', value.fspName);
         const fsp = zonesAndFileSharePathsMap[fspKey];
         return { type: 'folder', folderPath: value.folderPath, fsp: fsp };
@@ -175,10 +175,11 @@ export const PreferencesProvider = ({
 
     (async function () {
       const backendPrefs = await fetchPreferences('zone');
-      const zoneMap = backendPrefs.map((pref: ZonePreference) => {
+      const zoneArray = backendPrefs.map((pref: ZonePreference) => {
         const key = makeMapKey(pref.type, pref.name);
         return { [key]: pref };
       });
+      const zoneMap = Object.assign({}, ...zoneArray);
       if (zoneMap) {
         updateLocalZonePreferenceStates(zoneMap);
       }
@@ -209,12 +210,13 @@ export const PreferencesProvider = ({
 
     (async function () {
       const backendPrefs = await fetchPreferences('folder');
-      const fspMap = backendPrefs.map((pref: FolderPreference) => {
+      const folderArray = backendPrefs.map((pref: FolderPreference) => {
         const key = makeMapKey(pref.type, `${pref.fspName}_${pref.folderPath}`);
         return { [key]: pref };
       });
-      if (fspMap) {
-        updateLocalFolderPreferenceStates(fspMap);
+      const folderMap = Object.assign({}, ...folderArray);
+      if (folderMap) {
+        updateLocalFolderPreferenceStates(folderMap);
       }
     })();
   }, [isZonesMapReady]);
