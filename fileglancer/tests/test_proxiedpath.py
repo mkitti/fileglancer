@@ -65,14 +65,6 @@ async def test_get_specific_user_proxied_path(test_current_user, jp_fetch, reque
 @patch("fileglancer.handlers.ProxiedPathHandler.get_current_user", return_value=TEST_USER)
 async def test_get_user_proxied_path_when_key_not_present(test_current_user, jp_fetch, requests_mock):
     test_key = "test_key_3"
-    test_data = [
-        {
-            "username": TEST_USER,
-            "sharing_key": "test_key_1",
-            "sharing_name": "test_name_1",
-            "mount_path": "/test/path_1"
-        }
-    ]
 
     requests_mock.get(f"{TEST_URL}/{test_key}", status_code=404, json={"error": "Proxied path not found"})
 
@@ -213,10 +205,11 @@ async def test_put_user_proxied_path(test_current_user, jp_fetch, requests_mock)
                               method="PUT",
                               params={
                                   "key": test_key,
-                                  "mount-path": new_mount_path,
-                                  "sharing-name": new_sharing_name
                               },
-                              body=json.dumps({}),
+                              body=json.dumps({
+                                  "mount_path": new_mount_path,
+                                  "sharing_name": new_sharing_name
+                              }),
                               headers={"Content-Type": "application/json"})
     rj = json.loads(response.body)
     assert response.code == 200
@@ -242,10 +235,11 @@ async def test_put_user_proxied_path_exception(test_current_user, jp_fetch, requ
                         method="PUT",
                         params={
                             "key": test_key,
-                            "mount-path": new_mount_path,
-                            "sharing-name": new_sharing_name
                         },
-                        body=json.dumps({}),
+                        body=json.dumps({
+                            "mount_path": new_mount_path,
+                            "sharing_name": new_sharing_name
+                        }),
                         headers={"Content-Type": "application/json"})
         assert False, "Expected 404 error"        
     except Exception as e:
