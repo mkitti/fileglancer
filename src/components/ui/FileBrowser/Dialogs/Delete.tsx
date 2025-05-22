@@ -51,6 +51,7 @@ export default function DeleteDialog({
             ?
           </Typography>
           <Button
+            color="error"
             className="!rounded-md"
             onClick={() => {
               handleDelete(targetItem);

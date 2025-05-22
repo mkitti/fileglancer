@@ -6,11 +6,13 @@ import {
   Typography
 } from '@material-tailwind/react';
 import {
+  ArrowPathIcon,
   EyeIcon,
   EyeSlashIcon,
   FolderPlusIcon,
   ListBulletIcon
 } from '@heroicons/react/24/solid';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
 type ToolbarProps = {
   hideDotFiles: boolean;
@@ -25,6 +27,8 @@ export default function Toolbar({
   setShowPropertiesDrawer,
   setShowNewFolderDialog
 }: ToolbarProps): JSX.Element {
+  const { fetchAndFormatFilesForDisplay, currentNavigationPath } =
+    useFileBrowserContext();
   return (
     <div className="flex flex-col min-w-full p-2 border-b border-surface">
       <ButtonGroup className="self-start">
@@ -79,6 +83,23 @@ export default function Toolbar({
             <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
               <Typography type="small" className="opacity-90">
                 View file properties
+              </Typography>
+              <Tooltip.Arrow />
+            </Tooltip.Content>
+          </Tooltip.Trigger>
+        </Tooltip>
+
+        {/* Refresh browser contents */}
+        <Tooltip placement="top">
+          <Tooltip.Trigger
+            as={IconButton}
+            variant="outline"
+            onClick={() => fetchAndFormatFilesForDisplay(currentNavigationPath)}
+          >
+            <ArrowPathIcon className="icon-default" />
+            <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
+              <Typography type="small" className="opacity-90">
+                Refresh file browser
               </Typography>
               <Tooltip.Arrow />
             </Tooltip.Content>

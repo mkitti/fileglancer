@@ -29,9 +29,9 @@ export default function ContextMenu({
   setShowDeleteDialog,
   setShowPermissionsDialog
 }: ContextMenuProps): React.ReactNode {
-  const { currentNavigationZone, currentFileSharePath } =
-    useZoneBrowserContext();
+  const { currentFileSharePath } = useZoneBrowserContext();
   const { handleFavoriteChange } = usePreferencesContext();
+
   return ReactDOM.createPortal(
     <div
       ref={menuRef}
@@ -60,12 +60,14 @@ export default function ContextMenu({
               if (currentFileSharePath) {
                 handleFavoriteChange(
                   {
-                    folderPath: selectedFiles[0].path,
+                    type: 'folder',
+                    folderPath: `${currentFileSharePath.name}/${selectedFiles[0].path}`,
                     fsp: currentFileSharePath
                   },
                   'folder'
                 );
               }
+              setShowContextMenu(false);
             }}
           >
             Set/unset as favorite

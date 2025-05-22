@@ -13,7 +13,7 @@ import {
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
 import FileSharePathComponent from './FileSharePath';
-import type { Zone, FileSharePath } from '@/shared.types';
+import type { Zone } from '@/shared.types';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { makeMapKey } from '@/utils';
 
