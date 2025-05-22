@@ -15,7 +15,7 @@ export default function useNewFolderDialog() {
 
   async function addNewFolder(subpath: string) {
     await sendFetchRequest(
-      `${getAPIPathRoot()}api/fileglancer/files/${currentFileSharePath?.name}?subpath=${subpath}/${newName}`,
+      `${getAPIPathRoot()}api/fileglancer/files/${currentFileSharePath?.name}?subpath=${subpath}${newName}`,
       'POST',
       cookies['_xsrf'],
       { type: 'directory' }
