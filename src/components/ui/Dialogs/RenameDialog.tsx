@@ -34,7 +34,7 @@ export default function RenameDialog({
   return (
     <Dialog open={showRenameDialog}>
       <Dialog.Overlay>
-        <Dialog.Content>
+        <Dialog.Content className="bg-surface-light dark:bg-surface">
           <IconButton
             size="sm"
             variant="outline"
@@ -59,7 +59,7 @@ export default function RenameDialog({
               <Typography
                 as="label"
                 htmlFor="new_name"
-                className="text-foreground"
+                className="text-foreground font-semibold"
               >
                 Rename Item
               </Typography>
@@ -72,7 +72,7 @@ export default function RenameDialog({
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                   setNewName(event.target.value);
                 }}
-                className="mb-4 p-2 text-foreground text-lg border border-primary-light rounded-sm focus:outline-none focus:border-primary"
+                className="mb-4 p-2 text-foreground text-lg border border-primary-light rounded-sm focus:outline-none focus:border-primary bg-background"
               />
             </div>
             <Button className="!rounded-md" type="submit">

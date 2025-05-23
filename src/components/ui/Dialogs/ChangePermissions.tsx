@@ -56,7 +56,7 @@ export default function ChangePermissions({
   return (
     <Dialog open={showPermissionsDialog}>
       <Dialog.Overlay>
-        <Dialog.Content className="p-6">
+        <Dialog.Content className="p-6 bg-surface-light dark:bg-surface">
           <IconButton
             size="sm"
             variant="outline"
@@ -80,24 +80,24 @@ export default function ChangePermissions({
                 handleChangePermissions(targetItem, localPermissions);
               }}
             >
-              <Typography className="mt-8">
+              <Typography className="mt-8 text-foreground font-semibold">
                 Change permisions for file
                 <span className="font-semibold"> {targetItem.name}</span>
               </Typography>
-              <table className="w-full my-4 border border-surface">
-                <thead className="border-b border-surface bg-surface-dark text-sm font-medium">
+              <table className="w-full my-4 border border-surface dark:border-surface-light text-foreground">
+                <thead className="border-b border-surface dark:border-surface-light bg-surface-dark text-sm font-medium">
                   <tr>
                     <th className="px-3 py-2 text-start font-medium">
                       Who can view or edit this data?
                     </th>
-                    <th className="px-3 py-2 text-center font-medium">Read</th>
-                    <th className="px-3 py-2 text-center font-medium">Write</th>
+                    <th className="px-3 py-2 text-left font-medium">Read</th>
+                    <th className="px-3 py-2 text-left font-medium">Write</th>
                   </tr>
                 </thead>
 
                 {localPermissions ? (
                   <tbody className="text-sm">
-                    <tr className="border-b border-surface">
+                    <tr className="border-b border-surface dark:border-surface-light">
                       <td className="p-3 font-medium">
                         Owner: {targetItem.owner}
                       </td>
@@ -121,7 +121,7 @@ export default function ChangePermissions({
                       </td>
                     </tr>
 
-                    <tr className="border-b border-surface">
+                    <tr className="border-b border-surface dark:border-surface-light">
                       <td className="p-3 font-medium">
                         Group: {targetItem.group}
                       </td>

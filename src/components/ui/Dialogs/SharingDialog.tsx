@@ -35,7 +35,7 @@ export default function SharingDialog({
   return (
     <Dialog open={showSharingDialog}>
       <Dialog.Overlay>
-        <Dialog.Content>
+        <Dialog.Content className="bg-surface-light dark:bg-surface">
           <IconButton
             size="sm"
             variant="outline"
@@ -49,9 +49,9 @@ export default function SharingDialog({
           >
             <XMarkIcon className="icon-default" />
           </IconButton>
-          <Typography className="my-8 text-large">
+          <Typography className="my-8 text-large text-foreground">
             Are you sure you want to share the image at path{' '}
-            {currentNavigationPath.replace('?subpath=', '/')}?
+            <span className='font-semibold'>{currentNavigationPath.replace('?subpath=', '/')}</span>?
           </Typography>
           <div className="flex gap-2">
             <Button
