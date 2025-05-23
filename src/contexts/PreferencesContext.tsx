@@ -95,11 +95,11 @@ export const PreferencesProvider = ({
     } catch (error) {
       if (error instanceof HTTPError && error.responseCode === 404) {
         console.log(`Preference '${key}' not found`);
-        return null;
       }
       else {
         console.log(`Error fetching preference '${key}':`, error);
       }
+      return null;
     }
   }
 
