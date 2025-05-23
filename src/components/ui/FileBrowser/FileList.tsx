@@ -43,7 +43,8 @@ export default function FileList({
     neuroglancerUrl,
     metadata,
     hasMultiscales,
-    loadingThumbnail
+    loadingThumbnail,
+    isImageShared
   } = useZarrMetadata(files, currentFileSharePath);
 
   const displayFiles = React.useMemo(() => {
@@ -64,6 +65,7 @@ export default function FileList({
           loadingThumbnail={loadingThumbnail}
           neuroglancerUrl={neuroglancerUrl}
           metadata={metadata}
+          isImageShared={isImageShared}
         />
       ) : null}
 

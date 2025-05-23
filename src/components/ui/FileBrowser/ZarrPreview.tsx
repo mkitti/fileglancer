@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   Alert,
   Button,
@@ -7,28 +8,34 @@ import {
 import { Link } from 'react-router-dom';
 import { Square2StackIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
-import neuroglancer_logo from '../../../assets/neuroglancer.png';
-import volE_logo from '../../../assets/aics_website-3d-cell-viewer.png';
-import napari_logo from '../../../assets/napari.png';
+import neuroglancer_logo from '@/assets/neuroglancer.png';
+import volE_logo from '@/assets/aics_website-3d-cell-viewer.png';
+import napari_logo from '@/assets/napari.png';
 
-import useCopyPath from '../../../hooks/useCopyPath';
-import type { Metadata } from '../../../omezarr-helper';
+import useCopyPath from '@/hooks/useCopyPath';
+import type { Metadata } from '@/omezarr-helper';
 import ZarrMetadataTable from './ZarrMetadataTable';
+import SharingDialog from '../Dialogs/SharingDialog';
 
 type ZarrPreviewProps = {
   thumbnailSrc: string | null;
   loadingThumbnail: boolean;
   neuroglancerUrl: string | null;
   metadata: Metadata | null;
+  isImageShared: boolean;
 };
 
 export default function ZarrPreview({
   thumbnailSrc,
   loadingThumbnail,
   neuroglancerUrl,
-  metadata
+  metadata,
+  isImageShared
 }: ZarrPreviewProps): React.ReactNode {
+  const [showSharingDialog, setShowSharingDialog] =
+    React.useState<boolean>(false);
   const { copyToClipboard, showCopyAlert, dismissCopyAlert } = useCopyPath();
+
   return (
     <div className="flex gap-12 my-4 p-4 bg-primary-light/30 shadow-sm rounded-md w-full h-fit max-h-96">
       <div className="flex flex-col gap-4">
@@ -52,7 +59,32 @@ export default function ZarrPreview({
           ) : null}
         </div>
 
-        {neuroglancerUrl ? (
+        {neuroglancerUrl && !isImageShared ? (
+          <div>
+            <Typography className="text-sm text-surface-foreground">
+              To view this image in external viewers like Neuroglancer, please
+              share the image first.
+            </Typography>
+            <Button
+              variant="outline"
+              className="mt-2"
+              onClick={() => {
+                setShowSharingDialog(true);
+              }}
+            >
+              Share Image
+            </Button>
+          </div>
+        ) : null}
+
+        {showSharingDialog ? (
+          <SharingDialog
+            showSharingDialog={showSharingDialog}
+            setShowSharingDialog={setShowSharingDialog}
+          />
+        ) : null}
+
+        {neuroglancerUrl && isImageShared ? (
           <div>
             <Typography className="font-semibold text-sm text-surface-foreground">
               Open with:
