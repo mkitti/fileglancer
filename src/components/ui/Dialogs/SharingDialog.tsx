@@ -13,22 +13,24 @@ import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 
 type SharingDialogProps = {
-  fileFetchPath: string;
+  filePath: string;
+  filePathWithoutFsp: string;
   showSharingDialog: boolean;
   setShowSharingDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function SharingDialog({
-  fileFetchPath,
+  filePath,
+  filePathWithoutFsp,
   showSharingDialog,
   setShowSharingDialog
 }: SharingDialogProps): JSX.Element {
   const [showAlert, setShowAlert] = React.useState<boolean>(false);
   const [alertContent, setAlertContent] = React.useState<string>('');
-  const { createSharedPath, fetchSharedPaths } = useSharedPathsContext();
+  const { createSharedPath, fetchAndSetLocalSharedPaths } =
+    useSharedPathsContext();
   const { currentNavigationPath } = useFileBrowserContext();
   const { currentFileSharePath } = useZoneBrowserContext();
-  console.log('currentFSP mount_path', currentFileSharePath?.mount_path);
 
   return (
     <Dialog open={showSharingDialog}>
@@ -56,18 +58,19 @@ export default function SharingDialog({
               variant="outline"
               color="error"
               className="!rounded-md flex items-center gap-2"
-              onClick={() => {
+              onClick={async () => {
                 try {
-                  createSharedPath(
-                    `${currentFileSharePath?.mount_path}/${currentNavigationPath}`
+                  await createSharedPath(
+                    `${currentFileSharePath?.mount_path}/${filePathWithoutFsp}`
                   );
                   setAlertContent(
-                    `Successfully shared image at path ${currentNavigationPath.replace('?subpath=', '/')}`
+                    `Successfully shared image at path ${filePath}`
                   );
-                  fetchSharedPaths();
+                  setShowAlert(true);
+                  await fetchAndSetLocalSharedPaths();
                 } catch (error) {
                   setAlertContent(
-                    `Error sharing image at path ${currentNavigationPath.replace('?subpath=', '/')}: ${
+                    `Error sharing image at path ${filePath}: ${
                       error instanceof Error ? error.message : 'Unknown error'
                     }`
                   );
