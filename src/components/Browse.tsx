@@ -11,10 +11,10 @@ import FileList from './ui/FileBrowser/FileList';
 import PropertiesDrawer from './ui/PropertiesDrawer/PropertiesDrawer';
 import Toolbar from './ui/FileBrowser/Toolbar';
 import ContextMenu from './ui/FileBrowser/ContextMenu';
-import RenameDialog from './ui/FileBrowser/Dialogs/RenameDialog';
-import NewFolderDialog from './ui/FileBrowser/Dialogs/NewFolderDialog';
-import Delete from './ui/FileBrowser/Dialogs/Delete';
-import ChangePermissions from './ui/FileBrowser/Dialogs/ChangePermissions';
+import RenameDialog from './ui/Dialogs/RenameDialog';
+import NewFolderDialog from './ui/Dialogs/NewFolderDialog';
+import Delete from './ui/Dialogs/Delete';
+import ChangePermissions from './ui/Dialogs/ChangePermissions';
 
 export default function Browse() {
   const {
