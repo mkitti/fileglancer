@@ -139,35 +139,31 @@ export default function ZarrPreview({
                   className="max-h-8 max-w-8 m-1 rounded-sm"
                 />
               </Button>
-              <Button
-                title="Copy link to view in Napari"
-                variant="ghost"
-                className="group peer/napari rounded-sm m-0 p-0 relative"
-                onClick={() => {
-                  copyToClipboard('Napari URL');
-                }}
-              >
-                <img
-                  src={napari_logo}
-                  alt="Napari logo"
-                  className="max-h-8 max-w-8 m-1 rounded-sm"
-                />
-                <Square2StackIcon className="w-4 h-4 text-transparent group-hover:text-foreground absolute top-0 right-0 bg-transparent group-hover:bg-background" />
-              </Button>
-              <Typography
-                className={`text-transparent
-              ${showCopyAlert !== true && 'peer-hover/napari:text-foreground peer-hover/napari:bg-background'}
-              absolute
-              top-12
-              left-0
-              bg-transparent
-              w-fit
-              px-1
-              rounded-sm`}
-              >
-                See <a href="https://napari.org">napari.org</a> for
-                instructions. Then <code>napari URL</code>
-              </Typography>
+              <div>
+                <Button
+                  title="Copy link to view in Napari"
+                  variant="ghost"
+                  className="group peer/napari rounded-sm m-0 p-0 relative"
+                  onClick={() => {
+                    copyToClipboard('Napari URL');
+                  }}
+                >
+                  <img
+                    src={napari_logo}
+                    alt="Napari logo"
+                    className="max-h-8 max-w-8 m-1 rounded-sm"
+                  />
+                  <Square2StackIcon className="w-4 h-4 text-transparent group-hover:text-foreground absolute top-0 right-0 bg-transparent group-hover:bg-background" />
+                </Button>
+                <Typography
+                  className={`!hidden text-transparent
+                  ${showCopyAlert !== true && 'peer-hover/napari:text-foreground peer-hover/napari:bg-background peer-hover/napari:!block'}
+                  absolute top-12 left-0 bg-transparent w-fit px-1 rounded-sm`}
+                >
+                  See <a href="https://napari.org">napari.org</a> for
+                  instructions. Then <code>napari URL</code>
+                </Typography>
+              </div>
             </ButtonGroup>
             {showCopyAlert === true ? (
               <Alert className="flex items-center max-w-max p-1 bg-secondary-light/70 border-none">
