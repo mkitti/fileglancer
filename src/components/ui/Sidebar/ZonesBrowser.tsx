@@ -2,7 +2,6 @@ import React from 'react';
 import { Collapse, Typography, List } from '@material-tailwind/react';
 import { ChevronRightIcon, Squares2X2Icon } from '@heroicons/react/24/outline';
 
-
 import { ZonesAndFileSharePathsMap } from '@/shared.types';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 import Zone from './Zone';

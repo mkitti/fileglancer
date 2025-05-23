@@ -59,8 +59,8 @@ export default function Folder({ folderFavorite, setOpenZones }: FolderProps) {
         'GET',
         cookies['_xsrf']
       );
-      const data = await response.json();
-      if (data.status === 200) {
+
+      if (response.status === 200) {
         return true;
       } else {
         return false;

@@ -2,7 +2,7 @@
 
 This extension can be distributed as Python packages. All of the Python
 packaging instructions are in the `pyproject.toml` file to wrap your extension in a
-Python package. 
+Python package.
 
 Make sure to clean up all the development files before building the package:
 

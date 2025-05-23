@@ -193,10 +193,11 @@ export const PreferencesProvider = ({
 
     (async function () {
       const backendPrefs = await fetchPreferences('fileSharePath');
-      const fspMap = backendPrefs.map((pref: FileSharePathPreference) => {
+      const fspArray = backendPrefs.map((pref: FileSharePathPreference) => {
         const key = makeMapKey(pref.type, pref.name);
         return { [key]: pref };
       });
+      const fspMap = Object.assign({}, ...fspArray);
       if (fspMap) {
         updateLocalFspPreferenceStates(fspMap);
       }
