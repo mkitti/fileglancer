@@ -36,6 +36,15 @@ function getAPIPathRoot() {
   return '/';
 }
 
+class APIError extends Error {
+  responseCode: number;
+  
+  constructor(message: string, responseCode: number) {
+    super(message);
+    this.responseCode = responseCode;
+  }
+}
+
 async function sendFetchRequest(
   url: string,
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
@@ -56,7 +65,10 @@ async function sendFetchRequest(
   };
   const response = await fetch(url, options);
   if (!response.ok) {
-    throw new Error(`Response status: ${response.status}`);
+    throw new APIError(
+      `Request failed: ${response.status} - ${response.statusText}`,
+      response.status
+    );
   }
   return response;
 }
@@ -194,6 +206,7 @@ export {
   formatFileSize,
   formatDate,
   getAPIPathRoot,
+  APIError,
   sendFetchRequest,
   makeMapKey,
   removeLastSegmentFromPath,
