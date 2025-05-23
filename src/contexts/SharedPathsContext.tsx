@@ -2,9 +2,16 @@ import React from 'react';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { getAPIPathRoot, sendFetchRequest } from '@/utils';
 
+type FetchSharedPathsData = {
+  mount_path: string;
+  sharing_key: string;
+  sharing_name: string;
+  username: string;
+};
+
 type SharedPathsContextType = {
-  sharedPaths: string[];
-  fetchSharedPaths: () => Promise<void>;
+  sharedPaths: Record<string, FetchSharedPathsData>;
+  fetchAndSetLocalSharedPaths: () => Promise<void>;
   createSharedPath: (mountPath: string) => Promise<void>;
 };
 
@@ -27,10 +34,13 @@ export const SharedPathsProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const [sharedPaths, setSharedPaths] = React.useState<string[]>([]);
+  const [sharedPaths, setSharedPaths] = React.useState<
+    Record<string, FetchSharedPathsData>
+  >({});
   const { cookies } = useCookiesContext();
 
-  async function fetchSharedPaths() {
+  async function fetchSharedPaths(): Promise<FetchSharedPathsData[]> {
+    let paths: FetchSharedPathsData[] = [];
     try {
       const response = await sendFetchRequest(
         `${getAPIPathRoot()}api/fileglancer/proxied-path`,
@@ -41,11 +51,12 @@ export const SharedPathsProvider = ({
         throw new Error('Failed to fetch shared paths');
       }
       const data = await response.json();
-      console.log('Fetched shared paths:', data);
-      setSharedPaths(data.paths);
+      console.log('Fetched shared paths:', data.paths);
+      paths = data.paths;
     } catch (error) {
       console.error('Error fetching shared paths:', error);
     }
+    return paths;
   }
 
   async function createSharedPath(mountPath: string) {
@@ -61,19 +72,34 @@ export const SharedPathsProvider = ({
       }
       const data = await response.json();
       console.log('Created shared path:', data);
-      setSharedPaths(prevPaths => [...prevPaths, data.path]);
     } catch (error) {
       console.error('Error creating shared path:', error);
     }
   }
 
+  async function fetchAndSetLocalSharedPaths() {
+    const backendPaths = await fetchSharedPaths();
+    const pathsArray = backendPaths.map((path: FetchSharedPathsData) => {
+      return { [path.mount_path]: { ...path } };
+    });
+    const pathsMap = Object.assign({}, ...pathsArray);
+    setSharedPaths(pathsMap);
+    console.log('Shared paths:', pathsMap);
+  }
+
   React.useEffect(() => {
-    fetchSharedPaths();
+    (async function () {
+      try {
+        await fetchAndSetLocalSharedPaths();
+      } catch (error) {
+        console.error('Error in useEffect:', error);
+      }
+    })();
   }, []);
 
   return (
     <SharedPathsContext.Provider
-      value={{ sharedPaths, fetchSharedPaths, createSharedPath }}
+      value={{ sharedPaths, fetchAndSetLocalSharedPaths, createSharedPath }}
     >
       {children}
     </SharedPathsContext.Provider>
