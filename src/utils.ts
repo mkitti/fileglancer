@@ -36,7 +36,7 @@ function getAPIPathRoot() {
   return '/';
 }
 
-class APIError extends Error {
+class HTTPError extends Error {
   responseCode: number;
   
   constructor(message: string, responseCode: number) {
@@ -65,7 +65,7 @@ async function sendFetchRequest(
   };
   const response = await fetch(url, options);
   if (!response.ok) {
-    throw new APIError(
+    throw new HTTPError(
       `Request failed: ${response.status} - ${response.statusText}`,
       response.status
     );
@@ -206,7 +206,7 @@ export {
   formatFileSize,
   formatDate,
   getAPIPathRoot,
-  APIError,
+  HTTPError,
   sendFetchRequest,
   makeMapKey,
   removeLastSegmentFromPath,

@@ -3,7 +3,7 @@ import React from 'react';
 import type { FileSharePath, Zone } from '@/shared.types';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { useZoneBrowserContext } from './ZoneBrowserContext';
-import { getAPIPathRoot, sendFetchRequest, makeMapKey, APIError } from '@/utils';
+import { getAPIPathRoot, sendFetchRequest, makeMapKey, HTTPError } from '@/utils';
 
 export type FolderFavorite = {
   type: 'folder';
@@ -93,7 +93,7 @@ export const PreferencesProvider = ({
       ).then(response => response.json());
       return data?.value;
     } catch (error) {
-      if (error instanceof APIError && error.responseCode === 404) {
+      if (error instanceof HTTPError && error.responseCode === 404) {
         console.log(`Preference '${key}' not found`);
         return null;
       }
