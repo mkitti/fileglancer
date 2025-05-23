@@ -52,13 +52,7 @@ class Fileglancer(ExtensionApp):
         config=True,
         help="The URL of the central server",
     )
-
-    dev_mode = Bool(
-        default_value=False,
-        config=True,
-        help="Enable development mode.",
-    )
-
+    
     def initialize_settings(self):
         """Update extension settings.
 
