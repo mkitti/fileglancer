@@ -1,14 +1,11 @@
 import React from 'react';
-import type { FileOrFolder, FileSharePath } from '@/shared.types';
+import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import { useSharedPathsContext } from '@/contexts/SharedPathsContext';
 import { getOmeZarrMetadata } from '@/omezarr-helper';
 import type { Metadata } from '@/omezarr-helper';
+import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 
-export default function useZarrMetadata(
-  files: FileOrFolder[],
-  currentFileSharePath: FileSharePath | null
-) {
+export default function useZarrMetadata(files: FileOrFolder[]) {
   const [thumbnailSrc, setThumbnailSrc] = React.useState<string | null>(null);
   const [neuroglancerUrl, setNeuroglancerUrl] = React.useState<string | null>(
     null
@@ -16,15 +13,10 @@ export default function useZarrMetadata(
   const [metadata, setMetadata] = React.useState<Metadata | null>(null);
   const [hasMultiscales, setHasMultiscales] = React.useState(false);
   const [loadingThumbnail, setLoadingThumbnail] = React.useState(false);
-  const [isImageShared, setIsImageShared] = React.useState(false);
 
   const neuroglancerBaseUrl = 'https://neuroglancer-demo.appspot.com/#!';
   const { currentNavigationPath, getFileFetchPath } = useFileBrowserContext();
-  const { sharedPaths } = useSharedPathsContext();
-
-  function checkIfImageIsShared(fileFetchPath: string) {
-    return sharedPaths.some(sharedPath => sharedPath === fileFetchPath);
-  }
+  const { currentFileSharePath } = useZoneBrowserContext();
 
   const checkZattrsForMultiscales = React.useCallback(async () => {
     setHasMultiscales(false);
@@ -39,8 +31,6 @@ export default function useZarrMetadata(
         const fileFetchPath = getFileFetchPath(
           currentNavigationPath.replace('?subpath=', '/')
         );
-        const isShared = checkIfImageIsShared(fileFetchPath);
-        setIsImageShared(isShared);
         const imageUrl = `${window.location.origin}${fileFetchPath}`;
         const metadata = await getOmeZarrMetadata(imageUrl);
         setMetadata(metadata);
@@ -64,7 +54,6 @@ export default function useZarrMetadata(
     neuroglancerUrl,
     metadata,
     hasMultiscales,
-    loadingThumbnail,
-    isImageShared
+    loadingThumbnail
   };
 }

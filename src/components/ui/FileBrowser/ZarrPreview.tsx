@@ -14,6 +14,9 @@ import napari_logo from '@/assets/napari.png';
 
 import useCopyPath from '@/hooks/useCopyPath';
 import type { Metadata } from '@/omezarr-helper';
+import { useSharedPathsContext } from '@/contexts/SharedPathsContext';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 import ZarrMetadataTable from './ZarrMetadataTable';
 import SharingDialog from '../Dialogs/SharingDialog';
 
@@ -22,22 +25,37 @@ type ZarrPreviewProps = {
   loadingThumbnail: boolean;
   neuroglancerUrl: string | null;
   metadata: Metadata | null;
-  isImageShared: boolean;
 };
 
 export default function ZarrPreview({
   thumbnailSrc,
   loadingThumbnail,
   neuroglancerUrl,
-  metadata,
-  isImageShared
+  metadata
 }: ZarrPreviewProps): React.ReactNode {
   const [showSharingDialog, setShowSharingDialog] =
     React.useState<boolean>(false);
+  const [isImageShared, setIsImageShared] = React.useState(false);
+
   const { copyToClipboard, showCopyAlert, dismissCopyAlert } = useCopyPath();
+  const { sharedPaths } = useSharedPathsContext();
+  const { currentFileSharePath } = useZoneBrowserContext();
+  const { currentNavigationPath } = useFileBrowserContext();
+
+  const filePath = currentNavigationPath.replace('?subpath=', '/');
+  const filePathWithoutFsp = filePath.split('/').slice(1).join('/');
+
+  React.useEffect(() => {
+    const isShared = sharedPaths[
+      `${currentFileSharePath?.mount_path}/${filePathWithoutFsp}`
+    ]
+      ? true
+      : false;
+    setIsImageShared(isShared);
+  }, [sharedPaths, currentFileSharePath, filePathWithoutFsp]);
 
   return (
-    <div className="flex gap-12 my-4 p-4 bg-primary-light/30 shadow-sm rounded-md w-full h-fit max-h-96">
+    <div className="flex gap-12 my-4 p-4 bg-primary-light/30 shadow-sm rounded-md w-full h-fit max-h-100">
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2 max-h-full">
           <Typography variant="small" className="text-surface-foreground">
@@ -61,13 +79,12 @@ export default function ZarrPreview({
 
         {neuroglancerUrl && !isImageShared ? (
           <div>
-            <Typography className="text-sm text-surface-foreground">
+            <Typography className="text-sm font-semibold text-surface-foreground">
               To view this image in external viewers like Neuroglancer, please
               share the image first.
             </Typography>
             <Button
-              variant="outline"
-              className="mt-2"
+              className="mt-2 bg-secondary-light border-secondary-light hover:!bg-secondary-light/80 hover:!border-secondary-light/80"
               onClick={() => {
                 setShowSharingDialog(true);
               }}
@@ -79,6 +96,8 @@ export default function ZarrPreview({
 
         {showSharingDialog ? (
           <SharingDialog
+            filePath={filePath}
+            filePathWithoutFsp={filePathWithoutFsp}
             showSharingDialog={showSharingDialog}
             setShowSharingDialog={setShowSharingDialog}
           />

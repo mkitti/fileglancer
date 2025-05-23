@@ -5,7 +5,6 @@ import type { FileOrFolder } from '@/shared.types';
 import FileListCrumbs from './Crumbs';
 import FileRow from './FileRow';
 import ZarrPreview from './ZarrPreview';
-import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 import useZarrMetadata from '@/hooks/useZarrMetadata';
 
 type FileListProps = {
@@ -37,15 +36,13 @@ export default function FileList({
   hideDotFiles,
   handleRightClick
 }: FileListProps): React.ReactNode {
-  const { currentFileSharePath } = useZoneBrowserContext();
   const {
     thumbnailSrc,
     neuroglancerUrl,
     metadata,
     hasMultiscales,
-    loadingThumbnail,
-    isImageShared
-  } = useZarrMetadata(files, currentFileSharePath);
+    loadingThumbnail
+  } = useZarrMetadata(files);
 
   const displayFiles = React.useMemo(() => {
     return hideDotFiles
@@ -65,7 +62,6 @@ export default function FileList({
           loadingThumbnail={loadingThumbnail}
           neuroglancerUrl={neuroglancerUrl}
           metadata={metadata}
-          isImageShared={isImageShared}
         />
       ) : null}
 
