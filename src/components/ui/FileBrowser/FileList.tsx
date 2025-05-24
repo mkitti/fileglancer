@@ -1,10 +1,6 @@
 import * as React from 'react';
 import { Typography } from '@material-tailwind/react';
 
-
-import * as zarr from 'zarrita';
-import * as omezarr from 'ome-zarr.js';
-
 import type { FileOrFolder } from '@/shared.types';
 import FileListCrumbs from './Crumbs';
 import FileRow from './FileRow';

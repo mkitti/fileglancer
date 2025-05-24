@@ -200,6 +200,7 @@ export const PreferencesProvider = ({
         const key = makeMapKey(pref.type, pref.name);
         return { [key]: pref };
       }) || [];
+      const fspMap = Object.assign({}, ...fspArray);
       if (fspMap) {
         updateLocalFspPreferenceStates(fspMap);
       }

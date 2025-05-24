@@ -13,7 +13,6 @@ import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 import useHandleLeftClick from '@/hooks/useHandleLeftClick';
 import { formatDate, formatFileSize } from '@/utils';
 
-
 type FileRowProps = {
   file: FileOrFolder;
   index: number;

@@ -67,12 +67,6 @@ You can create a file at `~/.jupyter/jupyter_server_config.py` (or in any of the
 c.Fileglancer.central_url='http://0.0.0.0:7878'
 ```
 
-To configure "Dev Mode" which simulates many zones and file share paths, add this to your config:
-
-```python
-c.Fileglancer.dev_mode=True
-```
-
 ## Development Uninstall
 
 ```bash
