@@ -18,7 +18,6 @@ export default function ZonesBrowser({
   filteredZonesMap: ZonesAndFileSharePathsMap;
 }) {
   const { zonesAndFileSharePathsMap } = useZoneBrowserContext();
-  console.log('filteredZonesMap: ', filteredZonesMap);
 
   const displayZones: ZonesAndFileSharePathsMap =
     Object.keys(filteredZonesMap).length > 0 || searchQuery.length > 0

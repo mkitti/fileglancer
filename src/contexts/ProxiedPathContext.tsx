@@ -90,12 +90,10 @@ export const ProxiedPathProvider = ({
       try {
         const path = await fetchProxiedPath();
         if (path) {
-          console.log('Found proxied path:', path);
           setProxiedPath(path);
           setDataUrl(`${proxyBaseUrl}/${path.sharing_key}/${path.sharing_name}`);
         }
         else {
-          console.log('Path is not proxied:', path);
           setProxiedPath(null);
           setDataUrl(null);
         }

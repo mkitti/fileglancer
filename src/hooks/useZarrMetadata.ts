@@ -33,7 +33,6 @@ export default function useZarrMetadata(files: FileOrFolder[]) {
         console.log('Zattrs', zattrs);
         if (zattrs.multiscales) {
           setHasMultiscales(true);
-          console.log('Found OME-Zarr metadata:', zattrs.multiscales);
           const fileFetchPath = getFileFetchPath(
             currentNavigationPath.replace('?subpath=', '/')
           );
