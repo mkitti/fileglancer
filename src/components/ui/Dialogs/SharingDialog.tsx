@@ -27,7 +27,7 @@ export default function SharingDialog({
 }: SharingDialogProps): JSX.Element {
   const [showAlert, setShowAlert] = React.useState<boolean>(false);
   const [alertContent, setAlertContent] = React.useState<string>('');
-  const { createProxiedPath, proxiedPath } = useProxiedPathContext();
+  const { createProxiedPath } = useProxiedPathContext();
   const { currentNavigationPath } = useFileBrowserContext();
   const { currentFileSharePath } = useZoneBrowserContext();
 
