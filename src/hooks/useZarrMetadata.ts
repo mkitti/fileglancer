@@ -16,6 +16,7 @@ export default function useZarrMetadata(files: FileOrFolder[]) {
   const [hasMultiscales, setHasMultiscales] = React.useState(false);
   const [loadingThumbnail, setLoadingThumbnail] = React.useState(false);
 
+  const proxyBaseUrl = 'https://rokickik-dev.int.janelia.org:7878/files';
   const neuroglancerBaseUrl = 'https://neuroglancer-demo.appspot.com/#!';
   const { currentNavigationPath, getFileFetchPath } = useFileBrowserContext();
   const { currentFileSharePath } = useZoneBrowserContext();

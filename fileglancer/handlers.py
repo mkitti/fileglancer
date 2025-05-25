@@ -405,10 +405,15 @@ class ProxiedPathHandler(BaseHandler):
         """
         username = self.get_current_user()
         key = self.get_argument("key", None)
-        self.log.info(f"GET /api/fileglancer/proxied-path username={username} key={key}")
+        mount_path = self.get_argument("mount_path", None)
         try:
             proxied_path_manager = get_proxiedpath_manager(self.settings)
-            response = proxied_path_manager.get_proxied_paths(username, key)
+            if key:
+                self.log.info(f"GET /api/fileglancer/proxied-path username={username} key={key}")
+                response = proxied_path_manager.get_proxied_path_by_key(username, key)
+            else:
+                self.log.info(f"GET /api/fileglancer/proxied-path username={username} mount_path={mount_path}")
+                response = proxied_path_manager.get_proxied_paths(username, mount_path)
             response.raise_for_status()
             self.set_status(200)
             self.finish(response.json())

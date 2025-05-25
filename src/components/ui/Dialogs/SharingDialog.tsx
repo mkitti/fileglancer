@@ -8,7 +8,7 @@ import {
 } from '@material-tailwind/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
-import { useSharedPathsContext } from '@/contexts/SharedPathsContext';
+import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 
@@ -27,8 +27,7 @@ export default function SharingDialog({
 }: SharingDialogProps): JSX.Element {
   const [showAlert, setShowAlert] = React.useState<boolean>(false);
   const [alertContent, setAlertContent] = React.useState<string>('');
-  const { createSharedPath, fetchAndSetLocalSharedPaths } =
-    useSharedPathsContext();
+  const { createProxiedPath, proxiedPath } = useProxiedPathContext();
   const { currentNavigationPath } = useFileBrowserContext();
   const { currentFileSharePath } = useZoneBrowserContext();
 
@@ -60,14 +59,19 @@ export default function SharingDialog({
               className="!rounded-md flex items-center gap-2"
               onClick={async () => {
                 try {
-                  await createSharedPath(
+                  const newProxiedPath = await createProxiedPath(
                     `${currentFileSharePath?.mount_path}/${filePathWithoutFsp}`
                   );
-                  setAlertContent(
-                    `Successfully shared image at path ${filePath}`
-                  );
+                  if (newProxiedPath) {
+                    setAlertContent(
+                      `Successfully shared image at path ${newProxiedPath?.mount_path}`
+                    );
+                  } else {
+                    setAlertContent(
+                      `Error sharing image at path ${filePath}`
+                    );
+                  }
                   setShowAlert(true);
-                  await fetchAndSetLocalSharedPaths();
                 } catch (error) {
                   setAlertContent(
                     `Error sharing image at path ${filePath}: ${

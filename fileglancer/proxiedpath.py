@@ -4,11 +4,9 @@ import logging
 from typing import Optional
 from functools import cache
 
-from .uimodels import ProxiedPath, ProxiedPathResponse
-
+from fileglancer.uimodels import ProxiedPath, ProxiedPathResponse
 
 log = logging.getLogger(__name__)
-
 
 class ProxiedPathManager:
     """Manage the list of user shared data paths from the central server."""
@@ -16,21 +14,21 @@ class ProxiedPathManager:
     def __init__(self, central_url: str):
         self.central_url = central_url
         self._cached_proxied_paths = {}
-    
-    def get_proxied_paths(self, username: str, sharing_key: Optional[str] = None) -> ProxiedPath | ProxiedPathResponse:
-        """
-        Retrieve user proxied paths.
-        If no sharing_key is provided, all shared paths of the specified user are returned.
-        """
-        if sharing_key:
-            log.info(f"Retrieve proxied path {sharing_key} for user {username} from {self.central_url}")
-            return requests.get(f"{self.central_url}/proxied-path/{username}/{sharing_key}")
-        else:
-            log.info(f"Retrieve all proxied paths for user {username} from {self.central_url}")
-            return requests.get(f"{self.central_url}/proxied-path/{username}")
+
+    def get_proxied_path_by_key(self, username: str, sharing_key: str) -> ProxiedPath:
+        """Retrieve a proxied path by sharing key."""
+        log.info(f"Retrieve proxied path {sharing_key} for user {username} from {self.central_url}")
+        return requests.get(f"{self.central_url}/proxied-path/{username}/{sharing_key}")
+
+    def get_proxied_paths(self, username: str, mount_path: Optional[str] = None) -> ProxiedPathResponse:
+        """Retrieve user proxied paths, optionally filtered by mount path."""
+        log.info(f"Retrieve all proxied paths for user {username} from {self.central_url}")
+        return requests.get(f"{self.central_url}/proxied-path/{username}", params = {
+            "mount_path": mount_path
+        })
 
     def create_proxied_path(self, username: str, mount_path: str) -> requests.Response:
-        """Create a proxied path with <a_path> as the mount_point"""
+        """Create a proxied path for the given mount path."""
         return requests.post(
             f"{self.central_url}/proxied-path/{username}",
             params = {
@@ -39,12 +37,13 @@ class ProxiedPathManager:
         )
 
     def delete_proxied_path(self, username: str, sharing_key: str) -> requests.Response:
+        """Delete a proxied path by sharing key."""
         return requests.delete(
             f"{self.central_url}/proxied-path/{username}/{sharing_key}"
         )
 
     def update_proxied_path(self, username: str, sharing_key, new_path: Optional[str], new_name: Optional[str]) -> requests.Response:
-        """Update a proxied path with <a_path> as the mount_point"""
+        """Update a proxied path with the given mount path and sharing name."""
         pp_updates = {}
         if new_path:
             pp_updates["mount_path"] = new_path

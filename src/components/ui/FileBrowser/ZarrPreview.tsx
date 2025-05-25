@@ -14,9 +14,8 @@ import napari_logo from '@/assets/napari.png';
 
 import useCopyPath from '@/hooks/useCopyPath';
 import type { Metadata } from '@/omezarr-helper';
-import { useSharedPathsContext } from '@/contexts/SharedPathsContext';
+import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 import ZarrMetadataTable from './ZarrMetadataTable';
 import SharingDialog from '../Dialogs/SharingDialog';
 
@@ -38,21 +37,16 @@ export default function ZarrPreview({
   const [isImageShared, setIsImageShared] = React.useState(false);
 
   const { copyToClipboard, showCopyAlert, dismissCopyAlert } = useCopyPath();
-  const { sharedPaths } = useSharedPathsContext();
-  const { currentFileSharePath } = useZoneBrowserContext();
+  const { proxiedPath } = useProxiedPathContext();
   const { currentNavigationPath } = useFileBrowserContext();
 
   const filePath = currentNavigationPath.replace('?subpath=', '/');
   const filePathWithoutFsp = filePath.split('/').slice(1).join('/');
 
   React.useEffect(() => {
-    const isShared = sharedPaths[
-      `${currentFileSharePath?.mount_path}/${filePathWithoutFsp}`
-    ]
-      ? true
-      : false;
+    const isShared = proxiedPath !== null;
     setIsImageShared(isShared);
-  }, [sharedPaths, currentFileSharePath, filePathWithoutFsp]);
+  }, [proxiedPath]);
 
   return (
     <div className="flex gap-12 my-4 p-4 bg-primary-light/30 shadow-sm rounded-md w-full h-fit max-h-100">

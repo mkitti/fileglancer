@@ -1,0 +1,110 @@
+import React from 'react';
+import { useCookiesContext } from '@/contexts/CookiesContext';
+import { getAPIPathRoot, sendFetchRequest } from '@/utils';
+import { useZoneBrowserContext } from './ZoneBrowserContext';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+
+type ProxiedPath = {
+  mount_path: string;
+  sharing_key: string;
+  sharing_name: string;
+  username: string;
+};
+
+type ProxiedPathContextType = {
+  proxiedPath: ProxiedPath | null;
+  createProxiedPath: (mountPath: string) => Promise<ProxiedPath | null>;
+};
+
+const ProxiedPathContext = React.createContext<ProxiedPathContextType | null>(
+  null
+);
+
+export const useProxiedPathContext = () => {
+  const context = React.useContext(ProxiedPathContext);
+  if (!context) {
+    throw new Error(
+      'useProxiedPathContext must be used within a ProxiedPathProvider'
+    );
+  }
+  return context;
+};
+
+export const ProxiedPathProvider = ({
+  children
+}: {
+  children: React.ReactNode;
+}) => {
+  const [proxiedPath, setProxiedPath] = React.useState<ProxiedPath | null>(null);
+  const { cookies } = useCookiesContext();
+  const { currentFileSharePath } = useZoneBrowserContext();
+  const { currentNavigationPath } = useFileBrowserContext();
+
+  async function fetchProxiedPath(): Promise<ProxiedPath | null> {
+    try {
+      const filePath = currentNavigationPath.replace('?subpath=', '/');
+      const filePathWithoutFsp = filePath.split('/').slice(1).join('/');
+      const mountPath = `${currentFileSharePath?.mount_path}/${filePathWithoutFsp}`;
+      const response = await sendFetchRequest(
+        `${getAPIPathRoot()}api/fileglancer/proxied-path?mount_path=${mountPath}`,
+        'GET',
+        cookies['_xsrf']
+      );
+      if (!response.ok) {
+        console.error(`Failed to fetch proxied path: ${response.status} ${response.statusText}`);
+        return null;
+      }
+      const data = await response.json() as any;
+      if (data?.paths) {
+        return data.paths[0] as ProxiedPath;
+      }
+    } catch (error) {
+      console.error('Error fetching proxied path:', error);
+    }
+    return null;
+  }
+
+  async function createProxiedPath(mountPath: string): Promise<ProxiedPath | null> {
+    const response = await sendFetchRequest(
+      `${getAPIPathRoot()}api/fileglancer/proxied-path`,
+      'POST',
+      cookies['_xsrf'],
+      { mount_path: mountPath }
+    );
+    if (!response.ok) {
+      throw new Error(`Failed to create proxied path: ${response.status} ${response.statusText}`);
+    }
+    const proxiedPath = await response.json() as ProxiedPath;
+    setProxiedPath(proxiedPath);
+    console.log('Created proxied path:', proxiedPath);
+    return proxiedPath;
+  }
+
+  React.useEffect(() => {
+    (async function () {
+      try {
+        const path = await fetchProxiedPath();
+        if (path) {
+          console.log('Found proxied path:', path);
+          setProxiedPath(path);
+        }
+        else {
+          console.log('Path is not proxied:', path);
+          setProxiedPath(null);
+        }
+      } catch (error) {
+        console.error('Error in useEffect:', error);
+      }
+    })();
+  }, [currentFileSharePath, currentNavigationPath]);
+
+  return (
+    <ProxiedPathContext.Provider
+      value={{ proxiedPath, createProxiedPath }}
+    >
+      {children}
+    </ProxiedPathContext.Provider>
+  );
+};
+
+export default ProxiedPathContext;
