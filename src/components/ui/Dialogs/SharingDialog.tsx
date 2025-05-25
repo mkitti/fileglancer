@@ -48,9 +48,11 @@ export default function SharingDialog({
           >
             <XMarkIcon className="icon-default" />
           </IconButton>
+          {/* TODO: Move Janelia-specific text elsewhere */}
           <Typography className="my-8 text-large text-foreground">
             Are you sure you want to share the image at path{' '}
             <span className='font-semibold'>{currentNavigationPath.replace('?subpath=', '/')}</span>?
+            This will allow anyone at Janelia to view the image in viewers like Neuroglancer.
           </Typography>
           <div className="flex gap-2">
             <Button
