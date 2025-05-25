@@ -18,7 +18,6 @@ import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import ZarrMetadataTable from './ZarrMetadataTable';
 import SharingDialog from '../Dialogs/SharingDialog';
-import { Divide } from 'iconoir-react';
 
 type ZarrPreviewProps = {
   thumbnailSrc: string | null;
@@ -45,8 +44,7 @@ export default function ZarrPreview({
   const filePathWithoutFsp = filePath.split('/').slice(1).join('/');
 
   React.useEffect(() => {
-    const isShared = proxiedPath !== null;
-    setIsImageShared(isShared);
+    setIsImageShared(proxiedPath !== null);
   }, [proxiedPath]);
 
   return (
@@ -73,7 +71,7 @@ export default function ZarrPreview({
             ) : null}
           </div>
 
-          {neuroglancerUrl && !isImageShared ? (
+          {!isImageShared ? (
             <div>
               <Button
                 className="mt-2 bg-secondary-light border-secondary-light hover:!bg-secondary-light/80 hover:!border-secondary-light/80"

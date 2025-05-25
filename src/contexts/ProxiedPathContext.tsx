@@ -4,6 +4,9 @@ import { getAPIPathRoot, sendFetchRequest } from '@/utils';
 import { useZoneBrowserContext } from './ZoneBrowserContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
+// TODO: Make this configurable
+const proxyBaseUrl = 'https://rokickik-dev.int.janelia.org:7878/files';
+
 type ProxiedPath = {
   mount_path: string;
   sharing_key: string;
@@ -13,6 +16,7 @@ type ProxiedPath = {
 
 type ProxiedPathContextType = {
   proxiedPath: ProxiedPath | null;
+  dataUrl: string | null;
   createProxiedPath: (mountPath: string) => Promise<ProxiedPath | null>;
 };
 
@@ -36,6 +40,7 @@ export const ProxiedPathProvider = ({
   children: React.ReactNode;
 }) => {
   const [proxiedPath, setProxiedPath] = React.useState<ProxiedPath | null>(null);
+  const [dataUrl, setDataUrl] = React.useState<string | null>(null);
   const { cookies } = useCookiesContext();
   const { currentFileSharePath } = useZoneBrowserContext();
   const { currentNavigationPath } = useFileBrowserContext();
@@ -87,10 +92,12 @@ export const ProxiedPathProvider = ({
         if (path) {
           console.log('Found proxied path:', path);
           setProxiedPath(path);
+          setDataUrl(`${proxyBaseUrl}/${path.sharing_key}/${path.sharing_name}`);
         }
         else {
           console.log('Path is not proxied:', path);
           setProxiedPath(null);
+          setDataUrl(null);
         }
       } catch (error) {
         console.error('Error in useEffect:', error);
@@ -100,7 +107,7 @@ export const ProxiedPathProvider = ({
 
   return (
     <ProxiedPathContext.Provider
-      value={{ proxiedPath, createProxiedPath }}
+      value={{ proxiedPath, dataUrl, createProxiedPath }}
     >
       {children}
     </ProxiedPathContext.Provider>

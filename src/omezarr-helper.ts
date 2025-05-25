@@ -83,7 +83,6 @@ export type Metadata = {
   omero: Omero | null | undefined;
   scales: number[][];
   zarr_version: 2 | 3;
-  neuroglancerState: string | null;
   thumbnail: string | null;
 };
 /* eslint-enable @typescript-eslint/naming-convention */
@@ -400,13 +399,6 @@ async function getOmeZarrMetadata(
   console.log('Omero: ', omero);
   console.log('Array: ', arr);
   console.log('Shapes: ', shapes);
-  const neuroglancerState = generateNeuroglancerState(
-    dataUrl,
-    zarr_version,
-    multiscale as Multiscale,
-    arr,
-    omero as Omero
-  );
   const thumbnail = await omezarr.renderThumbnail(
     store,
     thumbnailSize,
@@ -420,9 +412,8 @@ async function getOmeZarrMetadata(
     omero,
     scales,
     zarr_version,
-    neuroglancerState,
     thumbnail
   };
 }
 
-export { getOmeZarrMetadata };
+export { getOmeZarrMetadata, generateNeuroglancerState };

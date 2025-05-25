@@ -9,7 +9,6 @@ import {
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
-import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 
 type SharingDialogProps = {
@@ -28,8 +27,8 @@ export default function SharingDialog({
   const [showAlert, setShowAlert] = React.useState<boolean>(false);
   const [alertContent, setAlertContent] = React.useState<string>('');
   const { createProxiedPath } = useProxiedPathContext();
-  const { currentNavigationPath } = useFileBrowserContext();
   const { currentFileSharePath } = useZoneBrowserContext();
+  const fullPath = `${currentFileSharePath?.mount_path}/${filePathWithoutFsp}`;
 
   return (
     <Dialog open={showSharingDialog}>
@@ -50,9 +49,13 @@ export default function SharingDialog({
           </IconButton>
           {/* TODO: Move Janelia-specific text elsewhere */}
           <Typography className="my-8 text-large text-foreground">
-            Are you sure you want to share the image at path{' '}
-            <span className='font-semibold'>{currentNavigationPath.replace('?subpath=', '/')}</span>?
-            This will allow anyone at Janelia to view the image in viewers like Neuroglancer.
+            <p>
+              Are you sure you want to share{' '}
+              <span className='font-semibold' style={{ wordBreak: 'break-all' }}>{fullPath}</span>?
+            </p>
+            <p>
+              This will allow anyone at Janelia to view this data.
+            </p>
           </Typography>
           <div className="flex gap-2">
             <Button
@@ -61,22 +64,20 @@ export default function SharingDialog({
               className="!rounded-md flex items-center gap-2"
               onClick={async () => {
                 try {
-                  const newProxiedPath = await createProxiedPath(
-                    `${currentFileSharePath?.mount_path}/${filePathWithoutFsp}`
-                  );
+                  const newProxiedPath = await createProxiedPath(fullPath);
                   if (newProxiedPath) {
                     setAlertContent(
-                      `Successfully shared image at path ${newProxiedPath?.mount_path}`
+                      `Successfully shared ${fullPath}`
                     );
                   } else {
                     setAlertContent(
-                      `Error sharing image at path ${filePath}`
+                      `Error sharing ${fullPath}`
                     );
                   }
                   setShowAlert(true);
                 } catch (error) {
                   setAlertContent(
-                    `Error sharing image at path ${filePath}: ${
+                    `Error sharing ${fullPath}: ${
                       error instanceof Error ? error.message : 'Unknown error'
                     }`
                   );
