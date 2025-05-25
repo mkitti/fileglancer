@@ -45,6 +45,16 @@ export const ProxiedPathProvider = ({
   const { currentFileSharePath } = useZoneBrowserContext();
   const { currentNavigationPath } = useFileBrowserContext();
 
+  function updateProxiedPath(proxiedPath: ProxiedPath | null) {
+    setProxiedPath(proxiedPath);
+    if (proxiedPath) { 
+      setDataUrl(`${proxyBaseUrl}/${proxiedPath.sharing_key}/${proxiedPath.sharing_name}`);
+    }
+    else {
+      setDataUrl(null);
+    }
+  }
+
   async function fetchProxiedPath(): Promise<ProxiedPath | null> {
     try {
       const filePath = currentNavigationPath.replace('?subpath=', '/');
@@ -80,7 +90,7 @@ export const ProxiedPathProvider = ({
       throw new Error(`Failed to create proxied path: ${response.status} ${response.statusText}`);
     }
     const proxiedPath = await response.json() as ProxiedPath;
-    setProxiedPath(proxiedPath);
+    updateProxiedPath(proxiedPath);
     console.log('Created proxied path:', proxiedPath);
     return proxiedPath;
   }
@@ -90,12 +100,10 @@ export const ProxiedPathProvider = ({
       try {
         const path = await fetchProxiedPath();
         if (path) {
-          setProxiedPath(path);
-          setDataUrl(`${proxyBaseUrl}/${path.sharing_key}/${path.sharing_name}`);
+          updateProxiedPath(path);
         }
         else {
-          setProxiedPath(null);
-          setDataUrl(null);
+          updateProxiedPath(null);
         }
       } catch (error) {
         console.error('Error in useEffect:', error);
