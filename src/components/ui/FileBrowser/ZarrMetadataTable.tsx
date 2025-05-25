@@ -1,20 +1,28 @@
 import { Typography } from '@material-tailwind/react';
-import { Metadata } from '../../../omezarr-helper';
+import { Axis, Metadata, Multiscale } from '../../../omezarr-helper';
 
 type ZarrMetadataTableProps = {
   metadata: Metadata;
 };
 
+function getAxesString(multiscale: Multiscale) {
+  return multiscale.axes.map((axis: Axis) => axis.name.toUpperCase()).join('');
+}
+
+function getSizeString(shapes: number[][] | undefined) {
+  return shapes?.[0]?.join(', ') || 'Unknown';
+}
+
+function getChunkSizeString(metadata: Metadata) {
+  return metadata.arr.chunks.join(', ');
+}
+
 export default function ZarrMetadataTable({
   metadata
 }: ZarrMetadataTableProps) {
-  const { zarr_version, omero, shapes } = metadata;
-
+  const { zarr_version, multiscale, omero, shapes } = metadata;
   return (
     <div className="flex flex-col max-h-min">
-      <Typography className="font-semibold text-sm my-2 text-surface-foreground">
-        OME-Zarr metadata:
-      </Typography>
       <table className="bg-background/90  ">
         <tbody className="text-sm">
           <tr className="border-y border-surface-dark">
@@ -22,18 +30,20 @@ export default function ZarrMetadataTable({
             <td className="p-3">{zarr_version}</td>
           </tr>
           <tr className="border-b border-surface-dark">
-            <td className="p-3 font-semibold">Omero Metadata?</td>
+            <td className="p-3 font-semibold">OMERO Metadata?</td>
             <td className="p-3">{omero ? 'Yes' : 'No'}</td>
           </tr>
           <tr className="border-b border-surface-dark">
+            <td className="p-3 font-semibold">Axes</td>
+            <td className="p-3">{getAxesString(multiscale)}</td>
+          </tr>
+          <tr className="border-b border-surface-dark">
             <td className="p-3 font-semibold">Shapes</td>
-            <td className="p-3">
-              {shapes
-                ? shapes.map((shape, index) => (
-                    <div key={index}>[{shape.join(', ')}]</div>
-                  ))
-                : 'None'}
-            </td>
+            <td className="p-3">{getSizeString(shapes)}</td>
+          </tr>
+          <tr className="border-b border-surface-dark">
+            <td className="p-3 font-semibold">Chunk Size</td>
+            <td className="p-3">{getChunkSizeString(metadata)}</td>
           </tr>
         </tbody>
       </table>
