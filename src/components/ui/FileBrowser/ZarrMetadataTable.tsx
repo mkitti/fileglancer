@@ -1,4 +1,3 @@
-import { Typography } from '@material-tailwind/react';
 import { Axis, Metadata, Multiscale } from '../../../omezarr-helper';
 
 type ZarrMetadataTableProps = {
@@ -23,7 +22,7 @@ export default function ZarrMetadataTable({
   const { zarr_version, multiscale, omero, shapes } = metadata;
   return (
     <div className="flex flex-col max-h-min">
-      <table className="bg-background/90  ">
+      <table className="bg-background/90">
         <tbody className="text-sm">
           <tr className="border-y border-surface-dark">
             <td className="p-3 font-semibold">Zarr Version</td>
