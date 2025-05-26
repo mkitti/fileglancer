@@ -595,6 +595,10 @@ class StaticHandler(JupyterHandler, web.StaticFileHandler):
 
 def setup_handlers(web_app):
     """
+    ! Deprectated: This function has been replaced by the `initialize_handlers` function.
+    ! Use `initialize_handlers` in app.py to set up the URL handlers for the Fileglancer
+    ! extension.
+
     Setup the URL handlers for the Fileglancer extension
     """
     base_url = web_app.settings["base_url"]
