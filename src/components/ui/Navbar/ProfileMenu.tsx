@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import useProfile from '@/hooks/useProfile'; // Assuming you have a custom hook for fetching profile
 import { IconButton, Menu } from '@material-tailwind/react';
 import {
   ArrowRightStartOnRectangleIcon as LogoutIcon,
@@ -9,6 +10,7 @@ import { Link } from 'react-router-dom';
 
 export default function ProfileMenu() {
   const [origin, setOrigin] = useState('');
+  const { profile } = useProfile();
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -31,7 +33,8 @@ export default function ProfileMenu() {
           to="/profile"
           className="dark:text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark hover:!text-foreground focus:!text-foreground"
         >
-          <UserCircleIcon className="mr-2 icon-default" /> Profile
+          <UserCircleIcon className="mr-2 icon-default" />{' '}
+          {profile ? profile.username : 'Loading...'}
         </Menu.Item>
         <Menu.Item
           as={Link}
