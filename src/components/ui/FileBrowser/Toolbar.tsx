@@ -6,25 +6,34 @@ import {
   Typography
 } from '@material-tailwind/react';
 import {
+  ArrowLeftEndOnRectangleIcon,
+  ArrowLeftStartOnRectangleIcon,
   ArrowPathIcon,
+  ArrowRightEndOnRectangleIcon,
+  ArrowRightStartOnRectangleIcon,
   EyeIcon,
   EyeSlashIcon,
-  FolderPlusIcon,
-  ListBulletIcon
+  FolderPlusIcon
 } from '@heroicons/react/24/solid';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
 type ToolbarProps = {
   hideDotFiles: boolean;
   setHideDotFiles: React.Dispatch<React.SetStateAction<boolean>>;
+  showPropertiesDrawer: boolean;
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
+  showSidebar: boolean;
+  setShowSidebar: React.Dispatch<React.SetStateAction<boolean>>;
   setShowNewFolderDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function Toolbar({
   hideDotFiles,
   setHideDotFiles,
+  showPropertiesDrawer,
   setShowPropertiesDrawer,
+  showSidebar,
+  setShowSidebar,
   setShowNewFolderDialog
 }: ToolbarProps): JSX.Element {
   const { fetchAndFormatFilesForDisplay, currentNavigationPath } =
@@ -33,6 +42,38 @@ export default function Toolbar({
     <div className="flex flex-col min-w-full p-2 border-b border-surface">
       <div className="flex justify-between items-center">
         <ButtonGroup className="gap-1">
+          {/* Show/hide favorites and zone browser sidebar */}
+          <Tooltip placement="top">
+            <Tooltip.Trigger
+              as={IconButton}
+              variant="outline"
+              onClick={() => setShowSidebar((prev: boolean) => !prev)}
+            >
+              {showSidebar ? (
+                <>
+                  <ArrowLeftEndOnRectangleIcon className="icon-default" />
+
+                  <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
+                    <Typography type="small" className="opacity-90">
+                      Hide favorites and zone browser
+                    </Typography>
+                    <Tooltip.Arrow />
+                  </Tooltip.Content>
+                </>
+              ) : (
+                <>
+                  <ArrowRightStartOnRectangleIcon className="icon-default" />
+                  <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
+                    <Typography type="small" className="opacity-90">
+                      View favorites and zone browser
+                    </Typography>
+                    <Tooltip.Arrow />
+                  </Tooltip.Content>
+                </>
+              )}
+            </Tooltip.Trigger>
+          </Tooltip>
+
           {/* Refresh browser contents */}
           <Tooltip placement="top">
             <Tooltip.Trigger
@@ -100,13 +141,27 @@ export default function Toolbar({
             variant="outline"
             onClick={() => setShowPropertiesDrawer((prev: boolean) => !prev)}
           >
-            <ListBulletIcon className="icon-default" />
-            <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-              <Typography type="small" className="opacity-90">
-                View file properties
-              </Typography>
-              <Tooltip.Arrow />
-            </Tooltip.Content>
+            {showPropertiesDrawer ? (
+              <>
+                <ArrowRightEndOnRectangleIcon className="icon-default" />
+                <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
+                  <Typography type="small" className="opacity-90">
+                    Hide file properties
+                  </Typography>
+                  <Tooltip.Arrow />
+                </Tooltip.Content>
+              </>
+            ) : (
+              <>
+                <ArrowLeftStartOnRectangleIcon className="icon-default" />
+                <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
+                  <Typography type="small" className="opacity-90">
+                    View file properties
+                  </Typography>
+                  <Tooltip.Arrow />
+                </Tooltip.Content>
+              </>
+            )}
           </Tooltip.Trigger>
         </Tooltip>
       </div>
