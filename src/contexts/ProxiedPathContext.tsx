@@ -110,10 +110,9 @@ export const ProxiedPathProvider = ({
       return;
     }
     const response = await sendFetchRequest(
-      `${getAPIPathRoot()}api/fileglancer/proxied-path/`,
+      `${getAPIPathRoot()}api/fileglancer/proxied-path?sharing_key=${proxiedPath.sharing_key}`,
       'DELETE',
-      cookies['_xsrf'],
-      { sharing_key: proxiedPath.sharing_key }
+      cookies['_xsrf']
     );
     if (!response.ok) {
       throw new Error(

@@ -338,6 +338,10 @@ class ProxiedPathHandler(BaseHandler):
         """
         username = self.get_current_user()
         data = self.get_json_body()
+        if data is None:
+            self.set_status(400)
+            self.finish(json.dumps({"error": "JSON body with mount path is required to create a proxied path"}))
+            return
         mount_path = data.get("mount_path", None)
         self.log.info(f"POST /api/fileglancer/proxied-path username={username} mount_path={mount_path}")
         try:
@@ -369,7 +373,11 @@ class ProxiedPathHandler(BaseHandler):
         """
         username = self.get_current_user()
         data = self.get_json_body()
-        key = self.get_argument("key", None)
+        if data is None:
+            self.set_status(400)
+            self.finish(json.dumps({"error": "JSON body is required to update a proxied path"}))
+            return
+        key = data.get("sharing_key", None)
         mount_path = data.get("mount_path", None)
         sharing_name = data.get("sharing_name", None)
         self.log.info((
@@ -404,7 +412,7 @@ class ProxiedPathHandler(BaseHandler):
         Get all proxied paths or a specific proxied path for the current user.
         """
         username = self.get_current_user()
-        key = self.get_argument("key", None)
+        key = self.get_argument("sharing_key", None)
         mount_path = self.get_argument("mount_path", None)
         try:
             proxied_path_manager = get_proxiedpath_manager(self.settings)
@@ -432,16 +440,16 @@ class ProxiedPathHandler(BaseHandler):
         Delete the specified proxied path for the current user.
         """
         username = self.get_current_user()
-        key = self.get_argument("key", None)
-        self.log.info(f"DELETE /api/fileglancer/proxied-path username={username} key={key}")
-        if key is None:
-            self.log.warning("Key is required to delete a proxied path")
+        sharing_key = self.get_argument("sharing_key", None)
+        self.log.info(f"DELETE /api/fileglancer/proxied-path username={username} sharing_key={sharing_key}")
+        if sharing_key is None:
+            self.log.warning("Sharing key is required to delete a proxied path")
             self.set_status(400)
-            self.finish(json.dumps({"error": "Key is required to delete a proxied path"}))
+            self.finish(json.dumps({"error": "Sharing key is required to delete a proxied path"}))
             return
         try:
             proxied_path_manager = get_proxiedpath_manager(self.settings)
-            response = proxied_path_manager.delete_proxied_path(username, key)
+            response = proxied_path_manager.delete_proxied_path(username, sharing_key)
             response.raise_for_status()
             self.set_status(204)
             self.finish()
