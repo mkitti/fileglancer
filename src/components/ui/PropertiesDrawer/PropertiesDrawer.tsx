@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
   Alert,
   Button,
+  Card,
   IconButton,
   Typography,
   Tabs
@@ -64,102 +65,98 @@ export default function PropertiesDrawer({
         </IconButton>
       </div>
 
-        {propertiesTarget ? (
-          <div className="flex items-center gap-2 mt-3 mb-4 max-h-min overflow-x-auto">
-            {propertiesTarget.is_dir ? (
-              <FolderIcon className="icon-default" />
-            ) : (
-              <DocumentIcon className="icon-default" />
-            )}{' '}
-            <Typography className="font-semibold">
-              {propertiesTarget?.name}
-            </Typography>
-          </div>
-        ) : (
-          <Typography className="mt-3 mb-4">
-            Click on a file or folder to view its properties
+      {propertiesTarget ? (
+        <div className="flex items-center gap-2 mt-3 mb-4 max-h-min overflow-x-auto">
+          {propertiesTarget.is_dir ? (
+            <FolderIcon className="icon-default" />
+          ) : (
+            <DocumentIcon className="icon-default" />
+          )}{' '}
+          <Typography className="font-semibold">
+            {propertiesTarget?.name}
           </Typography>
-        )}
-        {propertiesTarget ? (
-          <Tabs key="file-properties-tabs" defaultValue="overview">
-            <Tabs.List className="w-full rounded-none border-b border-secondary-dark  bg-transparent dark:bg-transparent py-0">
-              <Tabs.Trigger
-                className="w-full !text-foreground"
-                value="overview"
-              >
-                Overview
-              </Tabs.Trigger>
+        </div>
+      ) : (
+        <Typography className="mt-3 mb-4">
+          Click on a file or folder to view its properties
+        </Typography>
+      )}
+      {propertiesTarget ? (
+        <Tabs key="file-properties-tabs" defaultValue="overview">
+          <Tabs.List className="w-full rounded-none border-b border-secondary-dark  bg-transparent dark:bg-transparent py-0">
+            <Tabs.Trigger className="w-full !text-foreground" value="overview">
+              Overview
+            </Tabs.Trigger>
 
-              <Tabs.Trigger
-                className="w-full !text-foreground"
-                value="permissions"
-              >
-                Permissions
-              </Tabs.Trigger>
+            <Tabs.Trigger
+              className="w-full !text-foreground"
+              value="permissions"
+            >
+              Permissions
+            </Tabs.Trigger>
 
-              <Tabs.Trigger className="w-full !text-foreground" value="convert">
-                Convert
-              </Tabs.Trigger>
-              <Tabs.TriggerIndicator className="rounded-none border-b-2 border-secondary bg-transparent dark:bg-transparent shadow-none" />
-            </Tabs.List>
+            <Tabs.Trigger className="w-full !text-foreground" value="convert">
+              Convert
+            </Tabs.Trigger>
+            <Tabs.TriggerIndicator className="rounded-none border-b-2 border-secondary bg-transparent dark:bg-transparent shadow-none" />
+          </Tabs.List>
 
-            <Tabs.Panel value="overview">
-              <div className="group flex justify-between items-center overflow-x-hidden">
-                <Typography className="text-foreground font-medium text-sm overflow-x-scroll">
-                  <span className="!font-bold">Path: </span>
-                  {fullPath}
-                </Typography>
-                <IconButton
-                  variant="ghost"
-                  isCircular
-                  className="text-transparent group-hover:text-foreground"
-                  onClick={() => {
-                    if (propertiesTarget) {
-                      copyToClipboard(fullPath);
-                    }
-                  }}
-                >
-                  <Square2StackIcon className="icon-small" />
-                </IconButton>
-              </div>
-              {copiedText.value === fullPath &&
-              copiedText.isCopied === true &&
-              showCopyAlert === true ? (
-                <Alert className="flex items-center justify-between bg-secondary-light/70 border-none">
-                  <Alert.Content>Path copied to clipboard!</Alert.Content>
-                  <XMarkIcon
-                    className="icon-default cursor-pointer"
-                    onClick={dismissCopyAlert}
-                  />
-                </Alert>
-              ) : null}
-              <OverviewTable file={propertiesTarget} />
-            </Tabs.Panel>
-
-            <Tabs.Panel value="permissions" className="flex flex-col gap-2">
-              <PermissionsTable file={propertiesTarget} />
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowPermissionsDialog(true);
-                }}
-                className="!rounded-md"
-              >
-                Change Permissions
-              </Button>
-            </Tabs.Panel>
-
-            <Tabs.Panel value="convert" className="flex flex-col gap-2">
-              <Typography variant="small" className="font-medium">
-                Convert data to OME-Zarr
+          <Tabs.Panel value="overview">
+            <div className="group flex justify-between items-center overflow-x-hidden">
+              <Typography className="text-foreground font-medium text-sm overflow-x-scroll">
+                <span className="!font-bold">Path: </span>
+                {fullPath}
               </Typography>
-              <Button as="a" href="#" variant="outline">
-                Submit
-              </Button>
-            </Tabs.Panel>
-          </Tabs>
-        ) : null}
-      </div>
-    </div>
+              <IconButton
+                variant="ghost"
+                isCircular
+                className="text-transparent group-hover:text-foreground"
+                onClick={() => {
+                  if (propertiesTarget) {
+                    copyToClipboard(fullPath);
+                  }
+                }}
+              >
+                <Square2StackIcon className="icon-small" />
+              </IconButton>
+            </div>
+            {copiedText.value === fullPath &&
+            copiedText.isCopied === true &&
+            showCopyAlert === true ? (
+              <Alert className="flex items-center justify-between bg-secondary-light/70 border-none">
+                <Alert.Content>Path copied to clipboard!</Alert.Content>
+                <XMarkIcon
+                  className="icon-default cursor-pointer"
+                  onClick={dismissCopyAlert}
+                />
+              </Alert>
+            ) : null}
+            <OverviewTable file={propertiesTarget} />
+          </Tabs.Panel>
+
+          <Tabs.Panel value="permissions" className="flex flex-col gap-2">
+            <PermissionsTable file={propertiesTarget} />
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowPermissionsDialog(true);
+              }}
+              className="!rounded-md"
+            >
+              Change Permissions
+            </Button>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="convert" className="flex flex-col gap-2">
+            <Typography variant="small" className="font-medium">
+              Convert data to OME-Zarr
+            </Typography>
+            <Button as="a" href="#" variant="outline">
+              Submit
+            </Button>
+          </Tabs.Panel>
+        </Tabs>
+      ) : null}
+    </Card>
   );
 }
