@@ -228,14 +228,20 @@ function generateNeuroglancerState(
   arr: zarr.Array<any>,
   omero?: Omero
 ): string | null {
-  if (DEBUG) console.log('Generating Neuroglancer state for', dataUrl);
+  if (DEBUG) {
+    console.log('Generating Neuroglancer state for', dataUrl);
+  }
 
   // Convert axes array to a map for easier access
   const axesMap = getAxesMap(multiscale);
-  if (DEBUG) console.log('Axes map: ', axesMap);
+  if (DEBUG) {
+    console.log('Axes map: ', axesMap);
+  }
 
   const { min: dtypeMin, max: dtypeMax } = getMinMaxValues(arr);
-  if (DEBUG) console.log('Inferred min/max values:', dtypeMin, dtypeMax);
+  if (DEBUG) {
+    console.log('Inferred min/max values:', dtypeMin, dtypeMax);
+  }
 
   // Create the scaffold for theNeuroglancer viewer state
   const state: any = {
@@ -273,8 +279,10 @@ function generateNeuroglancerState(
     }
   }
 
-  if (DEBUG) console.log('Dimensions: ', state.dimensions);
-  if (DEBUG) console.log('Positions: ', state.position);
+  if (DEBUG) {
+    console.log('Dimensions: ', state.dimensions);
+    console.log('Positions: ', state.position);
+  }
 
   // Remove the channel dimension, which will be handled by layers
   imageDimensions.delete('c');
@@ -291,7 +299,9 @@ function generateNeuroglancerState(
   let colorIndex = 0;
   const channels = [];
   if (omero && omero.channels) {
-    if (DEBUG) console.log('Omero channels: ', omero.channels);
+    if (DEBUG) {
+      console.log('Omero channels: ', omero.channels);
+    }
     for (let i = 0; i < omero.channels.length; i++) {
       const channelMeta = omero.channels[i];
       const window = channelMeta.window || {};
