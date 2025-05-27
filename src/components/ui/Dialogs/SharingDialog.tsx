@@ -10,6 +10,7 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
+import { set } from 'node_modules/zarrita/dist/src/indexing/set';
 
 type SharingDialogProps = {
   isImageShared: boolean;
@@ -87,6 +88,7 @@ export default function SharingDialog({
                       setAlertContent(`Error sharing ${fullPath}`);
                     }
                     setIsImageShared(true);
+                    setShowSharingDialog(false);
                   } catch (error) {
                     setAlertContent(
                       `Error sharing ${fullPath}: ${
@@ -110,6 +112,7 @@ export default function SharingDialog({
                     await deleteProxiedPath();
                     setIsImageShared(false);
                     setAlertContent(`Successfully unshared ${fullPath}`);
+                    setShowSharingDialog(false);
                   } catch (error) {
                     setAlertContent(
                       `Error unsharing ${fullPath}: ${
