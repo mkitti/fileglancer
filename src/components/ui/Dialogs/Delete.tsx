@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Alert,
   Button,
   Dialog,
   IconButton,
@@ -23,8 +22,7 @@ export default function DeleteDialog({
   showDeleteDialog,
   setShowDeleteDialog
 }: DeleteDialogProps): JSX.Element {
-  const { handleDelete, showAlert, setShowAlert, alertContent } =
-    useDeleteDialog();
+  const { handleDelete } = useDeleteDialog();
   const { currentFileSharePath } = useZoneBrowserContext();
   return (
     <Dialog open={showDeleteDialog}>
@@ -38,7 +36,6 @@ export default function DeleteDialog({
             isCircular
             onClick={() => {
               setShowDeleteDialog(false);
-              setShowAlert(false);
             }}
           >
             <XMarkIcon className="icon-default" />
@@ -53,26 +50,15 @@ export default function DeleteDialog({
           <Button
             color="error"
             className="!rounded-md"
-            onClick={() => {
-              handleDelete(targetItem);
+            onClick={async () => {
+              const success = await handleDelete(targetItem);
+              if (success) {
+                setShowDeleteDialog(false);
+              }
             }}
           >
             Delete
           </Button>
-          {showAlert === true ? (
-            <Alert
-              className={`flex items-center gap-6 mt-6 border-none ${alertContent.startsWith('Error') ? 'bg-error-light/90' : 'bg-secondary-light/70'}`}
-            >
-              <Alert.Content>{alertContent}</Alert.Content>
-              <XMarkIcon
-                className="icon-default cursor-pointer"
-                onClick={() => {
-                  setShowAlert(false);
-                  setShowDeleteDialog(false);
-                }}
-              />
-            </Alert>
-          ) : null}
         </Dialog.Content>
       </Dialog.Overlay>
     </Dialog>

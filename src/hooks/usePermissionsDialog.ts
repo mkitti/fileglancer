@@ -1,4 +1,6 @@
 import React from 'react';
+import toast from 'react-hot-toast';
+
 import {
   getAPIPathRoot,
   sendFetchRequest,
@@ -11,7 +13,6 @@ import { useFileBrowserContext } from '../contexts/FileBrowserContext';
 
 export default function usePermissionsDialog() {
   const [showAlert, setShowAlert] = React.useState<boolean>(false);
-  const [alertContent, setAlertContent] = React.useState<string>('');
   const { cookies } = useCookiesContext();
   const { currentFileSharePath } = useZoneBrowserContext();
   const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
@@ -33,16 +34,16 @@ export default function usePermissionsDialog() {
       await fetchAndFormatFilesForDisplay(
         `${currentFileSharePath?.name}?subpath=${removeLastSegmentFromPath(targetItem.path)}`
       );
-      setAlertContent(
+      toast.success(
         `Successfully updated permissions for ${currentFileSharePath?.name}/${targetItem.path}`
       );
     } catch (error) {
-      setAlertContent(
+      toast.error(
         `Error updating permissions for ${currentFileSharePath?.name}/${targetItem.path}: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
     setShowAlert(true);
   }
 
-  return { handleChangePermissions, showAlert, setShowAlert, alertContent };
+  return { handleChangePermissions, showAlert, setShowAlert };
 }

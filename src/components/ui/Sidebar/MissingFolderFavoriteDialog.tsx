@@ -1,6 +1,6 @@
 import React from 'react';
+import toast from 'react-hot-toast';
 import {
-  Alert,
   Button,
   Dialog,
   IconButton,
@@ -12,7 +12,6 @@ import {
   FolderFavorite,
   usePreferencesContext
 } from '@/contexts/PreferencesContext';
-import { X } from 'iconoir-react';
 
 type MissingFolderFavoriteDialogProps = {
   folderFavorite: FolderFavorite;
@@ -27,8 +26,6 @@ export default function MissingFolderFavoriteDialog({
   showMissingFolderFavoriteDialog,
   setShowMissingFolderFavoriteDialog
 }: MissingFolderFavoriteDialogProps): JSX.Element {
-  const [showAlert, setShowAlert] = React.useState<boolean>(false);
-  const [alertContent, setAlertContent] = React.useState<string>('');
   const { handleFavoriteChange } = usePreferencesContext();
 
   return (
@@ -43,7 +40,6 @@ export default function MissingFolderFavoriteDialog({
             isCircular
             onClick={() => {
               setShowMissingFolderFavoriteDialog(false);
-              setShowAlert(false);
             }}
           >
             <XMarkIcon className="icon-default" />
@@ -61,13 +57,15 @@ export default function MissingFolderFavoriteDialog({
               onClick={() => {
                 try {
                   handleFavoriteChange(folderFavorite, 'folder');
+                  toast.success(
+                    `Deleted favorite folder ${folderFavorite.folderPath}`
+                  );
                 } catch (error) {
-                  setAlertContent(
+                  toast.error(
                     `Error deleting favorite folder ${folderFavorite.folderPath}: ${
                       error instanceof Error ? error.message : 'Unknown error'
                     }`
                   );
-                  setShowAlert(true);
                 }
               }}
             >
@@ -83,20 +81,6 @@ export default function MissingFolderFavoriteDialog({
               Cancel
             </Button>
           </div>
-          {showAlert === true ? (
-            <Alert
-              className={`flex items-center gap-6 mt-6 border-none ${alertContent.startsWith('Error') ? 'bg-error-light/90' : 'bg-secondary-light/70'}`}
-            >
-              <Alert.Content>{alertContent}</Alert.Content>
-              <XMarkIcon
-                className="icon-default cursor-pointer"
-                onClick={() => {
-                  setShowAlert(false);
-                  setShowMissingFolderFavoriteDialog(false);
-                }}
-              />
-            </Alert>
-          ) : null}
         </Dialog.Content>
       </Dialog.Overlay>
     </Dialog>
