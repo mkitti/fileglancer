@@ -1,4 +1,3 @@
-import React from 'react';
 import toast from 'react-hot-toast';
 import {
   getAPIPathRoot,
@@ -11,8 +10,6 @@ import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';
 import { useFileBrowserContext } from '../contexts/FileBrowserContext';
 
 export default function useDeleteDialog() {
-  const [showAlert, setShowAlert] = React.useState<boolean>(false);
-  const [alertContent, setAlertContent] = React.useState<string>('');
   const { cookies } = useCookiesContext();
   const { currentFileSharePath } = useZoneBrowserContext();
   const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
@@ -32,13 +29,13 @@ export default function useDeleteDialog() {
       );
       return true;
     } catch (error) {
-      setAlertContent(
+      toast.error(
         `Error deleting ${currentFileSharePath?.name}/${targetItem.path}: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
-      setShowAlert(true);
+
       return false;
     }
   }
 
-  return { handleDelete, showAlert, setShowAlert, alertContent };
+  return { handleDelete };
 }
