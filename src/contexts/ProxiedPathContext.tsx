@@ -4,8 +4,7 @@ import { getAPIPathRoot, sendFetchRequest } from '@/utils';
 import { useZoneBrowserContext } from './ZoneBrowserContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
-// TODO: Make this configurable
-const proxyBaseUrl = 'https://rokickik-dev.int.janelia.org:7878/files';
+const proxyBaseUrl = import.meta.env.VITE_PROXY_BASE_URL;
 
 type ProxiedPath = {
   mount_path: string;

@@ -1,3 +1,4 @@
+*.local
 *.bundle.*
 lib/
 node_modules/
