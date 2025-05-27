@@ -12,21 +12,23 @@ import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 
 type SharingDialogProps = {
-  filePath: string;
+  isImageShared: boolean;
+  setIsImageShared: React.Dispatch<React.SetStateAction<boolean>>;
   filePathWithoutFsp: string;
   showSharingDialog: boolean;
   setShowSharingDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function SharingDialog({
-  filePath,
+  isImageShared,
+  setIsImageShared,
   filePathWithoutFsp,
   showSharingDialog,
   setShowSharingDialog
 }: SharingDialogProps): JSX.Element {
   const [showAlert, setShowAlert] = React.useState<boolean>(false);
   const [alertContent, setAlertContent] = React.useState<string>('');
-  const { createProxiedPath } = useProxiedPathContext();
+  const { createProxiedPath, deleteProxiedPath } = useProxiedPathContext();
   const { currentFileSharePath } = useZoneBrowserContext();
   const fullPath = `${currentFileSharePath?.mount_path}/${filePathWithoutFsp}`;
 
@@ -48,45 +50,79 @@ export default function SharingDialog({
             <XMarkIcon className="icon-default" />
           </IconButton>
           {/* TODO: Move Janelia-specific text elsewhere */}
-          <Typography className="my-8 text-large text-foreground">
-            <p>
-              Are you sure you want to share{' '}
-              <span className='font-semibold' style={{ wordBreak: 'break-all' }}>{fullPath}</span>?
-            </p>
-            <p>
-              This will allow anyone at Janelia to view this data.
-            </p>
-          </Typography>
+          {isImageShared ? (
+            <Typography className="my-8 text-large text-foreground">
+              <p>
+                Are you sure you want to unshare{' '}
+                <span className="font-semibold break-all">{fullPath}</span>?
+              </p>
+              <p>
+                If you previously shared a link to these data with
+                collaborators, the link will no longer work. You can always
+                share these data again later.
+              </p>
+            </Typography>
+          ) : (
+            <Typography className="my-8 text-large text-foreground">
+              <p>
+                Are you sure you want to share{' '}
+                <span className="font-semibold break-all">{fullPath}</span>?
+              </p>
+              <p>This will allow anyone at Janelia to view this data.</p>
+            </Typography>
+          )}
+
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              color="error"
-              className="!rounded-md flex items-center gap-2"
-              onClick={async () => {
-                try {
-                  const newProxiedPath = await createProxiedPath(fullPath);
-                  if (newProxiedPath) {
+            {!isImageShared ? (
+              <Button
+                variant="outline"
+                color="error"
+                className="!rounded-md flex items-center gap-2"
+                onClick={async () => {
+                  try {
+                    const newProxiedPath = await createProxiedPath(fullPath);
+                    if (newProxiedPath) {
+                      setAlertContent(`Successfully shared ${fullPath}`);
+                    } else {
+                      setAlertContent(`Error sharing ${fullPath}`);
+                    }
+                    setIsImageShared(true);
+                  } catch (error) {
                     setAlertContent(
-                      `Successfully shared ${fullPath}`
+                      `Error sharing ${fullPath}: ${
+                        error instanceof Error ? error.message : 'Unknown error'
+                      }`
                     );
-                  } else {
-                    setAlertContent(
-                      `Error sharing ${fullPath}`
-                    );
+                    setShowAlert(true);
                   }
-                  setShowAlert(true);
-                } catch (error) {
-                  setAlertContent(
-                    `Error sharing ${fullPath}: ${
-                      error instanceof Error ? error.message : 'Unknown error'
-                    }`
-                  );
-                  setShowAlert(true);
-                }
-              }}
-            >
-              Share image
-            </Button>
+                }}
+              >
+                Share image
+              </Button>
+            ) : null}
+            {isImageShared ? (
+              <Button
+                variant="outline"
+                color="error"
+                className="!rounded-md flex items-center gap-2"
+                onClick={async () => {
+                  try {
+                    await deleteProxiedPath();
+                    setIsImageShared(false);
+                    setAlertContent(`Successfully unshared ${fullPath}`);
+                  } catch (error) {
+                    setAlertContent(
+                      `Error unsharing ${fullPath}: ${
+                        error instanceof Error ? error.message : 'Unknown error'
+                      }`
+                    );
+                    setShowAlert(true);
+                  }
+                }}
+              >
+                Unshare image
+              </Button>
+            ) : null}
             <Button
               variant="outline"
               className="!rounded-md flex items-center gap-2"

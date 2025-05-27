@@ -102,7 +102,8 @@ export default function ZarrPreview({
 
           {showSharingDialog ? (
             <SharingDialog
-              filePath={filePath}
+              isImageShared={isImageShared}
+              setIsImageShared={setIsImageShared}
               filePathWithoutFsp={filePathWithoutFsp}
               showSharingDialog={showSharingDialog}
               setShowSharingDialog={setShowSharingDialog}
