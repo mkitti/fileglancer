@@ -13,8 +13,7 @@ from pathlib import Path, PurePath
 from traitlets import (
     TraitType,
     Undefined,
-    Unicode,
-    Bool,
+    Unicode
 )
 
 class PathType(TraitType):

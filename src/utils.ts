@@ -38,7 +38,7 @@ function getAPIPathRoot() {
 
 class HTTPError extends Error {
   responseCode: number;
-  
+
   constructor(message: string, responseCode: number) {
     super(message);
     this.responseCode = responseCode;
@@ -122,84 +122,31 @@ function getFileFetchPath(path: string): string {
 async function fetchFileContent(
   path: string,
   cookies: Record<string, string>
-): Promise<Uint8Array | null> {
+): Promise<Uint8Array> {
   const url = getFileFetchPath(path);
-
-  try {
-    const response = await sendFetchRequest(url, 'GET', cookies['_xsrf']);
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch file: ${response.statusText}`);
-    }
-
-    const contentDisposition = response.headers.get('Content-Disposition');
-    if (!contentDisposition || !contentDisposition.includes('attachment')) {
-      throw new Error('Invalid response: Expected an attachment');
-    }
-
-    const fileBuffer = await response.arrayBuffer();
-    return new Uint8Array(fileBuffer);
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error(error.message);
-    } else {
-      console.error('An unknown error occurred');
-    }
-    return null;
+  const response = await sendFetchRequest(url, 'GET', cookies._xsrf);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch file: ${response.statusText}`);
   }
+  const fileBuffer = await response.arrayBuffer();
+  return new Uint8Array(fileBuffer);
 }
 
 async function fetchFileAsText(
   path: string,
   cookies: Record<string, string>
-): Promise<string | null> {
-  try {
-    const fileContent = await fetchFileContent(path, cookies);
-    if (fileContent === null) {
-      console.warn(`No content fetched for path: ${path}`);
-      return null;
-    }
-    const decoder = new TextDecoder('utf-8');
-    return decoder.decode(fileContent);
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error(
-        `Error in fetchFileAsText for path ${path}: ${error.message}`
-      );
-    } else {
-      console.error(
-        `An unknown error occurred in fetchFileAsText for path ${path}`
-      );
-    }
-    return null;
-  }
+): Promise<string> {
+  const fileContent = await fetchFileContent(path, cookies);
+  const decoder = new TextDecoder('utf-8');
+  return decoder.decode(fileContent);
 }
 
 async function fetchFileAsJson(
   path: string,
-  cookies?: Record<string, string>
-): Promise<object | null> {
-  try {
-    const fileText = await fetchFileAsText(path, cookies || {});
-    if (fileText === null) {
-      console.warn(`No text content fetched for path: ${path}`);
-      return null;
-    }
-    return JSON.parse(fileText);
-  } catch (error: unknown) {
-    if (error instanceof SyntaxError) {
-      console.error(`JSON parsing error for path ${path}: ${error.message}`);
-    } else if (error instanceof Error) {
-      console.error(
-        `Error in fetchFileAsJson for path ${path}: ${error.message}`
-      );
-    } else {
-      console.error(
-        `An unknown error occurred in fetchFileAsJson for path ${path}`
-      );
-    }
-    return null;
-  }
+  cookies: Record<string, string>
+): Promise<object> {
+  const fileText = await fetchFileAsText(path, cookies);
+  return JSON.parse(fileText);
 }
 
 export {

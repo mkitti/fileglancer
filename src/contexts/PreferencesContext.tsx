@@ -3,7 +3,12 @@ import React from 'react';
 import type { FileSharePath, Zone } from '@/shared.types';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { useZoneBrowserContext } from './ZoneBrowserContext';
-import { getAPIPathRoot, sendFetchRequest, makeMapKey, HTTPError } from '@/utils';
+import {
+  getAPIPathRoot,
+  sendFetchRequest,
+  makeMapKey,
+  HTTPError
+} from '@/utils';
 
 export type FolderFavorite = {
   type: 'folder';
@@ -95,8 +100,7 @@ export const PreferencesProvider = ({
     } catch (error) {
       if (error instanceof HTTPError && error.responseCode === 404) {
         console.log(`Preference '${key}' not found`);
-      }
-      else {
+      } else {
         console.log(`Error fetching preference '${key}':`, error);
       }
       return null;
@@ -178,10 +182,11 @@ export const PreferencesProvider = ({
 
     (async function () {
       const backendPrefs = await fetchPreferences('zone');
-      const zoneArray = backendPrefs?.map((pref: ZonePreference) => {
-        const key = makeMapKey(pref.type, pref.name);
-        return { [key]: pref };
-      }) || [];
+      const zoneArray =
+        backendPrefs?.map((pref: ZonePreference) => {
+          const key = makeMapKey(pref.type, pref.name);
+          return { [key]: pref };
+        }) || [];
       const zoneMap = Object.assign({}, ...zoneArray);
       if (zoneMap) {
         updateLocalZonePreferenceStates(zoneMap);
@@ -196,10 +201,11 @@ export const PreferencesProvider = ({
 
     (async function () {
       const backendPrefs = await fetchPreferences('fileSharePath');
-      const fspArray = backendPrefs?.map((pref: FileSharePathPreference) => {
-        const key = makeMapKey(pref.type, pref.name);
-        return { [key]: pref };
-      }) || [];
+      const fspArray =
+        backendPrefs?.map((pref: FileSharePathPreference) => {
+          const key = makeMapKey(pref.type, pref.name);
+          return { [key]: pref };
+        }) || [];
       const fspMap = Object.assign({}, ...fspArray);
       if (fspMap) {
         updateLocalFspPreferenceStates(fspMap);
@@ -214,10 +220,14 @@ export const PreferencesProvider = ({
 
     (async function () {
       const backendPrefs = await fetchPreferences('folder');
-      const folderArray = backendPrefs?.map((pref: FolderPreference) => {
-        const key = makeMapKey(pref.type, `${pref.fspName}_${pref.folderPath}`);
-        return { [key]: pref };
-      }) || [];
+      const folderArray =
+        backendPrefs?.map((pref: FolderPreference) => {
+          const key = makeMapKey(
+            pref.type,
+            `${pref.fspName}_${pref.folderPath}`
+          );
+          return { [key]: pref };
+        }) || [];
       const folderMap = Object.assign({}, ...folderArray);
       if (folderMap) {
         updateLocalFolderPreferenceStates(folderMap);
@@ -275,7 +285,7 @@ export const PreferencesProvider = ({
         key,
         { type: 'zone', name: item.name },
         zonePreferenceMap
-      ) as Record<string, ZonePreference>;  
+      ) as Record<string, ZonePreference>;
       await savePreferencesToBackend(
         'zone',
         Object.values(updatedZonePreferenceMap)

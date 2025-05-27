@@ -4,9 +4,8 @@ import { Typography } from '@material-tailwind/react';
 import type { FileOrFolder } from '@/shared.types';
 import FileListCrumbs from './Crumbs';
 import FileRow from './FileRow';
-import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
-import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import { getOmeZarrMetadata } from '@/omezarr-helper';
+import ZarrPreview from './ZarrPreview';
+import useZarrMetadata from '@/hooks/useZarrMetadata';
 
 type FileListProps = {
   files: FileOrFolder[];
@@ -37,45 +36,19 @@ export default function FileList({
   hideDotFiles,
   handleRightClick
 }: FileListProps): React.ReactNode {
-  const { currentNavigationPath, getFileFetchPath } = useFileBrowserContext();
-  const { currentFileSharePath } = useZoneBrowserContext();
+  const {
+    thumbnailSrc,
+    neuroglancerUrl,
+    metadata,
+    hasMultiscales,
+    loadingThumbnail
+  } = useZarrMetadata(files);
+
   const displayFiles = React.useMemo(() => {
     return hideDotFiles
       ? files.filter(file => !file.name.startsWith('.'))
       : files;
   }, [files, hideDotFiles]);
-
-  const [hasMultiscales, setHasMultiscales] = React.useState(false);
-  const [thumbnailSrc, setThumbnailSrc] = React.useState<string | null>(null);
-  const [neuroglancerUrl, setNeuroglancerUrl] = React.useState<string | null>(
-    null
-  );
-  const neuroglancerBaseUrl = 'https://neuroglancer-demo.appspot.com/#!';
-
-  React.useEffect(() => {
-    const checkZattrsForMultiscales = async () => {
-      const zattrsFile = files.find(file => file.name === '.zattrs');
-      if (zattrsFile && currentFileSharePath) {
-        try {
-          const fileFetchPath = getFileFetchPath(
-            currentNavigationPath.replace('?subpath=', '/')
-          );
-          const imageUrl = `${window.location.origin}${fileFetchPath}`;
-          const metadata = await getOmeZarrMetadata(imageUrl);
-          setThumbnailSrc(metadata.thumbnail);
-          setNeuroglancerUrl(neuroglancerBaseUrl + metadata.neuroglancerState);
-          setHasMultiscales(true);
-        } catch (error) {
-          setHasMultiscales(false);
-          console.error('Error getting OME-Zarrmetadata', error);
-        }
-      } else {
-        setHasMultiscales(false);
-      }
-    };
-
-    checkZattrsForMultiscales();
-  }, [currentNavigationPath]);
 
   return (
     <div
@@ -84,26 +57,12 @@ export default function FileList({
       <FileListCrumbs />
 
       {hasMultiscales ? (
-        <div className="my-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md">
-          <Typography
-            variant="small"
-            className="text-blue-600 dark:text-blue-400"
-          >
-            This directory contains an OME-Zarr image
-          </Typography>
-
-          {thumbnailSrc ? (
-            <img id="thumbnail" src={thumbnailSrc} alt="Thumbnail" />
-          ) : null}
-
-          {neuroglancerUrl ? (
-            <a href={neuroglancerUrl} target="_blank" rel="noopener noreferrer">
-              <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 dark:bg-blue-400 dark:hover:bg-blue-500">
-                View in Neuroglancer
-              </button>
-            </a>
-          ) : null}
-        </div>
+        <ZarrPreview
+          thumbnailSrc={thumbnailSrc}
+          loadingThumbnail={loadingThumbnail}
+          neuroglancerUrl={neuroglancerUrl}
+          metadata={metadata}
+        />
       ) : null}
 
       <div className="min-w-full bg-background select-none">

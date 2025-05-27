@@ -6,7 +6,7 @@ from typing import Optional
 from datetime import datetime, timedelta
 from functools import cache
 
-from .uimodels import FileSharePath
+from fileglancer.uimodels import FileSharePath
 
 log = logging.getLogger(__name__)
 

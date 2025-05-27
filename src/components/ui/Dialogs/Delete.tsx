@@ -29,7 +29,7 @@ export default function DeleteDialog({
   return (
     <Dialog open={showDeleteDialog}>
       <Dialog.Overlay>
-        <Dialog.Content>
+        <Dialog.Content className="bg-surface-light dark:bg-surface">
           <IconButton
             size="sm"
             variant="outline"
@@ -43,7 +43,7 @@ export default function DeleteDialog({
           >
             <XMarkIcon className="icon-default" />
           </IconButton>
-          <Typography className="my-8 text-large">
+          <Typography className="my-8 text-large text-foreground">
             Are you sure you want to delete{' '}
             <span className="font-semibold">
               {currentFileSharePath?.name}/{targetItem.path}
