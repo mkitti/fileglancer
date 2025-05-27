@@ -17,6 +17,7 @@ type ProxiedPathContextType = {
   proxiedPath: ProxiedPath | null;
   dataUrl: string | null;
   createProxiedPath: (mountPath: string) => Promise<ProxiedPath | null>;
+  deleteProxiedPath: () => Promise<void>;
 };
 
 const ProxiedPathContext = React.createContext<ProxiedPathContextType | null>(
@@ -94,6 +95,26 @@ export const ProxiedPathProvider = ({
     return proxiedPath;
   }
 
+  async function deleteProxiedPath(): Promise<void> {
+    if (!proxiedPath) {
+      console.error('No proxied path to delete');
+      return;
+    }
+    const response = await sendFetchRequest(
+      `${getAPIPathRoot()}api/fileglancer/proxied-path/`,
+      'DELETE',
+      cookies['_xsrf'],
+      { sharing_key: proxiedPath.sharing_key }
+    );
+    if (!response.ok) {
+      throw new Error(
+        `Failed to delete proxied path: ${response.status} ${response.statusText}`
+      );
+    }
+    console.log('Deleted proxied path:', proxiedPath);
+    updateProxiedPath(null);
+  }
+
   React.useEffect(() => {
     (async function () {
       try {
@@ -112,7 +133,7 @@ export const ProxiedPathProvider = ({
 
   return (
     <ProxiedPathContext.Provider
-      value={{ proxiedPath, dataUrl, createProxiedPath }}
+      value={{ proxiedPath, dataUrl, createProxiedPath, deleteProxiedPath }}
     >
       {children}
     </ProxiedPathContext.Provider>
