@@ -53,7 +53,7 @@ async def test_get_specific_user_proxied_path(test_current_user, jp_fetch, reque
 
     requests_mock.get(f"{TEST_URL}/{test_key}", json=test_data)
 
-    response = await jp_fetch("api", "fileglancer", "proxied-path", params={"key": test_key})
+    response = await jp_fetch("api", "fileglancer", "proxied-path", params={"sharing_key": test_key})
 
     assert response.code == 200
     rj = json.loads(response.body)
@@ -69,7 +69,7 @@ async def test_get_user_proxied_path_when_key_not_present(test_current_user, jp_
     requests_mock.get(f"{TEST_URL}/{test_key}", status_code=404, json={"error": "Proxied path not found"})
 
     try:
-        await jp_fetch("api", "fileglancer", "proxied-path", params={"key": test_key})
+        await jp_fetch("api", "fileglancer", "proxied-path", params={"sharing_key": test_key})
         assert False, "Expected 404 error"
     except Exception as e:
         assert e.code == 404
@@ -97,7 +97,7 @@ async def test_delete_user_proxied(test_current_user, jp_fetch, requests_mock):
     test_key = "test_key_2"
     test_delete_url = f"{TEST_URL}/{test_key}"
     requests_mock.delete(test_delete_url, status_code=204)
-    response = await jp_fetch("api", "fileglancer", "proxied-path", method="DELETE", params={"username": TEST_USER, "key": test_key})
+    response = await jp_fetch("api", "fileglancer", "proxied-path", method="DELETE", params={"username": TEST_USER, "sharing_key": test_key})
     assert response.code == 204
 
 
@@ -107,7 +107,7 @@ async def test_delete_user_proxied_path_exception(test_current_user, jp_fetch, r
         test_key = "test_key_2"
         test_delete_url = f"{TEST_URL}/{test_key}"
         requests_mock.delete(test_delete_url, status_code=404)
-        await jp_fetch("api", "fileglancer", "proxied-path", method="DELETE", params={"username": TEST_USER, "key": test_key})
+        await jp_fetch("api", "fileglancer", "proxied-path", method="DELETE", params={"username": TEST_USER, "sharing_key": test_key})
         assert False, "Expected 404 error"
     except Exception as e:
         assert e.code == 404
@@ -122,7 +122,7 @@ async def test_delete_user_proxied_path_without_key(jp_fetch):
     except Exception as e:
         assert e.code == 400
         rj = json.loads(e.response.body)
-        assert rj["error"] == "Key is required to delete a proxied path"
+        assert rj["error"] == "Sharing key is required to delete a proxied path"
 
 
 @patch("fileglancer.handlers.ProxiedPathHandler.get_current_user", return_value=TEST_USER)
@@ -203,11 +203,9 @@ async def test_put_user_proxied_path(test_current_user, jp_fetch, requests_mock)
 
     response = await jp_fetch("api", "fileglancer", "proxied-path",
                               method="PUT",
-                              params={
-                                  "key": test_key,
-                              },
                               body=json.dumps({
                                   "mount_path": new_mount_path,
+                                  "sharing_key": test_key,
                                   "sharing_name": new_sharing_name
                               }),
                               headers={"Content-Type": "application/json"})
@@ -233,11 +231,9 @@ async def test_put_user_proxied_path_exception(test_current_user, jp_fetch, requ
 
         await jp_fetch("api", "fileglancer", "proxied-path",
                         method="PUT",
-                        params={
-                            "key": test_key,
-                        },
                         body=json.dumps({
                             "mount_path": new_mount_path,
+                            "sharing_key": test_key,
                             "sharing_name": new_sharing_name
                         }),
                         headers={"Content-Type": "application/json"})
