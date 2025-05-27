@@ -113,7 +113,7 @@ export const ProxiedPathProvider = ({
       `${getAPIPathRoot()}api/fileglancer/proxied-path/`,
       'DELETE',
       cookies['_xsrf'],
-      { sharing_key: proxiedPath.sharing_key }
+      { key: proxiedPath.sharing_key }
     );
     if (!response.ok) {
       throw new Error(
