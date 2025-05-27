@@ -57,7 +57,7 @@ export default function useZarrMetadata(files: FileOrFolder[]) {
 
   React.useEffect(() => {
     setNeuroglancerUrl(null);
-    if (metadata && dataUrl && metadata.omero) {
+    if (metadata && dataUrl) {
       const neuroglancerState = generateNeuroglancerState(
         dataUrl,
         metadata.zarr_version,

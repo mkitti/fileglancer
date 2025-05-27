@@ -226,7 +226,7 @@ function generateNeuroglancerState(
   zarr_version: 2 | 3,
   multiscale: Multiscale,
   arr: zarr.Array<any>,
-  omero?: Omero
+  omero?: Omero | null
 ): string | null {
   if (DEBUG) {
     console.log('Generating Neuroglancer state for', dataUrl);
