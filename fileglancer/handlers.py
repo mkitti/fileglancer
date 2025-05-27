@@ -541,6 +541,26 @@ class VersionHandler(BaseHandler):
         self.write(json.dumps({"version": version}))
         self.finish()
 
+class ProfileHandler(BaseHandler):
+    """
+    API handler for user profile operations
+    """
+    @web.authenticated
+    def get(self):
+        """Get the current user's profile"""
+        username = self.get_current_user()
+        self.log.info(f"GET /api/fileglancer/profile username={username}")
+        response = {
+            "username": username,
+        }
+        try:
+            self.set_status(200)
+            self.finish(response)
+        except Exception as e:
+            self.log.error(f"Error getting profile: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
 
 class StaticHandler(JupyterHandler, web.StaticFileHandler):
     """
@@ -596,6 +616,10 @@ class StaticHandler(JupyterHandler, web.StaticFileHandler):
 
 def setup_handlers(web_app):
     """
+    ! Deprectated: This function has been replaced by the `initialize_handlers` function.
+    ! Use `initialize_handlers` in app.py to set up the URL handlers for the Fileglancer
+    ! extension.
+
     Setup the URL handlers for the Fileglancer extension
     """
     base_url = web_app.settings["base_url"]
