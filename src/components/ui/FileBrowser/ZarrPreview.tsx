@@ -52,14 +52,16 @@ export default function ZarrPreview({
       <div className="flex gap-12 w-full h-fit max-h-100">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2 max-h-full">
-            <Typography variant="small" className="text-surface-foreground">
-              {loadingThumbnail ? 'Loading OME-Zarr image thumbnail...' : ''}
-            </Typography>
             {loadingThumbnail ? (
-              <div
-                className="w-10 h-10 border-4 border-surface-foreground border-t-transparent rounded-full animate-spin"
-                title="Loading Thumbnail..."
-              ></div>
+              <>
+                <Typography variant="small" className="text-surface-foreground">
+                  Loading OME-Zarr image thumbnail...
+                </Typography>
+                <div
+                  className="w-10 h-10 border-4 border-surface-foreground border-t-transparent rounded-full animate-spin"
+                  title="Loading Thumbnail..."
+                ></div>
+              </>
             ) : null}
             {!loadingThumbnail && thumbnailSrc ? (
               <img
@@ -170,10 +172,10 @@ export default function ZarrPreview({
         {metadata && <ZarrMetadataTable metadata={metadata} />}
       </div>
       {!isImageShared ? (
-      <Typography className="text-sm font-semibold text-surface-foreground">
-        To view this image in external viewers like Neuroglancer, please
-        share the image first.
-      </Typography>
+        <Typography className="text-sm font-semibold text-surface-foreground">
+          To view this image in external viewers like Neuroglancer, please share
+          the image first.
+        </Typography>
       ) : null}
     </div>
   );
