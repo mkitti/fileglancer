@@ -13,7 +13,8 @@ export default defineConfig({
   },
   build: {
     sourcemap: true,
-    outDir: 'fileglancer/ui'
+    outDir: 'fileglancer/ui',
+    chunkSizeWarningLimit: 1024
   },
   test: {
     exclude: [
