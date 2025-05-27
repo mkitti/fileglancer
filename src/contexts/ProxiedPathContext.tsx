@@ -39,7 +39,9 @@ export const ProxiedPathProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const [proxiedPath, setProxiedPath] = React.useState<ProxiedPath | null>(null);
+  const [proxiedPath, setProxiedPath] = React.useState<ProxiedPath | null>(
+    null
+  );
   const [dataUrl, setDataUrl] = React.useState<string | null>(null);
   const { cookies } = useCookiesContext();
   const { currentFileSharePath } = useZoneBrowserContext();
@@ -47,10 +49,11 @@ export const ProxiedPathProvider = ({
 
   function updateProxiedPath(proxiedPath: ProxiedPath | null) {
     setProxiedPath(proxiedPath);
-    if (proxiedPath) { 
-      setDataUrl(`${proxyBaseUrl}/${proxiedPath.sharing_key}/${proxiedPath.sharing_name}`);
-    }
-    else {
+    if (proxiedPath) {
+      setDataUrl(
+        `${proxyBaseUrl}/${proxiedPath.sharing_key}/${proxiedPath.sharing_name}`
+      );
+    } else {
       setDataUrl(null);
     }
   }
@@ -66,10 +69,12 @@ export const ProxiedPathProvider = ({
         cookies['_xsrf']
       );
       if (!response.ok) {
-        console.error(`Failed to fetch proxied path: ${response.status} ${response.statusText}`);
+        console.error(
+          `Failed to fetch proxied path: ${response.status} ${response.statusText}`
+        );
         return null;
       }
-      const data = await response.json() as any;
+      const data = (await response.json()) as any;
       if (data?.paths) {
         return data.paths[0] as ProxiedPath;
       }
@@ -79,7 +84,9 @@ export const ProxiedPathProvider = ({
     return null;
   }
 
-  async function createProxiedPath(mountPath: string): Promise<ProxiedPath | null> {
+  async function createProxiedPath(
+    mountPath: string
+  ): Promise<ProxiedPath | null> {
     const response = await sendFetchRequest(
       `${getAPIPathRoot()}api/fileglancer/proxied-path`,
       'POST',
@@ -87,9 +94,11 @@ export const ProxiedPathProvider = ({
       { mount_path: mountPath }
     );
     if (!response.ok) {
-      throw new Error(`Failed to create proxied path: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Failed to create proxied path: ${response.status} ${response.statusText}`
+      );
     }
-    const proxiedPath = await response.json() as ProxiedPath;
+    const proxiedPath = (await response.json()) as ProxiedPath;
     updateProxiedPath(proxiedPath);
     console.log('Created proxied path:', proxiedPath);
     return proxiedPath;
@@ -121,8 +130,7 @@ export const ProxiedPathProvider = ({
         const path = await fetchProxiedPath();
         if (path) {
           updateProxiedPath(path);
-        }
-        else {
+        } else {
           updateProxiedPath(null);
         }
       } catch (error) {

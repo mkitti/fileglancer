@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 
-type Profile ={
+type Profile = {
   username: string;
-}
+};
 
 function useProfile() {
   const [profile, setProfile] = useState<Profile | null>(null);

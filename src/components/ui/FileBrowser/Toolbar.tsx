@@ -33,13 +33,14 @@ export default function Toolbar({
     <div className="flex flex-col min-w-full p-2 border-b border-surface">
       <div className="flex justify-between items-center">
         <ButtonGroup className="gap-1">
-
           {/* Refresh browser contents */}
           <Tooltip placement="top">
             <Tooltip.Trigger
               as={IconButton}
               variant="outline"
-              onClick={() => fetchAndFormatFilesForDisplay(currentNavigationPath)}
+              onClick={() =>
+                fetchAndFormatFilesForDisplay(currentNavigationPath)
+              }
             >
               <ArrowPathIcon className="icon-default" />
               <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
@@ -90,7 +91,6 @@ export default function Toolbar({
               </Tooltip.Content>
             </Tooltip.Trigger>
           </Tooltip>
-
         </ButtonGroup>
 
         {/* Show/hide properties drawer */}
@@ -109,7 +109,6 @@ export default function Toolbar({
             </Tooltip.Content>
           </Tooltip.Trigger>
         </Tooltip>
-
       </div>
     </div>
   );

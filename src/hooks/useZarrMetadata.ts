@@ -1,7 +1,10 @@
 import React from 'react';
 import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import { getOmeZarrMetadata, generateNeuroglancerState } from '@/omezarr-helper';
+import {
+  getOmeZarrMetadata,
+  generateNeuroglancerState
+} from '@/omezarr-helper';
 import type { Metadata } from '@/omezarr-helper';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 import { fetchFileAsJson } from '@/utils';
@@ -10,7 +13,9 @@ import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 
 export default function useZarrMetadata(files: FileOrFolder[]) {
   const [thumbnailSrc, setThumbnailSrc] = React.useState<string | null>(null);
-  const [neuroglancerUrl, setNeuroglancerUrl] = React.useState<string | null>(null);
+  const [neuroglancerUrl, setNeuroglancerUrl] = React.useState<string | null>(
+    null
+  );
   const [metadata, setMetadata] = React.useState<Metadata | null>(null);
   const [hasMultiscales, setHasMultiscales] = React.useState(false);
   const [loadingThumbnail, setLoadingThumbnail] = React.useState(false);
@@ -19,7 +24,7 @@ export default function useZarrMetadata(files: FileOrFolder[]) {
   const { currentNavigationPath, getFileFetchPath } = useFileBrowserContext();
   const { currentFileSharePath } = useZoneBrowserContext();
   const { dataUrl } = useProxiedPathContext();
-  const [cookies] = useCookies(['_xsrf']);  
+  const [cookies] = useCookies(['_xsrf']);
 
   const checkZattrsForMultiscales = React.useCallback(async () => {
     setHasMultiscales(false);
@@ -29,7 +34,10 @@ export default function useZarrMetadata(files: FileOrFolder[]) {
     const zattrsFile = files.find(file => file.name === '.zattrs');
     if (zattrsFile && currentFileSharePath) {
       try {
-        const zattrs = (await fetchFileAsJson(`${currentFileSharePath.name}/${zattrsFile.path}`, cookies)) as any;
+        const zattrs = (await fetchFileAsJson(
+          `${currentFileSharePath.name}/${zattrsFile.path}`,
+          cookies
+        )) as any;
         console.log('Zattrs', zattrs);
         if (zattrs.multiscales) {
           setHasMultiscales(true);
@@ -44,8 +52,7 @@ export default function useZarrMetadata(files: FileOrFolder[]) {
         }
       } catch (error) {
         console.error('Error fetching OME-Zarr metadata:', error);
-      }
-      finally {
+      } finally {
         setLoadingThumbnail(false);
       }
     }

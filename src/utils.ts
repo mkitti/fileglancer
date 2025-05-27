@@ -38,7 +38,7 @@ function getAPIPathRoot() {
 
 class HTTPError extends Error {
   responseCode: number;
-  
+
   constructor(message: string, responseCode: number) {
     super(message);
     this.responseCode = responseCode;
@@ -119,7 +119,10 @@ function getFileFetchPath(path: string): string {
   return `${getAPIPathRoot()}api/fileglancer/files/${getCleanPath(path)}`;
 }
 
-async function fetchFileContent(path: string, cookies: Record<string, string>): Promise<Uint8Array> {
+async function fetchFileContent(
+  path: string,
+  cookies: Record<string, string>
+): Promise<Uint8Array> {
   const url = getFileFetchPath(path);
   const response = await sendFetchRequest(url, 'GET', cookies._xsrf);
   if (!response.ok) {
@@ -129,13 +132,19 @@ async function fetchFileContent(path: string, cookies: Record<string, string>): 
   return new Uint8Array(fileBuffer);
 }
 
-async function fetchFileAsText(path: string, cookies: Record<string, string>): Promise<string> {
+async function fetchFileAsText(
+  path: string,
+  cookies: Record<string, string>
+): Promise<string> {
   const fileContent = await fetchFileContent(path, cookies);
   const decoder = new TextDecoder('utf-8');
   return decoder.decode(fileContent);
 }
 
-async function fetchFileAsJson(path: string, cookies: Record<string, string>): Promise<object> {
+async function fetchFileAsJson(
+  path: string,
+  cookies: Record<string, string>
+): Promise<object> {
   const fileText = await fetchFileAsText(path, cookies);
   return JSON.parse(fileText);
 }
