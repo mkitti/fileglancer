@@ -612,22 +612,3 @@ class StaticHandler(JupyterHandler, web.StaticFileHandler):
             # (doesn't prevent browser storing the response):
             self.set_header('Cache-Control', 'no-cache')
         return web.StaticFileHandler.get(self, path)
-
-
-def setup_handlers(web_app):
-    """
-    ! Deprectated: This function has been replaced by the `initialize_handlers` function.
-    ! Use `initialize_handlers` in app.py to set up the URL handlers for the Fileglancer
-    ! extension.
-
-    Setup the URL handlers for the Fileglancer extension
-    """
-    base_url = web_app.settings["base_url"]
-    handlers = [
-        (url_path_join(base_url, "api", "fileglancer", "file-share-paths"), FileSharePathsHandler),
-        (url_path_join(base_url, "api", "fileglancer", "files", "(.*)"), FileShareHandler),
-        (url_path_join(base_url, "api", "fileglancer", "files"), FileShareHandler),
-        (url_path_join(base_url, "api", "fileglancer", "preference"), PreferencesHandler),
-        (url_path_join(base_url, "api", "fileglancer", "ticket"), TicketHandler),
-    ]
-    web_app.add_handlers(".*$", handlers)
