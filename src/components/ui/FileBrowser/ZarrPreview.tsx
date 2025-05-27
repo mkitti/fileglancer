@@ -172,7 +172,7 @@ export default function ZarrPreview({
         {metadata && <ZarrMetadataTable metadata={metadata} />}
       </div>
       {!isImageShared ? (
-        <Typography className="text-sm font-semibold text-surface-foreground">
+        <Typography className="mt-1 text-sm font-semibold text-surface-foreground">
           To view this image in external viewers like Neuroglancer, please share
           the image first.
         </Typography>
