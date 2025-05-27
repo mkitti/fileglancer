@@ -51,9 +51,7 @@ export default function FileList({
   }, [files, hideDotFiles]);
 
   return (
-    <div
-      className={`px-2 transition-all duration-300 ${showPropertiesDrawer ? 'mr-[350px]' : ''}`}
-    >
+    <div className="px-2 transition-all duration-300">
       <FileListCrumbs />
 
       {hasMultiscales ? (

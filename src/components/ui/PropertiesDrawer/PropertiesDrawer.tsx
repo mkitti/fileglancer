@@ -45,27 +45,24 @@ export default function PropertiesDrawer({
   const fullPath = `${currentFileSharePath?.name}/${propertiesTarget?.path}`;
 
   return (
-    <div
-      className={`fixed top-[68px] right-0 bottom-0 w-[90%] max-w-[350px] bg-background shadow-lg border-l border-surface shadow-surface transform transition-transform duration-300 ease-in-out ${open ? 'translate-x-0 z-50' : 'translate-x-full'}`}
-    >
-      <div className="flex flex-col h-full overflow-y-auto overflow-x-hidden p-4">
-        <div className="flex items-center justify-between gap-4 mb-1">
-          <Typography type="h6">Properties</Typography>
-          <IconButton
-            size="sm"
-            variant="ghost"
-            color="secondary"
-            className="h-8 w-8 rounded-full text-foreground hover:bg-secondary-light/20"
-            onClick={() => {
-              if (open === true) {
-                setShowCopyAlert(false);
-              }
-              setShowPropertiesDrawer((prev: boolean) => !prev);
-            }}
-          >
-            <XMarkIcon className="icon-default" />
-          </IconButton>
-        </div>
+    <Card className="min-w-full h-full max-h-full overflow-y-auto overflow-x-hidden p-4 rounded-none shadow-lg flex flex-col">
+      <div className="flex items-center justify-between gap-4 mb-1">
+        <Typography type="h6">Properties</Typography>
+        <IconButton
+          size="sm"
+          variant="ghost"
+          color="secondary"
+          className="h-8 w-8 rounded-full text-foreground hover:bg-secondary-light/20"
+          onClick={() => {
+            if (open === true) {
+              setShowCopyAlert(false);
+            }
+            setShowPropertiesDrawer((prev: boolean) => !prev);
+          }}
+        >
+          <XMarkIcon className="icon-default" />
+        </IconButton>
+      </div>
 
         {propertiesTarget ? (
           <div className="flex items-center gap-2 mt-3 mb-4 max-h-min overflow-x-auto">
