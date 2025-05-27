@@ -126,7 +126,9 @@ function getMinMaxValues(arr: zarr.Array<any>): { min: number; max: number } {
 
   if (arr.dtype) {
     const dtype = arr.dtype;
-    if (DEBUG) console.log('Parsing dtype:', dtype);
+    if (DEBUG) {
+      console.log('Parsing dtype:', dtype);
+    }
     // Parse numpy-style dtype strings (int8, int16, uint8, etc.)
     if (dtype.includes('int') || dtype.includes('uint')) {
       // Extract the numeric part for bit depth
@@ -135,12 +137,16 @@ function getMinMaxValues(arr: zarr.Array<any>): { min: number; max: number } {
         const bitCount = parseInt(bitMatch[0]);
         if (dtype.startsWith('u')) {
           // Unsigned integer (uint8, uint16, etc.)
-          if (DEBUG) console.log('Unsigned integer');
+          if (DEBUG) {
+            console.log('Unsigned integer');
+          }
           dtypeMin = 0;
           dtypeMax = 2 ** bitCount - 1;
         } else {
           // Signed integer (int8, int16, etc.)
-          if (DEBUG) console.log('Signed integer');
+          if (DEBUG) {
+            console.log('Signed integer');
+          }
           dtypeMin = -(2 ** (bitCount - 1));
           dtypeMax = 2 ** (bitCount - 1) - 1;
         }
@@ -153,12 +159,16 @@ function getMinMaxValues(arr: zarr.Array<any>): { min: number; max: number } {
           const bitCount = bytes * 8;
           if (typeCode === 'i') {
             // Signed integer
-            if (DEBUG)  console.log('Signed integer');
+            if (DEBUG) {
+              console.log('Signed integer');
+            }
             dtypeMin = -(2 ** (bitCount - 1));
             dtypeMax = 2 ** (bitCount - 1) - 1;
           } else if (typeCode === 'u') {
             // Unsigned integer
-            if (DEBUG) console.log('Unsigned integer');
+            if (DEBUG) {
+              console.log('Unsigned integer');
+            }
             dtypeMin = 0;
             dtypeMax = 2 ** bitCount - 1;
           }
