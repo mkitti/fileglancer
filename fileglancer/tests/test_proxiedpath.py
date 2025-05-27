@@ -128,15 +128,17 @@ async def test_delete_user_proxied_path_without_key(jp_fetch):
 @patch("fileglancer.handlers.ProxiedPathHandler.get_current_user", return_value=TEST_USER)
 async def test_post_user_proxied_path(test_current_user, jp_fetch, requests_mock):
     payload = {
-        "mount_path": "/test/path"
+        "fsp_mount_path": "/test",
+        "path": "path/to/data"
     }
-    requests_mock.post(f"{TEST_URL}?mount_path=/test/path",
+    requests_mock.post(f"{TEST_URL}?fsp_mount_path={payload['fsp_mount_path']}&path={payload['path']}",
                        status_code=201,
                        json={
                            "username": TEST_USER,
                            "sharing_key": "test_key",
                            "sharing_name": "test_name",
-                           "mount_path": "/test/path"
+                           "fsp_mount_path": payload["fsp_mount_path"],
+                           "path": payload["path"]
                        })
 
     response = await jp_fetch("api", "fileglancer", "proxied-path",
@@ -148,16 +150,18 @@ async def test_post_user_proxied_path(test_current_user, jp_fetch, requests_mock
     assert rj["username"] == TEST_USER
     assert rj["sharing_key"] == "test_key"
     assert rj["sharing_name"] == "test_name"
-    assert rj["mount_path"] == "/test/path"
-
+    assert rj["fsp_mount_path"] == payload["fsp_mount_path"]
+    assert rj["path"] == payload["path"]
+    
 
 @patch("fileglancer.handlers.ProxiedPathHandler.get_current_user", return_value=TEST_USER)
 async def test_post_user_proxied_path_exception(test_current_user, jp_fetch, requests_mock):
     try:
         payload = {
-            "mount_path": "/test/path"
+            "fsp_mount_path": "/test",
+            "path": "path/to/data"
         }
-        requests_mock.post(f"{TEST_URL}?mount_path=/test/path",
+        requests_mock.post(f"{TEST_URL}?fsp_mount_path={payload['fsp_mount_path']}&path={payload['path']}",
                         status_code=404,
                         json={
                             "error": "Some error"
@@ -184,27 +188,30 @@ async def test_post_user_proxied_path_without_mountpath(jp_fetch):
     except Exception as e:
         assert e.code == 400
         rj = json.loads(e.response.body)
-        assert rj["error"] == "Mount path is required to create a proxied path"
+        assert rj["error"] == "fsp_mount_path and path are required to create a proxied path"
 
 
 @patch("fileglancer.handlers.ProxiedPathHandler.get_current_user", return_value=TEST_USER)
 async def test_put_user_proxied_path(test_current_user, jp_fetch, requests_mock):
     test_key = "test_key"
-    new_mount_path = "/test/path"
+    new_fsp_mount_path = "/test"
+    new_path = "path/to/data"
     new_sharing_name = "newname"
-    requests_mock.put(f"{TEST_URL}/{test_key}?mount_path={new_mount_path}&sharing_name={new_sharing_name}",
+    requests_mock.put(f"{TEST_URL}/{test_key}?fsp_mount_path={new_fsp_mount_path}&path={new_path}&sharing_name={new_sharing_name}",
                        status_code=200,
                        json={
                             "username": TEST_USER,
                             "sharing_key": test_key,
                             "sharing_name": new_sharing_name,
-                            "mount_path": new_mount_path
+                            "fsp_mount_path": new_fsp_mount_path,
+                            "path": new_path
                        })
 
     response = await jp_fetch("api", "fileglancer", "proxied-path",
                               method="PUT",
                               body=json.dumps({
-                                  "mount_path": new_mount_path,
+                                  "fsp_mount_path": new_fsp_mount_path,
+                                  "path": new_path,
                                   "sharing_key": test_key,
                                   "sharing_name": new_sharing_name
                               }),
@@ -214,16 +221,18 @@ async def test_put_user_proxied_path(test_current_user, jp_fetch, requests_mock)
     assert rj["username"] == TEST_USER
     assert rj["sharing_key"] == test_key
     assert rj["sharing_name"] == new_sharing_name
-    assert rj["mount_path"] == new_mount_path
+    assert rj["fsp_mount_path"] == new_fsp_mount_path
+    assert rj["path"] == new_path
 
 
 @patch("fileglancer.handlers.ProxiedPathHandler.get_current_user", return_value=TEST_USER)
 async def test_put_user_proxied_path_exception(test_current_user, jp_fetch, requests_mock):
     try:
         test_key = "test_key"
-        new_mount_path = "/test/path"
+        new_fsp_mount_path = "/test"
+        new_path = "path/to/data"
         new_sharing_name = "newname"
-        requests_mock.put(f"{TEST_URL}/{test_key}?mount_path={new_mount_path}&sharing_name={new_sharing_name}",
+        requests_mock.put(f"{TEST_URL}/{test_key}?fsp_mount_path={new_fsp_mount_path}&path={new_path}&sharing_name={new_sharing_name}",
                           status_code=404,
                           json={
                             "error": "Some error"
@@ -232,7 +241,8 @@ async def test_put_user_proxied_path_exception(test_current_user, jp_fetch, requ
         await jp_fetch("api", "fileglancer", "proxied-path",
                         method="PUT",
                         body=json.dumps({
-                            "mount_path": new_mount_path,
+                            "fsp_mount_path": new_fsp_mount_path,
+                            "path": new_path,
                             "sharing_key": test_key,
                             "sharing_name": new_sharing_name
                         }),
