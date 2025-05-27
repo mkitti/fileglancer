@@ -3,6 +3,7 @@ import {
   Alert,
   Button,
   ButtonGroup,
+  Switch,
   Typography
 } from '@material-tailwind/react';
 import { Link } from 'react-router-dom';
@@ -73,18 +74,31 @@ export default function ZarrPreview({
             ) : null}
           </div>
 
-          {!isImageShared ? (
-            <div>
-              <Button
-                className="mt-2 bg-secondary-light border-secondary-light hover:!bg-secondary-light/80 hover:!border-secondary-light/80"
-                onClick={() => {
-                  setShowSharingDialog(true);
-                }}
+          <div className="flex items-center gap-2">
+            <Switch
+              id="share-switch"
+              className="mt-2 bg-secondary-light border-secondary-light hover:!bg-secondary-light/80 hover:!border-secondary-light/80"
+              onClick={() => {
+                setShowSharingDialog(true);
+              }}
+              checked={isImageShared}
+            />
+            <label
+              htmlFor="share-switch"
+              className="-translate-y-0.5 flex flex-col gap-1"
+            >
+              <Typography
+                as="label"
+                htmlFor="share-switch"
+                className="cursor-pointer text-foreground font-semibold"
               >
                 Share Image
-              </Button>
-            </div>
-          ) : null}
+              </Typography>
+              <Typography type="small" className="text-foreground">
+                Share to view images in external viewers like Neuroglancer.
+              </Typography>
+            </label>
+          </div>
 
           {showSharingDialog ? (
             <SharingDialog
@@ -171,12 +185,6 @@ export default function ZarrPreview({
         </div>
         {metadata && <ZarrMetadataTable metadata={metadata} />}
       </div>
-      {!isImageShared ? (
-        <Typography className="mt-1 text-sm font-semibold text-surface-foreground">
-          To view this image in external viewers like Neuroglancer, please share
-          the image first.
-        </Typography>
-      ) : null}
     </div>
   );
 }
