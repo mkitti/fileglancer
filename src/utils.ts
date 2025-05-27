@@ -56,11 +56,9 @@ async function sendFetchRequest(
     credentials: 'include',
     headers: {
       'X-Xsrftoken': xrsfCookie,
-      ...(method !== 'GET' &&
-        method !== 'DELETE' && { 'Content-Type': 'application/json' })
+      ...(method !== 'GET' && { 'Content-Type': 'application/json' })
     },
     ...(method !== 'GET' &&
-      method !== 'DELETE' &&
       body && { body: JSON.stringify(body) })
   };
   const response = await fetch(url, options);
