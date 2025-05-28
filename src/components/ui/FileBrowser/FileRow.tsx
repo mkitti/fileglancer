@@ -1,6 +1,5 @@
 import React, { ReactNode } from 'react';
-
-import { IconButton, Typography } from '@material-tailwind/react';
+import { IconButton, Tooltip, Typography } from '@material-tailwind/react';
 import {
   DocumentIcon,
   EllipsisHorizontalCircleIcon,
@@ -44,6 +43,9 @@ export default function FileRow({
   setPropertiesTarget,
   handleRightClick
 }: FileRowProps): ReactNode {
+  const nameRef = React.useRef<HTMLDivElement>(null);
+  const [isTruncated, setIsTruncated] = React.useState(false);
+
   const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
   const { handleLeftClick } = useHandleLeftClick();
   const { currentFileSharePath } = useZoneBrowserContext();
@@ -51,9 +53,23 @@ export default function FileRow({
   const isSelected = selectedFiles.some(
     selectedFile => selectedFile.name === file.name
   );
+
+  React.useEffect(() => {
+    const checkTruncation = () => {
+      if (nameRef.current) {
+        setIsTruncated(
+          nameRef.current.scrollWidth > nameRef.current.clientWidth
+        );
+      }
+    };
+    checkTruncation();
+    window.addEventListener('resize', checkTruncation);
+    return () => window.removeEventListener('resize', checkTruncation);
+  }, [file.name]);
+
   return (
     <div
-      className={`cursor-pointer min-w-fit grid grid-cols-[minmax(170px,2fr)_minmax(80px,1fr)_minmax(95px,1fr)_minmax(75px,1fr)_minmax(40px,1fr)] gap-4 hover:bg-primary-light/30 focus:bg-primary-light/30 ${isSelected && 'bg-primary-light/30'} ${index % 2 === 0 && !isSelected && 'bg-surface/50'}  `}
+      className={`cursor-pointer grid grid-cols-[minmax(170px,2fr)_minmax(80px,1fr)_minmax(95px,1fr)_minmax(75px,1fr)_minmax(40px,1fr)] gap-4 hover:bg-primary-light/30 focus:bg-primary-light/30 ${isSelected && 'bg-primary-light/30'} ${index % 2 === 0 && !isSelected && 'bg-surface/50'}  `}
       onClick={(e: React.MouseEvent<HTMLDivElement>) =>
         handleLeftClick(
           e,
@@ -83,22 +99,47 @@ export default function FileRow({
       }}
     >
       {/* Name column */}
-      <div className="flex items-center w-full gap-3 pl-3 py-1 overflow-x-auto">
-        <Typography
-          variant="small"
-          className="font-medium text-primary-light hover:underline truncate"
-          onClick={(e: React.MouseEvent<HTMLDivElement>) => {
-            e.stopPropagation();
-            if (file.is_dir) {
-              fetchAndFormatFilesForDisplay(
-                `${currentFileSharePath?.name}?subpath=${file.path}`
-              );
-              setPropertiesTarget(file);
-            }
-          }}
-        >
-          {file.name}
-        </Typography>
+      <div className="flex items-center gap-3 pl-3 py-1">
+        {isTruncated ? (
+          <Tooltip>
+            <Tooltip.Trigger className="max-w-full">
+              <Typography
+                ref={nameRef}
+                variant="small"
+                className="font-medium text-primary-light hover:underline truncate"
+                onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                  e.stopPropagation();
+                  if (file.is_dir) {
+                    fetchAndFormatFilesForDisplay(
+                      `${currentFileSharePath?.name}?subpath=${file.path}`
+                    );
+                    setPropertiesTarget(file);
+                  }
+                }}
+              >
+                {file.name}
+              </Typography>
+            </Tooltip.Trigger>
+            <Tooltip.Content>{file.name}</Tooltip.Content>
+          </Tooltip>
+        ) : (
+          <Typography
+            ref={nameRef}
+            variant="small"
+            className="font-medium text-primary-light hover:underline truncate"
+            onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+              e.stopPropagation();
+              if (file.is_dir) {
+                fetchAndFormatFilesForDisplay(
+                  `${currentFileSharePath?.name}?subpath=${file.path}`
+                );
+                setPropertiesTarget(file);
+              }
+            }}
+          >
+            {file.name}
+          </Typography>
+        )}
       </div>
 
       {/* Type column */}
