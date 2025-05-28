@@ -55,7 +55,7 @@ export const BrowseLayout = () => {
               id="properties"
               order={3}
               defaultSize={18}
-              minSize={10}
+              minSize={15}
               maxSize={50}
             >
               <PropertiesDrawer
