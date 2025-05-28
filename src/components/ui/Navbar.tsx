@@ -29,8 +29,8 @@ const LINKS = [
   },
   {
     icon: ShareIcon,
-    title: 'Sharing',
-    href: '/sharing'
+    title: 'Shared',
+    href: '/shared'
   },
   {
     icon: BriefcaseIcon,
