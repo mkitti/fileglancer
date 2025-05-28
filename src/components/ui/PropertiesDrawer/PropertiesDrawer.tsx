@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   IconButton,
+  Tooltip,
   Typography,
   Tabs
 } from '@material-tailwind/react';
@@ -72,9 +73,14 @@ export default function PropertiesDrawer({
           ) : (
             <DocumentIcon className="icon-default" />
           )}{' '}
-          <Typography className="font-semibold truncate max-w-[calc(100%-2rem)]">
-            {propertiesTarget?.name}
-          </Typography>
+          <Tooltip>
+            <Tooltip.Trigger className="max-w-[calc(100%-2rem)]">
+              <Typography className="font-semibold truncate max-w-full">
+                {propertiesTarget?.name}
+              </Typography>
+            </Tooltip.Trigger>
+            <Tooltip.Content>{propertiesTarget?.name}</Tooltip.Content>
+          </Tooltip>
         </div>
       ) : (
         <Typography className="mt-3 mb-4">
@@ -103,10 +109,16 @@ export default function PropertiesDrawer({
 
           <Tabs.Panel value="overview">
             <div className="group flex justify-between items-center overflow-x-hidden">
-              <Typography className="text-foreground font-medium text-sm truncate max-w-[calc(100%-2rem)]">
-                <span className="!font-bold">Path: </span>
-                {fullPath}
-              </Typography>
+              <Tooltip>
+                <Tooltip.Trigger className="max-w-[calc(100%-2rem)]">
+                  <Typography className="text-foreground font-medium text-sm truncate max-w-full">
+                    <span className="!font-bold">Path: </span>
+                    {fullPath}
+                  </Typography>
+                </Tooltip.Trigger>
+                <Tooltip.Content className="z-10">{fullPath}</Tooltip.Content>
+              </Tooltip>
+
               <IconButton
                 variant="ghost"
                 isCircular
