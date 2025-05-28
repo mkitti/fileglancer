@@ -1,6 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { IconButton, List, Typography } from '@material-tailwind/react';
+import {
+  IconButton,
+  List,
+  Tooltip,
+  Typography
+} from '@material-tailwind/react';
 import { FolderIcon } from '@heroicons/react/24/outline';
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
@@ -108,9 +113,14 @@ export default function Folder({ folderFavorite, setOpenZones }: FolderProps) {
               {folderName}
             </Typography>
           </div>
-          <Typography className="text-xs">
-            {`${fileSharePath}/${folderFavorite.folderPath}`}
-          </Typography>
+          <Tooltip placement="right">
+            <Tooltip.Trigger>
+              <Typography className="max-w-full text-xs truncate">
+                {`${fileSharePath}/${folderFavorite.folderPath}`}
+              </Typography>
+            </Tooltip.Trigger>
+            <Tooltip.Content>{`${fileSharePath}/${folderFavorite.folderPath}`}</Tooltip.Content>
+          </Tooltip>
         </Link>
         <div
           onClick={e => {
