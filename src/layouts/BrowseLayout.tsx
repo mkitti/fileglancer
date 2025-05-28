@@ -33,7 +33,13 @@ export const BrowseLayout = () => {
       <PanelGroup autoSaveId="conditional" direction="horizontal">
         {showSidebar ? (
           <>
-            <Panel id="sidebar" order={1} defaultSize={18} maxSize={50}>
+            <Panel
+              id="sidebar"
+              order={1}
+              defaultSize={18}
+              minSize={10}
+              maxSize={50}
+            >
               <Sidebar />
             </Panel>
             <PanelResizeHandle className="bg-background shadow-lg border-l border-surface shadow-surface relative" />

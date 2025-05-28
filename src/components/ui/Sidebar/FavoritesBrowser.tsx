@@ -49,7 +49,7 @@ export default function FavoritesBrowser({
 
   return (
     <div className="w-[calc(100%-1.5rem)] min-h-fit flex flex-col overflow-hidden h-full mt-3 x-short:mt-1 mx-3 pb-1">
-      <List className="bg-background">
+      <List className="bg-background !min-w-40">
         <List.Item
           onClick={() => toggleOpenFavorites('all')}
           className="cursor-pointer rounded-none py-3 x-short:py-1 bg-surface/50 hover:!bg-surface-light focus:!bg-surface-light"
@@ -69,7 +69,7 @@ export default function FavoritesBrowser({
       </List>
       <div className="overflow-y-auto">
         <Collapse open={openFavorites['all'] ? true : false}>
-          <List className="bg-surface-light !py-0 !gap-0">
+          <List className="bg-surface-light !py-0 !gap-0 !min-w-40">
             {/* Zone favorites */}
             {displayZones.map(zone => {
               return (
