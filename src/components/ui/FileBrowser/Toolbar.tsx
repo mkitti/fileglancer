@@ -6,15 +6,14 @@ import {
   Typography
 } from '@material-tailwind/react';
 import {
-  ArrowLeftEndOnRectangleIcon,
-  ArrowLeftStartOnRectangleIcon,
+  ChevronDoubleLeftIcon,
+  ChevronDoubleRightIcon,
   ArrowPathIcon,
-  ArrowRightEndOnRectangleIcon,
-  ArrowRightStartOnRectangleIcon,
   EyeIcon,
   EyeSlashIcon,
   FolderPlusIcon
 } from '@heroicons/react/24/solid';
+import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
 type ToolbarProps = {
@@ -51,8 +50,7 @@ export default function Toolbar({
             >
               {showSidebar ? (
                 <>
-                  <ArrowLeftEndOnRectangleIcon className="icon-default" />
-
+                  <GoSidebarCollapse className="icon-default scale-x-[-1]" />
                   <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
                     <Typography type="small" className="opacity-90">
                       Hide favorites and zone browser
@@ -62,7 +60,7 @@ export default function Toolbar({
                 </>
               ) : (
                 <>
-                  <ArrowRightStartOnRectangleIcon className="icon-default" />
+                  <GoSidebarExpand className="icon-default scale-x-[-1]" />
                   <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
                     <Typography type="small" className="opacity-90">
                       View favorites and zone browser
@@ -143,7 +141,7 @@ export default function Toolbar({
           >
             {showPropertiesDrawer ? (
               <>
-                <ArrowRightEndOnRectangleIcon className="icon-default" />
+                <GoSidebarCollapse className="icon-default" />
                 <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
                   <Typography type="small" className="opacity-90">
                     Hide file properties
@@ -153,7 +151,7 @@ export default function Toolbar({
               </>
             ) : (
               <>
-                <ArrowLeftStartOnRectangleIcon className="icon-default" />
+                <GoSidebarExpand className="icon-default" />
                 <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
                   <Typography type="small" className="opacity-90">
                     View file properties
