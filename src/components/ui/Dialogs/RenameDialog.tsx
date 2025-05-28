@@ -50,9 +50,17 @@ export default function RenameDialog({
             <XMarkIcon className="icon-default" />
           </IconButton>
           <form
-            onSubmit={event => {
+            onSubmit={async event => {
               event.preventDefault();
-              handleRenameSubmit(`${propertiesTarget?.path}`);
+              setShowAlert(false);
+
+              const success = await handleRenameSubmit(
+                `${propertiesTarget?.path}`
+              );
+              if (success) {
+                setShowRenameDialog(false);
+                setNewName('');
+              }
             }}
           >
             <div className="mt-8 flex flex-col gap-2">
@@ -79,9 +87,7 @@ export default function RenameDialog({
               Submit
             </Button>
             {showAlert === true ? (
-              <Alert
-                className={`flex items-center gap-6 mt-6 border-none ${alertContent.startsWith('Error') ? 'bg-error-light/90' : 'bg-secondary-light/70'}`}
-              >
+              <Alert className="flex items-center gap-6 mt-6 border-none bg-error-light/90">
                 <Alert.Content>{alertContent}</Alert.Content>
                 <XMarkIcon
                   className="icon-default cursor-pointer"

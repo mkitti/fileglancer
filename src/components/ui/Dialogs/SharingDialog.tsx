@@ -1,16 +1,15 @@
 import React from 'react';
 import {
-  Alert,
   Button,
   Dialog,
   IconButton,
   Typography
 } from '@material-tailwind/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import toast from 'react-hot-toast';
 
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
-import { set } from 'node_modules/zarrita/dist/src/indexing/set';
 
 type SharingDialogProps = {
   isImageShared: boolean;
@@ -27,8 +26,6 @@ export default function SharingDialog({
   showSharingDialog,
   setShowSharingDialog
 }: SharingDialogProps): JSX.Element {
-  const [showAlert, setShowAlert] = React.useState<boolean>(false);
-  const [alertContent, setAlertContent] = React.useState<string>('');
   const { createProxiedPath, deleteProxiedPath } = useProxiedPathContext();
   const { currentFileSharePath } = useZoneBrowserContext();
   const displayPath = `${currentFileSharePath?.mount_path}/${filePathWithoutFsp}`;
@@ -45,7 +42,6 @@ export default function SharingDialog({
             isCircular
             onClick={() => {
               setShowSharingDialog(false);
-              setShowAlert(false);
             }}
           >
             <XMarkIcon className="icon-default" />
@@ -86,19 +82,18 @@ export default function SharingDialog({
                       filePathWithoutFsp
                     );
                     if (newProxiedPath) {
-                      setAlertContent(`Successfully shared ${displayPath}`);
+                      toast.success(`Successfully shared ${displayPath}`);
                     } else {
-                      setAlertContent(`Error sharing ${displayPath}`);
+                      toast.error(`Error sharing ${displayPath}`);
                     }
                     setIsImageShared(true);
                     setShowSharingDialog(false);
                   } catch (error) {
-                    setAlertContent(
+                    toast.error(
                       `Error sharing ${displayPath}: ${
                         error instanceof Error ? error.message : 'Unknown error'
                       }`
                     );
-                    setShowAlert(true);
                   }
                 }}
               >
@@ -114,15 +109,14 @@ export default function SharingDialog({
                   try {
                     await deleteProxiedPath();
                     setIsImageShared(false);
-                    setAlertContent(`Successfully unshared ${displayPath}`);
+                    toast.success(`Successfully unshared ${displayPath}`);
                     setShowSharingDialog(false);
                   } catch (error) {
-                    setAlertContent(
+                    toast.error(
                       `Error unsharing ${displayPath}: ${
                         error instanceof Error ? error.message : 'Unknown error'
                       }`
                     );
-                    setShowAlert(true);
                   }
                 }}
               >
@@ -139,20 +133,6 @@ export default function SharingDialog({
               Cancel
             </Button>
           </div>
-          {showAlert === true ? (
-            <Alert
-              className={`flex items-center gap-6 mt-6 border-none ${alertContent.startsWith('Error') ? 'bg-error-light/90' : 'bg-secondary-light/70'}`}
-            >
-              <Alert.Content>{alertContent}</Alert.Content>
-              <XMarkIcon
-                className="icon-default cursor-pointer"
-                onClick={() => {
-                  setShowAlert(false);
-                  setShowSharingDialog(false);
-                }}
-              />
-            </Alert>
-          ) : null}
         </Dialog.Content>
       </Dialog.Overlay>
     </Dialog>

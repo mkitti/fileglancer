@@ -1,4 +1,4 @@
-import React from 'react';
+import toast from 'react-hot-toast';
 import {
   getAPIPathRoot,
   sendFetchRequest,
@@ -10,15 +10,12 @@ import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';
 import { useFileBrowserContext } from '../contexts/FileBrowserContext';
 
 export default function useDeleteDialog() {
-  const [showAlert, setShowAlert] = React.useState<boolean>(false);
-  const [alertContent, setAlertContent] = React.useState<string>('');
   const { cookies } = useCookiesContext();
   const { currentFileSharePath } = useZoneBrowserContext();
   const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
 
   async function handleDelete(targetItem: FileOrFolder) {
     try {
-      console.log('Deleting item:', targetItem);
       await sendFetchRequest(
         `${getAPIPathRoot()}api/fileglancer/files/${currentFileSharePath?.name}?subpath=${targetItem.path}`,
         'DELETE',
@@ -27,16 +24,18 @@ export default function useDeleteDialog() {
       await fetchAndFormatFilesForDisplay(
         `${currentFileSharePath?.name}?subpath=${removeLastSegmentFromPath(targetItem.path)}`
       );
-      setAlertContent(
+      toast.success(
         `Successfully deleted ${currentFileSharePath?.name}/${targetItem.path}`
       );
+      return true;
     } catch (error) {
-      setAlertContent(
+      toast.error(
         `Error deleting ${currentFileSharePath?.name}/${targetItem.path}: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
+
+      return false;
     }
-    setShowAlert(true);
   }
 
-  return { handleDelete, showAlert, setShowAlert, alertContent };
+  return { handleDelete };
 }

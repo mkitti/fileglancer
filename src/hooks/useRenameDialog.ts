@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import toast from 'react-hot-toast';
+
 import {
   getAPIPathRoot,
   sendFetchRequest,
@@ -21,7 +23,7 @@ export default function useRenameDialog() {
     originalPath: string,
     originalPathWithoutFileName: string
   ) {
-    const newPath = `${originalPathWithoutFileName}/${newName}`;
+    const newPath = `${originalPathWithoutFileName}${newName}`;
     await sendFetchRequest(
       `${getAPIPathRoot()}api/fileglancer/files/${currentFileSharePath?.name}?subpath=${originalPath}`,
       'PATCH',
@@ -41,17 +43,20 @@ export default function useRenameDialog() {
       try {
         await renameItem(subpath, originalPathWithoutFileName);
         const alertContent = `Renamed item at path: ${currentFileSharePath.name}/${subpath} to ${newName}`;
-        setAlertContent(alertContent);
+        toast.success(alertContent);
+        return true;
       } catch (error) {
         const errorContent = `Error renaming item at path: ${currentFileSharePath.name}/${subpath} to ${newName}`;
         setAlertContent(
           `${errorContent}. Error details: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
+        setShowAlert(true);
+        return false;
       }
     } else if (!currentFileSharePath) {
       setAlertContent('No file share path selected.');
+      return false;
     }
-    setShowAlert(true);
   }
 
   return {

@@ -1,4 +1,5 @@
 import { Outlet } from 'react-router';
+import { Toaster } from 'react-hot-toast';
 
 import { CookiesProvider } from '@/contexts/CookiesContext';
 import { ZoneBrowserContextProvider } from '@/contexts/ZoneBrowserContext';
@@ -14,6 +15,7 @@ export const MainLayout = () => {
         <PreferencesProvider>
           <FileBrowserContextProvider>
             <ProxiedPathProvider>
+              <Toaster />
               <div className="flex flex-col items-center h-full w-full overflow-y-hidden bg-background text-foreground box-border">
                 <FileglancerNavbar />
                 <Outlet />

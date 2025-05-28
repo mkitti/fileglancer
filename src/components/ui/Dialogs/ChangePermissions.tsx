@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Alert,
   Button,
   Dialog,
   IconButton,
@@ -22,8 +21,7 @@ export default function ChangePermissions({
   showPermissionsDialog,
   setShowPermissionsDialog
 }: ChangePermissionsProps): JSX.Element {
-  const { handleChangePermissions, showAlert, setShowAlert, alertContent } =
-    usePermissionsDialog();
+  const { handleChangePermissions } = usePermissionsDialog();
   const [localPermissions, setLocalPermissions] = React.useState(
     targetItem ? targetItem.permissions : null
   );
@@ -65,19 +63,19 @@ export default function ChangePermissions({
             isCircular
             onClick={() => {
               setShowPermissionsDialog(false);
-              setShowAlert(false);
             }}
           >
             <XMarkIcon className="icon-default" />
           </IconButton>
           {targetItem ? (
             <form
-              onSubmit={event => {
+              onSubmit={async event => {
                 event.preventDefault();
                 if (!localPermissions) {
                   return;
                 }
-                handleChangePermissions(targetItem, localPermissions);
+                await handleChangePermissions(targetItem, localPermissions);
+                setShowPermissionsDialog(false);
               }}
             >
               <Typography className="mt-8 text-foreground font-semibold">
@@ -175,19 +173,6 @@ export default function ChangePermissions({
                 Change Permissions
               </Button>
             </form>
-          ) : null}
-          {showAlert === true ? (
-            <Alert
-              className={`flex items-center gap-6 mt-6 border-none ${alertContent.startsWith('Error') ? 'bg-error-light/90' : 'bg-secondary-light/70'}`}
-            >
-              <Alert.Content>{alertContent}</Alert.Content>
-              <XMarkIcon
-                className="icon-default cursor-pointer"
-                onClick={() => {
-                  setShowAlert(false);
-                }}
-              />
-            </Alert>
           ) : null}
         </Dialog.Content>
       </Dialog.Overlay>

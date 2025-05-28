@@ -49,9 +49,14 @@ export default function NewFolderDialog({
             <XMarkIcon className="icon-default" />
           </IconButton>
           <form
-            onSubmit={event => {
+            onSubmit={async event => {
               event.preventDefault();
-              handleNewFolderSubmit(pathToParentFolder);
+              setShowAlert(false);
+              const success = await handleNewFolderSubmit(pathToParentFolder);
+              if (success) {
+                setShowNewFolderDialog(false);
+                setNewName('');
+              }
             }}
           >
             <div className="mt-8 flex flex-col gap-2">
@@ -77,10 +82,8 @@ export default function NewFolderDialog({
             <Button className="!rounded-md" type="submit">
               Submit
             </Button>
-            {showAlert === true ? (
-              <Alert
-                className={`flex items-center gap-6 mt-6 border-none ${alertContent.startsWith('Error') ? 'bg-error-light/90' : 'bg-secondary-light/70'}`}
-              >
+            {alertContent ? (
+              <Alert className="flex items-center gap-6 mt-6 border-none bg-error-light/90">
                 <Alert.Content>{alertContent}</Alert.Content>
                 <XMarkIcon
                   className="icon-default cursor-pointer"
