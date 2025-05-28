@@ -66,13 +66,13 @@ export default function PropertiesDrawer({
       </div>
 
       {propertiesTarget ? (
-        <div className="flex items-center gap-2 mt-3 mb-4 max-h-min overflow-x-auto">
+        <div className="flex items-center gap-2 mt-3 mb-4 max-h-min overflow-hidden">
           {propertiesTarget.is_dir ? (
             <FolderIcon className="icon-default" />
           ) : (
             <DocumentIcon className="icon-default" />
           )}{' '}
-          <Typography className="font-semibold">
+          <Typography className="font-semibold truncate max-w-[calc(100%-2rem)]">
             {propertiesTarget?.name}
           </Typography>
         </div>
@@ -103,7 +103,7 @@ export default function PropertiesDrawer({
 
           <Tabs.Panel value="overview">
             <div className="group flex justify-between items-center overflow-x-hidden">
-              <Typography className="text-foreground font-medium text-sm overflow-x-scroll">
+              <Typography className="text-foreground font-medium text-sm truncate max-w-[calc(100%-2rem)]">
                 <span className="!font-bold">Path: </span>
                 {fullPath}
               </Typography>
@@ -120,6 +120,7 @@ export default function PropertiesDrawer({
                 <Square2StackIcon className="icon-small" />
               </IconButton>
             </div>
+
             {copiedText.value === fullPath &&
             copiedText.isCopied === true &&
             showCopyAlert === true ? (

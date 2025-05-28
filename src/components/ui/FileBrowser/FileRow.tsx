@@ -86,7 +86,7 @@ export default function FileRow({
       <div className="flex items-center w-full gap-3 pl-3 py-1 overflow-x-auto">
         <Typography
           variant="small"
-          className="font-medium text-primary-light hover:underline"
+          className="font-medium text-primary-light hover:underline truncate"
           onClick={(e: React.MouseEvent<HTMLDivElement>) => {
             e.stopPropagation();
             if (file.is_dir) {
