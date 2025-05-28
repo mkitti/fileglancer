@@ -51,7 +51,13 @@ export const BrowseLayout = () => {
         {showPropertiesDrawer ? (
           <>
             <PanelResizeHandle className="w-1 bg-surface shadow-xl" />
-            <Panel id="properties" order={3}>
+            <Panel
+              id="properties"
+              order={3}
+              defaultSize={18}
+              minSize={10}
+              maxSize={50}
+            >
               <PropertiesDrawer
                 propertiesTarget={propertiesTarget}
                 open={showPropertiesDrawer}
