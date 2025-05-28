@@ -20,19 +20,24 @@ class ProxiedPathManager:
         log.info(f"Retrieve proxied path {sharing_key} for user {username} from {self.central_url}")
         return requests.get(f"{self.central_url}/proxied-path/{username}/{sharing_key}")
 
-    def get_proxied_paths(self, username: str, mount_path: Optional[str] = None) -> ProxiedPathResponse:
-        """Retrieve user proxied paths, optionally filtered by mount path."""
+    def get_proxied_paths(self, username: str, fsp_mount_path: Optional[str] = None, path: Optional[str] = None) -> ProxiedPathResponse:
+        """Retrieve user proxied paths, optionally filtered by fsp_mount_path and path."""
         log.info(f"Retrieve all proxied paths for user {username} from {self.central_url}")
-        return requests.get(f"{self.central_url}/proxied-path/{username}", params = {
-            "mount_path": mount_path
-        })
+        return requests.get(
+            f"{self.central_url}/proxied-path/{username}", 
+            params = {
+                "fsp_mount_path": fsp_mount_path,
+                "path": path
+            }
+        )
 
-    def create_proxied_path(self, username: str, mount_path: str) -> requests.Response:
-        """Create a proxied path for the given mount path."""
+    def create_proxied_path(self, username: str, fsp_mount_path: str, path: str) -> requests.Response:
+        """Create a proxied path for the given fsp_mount_path and path."""
         return requests.post(
             f"{self.central_url}/proxied-path/{username}",
             params = {
-                "mount_path": mount_path
+                "fsp_mount_path": fsp_mount_path,
+                "path": path
             }
         )
 
@@ -42,11 +47,13 @@ class ProxiedPathManager:
             f"{self.central_url}/proxied-path/{username}/{sharing_key}"
         )
 
-    def update_proxied_path(self, username: str, sharing_key, new_path: Optional[str], new_name: Optional[str]) -> requests.Response:
-        """Update a proxied path with the given mount path and sharing name."""
+    def update_proxied_path(self, username: str, sharing_key: str, fsp_mount_path: Optional[str] = None, path: Optional[str] = None, new_name: Optional[str] = None) -> requests.Response:
+        """Update a proxied path with the given fsp_mount_path, path and sharing name."""
         pp_updates = {}
-        if new_path:
-            pp_updates["mount_path"] = new_path
+        if fsp_mount_path:
+            pp_updates["fsp_mount_path"] = fsp_mount_path
+        if path:
+            pp_updates["path"] = path
         if new_name:
             pp_updates["sharing_name"] = new_name
         return requests.put(

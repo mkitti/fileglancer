@@ -31,7 +31,7 @@ export default function SharingDialog({
   const [alertContent, setAlertContent] = React.useState<string>('');
   const { createProxiedPath, deleteProxiedPath } = useProxiedPathContext();
   const { currentFileSharePath } = useZoneBrowserContext();
-  const fullPath = `${currentFileSharePath?.mount_path}/${filePathWithoutFsp}`;
+  const displayPath = `${currentFileSharePath?.mount_path}/${filePathWithoutFsp}`;
 
   return (
     <Dialog open={showSharingDialog}>
@@ -55,7 +55,7 @@ export default function SharingDialog({
             <Typography className="my-8 text-large text-foreground">
               <p>
                 Are you sure you want to unshare{' '}
-                <span className="font-semibold break-all">{fullPath}</span>?
+                <span className="font-semibold break-all">{displayPath}</span>?
               </p>
               <p>
                 If you previously shared a link to these data with
@@ -67,7 +67,7 @@ export default function SharingDialog({
             <Typography className="my-8 text-large text-foreground">
               <p>
                 Are you sure you want to share{' '}
-                <span className="font-semibold break-all">{fullPath}</span>?
+                <span className="font-semibold break-all">{displayPath}</span>?
               </p>
               <p>This will allow anyone at Janelia to view this data.</p>
             </Typography>
@@ -81,17 +81,20 @@ export default function SharingDialog({
                 className="!rounded-md flex items-center gap-2"
                 onClick={async () => {
                   try {
-                    const newProxiedPath = await createProxiedPath(fullPath);
+                    const newProxiedPath = await createProxiedPath(
+                      currentFileSharePath?.mount_path || '',
+                      filePathWithoutFsp
+                    );
                     if (newProxiedPath) {
-                      setAlertContent(`Successfully shared ${fullPath}`);
+                      setAlertContent(`Successfully shared ${displayPath}`);
                     } else {
-                      setAlertContent(`Error sharing ${fullPath}`);
+                      setAlertContent(`Error sharing ${displayPath}`);
                     }
                     setIsImageShared(true);
                     setShowSharingDialog(false);
                   } catch (error) {
                     setAlertContent(
-                      `Error sharing ${fullPath}: ${
+                      `Error sharing ${displayPath}: ${
                         error instanceof Error ? error.message : 'Unknown error'
                       }`
                     );
@@ -111,11 +114,11 @@ export default function SharingDialog({
                   try {
                     await deleteProxiedPath();
                     setIsImageShared(false);
-                    setAlertContent(`Successfully unshared ${fullPath}`);
+                    setAlertContent(`Successfully unshared ${displayPath}`);
                     setShowSharingDialog(false);
                   } catch (error) {
                     setAlertContent(
-                      `Error unsharing ${fullPath}: ${
+                      `Error unsharing ${displayPath}: ${
                         error instanceof Error ? error.message : 'Unknown error'
                       }`
                     );
