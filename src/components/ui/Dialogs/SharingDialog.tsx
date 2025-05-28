@@ -28,7 +28,7 @@ export default function SharingDialog({
 }: SharingDialogProps): JSX.Element {
   const { createProxiedPath, deleteProxiedPath } = useProxiedPathContext();
   const { currentFileSharePath } = useZoneBrowserContext();
-  const fullPath = `${currentFileSharePath?.mount_path}/${filePathWithoutFsp}`;
+  const displayPath = `${currentFileSharePath?.mount_path}/${filePathWithoutFsp}`;
 
   return (
     <Dialog open={showSharingDialog}>
@@ -51,7 +51,7 @@ export default function SharingDialog({
             <Typography className="my-8 text-large text-foreground">
               <p>
                 Are you sure you want to unshare{' '}
-                <span className="font-semibold break-all">{fullPath}</span>?
+                <span className="font-semibold break-all">{displayPath}</span>?
               </p>
               <p>
                 If you previously shared a link to these data with
@@ -63,7 +63,7 @@ export default function SharingDialog({
             <Typography className="my-8 text-large text-foreground">
               <p>
                 Are you sure you want to share{' '}
-                <span className="font-semibold break-all">{fullPath}</span>?
+                <span className="font-semibold break-all">{displayPath}</span>?
               </p>
               <p>This will allow anyone at Janelia to view this data.</p>
             </Typography>
@@ -77,17 +77,20 @@ export default function SharingDialog({
                 className="!rounded-md flex items-center gap-2"
                 onClick={async () => {
                   try {
-                    const newProxiedPath = await createProxiedPath(fullPath);
+                    const newProxiedPath = await createProxiedPath(
+                      currentFileSharePath?.mount_path || '',
+                      filePathWithoutFsp
+                    );
                     if (newProxiedPath) {
-                      toast.success(`Successfully shared ${fullPath}`);
+                      toast.success(`Successfully shared ${displayPath}`);
                     } else {
-                      toast.error(`Error sharing ${fullPath}`);
+                      toast.error(`Error sharing ${displayPath}`);
                     }
                     setIsImageShared(true);
                     setShowSharingDialog(false);
                   } catch (error) {
                     toast.error(
-                      `Error sharing ${fullPath}: ${
+                      `Error sharing ${displayPath}: ${
                         error instanceof Error ? error.message : 'Unknown error'
                       }`
                     );
@@ -106,11 +109,11 @@ export default function SharingDialog({
                   try {
                     await deleteProxiedPath();
                     setIsImageShared(false);
-                    toast.success(`Successfully unshared ${fullPath}`);
+                    toast.success(`Successfully unshared ${displayPath}`);
                     setShowSharingDialog(false);
                   } catch (error) {
                     toast.error(
-                      `Error unsharing ${fullPath}: ${
+                      `Error unsharing ${displayPath}: ${
                         error instanceof Error ? error.message : 'Unknown error'
                       }`
                     );
