@@ -1,6 +1,7 @@
 import React from 'react';
 import { Outlet } from 'react-router';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { PiDotsSixVerticalBold } from 'react-icons/pi';
 
 import useShowPropertiesDrawer from '@/hooks/useShowPropertiesDrawer';
 import usePropertiesTarget from '@/hooks/usePropertiesTarget';
@@ -42,7 +43,9 @@ export const BrowseLayout = () => {
             >
               <Sidebar />
             </Panel>
-            <PanelResizeHandle className="bg-background shadow-lg border-l border-surface shadow-surface relative" />
+            <PanelResizeHandle className="group relative border-r border-surface hover:border-secondary/60">
+              <PiDotsSixVerticalBold className="icon-default stroke-2 absolute -right-1 top-1/2 stroke-black dark:stroke-white" />
+            </PanelResizeHandle>
           </>
         ) : null}
         <Panel id="main" order={2}>
@@ -50,7 +53,9 @@ export const BrowseLayout = () => {
         </Panel>
         {showPropertiesDrawer ? (
           <>
-            <PanelResizeHandle className="w-1 bg-surface shadow-xl" />
+            <PanelResizeHandle className="group relative w-3 bg-surface border-l border-surface hover:border-secondary/60">
+              <PiDotsSixVerticalBold className="icon-default stroke-2 absolute -left-1 top-1/2 stroke-black dark:stroke-white" />
+            </PanelResizeHandle>
             <Panel
               id="properties"
               order={3}
