@@ -10,7 +10,7 @@ const formatFileSize = (sizeInBytes: number): string => {
   }
 };
 
-const formatDate = (timestamp: number): string => {
+const formatUnixTimestamp = (timestamp: number): string => {
   const date = new Date(timestamp * 1000);
   return date.toLocaleDateString('en-US', {
     month: 'short',
@@ -151,7 +151,7 @@ async function fetchFileAsJson(
 
 export {
   formatFileSize,
-  formatDate,
+  formatUnixTimestamp,
   getAPIPathRoot,
   HTTPError,
   sendFetchRequest,

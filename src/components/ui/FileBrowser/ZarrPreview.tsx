@@ -19,6 +19,7 @@ import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import ZarrMetadataTable from './ZarrMetadataTable';
 import SharingDialog from '../Dialogs/SharingDialog';
+import useSharingDialog from '@/hooks/useSharingDialog';
 
 type ZarrPreviewProps = {
   thumbnailSrc: string | null;
@@ -33,10 +34,9 @@ export default function ZarrPreview({
   neuroglancerUrl,
   metadata
 }: ZarrPreviewProps): React.ReactNode {
-  const [showSharingDialog, setShowSharingDialog] =
-    React.useState<boolean>(false);
   const [isImageShared, setIsImageShared] = React.useState(false);
 
+  const { showSharingDialog, setShowSharingDialog } = useSharingDialog();
   const { copyToClipboard, showCopyAlert, dismissCopyAlert } = useCopyPath();
   const { proxiedPath } = useProxiedPathContext();
   const { currentNavigationPath } = useFileBrowserContext();

@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { FileOrFolder } from '@/shared.types';
-import { formatDate, formatFileSize } from '@/utils';
+import { formatUnixTimestamp, formatFileSize } from '@/utils';
 
 export default function OverviewTable({ file }: { file: FileOrFolder | null }) {
   return (
@@ -13,7 +13,7 @@ export default function OverviewTable({ file }: { file: FileOrFolder | null }) {
               Last modified
             </td>
             <td className="p-3">
-              {file ? formatDate(file.last_modified) : null}
+              {file ? formatUnixTimestamp(file.last_modified) : null}
             </td>
           </tr>
           <tr className="border-b border-surface">

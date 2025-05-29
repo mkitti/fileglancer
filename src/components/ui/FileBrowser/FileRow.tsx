@@ -11,7 +11,7 @@ import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 import useHandleLeftClick from '@/hooks/useHandleLeftClick';
-import { formatDate, formatFileSize } from '@/utils';
+import { formatUnixTimestamp, formatFileSize } from '@/utils';
 
 type FileRowProps = {
   file: FileOrFolder;
@@ -116,7 +116,7 @@ export default function FileRow({
       {/* Last Modified column */}
       <div className="py-1 text-grey-700  flex items-center overflow-x-auto">
         <Typography variant="small" className="font-medium">
-          {formatDate(file.last_modified)}
+          {formatUnixTimestamp(file.last_modified)}
         </Typography>
       </div>
 

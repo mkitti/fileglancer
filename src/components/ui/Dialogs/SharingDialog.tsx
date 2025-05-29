@@ -13,7 +13,7 @@ import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 
 type SharingDialogProps = {
   isImageShared: boolean;
-  setIsImageShared: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsImageShared?: React.Dispatch<React.SetStateAction<boolean>>;
   filePathWithoutFsp: string;
   showSharingDialog: boolean;
   setShowSharingDialog: React.Dispatch<React.SetStateAction<boolean>>;
@@ -86,8 +86,10 @@ export default function SharingDialog({
                     } else {
                       toast.error(`Error sharing ${displayPath}`);
                     }
-                    setIsImageShared(true);
                     setShowSharingDialog(false);
+                    if (setIsImageShared) {
+                      setIsImageShared(true);
+                    }
                   } catch (error) {
                     toast.error(
                       `Error sharing ${displayPath}: ${
@@ -108,9 +110,11 @@ export default function SharingDialog({
                 onClick={async () => {
                   try {
                     await deleteProxiedPath();
-                    setIsImageShared(false);
                     toast.success(`Successfully unshared ${displayPath}`);
                     setShowSharingDialog(false);
+                    if (setIsImageShared) {
+                      setIsImageShared(false);
+                    }
                   } catch (error) {
                     toast.error(
                       `Error unsharing ${displayPath}: ${

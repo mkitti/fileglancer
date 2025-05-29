@@ -7,6 +7,7 @@ import {
 } from '../shared.types';
 import { getAPIPathRoot, sendFetchRequest, makeMapKey } from '../utils';
 import { useCookiesContext } from '../contexts/CookiesContext';
+import { get } from 'node_modules/zarrita/dist/src/indexing/get';
 
 type ZoneBrowserContextType = {
   isZonesMapReady: boolean;
@@ -50,7 +51,9 @@ export const ZoneBrowserContextProvider = ({
 
   const { cookies } = useCookiesContext();
 
-  async function getZones(): Promise<{ paths: FileSharePath[] }> {
+  const getZones = React.useCallback(async (): Promise<{
+    paths: FileSharePath[];
+  }> => {
     const url = `${getAPIPathRoot()}api/fileglancer/file-share-paths`;
     let rawData: { paths: FileSharePath[] } = { paths: [] };
     try {
@@ -64,7 +67,7 @@ export const ZoneBrowserContextProvider = ({
       }
     }
     return rawData;
-  }
+  }, [cookies]);
 
   function createZonesAndFileSharePathsMap(rawData: {
     paths: FileSharePath[];
@@ -125,30 +128,31 @@ export const ZoneBrowserContextProvider = ({
     return sortedMap;
   }
 
-  async function updateZonesAndFileSharePathsMap() {
-    let rawData: { paths: FileSharePath[] } = { paths: [] };
-    try {
-      rawData = await getZones();
-      const newZonesAndFileSharePathsMap =
-        createZonesAndFileSharePathsMap(rawData);
-      const sortedMap = alphabetizeZonesAndFsps(newZonesAndFileSharePathsMap);
-      setZonesAndFileSharePathsMap(sortedMap);
-      setIsZonesMapReady(true);
-      console.log('zones and fsp map in ZoneBrowserContext:', sortedMap);
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error(error.message);
-      } else {
-        console.error('An unknown error occurred when fetching zones');
+  const updateZonesAndFileSharePathsMap =
+    React.useCallback(async (): Promise<void> => {
+      let rawData: { paths: FileSharePath[] } = { paths: [] };
+      try {
+        rawData = await getZones();
+        const newZonesAndFileSharePathsMap =
+          createZonesAndFileSharePathsMap(rawData);
+        const sortedMap = alphabetizeZonesAndFsps(newZonesAndFileSharePathsMap);
+        setZonesAndFileSharePathsMap(sortedMap);
+        setIsZonesMapReady(true);
+        console.log('zones and fsp map in ZoneBrowserContext:', sortedMap);
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          console.error(error.message);
+        } else {
+          console.error('An unknown error occurred when fetching zones');
+        }
       }
-    }
-  }
+    }, [getZones]);
 
   // When app first loads, fetch file share paths
   // and create a map of zones and file share paths
   React.useEffect(() => {
     updateZonesAndFileSharePathsMap();
-  }, []);
+  }, [updateZonesAndFileSharePathsMap]);
 
   return (
     <ZoneBrowserContext.Provider
