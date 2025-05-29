@@ -12,6 +12,7 @@ import { Square2StackIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import neuroglancer_logo from '@/assets/neuroglancer.png';
 import validator_logo from '@/assets/ome-ngff-validator.png';
 import volE_logo from '@/assets/aics_website-3d-cell-viewer.png';
+import copy_logo from '@/assets/copy-link-64.png';
 import napari_logo from '@/assets/napari.png';
 
 import useCopyPath from '@/hooks/useCopyPath';
@@ -162,6 +163,21 @@ export default function ZarrPreview({
                     alt="Vol-E logo"
                     className="max-h-8 max-w-8 m-1 rounded-sm"
                   />
+                </Button>
+                <Button
+                  title="Copy data URL"
+                  variant="ghost" 
+                  className="group peer/copy rounded-sm m-0 p-0 relative"
+                  onClick={() => {
+                    copyToClipboard(openWithToolUrls.copy);
+                  }}
+                >
+                  <img
+                    src={copy_logo}
+                    alt="Copy URL icon"
+                    className="max-h-8 max-w-8 m-1 rounded-sm"
+                  />
+                  <Square2StackIcon className="w-4 h-4 text-transparent group-hover:text-foreground absolute top-0 right-0 bg-transparent group-hover:bg-background" />
                 </Button>
                 {/* <div>
                   <Button
