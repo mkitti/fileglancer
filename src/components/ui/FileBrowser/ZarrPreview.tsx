@@ -4,7 +4,8 @@ import {
   Button,
   ButtonGroup,
   Switch,
-  Typography
+  Typography,
+  Tooltip
 } from '@material-tailwind/react';
 import { Link } from 'react-router-dom';
 import { Square2StackIcon, XMarkIcon } from '@heroicons/react/24/outline';
@@ -119,65 +120,107 @@ export default function ZarrPreview({
                 Open with:
               </Typography>
               <ButtonGroup className="relative">
-                <Button
-                  as={Link}
-                  to={openWithToolUrls.validator}
-                  title="View in OME-Zarr Validator"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  variant="ghost"
-                  className="rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75"
-                >
-                  <img
-                    src={validator_logo}
-                    alt="OME-Zarr Validator logo"
-                    className="max-h-8 max-w-8 m-1 rounded-sm"
-                  />
-                </Button>
-                <Button
-                  as={Link}
-                  to={openWithToolUrls.neuroglancer}
-                  title="View in Neuroglancer"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  variant="ghost"
-                  className="rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75"
-                >
-                  <img
-                    src={neuroglancer_logo}
-                    alt="Neuroglancer logo"
-                    className="max-h-8 max-w-8 m-1 rounded-sm"
-                  />
-                </Button>
-                <Button
-                  as={Link}
-                  to={openWithToolUrls.vole}
-                  title="View in Vol-E"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  variant="ghost"
-                  className="rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75"
-                >
-                  <img
-                    src={volE_logo}
-                    alt="Vol-E logo"
-                    className="max-h-8 max-w-8 m-1 rounded-sm"
-                  />
-                </Button>
-                <Button
-                  title="Copy data URL"
-                  variant="ghost" 
-                  className="rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75"
-                  onClick={() => {
-                    copyToClipboard(openWithToolUrls.copy);
-                  }}
-                >
-                  <img
-                    src={copy_logo}
-                    alt="Copy URL icon"
-                    className="max-h-8 max-w-8 m-1 rounded-sm"
-                  />
-                </Button>
+                <Tooltip placement="top">
+                  <Tooltip.Trigger
+                    as={Button}
+                    variant="ghost"
+                    className="rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75"
+                  >
+                    <Link
+                      to={openWithToolUrls.validator}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <img
+                        src={validator_logo}
+                        alt="OME-Zarr Validator logo"
+                        className="max-h-8 max-w-8 m-1 rounded-sm"
+                      />
+                    </Link>
+                    <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
+                      <Typography type="small" className="opacity-90">
+                        View in OME-Zarr Validator
+                      </Typography>
+                      <Tooltip.Arrow />
+                    </Tooltip.Content>
+                  </Tooltip.Trigger>
+                </Tooltip>
+
+                <Tooltip placement="top">
+                  <Tooltip.Trigger
+                    as={Button}
+                    variant="ghost"
+                    className="rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75"
+                  >
+                    <Link
+                      to={openWithToolUrls.neuroglancer}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <img
+                        src={neuroglancer_logo}
+                        alt="Neuroglancer logo"
+                        className="max-h-8 max-w-8 m-1 rounded-sm"
+                      />
+                    </Link>
+                    <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
+                      <Typography type="small" className="opacity-90">
+                        View in Neuroglancer
+                      </Typography>
+                      <Tooltip.Arrow />
+                    </Tooltip.Content>
+                  </Tooltip.Trigger>
+                </Tooltip>
+
+                <Tooltip placement="top">
+                  <Tooltip.Trigger
+                    as={Button}
+                    variant="ghost"
+                    className="rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75"
+                  >
+                    <Link
+                      to={openWithToolUrls.vole}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <img
+                        src={volE_logo}
+                        alt="Vol-E logo"
+                        className="max-h-8 max-w-8 m-1 rounded-sm"
+                      />
+                    </Link>
+                    <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
+                      <Typography type="small" className="opacity-90">
+                        View in Vol-E
+                      </Typography>
+                      <Tooltip.Arrow />
+                    </Tooltip.Content>
+                  </Tooltip.Trigger>
+                </Tooltip>
+
+                <Tooltip placement="top">
+                  <Tooltip.Trigger
+                    as={Button}
+                    variant="ghost"
+                    className="rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75"
+                    onClick={() => {
+                      copyToClipboard(openWithToolUrls.copy);
+                    }}
+                  >
+                    <img
+                      src={copy_logo}
+                      alt="Copy URL icon"
+                      className="max-h-8 max-w-8 m-1 rounded-sm"
+                    />
+                    <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
+                      <Typography type="small" className="opacity-90">
+                        Copy data URL
+                      </Typography>
+                      <Tooltip.Arrow />
+                    </Tooltip.Content>
+                  </Tooltip.Trigger>
+                </Tooltip>
+
                 {/* <div>
                   <Button
                     title="Copy link to view in Napari"
