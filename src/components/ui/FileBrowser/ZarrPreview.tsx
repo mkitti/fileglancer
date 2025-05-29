@@ -40,6 +40,7 @@ export default function ZarrPreview({
   const [showSharingDialog, setShowSharingDialog] =
     React.useState<boolean>(false);
   const [isImageShared, setIsImageShared] = React.useState(false);
+  const [showCopiedTooltip, setShowCopiedTooltip] = React.useState(false);
 
   const { copyToClipboard, showCopyAlert, dismissCopyAlert } = useCopyPath();
   const { proxiedPath } = useProxiedPathContext();
@@ -51,6 +52,16 @@ export default function ZarrPreview({
   React.useEffect(() => {
     setIsImageShared(proxiedPath !== null);
   }, [proxiedPath]);
+
+  const handleCopyUrl = async () => {
+    if (openWithToolUrls?.copy) {
+      await copyToClipboard(openWithToolUrls.copy);
+      setShowCopiedTooltip(true);
+      setTimeout(() => {
+        setShowCopiedTooltip(false);
+      }, 1000);
+    }
+  };
 
   return (
     <div className="my-4 p-4 shadow-sm rounded-md bg-primary-light/30">
@@ -198,14 +209,12 @@ export default function ZarrPreview({
                   </Tooltip.Trigger>
                 </Tooltip>
 
-                <Tooltip placement="top">
+                <Tooltip placement="top" open={showCopiedTooltip ? true : undefined}>
                   <Tooltip.Trigger
                     as={Button}
                     variant="ghost"
                     className="rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75"
-                    onClick={() => {
-                      copyToClipboard(openWithToolUrls.copy);
-                    }}
+                    onClick={handleCopyUrl}
                   >
                     <img
                       src={copy_logo}
@@ -214,7 +223,7 @@ export default function ZarrPreview({
                     />
                     <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
                       <Typography type="small" className="opacity-90">
-                        Copy data URL
+                        {showCopiedTooltip ? 'Copied!' : 'Copy data URL'}
                       </Typography>
                       <Tooltip.Arrow />
                     </Tooltip.Content>
@@ -247,15 +256,6 @@ export default function ZarrPreview({
                   </Typography>
                 </div> */}
               </ButtonGroup>
-              {showCopyAlert === true ? (
-                <Alert className="flex items-center max-w-max p-1 bg-secondary-light/70 border-none">
-                  <Alert.Content>URL copied to clipboard!</Alert.Content>
-                  <XMarkIcon
-                    className="h-5 w-5 cursor-pointer"
-                    onClick={dismissCopyAlert}
-                  />
-                </Alert>
-              ) : null}
             </div>
           ) : null}
         </div>
