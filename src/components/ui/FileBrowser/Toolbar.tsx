@@ -6,8 +6,6 @@ import {
   Typography
 } from '@material-tailwind/react';
 import {
-  ChevronDoubleLeftIcon,
-  ChevronDoubleRightIcon,
   ArrowPathIcon,
   EyeIcon,
   EyeSlashIcon,
@@ -46,7 +44,10 @@ export default function Toolbar({
             <Tooltip.Trigger
               as={IconButton}
               variant="outline"
-              onClick={() => setShowSidebar((prev: boolean) => !prev)}
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                setShowSidebar((prev: boolean) => !prev);
+                e.currentTarget.blur();
+              }}
             >
               {showSidebar ? (
                 <>
@@ -96,8 +97,9 @@ export default function Toolbar({
             <Tooltip.Trigger
               as={IconButton}
               variant="outline"
-              onClick={() => {
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                 setShowNewFolderDialog(true);
+                e.currentTarget.blur();
               }}
             >
               <FolderPlusIcon className="icon-default" />
@@ -115,7 +117,10 @@ export default function Toolbar({
             <Tooltip.Trigger
               as={IconButton}
               variant="outline"
-              onClick={() => setHideDotFiles((prev: boolean) => !prev)}
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                setHideDotFiles((prev: boolean) => !prev);
+                e.currentTarget.blur();
+              }}
             >
               {hideDotFiles ? (
                 <EyeSlashIcon className="icon-default" />
@@ -137,7 +142,10 @@ export default function Toolbar({
           <Tooltip.Trigger
             as={IconButton}
             variant="outline"
-            onClick={() => setShowPropertiesDrawer((prev: boolean) => !prev)}
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+              setShowPropertiesDrawer((prev: boolean) => !prev);
+              e.currentTarget.blur();
+            }}
           >
             {showPropertiesDrawer ? (
               <>
