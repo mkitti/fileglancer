@@ -126,7 +126,7 @@ export default function ZarrPreview({
                   target="_blank"
                   rel="noopener noreferrer"
                   variant="ghost"
-                  className="rounded-sm m-0 p-0"
+                  className="rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75"
                 >
                   <img
                     src={validator_logo}
@@ -141,7 +141,7 @@ export default function ZarrPreview({
                   target="_blank"
                   rel="noopener noreferrer"
                   variant="ghost"
-                  className="rounded-sm m-0 p-0"
+                  className="rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75"
                 >
                   <img
                     src={neuroglancer_logo}
@@ -156,7 +156,7 @@ export default function ZarrPreview({
                   target="_blank"
                   rel="noopener noreferrer"
                   variant="ghost"
-                  className="rounded-sm m-0 p-0"
+                  className="rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75"
                 >
                   <img
                     src={volE_logo}
@@ -167,7 +167,7 @@ export default function ZarrPreview({
                 <Button
                   title="Copy data URL"
                   variant="ghost" 
-                  className="group peer/copy rounded-sm m-0 p-0 relative"
+                  className="rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75"
                   onClick={() => {
                     copyToClipboard(openWithToolUrls.copy);
                   }}
@@ -177,7 +177,6 @@ export default function ZarrPreview({
                     alt="Copy URL icon"
                     className="max-h-8 max-w-8 m-1 rounded-sm"
                   />
-                  <Square2StackIcon className="w-4 h-4 text-transparent group-hover:text-foreground absolute top-0 right-0 bg-transparent group-hover:bg-background" />
                 </Button>
                 {/* <div>
                   <Button
