@@ -115,7 +115,12 @@ pixi run ui-test -- --headed --debug
 
 or to run only a specific test:
 ```bash
-pixi run ui-test -- --headed --debug tests/fgzones.spec.ts
+pixi run ui-test -- --headed tests/fgzones.spec.ts
+```
+
+You can also use the name of the test:
+```bash
+pixi run ui-test -- -g "the test description"
 ```
 
 ## Packaging and Releases
