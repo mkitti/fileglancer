@@ -38,7 +38,7 @@ export default function FileList({
 }: FileListProps): React.ReactNode {
   const {
     thumbnailSrc,
-    neuroglancerUrl,
+    openWithToolUrls,
     metadata,
     hasMultiscales,
     loadingThumbnail
@@ -60,7 +60,7 @@ export default function FileList({
         <ZarrPreview
           thumbnailSrc={thumbnailSrc}
           loadingThumbnail={loadingThumbnail}
-          neuroglancerUrl={neuroglancerUrl}
+          openWithToolUrls={openWithToolUrls}
           metadata={metadata}
         />
       ) : null}

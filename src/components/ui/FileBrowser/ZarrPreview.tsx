@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom';
 import { Square2StackIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 import neuroglancer_logo from '@/assets/neuroglancer.png';
+import validator_logo from '@/assets/ome-ngff-validator.png';
 import volE_logo from '@/assets/aics_website-3d-cell-viewer.png';
 import napari_logo from '@/assets/napari.png';
 
@@ -19,18 +20,19 @@ import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import ZarrMetadataTable from './ZarrMetadataTable';
 import SharingDialog from '../Dialogs/SharingDialog';
+import type { OpenWithToolUrls } from '@/hooks/useZarrMetadata';
 
 type ZarrPreviewProps = {
   thumbnailSrc: string | null;
   loadingThumbnail: boolean;
-  neuroglancerUrl: string | null;
+  openWithToolUrls: OpenWithToolUrls | null;
   metadata: Metadata | null;
 };
 
 export default function ZarrPreview({
   thumbnailSrc,
   loadingThumbnail,
-  neuroglancerUrl,
+  openWithToolUrls,
   metadata
 }: ZarrPreviewProps): React.ReactNode {
   const [showSharingDialog, setShowSharingDialog] =
@@ -110,7 +112,7 @@ export default function ZarrPreview({
             />
           ) : null}
 
-          {neuroglancerUrl && isImageShared ? (
+          {openWithToolUrls && isImageShared ? (
             <div>
               <Typography className="font-semibold text-sm text-surface-foreground">
                 Open with:
@@ -118,7 +120,22 @@ export default function ZarrPreview({
               <ButtonGroup className="relative">
                 <Button
                   as={Link}
-                  to={neuroglancerUrl}
+                  to={openWithToolUrls.validator}
+                  title="View in OME-Zarr Validator"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  variant="ghost"
+                  className="rounded-sm m-0 p-0"
+                >
+                  <img
+                    src={validator_logo}
+                    alt="OME-Zarr Validator logo"
+                    className="max-h-8 max-w-8 m-1 rounded-sm"
+                  />
+                </Button>
+                <Button
+                  as={Link}
+                  to={openWithToolUrls.neuroglancer}
                   title="View in Neuroglancer"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -133,7 +150,7 @@ export default function ZarrPreview({
                 </Button>
                 <Button
                   as={Link}
-                  to="#"
+                  to={openWithToolUrls.vole}
                   title="View in Vol-E"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -146,7 +163,7 @@ export default function ZarrPreview({
                     className="max-h-8 max-w-8 m-1 rounded-sm"
                   />
                 </Button>
-                <div>
+                {/* <div>
                   <Button
                     title="Copy link to view in Napari"
                     variant="ghost"
@@ -170,7 +187,7 @@ export default function ZarrPreview({
                     See <a href="https://napari.org">napari.org</a> for
                     instructions. Then <code>napari URL</code>
                   </Typography>
-                </div>
+                </div> */}
               </ButtonGroup>
               {showCopyAlert === true ? (
                 <Alert className="flex items-center max-w-max p-1 bg-secondary-light/70 border-none">
