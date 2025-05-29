@@ -88,8 +88,9 @@ export default function FileList({
             Actions
           </Typography>
         </div>
-
-        {/* File rows */}
+      </div>
+      {/* File rows */}
+      <div className="overflow-y-auto max-h-[calc(100vh-220px)]">
         {displayFiles.length > 0 &&
           displayFiles.map((file, index) => {
             return (
