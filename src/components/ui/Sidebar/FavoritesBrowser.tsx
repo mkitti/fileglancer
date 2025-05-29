@@ -69,7 +69,7 @@ export default function FavoritesBrowser({
       </List>
       <div className="overflow-y-auto">
         <Collapse open={openFavorites['all'] ? true : false}>
-          <List className="bg-surface-light !py-0 !gap-0 !min-w-40">
+          <List className="bg-surface-light !py-0 !gap-0 !min-w-20 overflow-hidden">
             {/* Zone favorites */}
             {displayZones.map(zone => {
               return (

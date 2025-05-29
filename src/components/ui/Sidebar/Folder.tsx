@@ -114,8 +114,8 @@ export default function Folder({ folderFavorite, setOpenZones }: FolderProps) {
             </Typography>
           </div>
           <Tooltip placement="right">
-            <Tooltip.Trigger>
-              <Typography className="max-w-full text-xs truncate">
+            <Tooltip.Trigger className="w-full">
+              <Typography className="text-left text-xs truncate">
                 {`${fileSharePath}/${folderFavorite.folderPath}`}
               </Typography>
             </Tooltip.Trigger>
