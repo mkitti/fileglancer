@@ -6,7 +6,7 @@ import { expect, test } from '@jupyterlab/galata';
  */
 test.use({ autoGoto: false });
 
-test.('should emit an activation console message', async ({ page }) => {
+test('should emit an activation console message', async ({ page }) => {
   const logs: string[] = [];
 
   page.on('console', message => {
@@ -25,7 +25,7 @@ test.('should emit an activation console message', async ({ page }) => {
 
 });
 
-test.('when fg icon clicked should open fileglancer extension', async ({ page }) => {
+test('when fg icon clicked should open fileglancer extension', async ({ page }) => {
   const logs: string[] = [];
 
   page.on('console', message => {
