@@ -6,7 +6,7 @@ import { expect, test } from '@jupyterlab/galata';
  */
 test.use({ autoGoto: false });
 
-test('should emit an activation console message', async ({ page }) => {
+test.('should emit an activation console message', async ({ page }) => {
   const logs: string[] = [];
 
   page.on('console', message => {
@@ -18,4 +18,25 @@ test('should emit an activation console message', async ({ page }) => {
   expect(
     logs.filter(s => s === 'JupyterLab extension fileglancer is activated!')
   ).toHaveLength(1);
+  expect(
+    // open fileglancer command not executed yet
+    logs.filter(s => s === 'Open fileglancer command')
+  ).toHaveLength(0);
+
 });
+
+test.('when fg icon clicked should open fileglancer extension', async ({ page }) => {
+  const logs: string[] = [];
+
+  page.on('console', message => {
+    logs.push(message.text());
+  });
+  // open jupyter lab
+  await page.goto();
+  // click on Fileglancer icon
+  await page.getByText('Fileglancer', { exact: true }).click();
+
+  expect(
+    logs.filter(s => s === 'Open fileglancer command')
+  ).toHaveLength(1);
+})
