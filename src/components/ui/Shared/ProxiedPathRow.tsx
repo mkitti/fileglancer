@@ -101,34 +101,31 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
           >
             <EllipsisHorizontalCircleIcon className="w-6 h-6 text-foreground" />
           </IconButton>
-          {menuOpenId === item.sharing_key && (
-            <div className="absolute z-10 right-0 top-8 bg-background border border-surface rounded shadow min-w-[180px]">
-              <Button
-                variant="ghost"
-                className="flex items-center gap-2 w-full px-4 py-2 text-left text-foreground hover:bg-primary-light/30"
+          {/* Context menu */}
+          {menuOpenId === item.sharing_key ? (
+            <div className="absolute z-10 right-0 top-8 bg-background shadow-lg shadow-surface rounded-md p-2 min-w-[180px] border border-surface">
+            <div className="flex flex-col gap-2">
+              <Typography
+                className="flex items-center gap-2 text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
                 onClick={() => handleOpenBrowse(item.fsp_mount_path, item.path)}
               >
-                <FolderOpenIcon className="w-5 h-5" />
                 Open in Browse
-              </Button>
-              <Button
-                variant="ghost"
-                className="flex items-center gap-2 w-full px-4 py-2 text-left text-foreground hover:bg-primary-light/30"
+              </Typography>
+              <Typography
+                className="flex items-center gap-2 text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
                 onClick={() => handleCopyUrl(item.sharing_key)}
               >
-                <LinkIcon className="w-5 h-5" />
                 Copy sharing URL
-              </Button>
-              <Button
-                variant="ghost"
-                className="flex items-center gap-2 w-full px-4 py-2 text-left text-red-600 hover:bg-red-50"
+              </Typography>
+              <Typography
+                className="flex items-center gap-2 text-sm p-1 cursor-pointer text-red-600 hover:bg-red-50 transition-colors whitespace-nowrap"
                 onClick={() => setShowSharingDialog(true)}
               >
-                <TrashIcon className="w-5 h-5" />
                 Unshare
-              </Button>
+              </Typography>
             </div>
-          )}
+          </div>
+          ): null}
         </div>
       </div>
       {showSharingDialog ? (
