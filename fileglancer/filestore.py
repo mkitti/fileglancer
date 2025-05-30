@@ -78,7 +78,7 @@ class Filestore:
         self.root_path = os.path.abspath(file_share_path.mount_path)
 
 
-    def _check_path_in_root(self, path: str) -> str:
+    def _check_path_in_root(self, path: Optional[str]) -> str:
         """
         Check if a path is within the root directory and return the full path.
 
@@ -136,6 +136,9 @@ class Filestore:
         """
         full_path = self._check_path_in_root(path)
         try:
+            entries = os.listdir(full_path)
+            entries.sort(key=lambda e: (not os.path.isdir(os.path.join(full_path, e)),
+                                        e.lower()))
             for entry in os.listdir(full_path):
                 entry_path = os.path.join(full_path, entry)
                 try:
