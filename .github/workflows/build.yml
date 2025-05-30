@@ -33,13 +33,9 @@ jobs:
         run-install: false
         manifest-path: pyproject.toml
 
-    - name: Install frontend dependencies
+    - name: Install dependencies
       run: |
-        pixi run node-install
-
-    - name: Install backend dependencies
-      run: |
-        pixi run pip-install
+        pixi run dev-install
 
     - name: Lint the extension
       run: |
