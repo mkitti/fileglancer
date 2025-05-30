@@ -2,14 +2,10 @@ import React from 'react';
 import {
   Switch,
   IconButton,
-  Typography,
-  Button
+  Typography
 } from '@material-tailwind/react';
 import {
-  EllipsisHorizontalCircleIcon,
-  LinkIcon,
-  TrashIcon,
-  FolderOpenIcon
+  EllipsisHorizontalCircleIcon
 } from '@heroicons/react/24/outline';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 import useSharingDialog from '@/hooks/useSharingDialog';
@@ -128,6 +124,7 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
           ): null}
         </div>
       </div>
+      {/* Sharing dialog */}
       {showSharingDialog ? (
         <SharingDialog
           isImageShared={true}
