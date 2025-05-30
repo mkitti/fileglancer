@@ -209,7 +209,10 @@ export default function ZarrPreview({
                   </Tooltip.Trigger>
                 </Tooltip>
 
-                <Tooltip placement="top" open={showCopiedTooltip ? true : undefined}>
+                <Tooltip
+                  placement="top"
+                  open={showCopiedTooltip ? true : undefined}
+                >
                   <Tooltip.Trigger
                     as={Button}
                     variant="ghost"

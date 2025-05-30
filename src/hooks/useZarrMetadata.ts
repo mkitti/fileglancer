@@ -20,7 +20,8 @@ export type OpenWithToolUrls = {
 
 export default function useZarrMetadata(files: FileOrFolder[]) {
   const [thumbnailSrc, setThumbnailSrc] = React.useState<string | null>(null);
-  const [openWithToolUrls, setOpenWithToolUrls] = React.useState<OpenWithToolUrls | null>(null);
+  const [openWithToolUrls, setOpenWithToolUrls] =
+    React.useState<OpenWithToolUrls | null>(null);
   const [metadata, setMetadata] = React.useState<Metadata | null>(null);
   const [hasMultiscales, setHasMultiscales] = React.useState(false);
   const [loadingThumbnail, setLoadingThumbnail] = React.useState(false);
@@ -78,13 +79,15 @@ export default function useZarrMetadata(files: FileOrFolder[]) {
         vole: voleBaseUrl + dataUrl
       } as OpenWithToolUrls;
       try {
-        openWithToolUrls.neuroglancer = neuroglancerBaseUrl + generateNeuroglancerState(
-          dataUrl,
-          metadata.zarr_version,
-          metadata.multiscale,
-          metadata.arr,
-          metadata.omero
-        );
+        openWithToolUrls.neuroglancer =
+          neuroglancerBaseUrl +
+          generateNeuroglancerState(
+            dataUrl,
+            metadata.zarr_version,
+            metadata.multiscale,
+            metadata.arr,
+            metadata.omero
+          );
       } catch (error) {
         console.error('Error generating neuroglancer state:', error);
       }
