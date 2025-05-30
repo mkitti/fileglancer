@@ -55,7 +55,6 @@ jobs:
       run: |
         set -eux
         pixi run node-build
-        pixi run ext-enable
 
         jupyter server extension list
         jupyter server extension list 2>&1 | grep -ie "fileglancer.*OK"
