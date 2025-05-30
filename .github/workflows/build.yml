@@ -30,12 +30,12 @@ jobs:
       with:
         pixi-version: v0.46.0
         cache: false
-        run-install: false
         manifest-path: pyproject.toml
 
     - name: Install dependencies
       run: |
-        pixi run dev-install
+        pixi run node-install
+        pixi run pip-install
 
     - name: Lint the extension
       run: |

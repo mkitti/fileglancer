@@ -114,7 +114,7 @@ test = { features = ["test"], solve-group = "default" }
 
 [tool.pixi.tasks]
 ext-clean = "rm -rf fileglancer/labextension && rm -rf .pixi/envs/default/share/jupyter/labextensions/fileglancer"
-pip-install = "pip install ."
+pip-install = "pip install -e ."
 pip-uninstall = "pip uninstall -y fileglancer"
 node-install = "npm install"
 node-build = "npm run build"
