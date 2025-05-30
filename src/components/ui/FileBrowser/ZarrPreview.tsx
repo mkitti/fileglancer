@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Alert,
   Button,
   ButtonGroup,
   Switch,
@@ -8,13 +7,12 @@ import {
   Tooltip
 } from '@material-tailwind/react';
 import { Link } from 'react-router-dom';
-import { Square2StackIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 import neuroglancer_logo from '@/assets/neuroglancer.png';
 import validator_logo from '@/assets/ome-ngff-validator.png';
 import volE_logo from '@/assets/aics_website-3d-cell-viewer.png';
 import copy_logo from '@/assets/copy-link-64.png';
-import napari_logo from '@/assets/napari.png';
+// import napari_logo from '@/assets/napari.png';
 
 import useCopyPath from '@/hooks/useCopyPath';
 import type { Metadata } from '@/omezarr-helper';
@@ -42,7 +40,7 @@ export default function ZarrPreview({
   const [isImageShared, setIsImageShared] = React.useState(false);
   const [showCopiedTooltip, setShowCopiedTooltip] = React.useState(false);
 
-  const { copyToClipboard, showCopyAlert, dismissCopyAlert } = useCopyPath();
+  const { copyToClipboard } = useCopyPath();
   const { proxiedPath } = useProxiedPathContext();
   const { currentNavigationPath } = useFileBrowserContext();
 
