@@ -64,7 +64,6 @@ def test_yield_file_and_dir_infos(filestore):
 
     # Test directory info
     dir_info = next(fs_iterator)
-    print('!!!!!!!! DIR_INFO', dir_info)
     assert dir_info.name == "subdir"
     assert dir_info.is_dir
 

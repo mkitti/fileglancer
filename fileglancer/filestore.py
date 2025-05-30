@@ -137,10 +137,8 @@ class Filestore:
         full_path = self._check_path_in_root(path)
         try:
             entries = os.listdir(full_path)
-            print('!!!!! ENTRIES 1: ', entries)
             entries.sort(key=lambda e: (not os.path.isdir(
                                             os.path.join(full_path, e)), e))
-            print('!!!!! ENTRIES 2: ', entries)
             for entry in entries:
                 entry_path = os.path.join(full_path, entry)
                 try:
