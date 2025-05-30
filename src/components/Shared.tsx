@@ -36,9 +36,10 @@ export default function Shared() {
           Shared Paths
         </Typography>
         <div className="rounded-lg shadow bg-background overflow-x-auto">
-          <div className="grid grid-cols-[2fr_2fr_1.5fr_0.5fr] gap-4 px-4 py-2 border-b border-surface">
+        <div className="grid grid-cols-[0.8fr_2fr_2fr_1.5fr_0.5fr] gap-4 px-4 py-2 border-b border-surface">
+            <div className="w-[100px]"/> {/* Intenionally empty cell */}
             <Typography variant="small" className="font-bold">
-              Sharing name
+              Name
             </Typography>
             <Typography variant="small" className="font-bold">
               Mount path

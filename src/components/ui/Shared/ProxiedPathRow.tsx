@@ -46,36 +46,35 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
     <>
       <div
         key={item.sharing_key}
-        className="grid grid-cols-[2fr_2fr_1.5fr_0.5fr] gap-4 items-center px-4 py-3 border-b last:border-b-0 border-surface hover:bg-primary-light/20 relative"
+        className="grid grid-cols-[0.8fr_2fr_2fr_1.5fr_0.5fr] gap-4 items-center px-4 py-3 border-b last:border-b-0 border-surface hover:bg-primary-light/20 relative"
       >
-        {/* Sharing name */}
+        {/* Sharing switch */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2">
-            <label
-              htmlFor="share-switch"
-              className="-translate-y-0.5 flex flex-col gap-1"
+          <label
+            htmlFor={`share-switch-${item.sharing_key}`}
+            className="flex flex-col items-center gap-1"
+          >
+            <Typography
+              as="label"
+              htmlFor={`share-switch-${item.sharing_key}`}
+              className="cursor-pointer text-foreground text-xs"
             >
-              <Typography
-                as="label"
-                htmlFor="share-switch"
-                className="cursor-pointer text-foreground font-semibold"
-              >
-                Unshare
-              </Typography>
-            </label>
-            <Switch
-              id="share-switch"
-              className="mt-2 bg-secondary-light border-secondary-light hover:!bg-secondary-light/80 hover:!border-secondary-light/80"
-              onClick={() => {
-                setShowSharingDialog(true);
-              }}
-              checked
-            />
-          </div>
-          <Typography variant="small" className="font-medium text-foreground">
-            {item.sharing_name}
-          </Typography>
+              Unshare
+            </Typography>
+          </label>
+          <Switch
+            id={`share-switch-${item.sharing_key}`}
+            className="bg-secondary-light border-secondary-light hover:!bg-secondary-light/80 hover:!border-secondary-light/80"
+            onClick={() => {
+              setShowSharingDialog(true);
+            }}
+            checked
+          />
         </div>
+        {/* Sharing name */}
+        <Typography variant="small" className="font-medium text-foreground">
+          {item.sharing_name}
+        </Typography>
         {/* Mount path */}
         <Typography variant="small" className="text-foreground">
           {item.fsp_mount_path}/{item.path}
