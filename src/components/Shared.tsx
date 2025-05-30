@@ -3,6 +3,8 @@ import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import ProxiedPathRow from './ui/Shared/ProxiedPathRow';
 
 export default function Shared() {
+  const [menuOpenId, setMenuOpenId] = React.useState<string | null>(null);
+
   const { allProxiedPaths } = useProxiedPathContext();
   return (
     <div className="w-full flex justify-center">
@@ -26,7 +28,13 @@ export default function Shared() {
               Actions
             </Typography>
           </div>
-          {allProxiedPaths?.map(item => <ProxiedPathRow item={item} />)}
+          {allProxiedPaths?.map(item => (
+            <ProxiedPathRow
+              item={item}
+              menuOpenId={menuOpenId}
+              setMenuOpenId={setMenuOpenId}
+            />
+          ))}
           {allProxiedPaths?.length === 0 && (
             <div className="px-4 py-8 text-center text-gray-500">
               No shared paths.

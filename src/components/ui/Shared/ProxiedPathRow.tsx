@@ -13,6 +13,8 @@ import SharingDialog from '@/components/ui/Dialogs/SharingDialog';
 
 type ProxiedPathRowProps = {
   item: ProxiedPath;
+  menuOpenId: string | null;
+  setMenuOpenId: (id: string | null) => void;
 };
 
 function formatDateString(dateStr: string) {
@@ -25,22 +27,25 @@ function formatDateString(dateStr: string) {
     return date.toLocaleString();
 }
 
-export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
+export default function ProxiedPathRow({
+  item,
+  menuOpenId,
+  setMenuOpenId
+}: ProxiedPathRowProps) {
   const { showSharingDialog, setShowSharingDialog } = useSharingDialog();
-  const [menuOpenId, setMenuOpenId] = React.useState<string | null>(null);
+  const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
 
-  const handleCopyUrl = (sharing_key: string) => {
-    const url = `${window.location.origin}/shared/${sharing_key}`;
+  const handleCopyUrl = (fsp_mount_path: string, path: string) => {
+    // Potential solution
+    const url = `${window.location.origin}/fg/browse/${fsp_mount_path}?subpath=${path}`;
     navigator.clipboard.writeText(url);
     setMenuOpenId(null);
   };
 
-  const handleOpenBrowse = (fsp_mount_path: string, path: string) => {
-    window.open(
-      `/fg/browse?subpath=${encodeURIComponent(fsp_mount_path + '/' + path)}`,
-      '_blank'
-    );
+  const handleOpenBrowse = async (fsp_mount_path: string, path: string) => {
     setMenuOpenId(null);
+    // Problem: fsp_mount_path does not use underscores like fsp names
+    await fetchAndFormatFilesForDisplay(`${fsp_mount_path}/${path}`);
   };
 
   return (
