@@ -57,13 +57,15 @@ jobs:
         # up to this point jupyter has not been installed
         pixi run node-build
         pixi run ext-enable
+        pixi shell
 
         jupyter server extension list
         jupyter server extension list 2>&1 | grep -ie "fileglancer.*OK"
 
-        pixi exec jupyter labextension list
-        pixi exec jupyter labextension list 2>&1 | grep -ie "fileglancer.*OK"
-        pixi exec python -m jupyterlab.browser_check
+        jupyter labextension list
+        jupyter labextension list 2>&1 | grep -ie "fileglancer.*OK"
+        python -m jupyterlab.browser_check
+        exit
 
     - name: Package the extension
       run: |
