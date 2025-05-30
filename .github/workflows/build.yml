@@ -33,8 +33,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pixi run node-install
-        pixi run pip-install
+        pixi run dev-install
 
     - name: Lint the extension
       run: |

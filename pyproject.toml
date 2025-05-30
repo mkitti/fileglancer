@@ -23,7 +23,7 @@ classifiers = [
 ]
 dynamic = ["version", "description", "authors", "urls", "keywords"]
 dependencies = [
-    "jupyterlab>=4.3.0",
+    "jupyterlab>=4.3.0,<5",
     "jupyter_server>=2.4.0,<3",
     "pydantic>=2.10.6,<3"
 ]
