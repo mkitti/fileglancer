@@ -36,6 +36,7 @@ jobs:
     - name: Install dependencies
       run: |
         pixi install
+        npm install
         pixi run dev-install
 
     - name: Lint the extension
