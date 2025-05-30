@@ -1,12 +1,9 @@
 import { expect, test } from '@jupyterlab/galata';
+import { openFileGlancer } from './testutils';
 
 test.describe('Fileglancer zones', () => {
-  const sleepInSecs = (secs: number) =>
-    new Promise(resolve => setTimeout(resolve, secs * 1000));
-
   test.beforeEach(async ({ page }) => {
-    // click on Fileglancer icon
-    await page.getByText('Fileglancer', { exact: true }).click();
+    await openFileGlancer(page);
   });
 
   test.describe('local zone', () => {
@@ -30,8 +27,6 @@ test.describe('Fileglancer zones', () => {
       await localZoneLocator.click();
 
       await expect(homeLocator).toBeVisible();
-
-      await sleepInSecs(15);
     });
   });
 
@@ -79,9 +74,40 @@ test.describe('Fileglancer zones', () => {
           })
         });
       });
+
+      await page.route(`api/fileglancer/files/${TEST_SHARED_PATHS[2].name}`, async route => {
+          await route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify({
+              files: [
+                {
+                  name: "f1",
+                  path: "f1",
+                  size: 10,
+                  is_dir: false,
+                  permissions: "-rw-r--r--",
+                  owner: "testuser",
+                  group: "test",
+                  last_modified: 1747865213.768398
+                },
+                {
+                  name: "f2",
+                  path: "f2",
+                  size: 10,
+                  is_dir: false,
+                  permissions: "-rw-r--r--",
+                  owner: "testuser",
+                  group: "test",
+                  last_modified: 1747855213.768398
+                },
+              ]
+            })
+          });
+      })
     });
 
-    test('entire zone', async ({ page }) => {
+    test('favor entire zone with reload page', async ({ page }) => {
       // click on Z1
       await page.getByText('Z1', { exact: true }).click();
 
@@ -100,8 +126,73 @@ test.describe('Fileglancer zones', () => {
         page.getByRole('link', { name: `${TEST_SHARED_PATHS[2].storage}` })
       ).toBeVisible();
 
-      await sleepInSecs(5 * 60);
-      console.log('!!!!!!');
+      // click on the path to fill the files panel
+      await page.getByRole('link', { name: `${TEST_SHARED_PATHS[2].storage}` }).click();
+
+      await expect(
+        page.getByText(`${TEST_SHARED_PATHS[2].name}`)
+      ).toBeVisible();
+
+      // first file row
+      await expect(
+        page.getByText('f1FileMay 21, 202510 bytes')
+      ).toBeVisible();
+
+      // second file row
+      await expect(
+        page.getByText('f2FileMay 21, 202510 bytes')
+      ).toBeVisible();
+
+      const z2ExpandedStarButton = page
+        .getByRole('list')
+        .filter({ hasText: 'Z1homeprimaryZ2scratch' })
+        .getByRole('button')
+        .nth(3);
+
+      await expect(
+        z2ExpandedStarButton.locator('svg path[fill-rule]') // filled star
+      ).toHaveCount(0);
+      await expect(
+        z2ExpandedStarButton.locator('svg path[stroke-linecap]') // empty star
+      ).toHaveCount(1);
+
+      // favor entire Z2
+      await page
+        .getByRole('listitem')
+        .filter({ hasText: 'Z2' })
+        .getByRole('button')
+        .click();
+      // test that Z2 now shows in the favorites
+      await expect(
+        page
+          .getByRole('list')
+          .filter({ hasText: /^Z2$/ })
+          .getByRole('paragraph')
+      ).toBeVisible();
+      // test that the star appear next to favorite Z2
+      await expect(
+        page.getByRole('list').filter({ hasText: /^Z2$/ }).getByRole('button')
+      ).toBeVisible();
+
+      await expect(
+        z2ExpandedStarButton.locator('svg path[fill-rule]') // filled star
+      ).toHaveCount(1);
+      await expect(
+        z2ExpandedStarButton.locator('svg path[stroke-linecap]') // empty star
+      ).toHaveCount(0);
+      // reload page - somehow page.reload hangs so I am going back to jupyterlab page
+      await openFileGlancer(page);
+
+      const z2CollapsedStarButton = page
+        .getByRole('button')
+        .nth(4);
+      // test Z2 still shows as favorite
+      await expect(
+        z2CollapsedStarButton.locator('svg path[fill-rule]') // filled star
+      ).toHaveCount(1);
+      await expect(
+        z2CollapsedStarButton.locator('svg path[stroke-linecap]') // empty star
+      ).toHaveCount(0);
     });
   });
 });

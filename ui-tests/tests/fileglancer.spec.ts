@@ -1,4 +1,5 @@
 import { expect, test } from '@jupyterlab/galata';
+import { openFileGlancer } from './testutils';
 
 /**
  * Don't load JupyterLab webpage before running the tests.
@@ -31,10 +32,8 @@ test('when fg icon clicked should open fileglancer extension', async ({ page }) 
   page.on('console', message => {
     logs.push(message.text());
   });
-  // open jupyter lab
-  await page.goto();
-  // click on Fileglancer icon
-  await page.getByText('Fileglancer', { exact: true }).click();
+
+  await openFileGlancer(page);
 
   expect(
     logs.filter(s => s === 'Open fileglancer command')
