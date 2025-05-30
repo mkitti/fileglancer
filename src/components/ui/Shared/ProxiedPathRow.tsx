@@ -1,15 +1,11 @@
 import React from 'react';
-import {
-  Switch,
-  IconButton,
-  Typography
-} from '@material-tailwind/react';
-import {
-  EllipsisHorizontalCircleIcon
-} from '@heroicons/react/24/outline';
+import { Switch, IconButton, Typography } from '@material-tailwind/react';
+import { EllipsisHorizontalCircleIcon } from '@heroicons/react/24/outline';
+import { Link } from 'react-router';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 import useSharingDialog from '@/hooks/useSharingDialog';
 import SharingDialog from '@/components/ui/Dialogs/SharingDialog';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
 type ProxiedPathRowProps = {
   item: ProxiedPath;
@@ -18,13 +14,13 @@ type ProxiedPathRowProps = {
 };
 
 function formatDateString(dateStr: string) {
-    // If dateStr does not end with 'Z' or contain a timezone offset, treat as UTC
-    let normalized = dateStr;
-    if (!/Z$|[+-]\d{2}:\d{2}$/.test(dateStr)) {
-      normalized = dateStr + 'Z';
-    }
-    const date = new Date(normalized);
-    return date.toLocaleString();
+  // If dateStr does not end with 'Z' or contain a timezone offset, treat as UTC
+  let normalized = dateStr;
+  if (!/Z$|[+-]\d{2}:\d{2}$/.test(dateStr)) {
+    normalized = dateStr + 'Z';
+  }
+  const date = new Date(normalized);
+  return date.toLocaleString();
 }
 
 export default function ProxiedPathRow({
@@ -105,28 +101,32 @@ export default function ProxiedPathRow({
           {/* Context menu */}
           {menuOpenId === item.sharing_key ? (
             <div className="absolute z-10 right-0 top-8 bg-background shadow-lg shadow-surface rounded-md p-2 min-w-[180px] border border-surface">
-            <div className="flex flex-col gap-2">
-              <Typography
-                className="flex items-center gap-2 text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
-                onClick={() => handleOpenBrowse(item.fsp_mount_path, item.path)}
-              >
-                Open in Browse
-              </Typography>
-              <Typography
-                className="flex items-center gap-2 text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
-                onClick={() => handleCopyUrl(item.sharing_key)}
-              >
-                Copy sharing URL
-              </Typography>
-              <Typography
-                className="flex items-center gap-2 text-sm p-1 cursor-pointer text-red-600 hover:bg-red-50 transition-colors whitespace-nowrap"
-                onClick={() => setShowSharingDialog(true)}
-              >
-                Unshare
-              </Typography>
+              <div className="flex flex-col gap-2">
+                <Typography
+                  as={Link}
+                  to="/browse"
+                  className="flex items-center gap-2 text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
+                  onClick={() =>
+                    handleOpenBrowse(item.fsp_mount_path, item.path)
+                  }
+                >
+                  Open in Browse
+                </Typography>
+                <Typography
+                  className="flex items-center gap-2 text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
+                  onClick={() => handleCopyUrl(item.fsp_mount_path, item.path)}
+                >
+                  Copy sharing URL
+                </Typography>
+                <Typography
+                  className="flex items-center gap-2 text-sm p-1 cursor-pointer text-red-600 hover:bg-red-50 transition-colors whitespace-nowrap"
+                  onClick={() => setShowSharingDialog(true)}
+                >
+                  Unshare
+                </Typography>
+              </div>
             </div>
-          </div>
-          ): null}
+          ) : null}
         </div>
       </div>
       {/* Sharing dialog */}
