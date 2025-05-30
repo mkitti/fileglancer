@@ -54,22 +54,22 @@ jobs:
     - name: Build the extension frontend
       run: |
         set -eux
-        pip install "jupyterlab>=4.0.0,<5"
+        # up to this point jupyter has not been installed
         pixi run node-build
 
-        jupyter server extension list
-        jupyter server extension list 2>&1 | grep -ie "fileglancer.*OK"
+        pixi exec jupyter server extension list
+        pixi exec jupyter server extension list 2>&1 | grep -ie "fileglancer.*OK"
 
-        jupyter labextension list
-        jupyter labextension list 2>&1 | grep -ie "fileglancer.*OK"
-        python -m jupyterlab.browser_check
+        pixi exec jupyter labextension list
+        pixi exec jupyter labextension list 2>&1 | grep -ie "fileglancer.*OK"
+        pixi exec python -m jupyterlab.browser_check
 
     - name: Package the extension
       run: |
         set -eux
 
         pixi run pypi-build
-        pip uninstall -y "fileglancer" jupyterlab
+        pixi exec pip uninstall -y "fileglancer" jupyterlab
 
     - name: Upload extension packages
       uses: actions/upload-artifact@v4
