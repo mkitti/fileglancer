@@ -1,14 +1,13 @@
 import React from 'react';
+import { useOutletContext } from 'react-router';
 
+import type { FileOrFolder } from '@/shared.types';
 import useContextMenu from '@/hooks/useContextMenu';
-import useShowPropertiesDrawer from '@/hooks/useShowPropertiesDrawer';
-import usePropertiesTarget from '@/hooks/usePropertiesTarget';
 import useHideDotFiles from '@/hooks/useHideDotFiles';
 import useSelectedFiles from '@/hooks/useSelectedFiles';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
 import FileList from './ui/FileBrowser/FileList';
-import PropertiesDrawer from './ui/PropertiesDrawer/PropertiesDrawer';
 import Toolbar from './ui/FileBrowser/Toolbar';
 import ContextMenu from './ui/FileBrowser/ContextMenu';
 import RenameDialog from './ui/Dialogs/RenameDialog';
@@ -16,7 +15,31 @@ import NewFolderDialog from './ui/Dialogs/NewFolderDialog';
 import Delete from './ui/Dialogs/Delete';
 import ChangePermissions from './ui/Dialogs/ChangePermissions';
 
+type OutletContextType = {
+  setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
+  setPropertiesTarget: React.Dispatch<
+    React.SetStateAction<FileOrFolder | null>
+  >;
+  setShowSidebar: React.Dispatch<React.SetStateAction<boolean>>;
+  showPermissionsDialog: boolean;
+  showPropertiesDrawer: boolean;
+  propertiesTarget: FileOrFolder | null;
+  showSidebar: boolean;
+};
+
 export default function Browse() {
+  const {
+    setShowPermissionsDialog,
+    setShowPropertiesDrawer,
+    setPropertiesTarget,
+    setShowSidebar,
+    showPermissionsDialog,
+    showPropertiesDrawer,
+    propertiesTarget,
+    showSidebar
+  } = useOutletContext<OutletContextType>();
+
   const {
     contextMenuCoords,
     showContextMenu,
@@ -24,9 +47,7 @@ export default function Browse() {
     menuRef,
     handleRightClick
   } = useContextMenu();
-  const { showPropertiesDrawer, setShowPropertiesDrawer } =
-    useShowPropertiesDrawer();
-  const { propertiesTarget, setPropertiesTarget } = usePropertiesTarget();
+
   const { hideDotFiles, setHideDotFiles } = useHideDotFiles();
   const { selectedFiles, setSelectedFiles } = useSelectedFiles();
   const { files } = useFileBrowserContext();
@@ -34,24 +55,19 @@ export default function Browse() {
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
   const [showNewFolderDialog, setShowNewFolderDialog] = React.useState(false);
   const [showRenameDialog, setShowRenameDialog] = React.useState(false);
-  const [showPermissionsDialog, setShowPermissionsDialog] =
-    React.useState(false);
 
   return (
     <div className="flex-1 overflow-auto flex flex-col">
       <Toolbar
         hideDotFiles={hideDotFiles}
         setHideDotFiles={setHideDotFiles}
+        showPropertiesDrawer={showPropertiesDrawer}
         setShowPropertiesDrawer={setShowPropertiesDrawer}
+        showSidebar={showSidebar}
+        setShowSidebar={setShowSidebar}
         setShowNewFolderDialog={setShowNewFolderDialog}
       />
       <div className="relative grow">
-        <PropertiesDrawer
-          propertiesTarget={propertiesTarget}
-          open={showPropertiesDrawer}
-          setShowPropertiesDrawer={setShowPropertiesDrawer}
-          setShowPermissionsDialog={setShowPermissionsDialog}
-        />
         <FileList
           files={files}
           selectedFiles={selectedFiles}
