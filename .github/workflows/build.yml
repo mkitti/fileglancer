@@ -54,6 +54,7 @@ jobs:
     - name: Build the extension frontend
       run: |
         set -eux
+        pip install "jupyterlab>=4.0.0,<5"
         pixi run node-build
 
         jupyter server extension list
