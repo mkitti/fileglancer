@@ -35,9 +35,12 @@ class FileInfo(BaseModel):
     @classmethod
     def from_stat(cls, path: str, full_path: str, stat_result: os.stat_result):
         """Create FileInfo from os.stat_result"""
+        if path is None or path == "":
+            raise ValueError("Path cannot be None or empty")
         is_dir = stat.S_ISDIR(stat_result.st_mode)
         size = 0 if is_dir else stat_result.st_size
-        name = os.path.basename(full_path)
+        # Do not expose the name of the root directory
+        name = '' if path=='.' else os.path.basename(full_path)
         permissions = stat.filemode(stat_result.st_mode)
         last_modified = stat_result.st_mtime
 
@@ -120,6 +123,7 @@ class Filestore:
         """
         full_path = self._check_path_in_root(path)
         stat_result = os.stat(full_path)
+        # Regenerate the relative path to ensure it is not empty (None and empty string are converted to '.' here)
         rel_path = os.path.relpath(full_path, self.root_path)
         return FileInfo.from_stat(rel_path, full_path, stat_result)
     
