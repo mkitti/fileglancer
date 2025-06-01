@@ -18,7 +18,10 @@ type ProxiedPath = {
 type ProxiedPathContextType = {
   proxiedPath: ProxiedPath | null;
   dataUrl: string | null;
-  createProxiedPath: (fspMountPath: string, path: string) => Promise<ProxiedPath | null>;
+  createProxiedPath: (
+    fspMountPath: string,
+    path: string
+  ) => Promise<ProxiedPath | null>;
   deleteProxiedPath: () => Promise<void>;
 };
 
