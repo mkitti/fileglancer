@@ -18,7 +18,7 @@ export default function Sidebar() {
     filteredFolderFavorites
   } = useSearchFilter();
   return (
-    <Card className="max-w-[280px] max-h-full overflow-hidden rounded-none bg-surface shadow-lg flex flex-col">
+    <Card className="min-w-full h-full overflow-hidden rounded-none bg-surface shadow-lg flex flex-col">
       <div className="w-[calc(100%-1.5rem)] mx-3 my-3 x-short:my-1">
         <Input
           className="bg-background text-foreground x-short:text-xs"

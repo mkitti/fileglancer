@@ -1,6 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { IconButton, List, Typography } from '@material-tailwind/react';
+import {
+  IconButton,
+  List,
+  Tooltip,
+  Typography
+} from '@material-tailwind/react';
 import { FolderIcon } from '@heroicons/react/24/outline';
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
@@ -96,21 +101,26 @@ export default function Folder({ folderFavorite, setOpenZones }: FolderProps) {
             setShowMissingFolderFavoriteDialog(true);
           }
         }}
-        className={`overflow-x-auto x-short:py-0 flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 ${folderFavorite.fsp === currentFileSharePath && folderFavorite.fsp.name === currentDir ? '!bg-primary-light/30' : '!bg-background'}`}
+        className={`x-short:py-0 flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 ${folderFavorite.fsp === currentFileSharePath && folderFavorite.fsp.name === currentDir ? '!bg-primary-light/30' : '!bg-background'}`}
       >
         <Link
           to="/browse"
-          className="flex flex-col gap-2 x-short:gap-1 !text-foreground hover:!text-black focus:!text-black hover:dark:!text-white focus:dark:!text-white"
+          className="w-[calc(100%-4rem)] flex flex-col items-start gap-2 x-short:gap-1 !text-foreground hover:!text-black focus:!text-black hover:dark:!text-white focus:dark:!text-white"
         >
-          <div className="flex gap-1 items-center">
+          <div className="w-full flex gap-1 items-center">
             <FolderIcon className="icon-small x-short:icon-xsmall" />
-            <Typography className="text-sm font-medium leading-4 x-short:text-xs">
+            <Typography className="w-[calc(100%-2rem)] truncate text-sm font-medium leading-4 x-short:text-xs">
               {folderName}
             </Typography>
           </div>
-          <Typography className="text-xs">
-            {`${fileSharePath}/${folderFavorite.folderPath}`}
-          </Typography>
+          <Tooltip placement="right">
+            <Tooltip.Trigger className="w-full">
+              <Typography className="text-left text-xs truncate">
+                {`${fileSharePath}/${folderFavorite.folderPath}`}
+              </Typography>
+            </Tooltip.Trigger>
+            <Tooltip.Content>{`${fileSharePath}/${folderFavorite.folderPath}`}</Tooltip.Content>
+          </Tooltip>
         </Link>
         <div
           onClick={e => {

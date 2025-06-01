@@ -35,13 +35,13 @@ export default function Zone({
     <React.Fragment>
       <List.Item
         onClick={() => toggleOpenZones(zone.name)}
-        className="overflow-x-auto cursor-pointer rounded-none py-1 x-short:py-0 short:py-0 flex-shrink-0 hover:!bg-primary-light/30 focus:!bg-primary-light/30 !bg-background"
+        className="cursor-pointer rounded-none py-1 x-short:py-0 short:py-0 flex-shrink-0 hover:!bg-primary-light/30 focus:!bg-primary-light/30 !bg-background"
       >
         <List.ItemStart>
           <Squares2X2Icon className="icon-small x-short:icon-xsmall" />
         </List.ItemStart>
         <div className="flex-1 min-w-0 flex items-center gap-1">
-          <Typography className="x-short:text-xs short:text-xs text-sm">
+          <Typography className="truncate x-short:text-xs short:text-xs text-sm">
             {zone.name}
           </Typography>
 
