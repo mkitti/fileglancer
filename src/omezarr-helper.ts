@@ -1,6 +1,6 @@
+import { default as log } from '@/logger';
 import * as zarr from 'zarrita';
 import * as omezarr from 'ome-zarr.js';
-import { default as log } from '@/logger';
 
 // Copied since ome-zarr.js doesn't export the types
 // TODO: use the types from ome-zarr.js when they become available
@@ -162,11 +162,11 @@ function getMinMaxValues(arr: zarr.Array<any>): { min: number; max: number } {
             dtypeMax = 2 ** bitCount - 1;
           }
         } else {
-          console.warn('Could not determine min/max values for dtype: ', dtype);
+          log.warn('Could not determine min/max values for dtype: ', dtype);
         }
       }
     } else {
-      console.warn('Unrecognized dtype format: ', dtype);
+      log.warn('Unrecognized dtype format: ', dtype);
     }
   }
 
@@ -240,7 +240,7 @@ function generateNeuroglancerState(
     (t: any) => t.type === 'scale'
   );
   if (!scaleTransform) {
-    console.error('No scale transformation found in the full scale dataset');
+    log.error('No scale transformation found in the full scale dataset');
     return null;
   }
   const scale = scaleTransform.scale;
@@ -258,7 +258,7 @@ function generateNeuroglancerState(
       state.position.push(Math.floor(extent / 2));
       imageDimensions.delete(name);
     } else {
-      console.warn('Dimension not found in axes map: ', name);
+      log.warn('Dimension not found in axes map: ', name);
     }
   }
 

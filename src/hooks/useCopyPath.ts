@@ -1,4 +1,5 @@
 import React from 'react';
+import { default as log } from '@/logger';
 
 export default function useCopyPath() {
   const [copiedText, setCopiedText] = React.useState({
@@ -17,7 +18,7 @@ export default function useCopyPath() {
         });
         setShowCopyAlert(true);
       } catch (error) {
-        console.error('Failed to copy to clipboard:', error);
+        log.error('Failed to copy to clipboard:', error);
         setCopiedText({
           value: path,
           isCopied: false
