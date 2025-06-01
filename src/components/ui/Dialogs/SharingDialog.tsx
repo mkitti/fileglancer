@@ -38,8 +38,7 @@ export default function SharingDialog({
             size="sm"
             variant="outline"
             color="secondary"
-            className="absolute right-2 top-2 text-secondary hover:text-background"
-            isCircular
+            className="absolute right-2 top-2 text-secondary hover:text-background rounded-full"
             onClick={() => {
               setShowSharingDialog(false);
             }}
