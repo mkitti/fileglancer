@@ -142,6 +142,7 @@ class Filestore:
         full_path = self._check_path_in_root(path)
         try:
             entries = os.listdir(full_path)
+            # Sort entries in alphabetical order, with directories listed first
             entries.sort(key=lambda e: (not os.path.isdir(
                                             os.path.join(full_path, e)), e))
             for entry in entries:
