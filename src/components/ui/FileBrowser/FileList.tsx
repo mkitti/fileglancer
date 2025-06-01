@@ -38,7 +38,7 @@ export default function FileList({
 }: FileListProps): React.ReactNode {
   const {
     thumbnailSrc,
-    neuroglancerUrl,
+    openWithToolUrls,
     metadata,
     hasMultiscales,
     loadingThumbnail
@@ -51,16 +51,14 @@ export default function FileList({
   }, [files, hideDotFiles]);
 
   return (
-    <div
-      className={`px-2 transition-all duration-300 ${showPropertiesDrawer ? 'mr-[350px]' : ''}`}
-    >
+    <div className="px-2 transition-all duration-300">
       <FileListCrumbs />
 
       {hasMultiscales ? (
         <ZarrPreview
           thumbnailSrc={thumbnailSrc}
           loadingThumbnail={loadingThumbnail}
-          neuroglancerUrl={neuroglancerUrl}
+          openWithToolUrls={openWithToolUrls}
           metadata={metadata}
         />
       ) : null}
@@ -90,8 +88,9 @@ export default function FileList({
             Actions
           </Typography>
         </div>
-
-        {/* File rows */}
+      </div>
+      {/* File rows */}
+      <div className="overflow-y-auto max-h-[calc(100vh-220px)]">
         {displayFiles.length > 0 &&
           displayFiles.map((file, index) => {
             return (
