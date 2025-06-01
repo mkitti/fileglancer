@@ -17,6 +17,7 @@ from fileglancer.paths import FileSharePath
 
 log = logging.getLogger("tornado.application")
 
+# Default buffer size for streaming file contents
 DEFAULT_BUFFER_SIZE = 8192
 
 class FileInfo(BaseModel):
@@ -35,9 +36,12 @@ class FileInfo(BaseModel):
     @classmethod
     def from_stat(cls, path: str, full_path: str, stat_result: os.stat_result):
         """Create FileInfo from os.stat_result"""
+        if path is None or path == "":
+            raise ValueError("Path cannot be None or empty")
         is_dir = stat.S_ISDIR(stat_result.st_mode)
         size = 0 if is_dir else stat_result.st_size
-        name = os.path.basename(full_path)
+        # Do not expose the name of the root directory
+        name = '' if path=='.' else os.path.basename(full_path)
         permissions = stat.filemode(stat_result.st_mode)
         last_modified = stat_result.st_mtime
 
@@ -78,7 +82,7 @@ class Filestore:
         self.root_path = os.path.abspath(file_share_path.mount_path)
 
 
-    def _check_path_in_root(self, path: str) -> str:
+    def _check_path_in_root(self, path: Optional[str]) -> str:
         """
         Check if a path is within the root directory and return the full path.
 
@@ -98,6 +102,16 @@ class Filestore:
             if not full_path.startswith(self.root_path):
                 raise ValueError(f"Path ({full_path}) attempts to escape root directory ({self.root_path})")
         return full_path
+    
+
+    def _get_file_info_from_path(self, full_path: str) -> FileInfo:
+        """
+        Get the FileInfo for a file or directory at the given path.
+        """
+        stat_result = os.stat(full_path)
+        # Regenerate the relative path to ensure it is not empty (None and empty string are converted to '.' here)
+        rel_path = os.path.relpath(full_path, self.root_path)
+        return FileInfo.from_stat(rel_path, full_path, stat_result)
 
 
     def get_root_path(self) -> str:
@@ -105,7 +119,7 @@ class Filestore:
         Get the root path of the Filestore.
         """
         return self.root_path
-    
+
 
     def get_file_info(self, path: Optional[str] = None) -> FileInfo:
         """
@@ -119,8 +133,7 @@ class Filestore:
             ValueError: If path attempts to escape root directory
         """
         full_path = self._check_path_in_root(path)
-        stat_result = os.stat(full_path)
-        return FileInfo.from_stat(path, full_path,stat_result)
+        return self._get_file_info_from_path(full_path)
     
 
     def yield_file_infos(self, path: Optional[str] = None) -> Generator[FileInfo, None, None]:
@@ -136,13 +149,14 @@ class Filestore:
         """
         full_path = self._check_path_in_root(path)
         try:
-            for entry in os.listdir(full_path):
+            entries = os.listdir(full_path)
+            # Sort entries in alphabetical order, with directories listed first
+            entries.sort(key=lambda e: (not os.path.isdir(
+                                            os.path.join(full_path, e)), e))
+            for entry in entries:
                 entry_path = os.path.join(full_path, entry)
                 try:
-                    stat_result = os.stat(entry_path)
-                    rel_entry_path = os.path.relpath(entry_path, self.root_path)
-                    file_info = FileInfo.from_stat(rel_entry_path, entry_path, stat_result)
-                    yield file_info
+                    yield self._get_file_info_from_path(entry_path)
                 except (FileNotFoundError, PermissionError):
                     continue
         except (FileNotFoundError, PermissionError):

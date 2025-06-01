@@ -45,21 +45,21 @@ export default function FileSharePathComponent({
         setCurrentFileSharePath(fsp);
         fetchAndFormatFilesForDisplay(fsp.name);
       }}
-      className={`overflow-x-auto x-short:py-0 flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30 ${isCurrentPath ? '!bg-primary-light/30' : index % 2 !== 0 ? '!bg-background' : '!bg-surface/50'}`}
+      className={`w-full x-short:py-0 flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30 ${isCurrentPath ? '!bg-primary-light/30' : index % 2 !== 0 ? '!bg-background' : '!bg-surface/50'}`}
     >
       <Link
         to="/browse"
-        className="grow flex flex-col gap-2 !text-foreground hover:!text-black focus:!text-black dark:hover:!text-white dark:focus:!text-white"
+        className="max-w-[calc(100%-4rem)] grow flex flex-col gap-2 !text-foreground hover:!text-black focus:!text-black dark:hover:!text-white dark:focus:!text-white"
       >
-        <div className="flex gap-1 items-center">
+        <div className="flex gap-1 items-center max-w-full">
           <RectangleStackIcon className="icon-small x-short:icon-xsmall" />
-          <Typography className="text-sm font-medium leading-4 x-short:text-xs">
+          <Typography className="truncate text-sm font-medium leading-4 x-short:text-xs">
             {fsp.storage}
           </Typography>
         </div>
 
         {fsp.linux_path ? (
-          <Typography className="text-xs">
+          <Typography className="text-xs truncate max-w-full">
             {pathPreference[0] === 'linux_path'
               ? fsp.linux_path
               : pathPreference[0] === 'windows_path'
