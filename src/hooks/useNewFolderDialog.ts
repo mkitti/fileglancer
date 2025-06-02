@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 
-import { getAPIPathRoot, sendFetchRequest } from '../utils';
+import { sendFetchRequest } from '../utils';
 import { useFileBrowserContext } from '../contexts/FileBrowserContext';
 import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';
 import { useCookiesContext } from '../contexts/CookiesContext';
@@ -17,7 +17,7 @@ export default function useNewFolderDialog() {
 
   async function addNewFolder(subpath: string) {
     await sendFetchRequest(
-      `${getAPIPathRoot()}api/fileglancer/files/${currentFileSharePath?.name}?subpath=${subpath}${newName}`,
+      `/api/fileglancer/files/${currentFileSharePath?.name}?subpath=${subpath}${newName}`,
       'POST',
       cookies['_xsrf'],
       { type: 'directory' }

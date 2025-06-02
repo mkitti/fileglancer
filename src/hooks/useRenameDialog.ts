@@ -1,11 +1,7 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 
-import {
-  getAPIPathRoot,
-  sendFetchRequest,
-  removeLastSegmentFromPath
-} from '../utils';
+import { sendFetchRequest, removeLastSegmentFromPath } from '../utils';
 import { useFileBrowserContext } from '../contexts/FileBrowserContext';
 import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';
 import { useCookiesContext } from '../contexts/CookiesContext';
@@ -25,7 +21,7 @@ export default function useRenameDialog() {
   ) {
     const newPath = `${originalPathWithoutFileName}${newName}`;
     await sendFetchRequest(
-      `${getAPIPathRoot()}api/fileglancer/files/${currentFileSharePath?.name}?subpath=${originalPath}`,
+      `/api/fileglancer/files/${currentFileSharePath?.name}?subpath=${originalPath}`,
       'PATCH',
       cookies['_xsrf'],
       { path: newPath }

@@ -3,12 +3,7 @@ import React from 'react';
 import type { FileSharePath, Zone } from '@/shared.types';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { useZoneBrowserContext } from './ZoneBrowserContext';
-import {
-  getAPIPathRoot,
-  sendFetchRequest,
-  makeMapKey,
-  HTTPError
-} from '@/utils';
+import { sendFetchRequest, makeMapKey, HTTPError } from '@/utils';
 
 export type FolderFavorite = {
   type: 'folder';
@@ -92,7 +87,7 @@ export const PreferencesProvider = ({
   async function fetchPreferences(key: string) {
     try {
       const data = await sendFetchRequest(
-        `${getAPIPathRoot()}api/fileglancer/preference?key=${key}`,
+        `/api/fileglancer/preference?key=${key}`,
         'GET',
         cookies['_xsrf']
       ).then(response => response.json());
@@ -238,7 +233,7 @@ export const PreferencesProvider = ({
   async function savePreferencesToBackend<T>(key: string, value: T) {
     try {
       await sendFetchRequest(
-        `${getAPIPathRoot()}api/fileglancer/preference?key=${key}`,
+        `/api/fileglancer/preference?key=${key}`,
         'PUT',
         cookies['_xsrf'],
         { value: value }

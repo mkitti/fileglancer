@@ -5,7 +5,7 @@ import {
   FileSharePath,
   ZonesAndFileSharePathsMap
 } from '../shared.types';
-import { getAPIPathRoot, sendFetchRequest, makeMapKey } from '../utils';
+import { sendFetchRequest, makeMapKey } from '../utils';
 import { useCookiesContext } from '../contexts/CookiesContext';
 
 type ZoneBrowserContextType = {
@@ -51,7 +51,7 @@ export const ZoneBrowserContextProvider = ({
   const { cookies } = useCookiesContext();
 
   async function getZones(): Promise<{ paths: FileSharePath[] }> {
-    const url = `${getAPIPathRoot()}api/fileglancer/file-share-paths`;
+    const url = '/api/fileglancer/file-share-paths';
     let rawData: { paths: FileSharePath[] } = { paths: [] };
     try {
       const response = await sendFetchRequest(url, 'GET', cookies['_xsrf']);

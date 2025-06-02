@@ -1,6 +1,6 @@
 import React from 'react';
-import { FileOrFolder } from '../shared.types';
-import { getFileFetchPath, sendFetchRequest } from '../utils';
+import { FileOrFolder } from '@/shared.types';
+import { getFileFetchPath, sendFetchRequest } from '@/utils';
 import { useCookiesContext } from './CookiesContext';
 
 type FileBrowserContextType = {

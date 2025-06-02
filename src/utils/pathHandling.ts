@@ -1,20 +1,13 @@
-function getAPIPathRoot() {
-  const path = window.location.pathname;
-  console.log('Current path:', path);
-  const patterns = [
-    /^\/jupyter\/user\/[^/]+\//, // JupyterLab
-    /^\/user\/[^/]+\// // Jupyter Single User
-  ];
-
-  for (const pattern of patterns) {
-    const match = path.match(pattern);
-    if (match) {
-      console.log('Matched pattern:', match[0]);
-      return match[0];
-    }
+function getCleanPath(path: string): string {
+  if (path && path.trim() !== '') {
+    // Remove leading slash from path if present to avoid double slashes
+    return path.trim().startsWith('/') ? path.trim().substring(1) : path.trim();
   }
-  console.log('No matching pattern found, returning root /');
-  return '/';
+  return path;
 }
 
-export { getAPIPathRoot };
+function getFileFetchPath(path: string): string {
+  return `/api/fileglancer/files/${getCleanPath(path)}`;
+}
+
+export { getCleanPath, getFileFetchPath };

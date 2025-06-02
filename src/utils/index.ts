@@ -1,4 +1,4 @@
-import { getAPIPathRoot } from './pathHandling';
+import { getCleanPath, getFileFetchPath } from './pathHandling';
 
 const formatFileSize = (sizeInBytes: number): string => {
   if (sizeInBytes < 1024) {
@@ -92,18 +92,6 @@ function makeMapKey(type: string, name: string): string {
   return `${type}_${name}`;
 }
 
-function getCleanPath(path: string): string {
-  if (path && path.trim() !== '') {
-    // Remove leading slash from path if present to avoid double slashes
-    return path.trim().startsWith('/') ? path.trim().substring(1) : path.trim();
-  }
-  return path;
-}
-
-function getFileFetchPath(path: string): string {
-  return `/api/fileglancer/files/${getCleanPath(path)}`;
-}
-
 async function fetchFileContent(
   path: string,
   cookies: Record<string, string>
@@ -137,7 +125,6 @@ async function fetchFileAsJson(
 export {
   formatFileSize,
   formatDate,
-  getAPIPathRoot,
   HTTPError,
   sendFetchRequest,
   makeMapKey,

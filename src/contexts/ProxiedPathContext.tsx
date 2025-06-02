@@ -1,6 +1,6 @@
 import React from 'react';
 import { useCookiesContext } from '@/contexts/CookiesContext';
-import { getAPIPathRoot, sendFetchRequest } from '@/utils';
+import { sendFetchRequest } from '@/utils';
 import { useZoneBrowserContext } from './ZoneBrowserContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
@@ -17,7 +17,10 @@ type ProxiedPath = {
 type ProxiedPathContextType = {
   proxiedPath: ProxiedPath | null;
   dataUrl: string | null;
-  createProxiedPath: (fspMountPath: string, path: string) => Promise<ProxiedPath | null>;
+  createProxiedPath: (
+    fspMountPath: string,
+    path: string
+  ) => Promise<ProxiedPath | null>;
   deleteProxiedPath: () => Promise<void>;
 };
 
@@ -63,9 +66,13 @@ export const ProxiedPathProvider = ({
     try {
       const filePath = currentNavigationPath.replace('?subpath=', '/');
       const filePathWithoutFsp = filePath.split('/').slice(1).join('/');
-      console.log('Fetching proxied path for', currentFileSharePath?.mount_path, filePathWithoutFsp);
+      console.log(
+        'Fetching proxied path for',
+        currentFileSharePath?.mount_path,
+        filePathWithoutFsp
+      );
       const response = await sendFetchRequest(
-        `${getAPIPathRoot()}api/fileglancer/proxied-path?fsp_mount_path=${currentFileSharePath?.mount_path}&path=${filePathWithoutFsp}`,
+        `/api/fileglancer/proxied-path?fsp_mount_path=${currentFileSharePath?.mount_path}&path=${filePathWithoutFsp}`,
         'GET',
         cookies['_xsrf']
       );
@@ -90,7 +97,7 @@ export const ProxiedPathProvider = ({
     path: string
   ): Promise<ProxiedPath | null> {
     const response = await sendFetchRequest(
-      `${getAPIPathRoot()}api/fileglancer/proxied-path`,
+      '/api/fileglancer/proxied-path',
       'POST',
       cookies['_xsrf'],
       { fsp_mount_path: fspMountPath, path: path }
@@ -112,7 +119,7 @@ export const ProxiedPathProvider = ({
       return;
     }
     const response = await sendFetchRequest(
-      `${getAPIPathRoot()}api/fileglancer/proxied-path?sharing_key=${proxiedPath.sharing_key}`,
+      `/api/fileglancer/proxied-path?sharing_key=${proxiedPath.sharing_key}`,
       'DELETE',
       cookies['_xsrf']
     );

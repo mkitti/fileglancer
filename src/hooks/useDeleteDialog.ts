@@ -1,9 +1,5 @@
 import toast from 'react-hot-toast';
-import {
-  getAPIPathRoot,
-  sendFetchRequest,
-  removeLastSegmentFromPath
-} from '../utils';
+import { sendFetchRequest, removeLastSegmentFromPath } from '../utils';
 import { useCookiesContext } from '../contexts/CookiesContext';
 import type { FileOrFolder } from '../shared.types';
 import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';
@@ -17,7 +13,7 @@ export default function useDeleteDialog() {
   async function handleDelete(targetItem: FileOrFolder) {
     try {
       await sendFetchRequest(
-        `${getAPIPathRoot()}api/fileglancer/files/${currentFileSharePath?.name}?subpath=${targetItem.path}`,
+        `/api/fileglancer/files/${currentFileSharePath?.name}?subpath=${targetItem.path}`,
         'DELETE',
         cookies['_xsrf']
       );
