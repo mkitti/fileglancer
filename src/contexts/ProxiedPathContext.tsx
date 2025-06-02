@@ -1,6 +1,7 @@
 import React from 'react';
 import { useCookiesContext } from '@/contexts/CookiesContext';
-import { getAPIPathRoot, sendFetchRequest } from '@/utils';
+import { getAPIPathRoot, sendFetchRequest } from '@/utils/index';
+import { makeSharedDataUrl } from '@/utils/proxiedPaths';
 import { useZoneBrowserContext } from './ZoneBrowserContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
@@ -67,9 +68,7 @@ export const ProxiedPathProvider = ({
   function updateProxiedPath(proxiedPath: ProxiedPath | null) {
     setProxiedPath(proxiedPath);
     if (proxiedPath) {
-      setDataUrl(
-        `${proxyBaseUrl}/${proxiedPath.sharing_key}/${proxiedPath.sharing_name}`
-      );
+      setDataUrl(makeSharedDataUrl(proxiedPath));
     } else {
       setDataUrl(null);
     }

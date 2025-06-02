@@ -2,7 +2,8 @@ import React from 'react';
 import { Switch, IconButton, Typography } from '@material-tailwind/react';
 import { EllipsisHorizontalCircleIcon } from '@heroicons/react/24/outline';
 import { Link } from 'react-router';
-import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
+import { type ProxiedPath } from '@/contexts/ProxiedPathContext';
+import { makeSharedDataUrl } from '@/utils/proxiedPaths';
 import useSharingDialog from '@/hooks/useSharingDialog';
 import SharingDialog from '@/components/ui/Dialogs/SharingDialog';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
@@ -31,10 +32,8 @@ export default function ProxiedPathRow({
   const { showSharingDialog, setShowSharingDialog } = useSharingDialog();
   const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
 
-  const handleCopyUrl = (fsp_mount_path: string, path: string) => {
-    // Potential solution
-    const url = `${window.location.origin}/fg/browse/${fsp_mount_path}?subpath=${path}`;
-    navigator.clipboard.writeText(url);
+  const handleCopyUrl = (item: ProxiedPath) => {
+    navigator.clipboard.writeText(makeSharedDataUrl(item));
     setMenuOpenId(null);
   };
 
