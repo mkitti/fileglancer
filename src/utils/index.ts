@@ -1,3 +1,5 @@
+import { getAPIPathRoot } from './pathHandling';
+
 const formatFileSize = (sizeInBytes: number): string => {
   if (sizeInBytes < 1024) {
     return `${sizeInBytes} bytes`;
@@ -18,23 +20,6 @@ const formatDate = (timestamp: number): string => {
     year: 'numeric'
   });
 };
-
-function getAPIPathRoot() {
-  const path = window.location.pathname;
-  const patterns = [
-    /^\/jupyter\/user\/[^/]+\//, // JupyterLab
-    /^\/user\/[^/]+\// // Jupyter Single User
-  ];
-
-  for (const pattern of patterns) {
-    const match = path.match(pattern);
-    if (match) {
-      return match[0];
-    }
-  }
-
-  return '/';
-}
 
 class HTTPError extends Error {
   responseCode: number;
@@ -116,7 +101,7 @@ function getCleanPath(path: string): string {
 }
 
 function getFileFetchPath(path: string): string {
-  return `${getAPIPathRoot()}api/fileglancer/files/${getCleanPath(path)}`;
+  return `/api/fileglancer/files/${getCleanPath(path)}`;
 }
 
 async function fetchFileContent(
