@@ -20,6 +20,7 @@ import {
 import ProfileMenu from './Navbar/ProfileMenu';
 
 import useTheme from '@/hooks/useTheme';
+import { set } from 'node_modules/zarrita/dist/src/indexing/set';
 
 const LINKS = [
   {
@@ -83,7 +84,7 @@ export default function FileglancerNavbar() {
       setIsLightTheme(false);
       document.documentElement.classList.add('dark');
     }
-  }, []);
+  }, [setIsLightTheme]);
 
   return (
     <Navbar className="mx-auto w-full rounded-none bg-background p-4 short:py-3 x-short:py-1 dark:shadow-surface">

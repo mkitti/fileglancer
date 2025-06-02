@@ -17,7 +17,7 @@ export default function useNewFolderDialog() {
 
   async function addNewFolder(subpath: string) {
     await sendFetchRequest(
-      `${getAPIPathRoot()}api/fileglancer/files/${currentFileSharePath?.name}?subpath=${subpath}${newName}`,
+      `${getAPIPathRoot()}api/fileglancer/files/${currentFileSharePath?.name}?subpath=${subpath}`,
       'POST',
       cookies['_xsrf'],
       { type: 'directory' }
@@ -29,14 +29,15 @@ export default function useNewFolderDialog() {
 
   async function handleNewFolderSubmit(subpath: string) {
     setShowAlert(false);
+    const newPath = `${subpath}/${newName}`;
     if (currentFileSharePath) {
       try {
-        await addNewFolder(subpath);
-        const alertContent = `Created new folder at path: ${currentFileSharePath.name}/${subpath}${newName}`;
+        await addNewFolder(newPath);
+        const alertContent = `Created new folder at path: ${currentFileSharePath.name}/${newPath}`;
         toast.success(alertContent);
         return true;
       } catch (error) {
-        const errorContent = `Error creating new folder at path: ${currentFileSharePath.name}/${subpath}${newName}`;
+        const errorContent = `Error creating new folder at path: ${currentFileSharePath.name}/${subpath}/${newName}`;
         setAlertContent(
           `${errorContent}. Error details: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
