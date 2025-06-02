@@ -44,7 +44,7 @@
         "prettier:check": "npx prettier \"**/*{.ts,.tsx,.js,.jsx,.css,.json,.md}\" --check",
         "lint:check": "npm run prettier:check && npm run eslint:check",
         "install:extension": "npm run build",
-        "test": "vitest --run --coverage"
+        "test": "vitest"
     },
     "dependencies": {
         "@heroicons/react": "^2.2.0",
