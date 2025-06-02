@@ -3,7 +3,7 @@ import {
   getAPIPathRoot,
   sendFetchRequest,
   removeLastSegmentFromPath
-} from '../utils';
+} from '@/utils/index';
 import { useCookiesContext } from '../contexts/CookiesContext';
 import type { FileOrFolder } from '../shared.types';
 import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';

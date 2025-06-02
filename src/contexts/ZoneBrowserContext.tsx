@@ -5,9 +5,8 @@ import {
   FileSharePath,
   ZonesAndFileSharePathsMap
 } from '../shared.types';
-import { getAPIPathRoot, sendFetchRequest, makeMapKey } from '../utils';
+import { getAPIPathRoot, sendFetchRequest, makeMapKey } from '@/utils/index';
 import { useCookiesContext } from '../contexts/CookiesContext';
-import { get } from 'node_modules/zarrita/dist/src/indexing/get';
 
 type ZoneBrowserContextType = {
   isZonesMapReady: boolean;

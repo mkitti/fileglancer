@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 
-import { getAPIPathRoot, sendFetchRequest } from '../utils';
-import { useFileBrowserContext } from '../contexts/FileBrowserContext';
-import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';
-import { useCookiesContext } from '../contexts/CookiesContext';
+import { getAPIPathRoot, sendFetchRequest } from '@/utils/index';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
+import { useCookiesContext } from '@/contexts/CookiesContext';
 
 export default function useNewFolderDialog() {
   const [newName, setNewName] = useState<string>('');

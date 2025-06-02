@@ -1,4 +1,3 @@
-import React from 'react';
 import { Switch, IconButton, Typography } from '@material-tailwind/react';
 import { EllipsisHorizontalCircleIcon } from '@heroicons/react/24/outline';
 import { Link } from 'react-router';
@@ -113,7 +112,7 @@ export default function ProxiedPathRow({
                 </Typography>
                 <Typography
                   className="flex items-center gap-2 text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
-                  onClick={() => handleCopyUrl(item.fsp_mount_path, item.path)}
+                  onClick={() => handleCopyUrl(item)}
                 >
                   Copy sharing URL
                 </Typography>

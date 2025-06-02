@@ -9,7 +9,7 @@ import {
 import { FolderIcon } from '@heroicons/react/24/outline';
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
-import { makeMapKey, getFileFetchPath, sendFetchRequest } from '@/utils';
+import { makeMapKey, getFileFetchPath, sendFetchRequest } from '@/utils/index';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { useCookiesContext } from '@/contexts/CookiesContext';

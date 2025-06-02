@@ -11,7 +11,7 @@ import type { FileSharePath } from '@/shared.types';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import { makeMapKey } from '@/utils';
+import { makeMapKey } from '@/utils/index';
 
 type FileSharePathComponentProps = {
   fsp: FileSharePath;

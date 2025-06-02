@@ -7,7 +7,7 @@ import {
 } from '@/omezarr-helper';
 import type { Metadata } from '@/omezarr-helper';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
-import { fetchFileAsJson } from '@/utils';
+import { fetchFileAsJson } from '@/utils/index';
 import { useCookies } from 'react-cookie';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 

@@ -8,7 +8,7 @@ import {
   sendFetchRequest,
   makeMapKey,
   HTTPError
-} from '@/utils';
+} from '@/utils/index';
 
 export type FolderFavorite = {
   type: 'folder';

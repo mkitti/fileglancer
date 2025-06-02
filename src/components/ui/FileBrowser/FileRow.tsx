@@ -10,7 +10,7 @@ import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 import useHandleLeftClick from '@/hooks/useHandleLeftClick';
-import { formatUnixTimestamp, formatFileSize } from '@/utils';
+import { formatUnixTimestamp, formatFileSize } from '@/utils/index';
 
 type FileRowProps = {
   file: FileOrFolder;

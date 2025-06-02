@@ -5,8 +5,6 @@ import { makeSharedDataUrl } from '@/utils/proxiedPaths';
 import { useZoneBrowserContext } from './ZoneBrowserContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
-const proxyBaseUrl = import.meta.env.VITE_PROXY_BASE_URL;
-
 export type ProxiedPath = {
   username: string;
   sharing_key: string;

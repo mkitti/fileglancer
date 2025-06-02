@@ -5,10 +5,10 @@ import {
   getAPIPathRoot,
   sendFetchRequest,
   removeLastSegmentFromPath
-} from '../utils';
-import { useFileBrowserContext } from '../contexts/FileBrowserContext';
-import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';
-import { useCookiesContext } from '../contexts/CookiesContext';
+} from '@/utils/index';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
+import { useCookiesContext } from '@/contexts/CookiesContext';
 
 export default function useRenameDialog() {
   const [newName, setNewName] = useState<string>('');
