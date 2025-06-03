@@ -136,3 +136,7 @@ dmypy.json
 
 # Converted Tailwind CSS
 style/tailwind_converted.css
+
+# Claude Code
+.claude
+CLAUDE.md
