@@ -67,6 +67,28 @@ export default function FileRow({
     return () => window.removeEventListener('resize', checkTruncation);
   }, [file.name]);
 
+  const handleNavigationClick = async (e: React.MouseEvent<HTMLElement>) => {
+    e.stopPropagation();
+    if (file.is_dir) {
+      try {
+        if (!currentFileSharePath) {
+          throw new Error('No current file share path set');
+        }
+        await handleFileBrowserNavigation({
+          fspName: currentFileSharePath.name,
+          path: file.path
+        });
+        setPropertiesTarget(file);
+      } catch (error) {
+        toast.error(
+          `Failed to open folder: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`
+        );
+      }
+    }
+  };
+
   return (
     <div
       className={`cursor-pointer grid grid-cols-[minmax(170px,2fr)_minmax(80px,1fr)_minmax(95px,1fr)_minmax(75px,1fr)_minmax(40px,1fr)] gap-4 hover:bg-primary-light/30 focus:bg-primary-light/30 ${isSelected && 'bg-primary-light/30'} ${index % 2 === 0 && !isSelected && 'bg-surface/50'}  `}
@@ -90,13 +112,7 @@ export default function FileRow({
           setPropertiesTarget
         )
       }
-      onDoubleClick={() => {
-        if (file.is_dir && currentFileSharePath) {
-          fetchAndFormatFilesForDisplay(
-            `${currentFileSharePath.name}?subpath=${file.path}`
-          );
-        }
-      }}
+      onDoubleClick={e => handleNavigationClick(e)}
     >
       {/* Name column */}
       <div className="flex items-center gap-3 pl-3 py-1">
@@ -107,13 +123,9 @@ export default function FileRow({
                 ref={nameRef}
                 variant="small"
                 className="font-medium text-primary-light hover:underline truncate"
-                onClick={(e: React.MouseEvent<HTMLDivElement>) => {
-                  e.stopPropagation();
-                  if (file.is_dir) {
-                    fetchAndFormatFilesForDisplay(
-                      `${currentFileSharePath?.name}?subpath=${file.path}`
-                    );
-                    setPropertiesTarget(file);
+                onClick={(e: React.MouseEvent<HTMLElement>) => {
+                  if (e.detail === 1) {
+                    handleNavigationClick(e);
                   }
                 }}
               >
@@ -127,13 +139,9 @@ export default function FileRow({
             ref={nameRef}
             variant="small"
             className="font-medium text-primary-light hover:underline truncate"
-            onClick={(e: React.MouseEvent<HTMLDivElement>) => {
-              e.stopPropagation();
-              if (file.is_dir) {
-                fetchAndFormatFilesForDisplay(
-                  `${currentFileSharePath?.name}?subpath=${file.path}`
-                );
-                setPropertiesTarget(file);
+            onClick={(e: React.MouseEvent<HTMLElement>) => {
+              if (e.detail === 1) {
+                handleNavigationClick(e);
               }
             }}
           >
