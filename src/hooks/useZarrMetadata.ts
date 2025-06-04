@@ -33,7 +33,8 @@ export default function useZarrMetadata(files: FileOrFolder[]) {
     if (zattrsFile && currentFileSharePath && currentFileOrFolder) {
       try {
         const zattrs = (await fetchFileAsJson(
-          `${currentFileSharePath.name}/${zattrsFile.path}`,
+          currentFileSharePath.name,
+          zattrsFile.path,
           cookies
         )) as any;
         console.log('Zattrs', zattrs);
