@@ -7,12 +7,10 @@ type FileBrowserContextType = {
   isZonesMapReady: boolean;
   zonesAndFileSharePathsMap: ZonesAndFileSharePathsMap;
   files: FileOrFolder[];
-  currentNavigationPath: FileOrFolder['path'];
-  dirArray: string[];
-  currentDir: string;
-  getFileFetchPath: (path: string) => string;
-  setCurrentNavigationPath: React.Dispatch<
-    React.SetStateAction<FileOrFolder['path']>
+  currentFileOrFolder: FileOrFolder | null;
+  currentFileSharePath: FileSharePath | null;
+  setCurrentFileSharePath: React.Dispatch<
+    React.SetStateAction<FileSharePath | null>
   >;
   fetchAndFormatFilesForDisplay: (path: FileOrFolder['path']) => Promise<void>;
 };
@@ -40,10 +38,10 @@ export const FileBrowserContextProvider = ({
   const [zonesAndFileSharePathsMap, setZonesAndFileSharePathsMap] =
     React.useState<ZonesAndFileSharePathsMap>({});
   const [files, setFiles] = React.useState<FileOrFolder[]>([]);
-  const [currentNavigationPath, setCurrentNavigationPath] =
-    React.useState<FileOrFolder['path']>('');
-  const [dirArray, setDirArray] = React.useState<string[]>([]);
-  const [currentDir, setCurrentDir] = React.useState<string>('');
+  const [currentFileOrFolder, setCurrentFileOrFolder] =
+    React.useState<FileOrFolder | null>(null);
+  const [currentFileSharePath, setCurrentFileSharePath] =
+    React.useState<FileSharePath | null>(null);
 
   const { cookies } = useCookiesContext();
 
@@ -193,12 +191,12 @@ export const FileBrowserContextProvider = ({
         isZonesMapReady,
         zonesAndFileSharePathsMap,
         files,
-        currentNavigationPath,
-        dirArray,
-        currentDir,
-        getFileFetchPath,
-        setCurrentNavigationPath,
-        fetchAndFormatFilesForDisplay
+        currentFileOrFolder,
+        currentFileSharePath,
+        setCurrentFileSharePath,
+        setCurrentFileOrFolder,
+        updateCurrentFileOrFolder,
+        handleFileBrowserNavigation
       }}
     >
       {children}
