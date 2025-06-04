@@ -28,7 +28,7 @@ describe('getFileFetchPath', () => {
   });
   test('handles parentOnly param', () => {
     expect(getFileFetchPath('fsp', 'file', true)).toBe(
-      '/api/fileglancer/files/fsp?subpath=file&parent_only=true'
+      '/api/fileglancer/files/fsp?subpath=file&cwd_only=true'
     );
   });
   test('encodes filePath', () => {

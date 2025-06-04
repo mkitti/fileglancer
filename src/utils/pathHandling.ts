@@ -16,7 +16,7 @@ function getFileFetchPath(
     params.push(`subpath=${encodeURIComponent(filePath)}`);
   }
   if (parentOnly) {
-    params.push(`parent_only=${parentOnly}`);
+    params.push(`cwd_only=${parentOnly}`);
   }
   if (params.length > 0) {
     fetchPath += `?${params.join('&')}`;
