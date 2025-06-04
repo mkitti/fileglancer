@@ -41,7 +41,7 @@ export default function usePermissionsDialog() {
       toast.success(`Successfully updated permissions for ${fetchPath}`);
     } catch (error) {
       toast.error(
-        `Error updating permissions for ${currentFileSharePath?.name}/${targetItem.path}: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Error updating permissions for ${fetchPath}: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
     setShowAlert(true);

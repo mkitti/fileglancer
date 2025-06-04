@@ -34,18 +34,17 @@ export default function useRenameDialog() {
     });
   }
 
-  async function handleRenameSubmit(subpath: string) {
+  async function handleRenameSubmit(path: string) {
     setShowAlert(false);
 
     if (currentFileSharePath) {
-      const originalPathWithoutFileName = removeLastSegmentFromPath(subpath);
       try {
-        await renameItem(subpath, originalPathWithoutFileName);
-        const alertContent = `Renamed item at path: ${currentFileSharePath.name}/${subpath} to ${newName}`;
+        await renameItem(path);
+        const alertContent = `Renamed item at path: ${currentFileSharePath.name}/${path} to ${newName}`;
         toast.success(alertContent);
         return true;
       } catch (error) {
-        const errorContent = `Error renaming item at path: ${currentFileSharePath.name}/${subpath} to ${newName}`;
+        const errorContent = `Error renaming item at path: ${currentFileSharePath.name}/${path} to ${newName}`;
         setAlertContent(
           `${errorContent}. Error details: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
