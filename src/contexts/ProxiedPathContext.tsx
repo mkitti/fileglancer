@@ -70,7 +70,7 @@ export const ProxiedPathProvider = ({
         filePathWithoutFsp
       );
       const response = await sendFetchRequest(
-        `/api/fileglancer/proxied-path?fsp_mount_path=${currentFileSharePath?.mount_path}&path=${filePathWithoutFsp}`,
+        `/api/fileglancer/proxied-path?fsp_mount_path=${currentFileSharePath.mount_path}&path=${currentFileOrFolder.path}`,
         'GET',
         cookies['_xsrf']
       );
@@ -88,7 +88,7 @@ export const ProxiedPathProvider = ({
       console.error('Error fetching proxied path:', error);
     }
     return null;
-  }
+  }, [cookies, currentFileSharePath, currentFileOrFolder]);
 
   async function createProxiedPath(
     fspMountPath: string,
@@ -143,7 +143,12 @@ export const ProxiedPathProvider = ({
         console.error('Error in useEffect:', error);
       }
     })();
-  }, [currentFileSharePath, currentNavigationPath]);
+  }, [
+    currentFileSharePath,
+    currentFileOrFolder,
+    fetchProxiedPath,
+    updateProxiedPath
+  ]);
 
   return (
     <ProxiedPathContext.Provider

@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 
-import { sendFetchRequest } from '../utils';
-import { useFileBrowserContext } from '../contexts/FileBrowserContext';
-import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';
-import { useCookiesContext } from '../contexts/CookiesContext';
+import {
+  getFileFetchPath,
+  sendFetchRequest,
+  joinPaths,
+  removeLastSegmentFromPath
+} from '@/utils';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { useCookiesContext } from '@/contexts/CookiesContext';
 
 export default function useNewFolderDialog() {
   const [newName, setNewName] = useState<string>('');
@@ -32,8 +36,12 @@ export default function useNewFolderDialog() {
     setShowAlert(false);
     if (currentFileSharePath) {
       try {
-        await addNewFolder(subpath);
-        const alertContent = `Created new folder at path: ${currentFileSharePath.name}/${subpath}${newName}`;
+        await addNewFolder();
+        await handleFileBrowserNavigation({
+          fspName: currentFileSharePath.name,
+          path: currentFileOrFolder.path
+        });
+        const alertContent = `Created new folder at path: ${displayPath}`;
         toast.success(alertContent);
         return true;
       } catch (error) {

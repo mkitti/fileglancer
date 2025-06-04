@@ -95,16 +95,16 @@ export default function Folder({ folderFavorite, setOpenZones }: FolderProps) {
               all: true,
               [folderFavorite.fsp.zone]: true
             });
-            setCurrentNavigationZone(folderFavorite.fsp.zone);
             setCurrentFileSharePath(folderFavorite.fsp);
-            fetchAndFormatFilesForDisplay(
-              `${folderFavorite.fsp.name}?subpath=${folderFavorite.folderPath}`
-            );
+            await handleFileBrowserNavigation({
+              fspName: folderFavorite.fsp.name,
+              path: folderFavorite.folderPath
+            });
           } else if (folderExists === false) {
             setShowMissingFolderFavoriteDialog(true);
           }
         }}
-        className={`x-short:py-0 flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 ${folderFavorite.fsp === currentFileSharePath && folderFavorite.fsp.name === currentDir ? '!bg-primary-light/30' : '!bg-background'}`}
+        className={`x-short:py-0 flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 ${folderFavorite.fsp === currentFileSharePath && folderFavorite.fsp.name === currentFileOrFolder?.name ? '!bg-primary-light/30' : '!bg-background'}`}
       >
         <Link
           to="/browse"

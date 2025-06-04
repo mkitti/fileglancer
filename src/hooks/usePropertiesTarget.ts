@@ -11,7 +11,7 @@ export default function usePropertiesTarget() {
     if (propertiesTarget) {
       setPropertiesTarget(null);
     }
-  }, [currentFileSharePath, currentNavigationZone]);
+  }, [currentFileSharePath]);
 
   React.useEffect(() => {
     if (propertiesTarget) {

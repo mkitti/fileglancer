@@ -31,21 +31,14 @@ export default function usePermissionsDialog() {
     );
 
     try {
-      console.log('Change permissions for item:', targetItem);
-      await sendFetchRequest(
-        `/api/fileglancer/files/${currentFileSharePath?.name}?subpath=${targetItem.path}`,
-        'PATCH',
-        cookies['_xsrf'],
-        {
-          permissions: localPermissions
-        }
-      );
-      await fetchAndFormatFilesForDisplay(
-        `${currentFileSharePath?.name}?subpath=${removeLastSegmentFromPath(targetItem.path)}`
-      );
-      toast.success(
-        `Successfully updated permissions for ${currentFileSharePath?.name}/${targetItem.path}`
-      );
+      await sendFetchRequest(fetchPath, 'PATCH', cookies['_xsrf'], {
+        permissions: localPermissions
+      });
+      await handleFileBrowserNavigation({
+        fspName: currentFileSharePath.name,
+        path: removeLastSegmentFromPath(targetItem.path)
+      });
+      toast.success(`Successfully updated permissions for ${fetchPath}`);
     } catch (error) {
       toast.error(
         `Error updating permissions for ${currentFileSharePath?.name}/${targetItem.path}: ${error instanceof Error ? error.message : 'Unknown error'}`

@@ -37,10 +37,9 @@ export default function FileSharePathComponent({
 
   return (
     <List.Item
-      onClick={() => {
-        setCurrentNavigationZone(fsp.zone);
+      onClick={async () => {
         setCurrentFileSharePath(fsp);
-        fetchAndFormatFilesForDisplay(fsp.name);
+        await handleFileBrowserNavigation({ fspName: fsp.name });
       }}
       className={`w-full x-short:py-0 flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30 ${isCurrentPath ? '!bg-primary-light/30' : index % 2 !== 0 ? '!bg-background' : '!bg-surface/50'}`}
     >

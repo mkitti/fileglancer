@@ -49,7 +49,7 @@ export default function NewFolderDialog({
             onSubmit={async event => {
               event.preventDefault();
               setShowAlert(false);
-              const success = await handleNewFolderSubmit(pathToParentFolder);
+              const success = await handleNewFolderSubmit();
               if (success) {
                 setShowNewFolderDialog(false);
                 setNewName('');

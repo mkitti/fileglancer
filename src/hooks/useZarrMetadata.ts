@@ -30,7 +30,7 @@ export default function useZarrMetadata(files: FileOrFolder[]) {
     setMetadata(null);
     setNeuroglancerUrl(null);
     const zattrsFile = files.find(file => file.name === '.zattrs');
-    if (zattrsFile && currentFileSharePath) {
+    if (zattrsFile && currentFileSharePath && currentFileOrFolder) {
       try {
         const zattrs = (await fetchFileAsJson(
           `${currentFileSharePath.name}/${zattrsFile.path}`,
@@ -40,7 +40,8 @@ export default function useZarrMetadata(files: FileOrFolder[]) {
         if (zattrs.multiscales) {
           setHasMultiscales(true);
           const fileFetchPath = getFileFetchPath(
-            currentNavigationPath.replace('?subpath=', '/')
+            currentFileSharePath.name,
+            currentFileOrFolder.path
           );
           const imageUrl = `${window.location.origin}${fileFetchPath}`;
           setLoadingThumbnail(true);
@@ -54,7 +55,7 @@ export default function useZarrMetadata(files: FileOrFolder[]) {
         setLoadingThumbnail(false);
       }
     }
-  }, [files, currentFileSharePath, currentNavigationPath, getFileFetchPath]);
+  }, [files, currentFileSharePath, currentFileOrFolder, cookies]);
 
   React.useEffect(() => {
     checkZattrsForMultiscales();
