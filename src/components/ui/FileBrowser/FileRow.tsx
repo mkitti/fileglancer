@@ -5,6 +5,7 @@ import {
   EllipsisHorizontalCircleIcon,
   FolderIcon
 } from '@heroicons/react/24/outline';
+import toast from 'react-hot-toast';
 
 import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
