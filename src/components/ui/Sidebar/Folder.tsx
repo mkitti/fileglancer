@@ -55,16 +55,15 @@ export default function Folder({ folderFavorite, setOpenZones }: FolderProps) {
     'folder',
     `${folderFavorite.fsp.name}_${folderFavorite.folderPath}`
   ) as string;
-  const splitPath = folderFavorite.folderPath.split('/');
-  const folderName = splitPath[splitPath.length - 1];
 
   async function checkFolderExists(folderFavorite: FolderFavorite) {
     try {
-      const folderPath = getFileFetchPath(
-        `${folderFavorite.fsp.name}?subpath=${folderFavorite.folderPath}`
+      const fetchPath = getFileFetchPath(
+        folderFavorite.fsp.name,
+        folderFavorite.folderPath
       );
       const response = await sendFetchRequest(
-        folderPath,
+        fetchPath,
         'GET',
         cookies['_xsrf']
       );
@@ -114,7 +113,7 @@ export default function Folder({ folderFavorite, setOpenZones }: FolderProps) {
           <div className="w-full flex gap-1 items-center">
             <FolderIcon className="icon-small x-short:icon-xsmall" />
             <Typography className="w-[calc(100%-2rem)] truncate text-sm font-medium leading-4 x-short:text-xs">
-              {folderName}
+              {getLastSegmentFromPath(folderFavorite.folderPath)}
             </Typography>
           </div>
           <Tooltip placement="right">

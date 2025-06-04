@@ -20,6 +20,16 @@ export default function usePermissionsDialog() {
     targetItem: FileOrFolder,
     localPermissions: FileOrFolder['permissions']
   ) {
+    if (!currentFileSharePath) {
+      toast.error('No file share path selected.');
+      return;
+    }
+
+    const fetchPath = getFileFetchPath(
+      currentFileSharePath.name,
+      targetItem.path
+    );
+
     try {
       console.log('Change permissions for item:', targetItem);
       await sendFetchRequest(

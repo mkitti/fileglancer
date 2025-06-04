@@ -56,10 +56,7 @@ export default function DeleteDialog({
           </IconButton>
           <Typography className="my-8 text-large text-foreground">
             Are you sure you want to delete{' '}
-            <span className="font-semibold">
-              {currentFileSharePath?.name}/{targetItem.path}
-            </span>
-            ?
+            <span className="font-semibold">{displayPath}</span>?
           </Typography>
           <Button
             color="error"

@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 
-import { sendFetchRequest, removeLastSegmentFromPath } from '../utils';
+import {
+  getFileFetchPath,
+  joinPaths,
+  sendFetchRequest,
+  removeLastSegmentFromPath
+} from '../utils';
 import { useFileBrowserContext } from '../contexts/FileBrowserContext';
 import { useCookiesContext } from '../contexts/CookiesContext';
 
@@ -14,20 +19,19 @@ export default function useRenameDialog() {
     useFileBrowserContext();
   const { cookies } = useCookiesContext();
 
-  async function renameItem(
-    originalPath: string,
-    originalPathWithoutFileName: string
-  ) {
-    const newPath = `${originalPathWithoutFileName}${newName}`;
-    await sendFetchRequest(
-      `/api/fileglancer/files/${currentFileSharePath?.name}?subpath=${originalPath}`,
-      'PATCH',
-      cookies['_xsrf'],
-      { path: newPath }
-    );
-    await fetchAndFormatFilesForDisplay(
-      `${currentFileSharePath?.name}?subpath=${originalPathWithoutFileName}`
-    );
+  async function renameItem(path: string) {
+    if (!currentFileSharePath) {
+      throw new Error('No file share path selected.');
+    }
+    const newPath = joinPaths(removeLastSegmentFromPath(path), newName);
+    const fetchPath = getFileFetchPath(currentFileSharePath?.name, path);
+    await sendFetchRequest(fetchPath, 'PATCH', cookies['_xsrf'], {
+      path: newPath
+    });
+    await handleFileBrowserNavigation({
+      fspName: currentFileSharePath.name,
+      path
+    });
   }
 
   async function handleRenameSubmit(subpath: string) {

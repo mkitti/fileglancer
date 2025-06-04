@@ -53,7 +53,9 @@ export default function PropertiesDrawer({
       ? joinPaths(currentFileSharePath.name, propertiesTarget.path)
       : '';
 
-  const fullPath = `${currentFileSharePath?.name}/${propertiesTarget?.path}`;
+  if (pathPreference[0] === 'windows_path') {
+    fullPath = convertPathToWindowsStyle(fullPath);
+  }
 
   return (
     <Card className="min-w-full h-full max-h-full overflow-y-auto overflow-x-hidden p-4 rounded-none shadow-lg flex flex-col">

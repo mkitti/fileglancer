@@ -12,6 +12,8 @@ import {
   FolderPlusIcon
 } from '@heroicons/react/24/solid';
 import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
+
+import { joinPaths } from '@/utils';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
 type ToolbarProps = {

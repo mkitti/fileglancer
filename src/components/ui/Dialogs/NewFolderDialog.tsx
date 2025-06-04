@@ -26,8 +26,6 @@ export default function NewFolderDialog({
     setShowAlert,
     alertContent
   } = useNewFolderDialog();
-  const { dirArray } = useFileBrowserContext();
-  const pathToParentFolder = dirArray.slice(1).join('/');
 
   return (
     <Dialog open={showNewFolderDialog}>
