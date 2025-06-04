@@ -15,6 +15,16 @@ export default function useDeleteDialog() {
     useFileBrowserContext();
 
   async function handleDelete(targetItem: FileOrFolder) {
+    if (!currentFileSharePath) {
+      toast.error('No file share path selected.');
+      return false;
+    }
+
+    const fetchPath = getFileFetchPath(
+      currentFileSharePath.name,
+      targetItem.path
+    );
+
     try {
       await sendFetchRequest(fetchPath, 'DELETE', cookies['_xsrf']);
       await handleFileBrowserNavigation({
@@ -25,7 +35,7 @@ export default function useDeleteDialog() {
       return true;
     } catch (error) {
       toast.error(
-        `Error deleting ${currentFileSharePath?.name}/${targetItem.path}: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Error deleting ${targetItem.path}: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
 
       return false;
