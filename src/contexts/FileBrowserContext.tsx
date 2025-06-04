@@ -4,6 +4,8 @@ import { getFileFetchPath, sendFetchRequest } from '@/utils';
 import { useCookiesContext } from './CookiesContext';
 
 type FileBrowserContextType = {
+  isZonesMapReady: boolean;
+  zonesAndFileSharePathsMap: ZonesAndFileSharePathsMap;
   files: FileOrFolder[];
   currentNavigationPath: FileOrFolder['path'];
   dirArray: string[];
@@ -34,6 +36,9 @@ export const FileBrowserContextProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
+  const [isZonesMapReady, setIsZonesMapReady] = React.useState(false);
+  const [zonesAndFileSharePathsMap, setZonesAndFileSharePathsMap] =
+    React.useState<ZonesAndFileSharePathsMap>({});
   const [files, setFiles] = React.useState<FileOrFolder[]>([]);
   const [currentNavigationPath, setCurrentNavigationPath] =
     React.useState<FileOrFolder['path']>('');
@@ -42,20 +47,99 @@ export const FileBrowserContextProvider = ({
 
   const { cookies } = useCookiesContext();
 
-  React.useEffect(() => {
-    if (currentNavigationPath) {
-      const dirArray = makeDirArray(currentNavigationPath);
-      setDirArray(dirArray);
+  const getZones = React.useCallback(async () => {
+    const url = '/api/fileglancer/file-share-paths';
+    let rawData: { paths: FileSharePath[] } = { paths: [] };
+    try {
+      const response = await sendFetchRequest(url, 'GET', cookies['_xsrf']);
+      rawData = await response.json();
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error(error.message);
+      } else {
+        console.error('An unknown error occurred');
+      }
     }
-  }, [currentNavigationPath]);
+    return rawData;
+  }, [cookies]);
 
-  React.useEffect(() => {
-    if (dirArray.length > 1) {
-      setCurrentDir(dirArray[dirArray.length - 1]);
-    } else {
-      setCurrentDir(dirArray[0]);
+  function createZonesAndFileSharePathsMap(rawData: {
+    paths: FileSharePath[];
+  }) {
+    const newZonesAndFileSharePathsMap: ZonesAndFileSharePathsMap = {};
+    rawData.paths.forEach(item => {
+      // Zones first
+      // If the zone doesn't exist in the map, create it
+      const zoneKey = makeMapKey('zone', item.zone);
+      if (!newZonesAndFileSharePathsMap[zoneKey]) {
+        newZonesAndFileSharePathsMap[zoneKey] = {
+          name: item.zone,
+          fileSharePaths: []
+        } as Zone;
+      }
+      // If/once zone exists, add file share paths to it
+      const existingZone = newZonesAndFileSharePathsMap[zoneKey] as Zone;
+      existingZone.fileSharePaths.push(item);
+
+      // Then add file share paths to the map
+      const fspKey = makeMapKey('fsp', item.name);
+      if (!newZonesAndFileSharePathsMap[fspKey]) {
+        newZonesAndFileSharePathsMap[fspKey] = item;
+      }
+    });
+    return newZonesAndFileSharePathsMap;
+  }
+
+  function alphabetizeZonesAndFsps(map: ZonesAndFileSharePathsMap) {
+    const sortedMap: ZonesAndFileSharePathsMap = {};
+
+    const zoneKeys = Object.keys(map)
+      .filter(key => key.startsWith('zone'))
+      .sort((a, b) => map[a].name.localeCompare(map[b].name));
+
+    // Add sorted zones to the new map
+    zoneKeys.forEach(zoneKey => {
+      const zone = map[zoneKey] as Zone;
+
+      // Sort file share paths within the zone
+      const sortedFileSharePaths = [...zone.fileSharePaths].sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
+
+      sortedMap[zoneKey] = {
+        ...zone,
+        fileSharePaths: sortedFileSharePaths
+      };
+    });
+
+    // Add the remaining keys (e.g., FSPs) without sorting
+    Object.keys(map)
+      .filter(key => key.startsWith('fsp'))
+      .forEach(fspKey => {
+        sortedMap[fspKey] = map[fspKey];
+      });
+
+    return sortedMap;
+  }
+
+  const updateZonesAndFileSharePathsMap = React.useCallback(async () => {
+    let rawData: { paths: FileSharePath[] } = { paths: [] };
+    try {
+      rawData = await getZones();
+      const newZonesAndFileSharePathsMap =
+        createZonesAndFileSharePathsMap(rawData);
+      const sortedMap = alphabetizeZonesAndFsps(newZonesAndFileSharePathsMap);
+      setZonesAndFileSharePathsMap(sortedMap);
+      setIsZonesMapReady(true);
+      console.log('zones and fsp map in ZoneBrowserContext:', sortedMap);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error(error.message);
+      } else {
+        console.error('An unknown error occurred when fetching zones');
+      }
     }
-  }, [dirArray]);
+  }, [getZones]);
 
   function makeDirArray(path: string) {
     if (currentNavigationPath.includes('?subpath=')) {
@@ -106,6 +190,8 @@ export const FileBrowserContextProvider = ({
   return (
     <FileBrowserContext.Provider
       value={{
+        isZonesMapReady,
+        zonesAndFileSharePathsMap,
         files,
         currentNavigationPath,
         dirArray,
