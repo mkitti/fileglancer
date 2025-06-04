@@ -1,4 +1,11 @@
-import { getCleanPath, getFileFetchPath } from './pathHandling';
+import {
+  convertPathToWindowsStyle,
+  getFileFetchPath,
+  getLastSegmentFromPath,
+  joinPaths,
+  makePathSegmentArray,
+  removeLastSegmentFromPath
+} from './pathHandling';
 
 const formatFileSize = (sizeInBytes: number): string => {
   if (sizeInBytes < 1024) {
@@ -58,15 +65,6 @@ async function sendFetchRequest(
   return response;
 }
 
-function removeLastSegmentFromPath(path: string): string {
-  const segments = path.split('/');
-  if (segments.length > 1) {
-    return segments.slice(0, -1).join('/');
-  } else {
-    return '';
-  }
-}
-
 // Parse the Unix-style permissions string (e.g., "drwxr-xr-x")
 const parsePermissions = (permissionString: string) => {
   // Owner permissions (positions 1-3)
@@ -93,10 +91,11 @@ function makeMapKey(type: string, name: string): string {
 }
 
 async function fetchFileContent(
+  fspName: string,
   path: string,
   cookies: Record<string, string>
 ): Promise<Uint8Array> {
-  const url = getFileFetchPath(path);
+  const url = getFileFetchPath(fspName, path);
   const response = await sendFetchRequest(url, 'GET', cookies._xsrf);
   if (!response.ok) {
     throw new Error(`Failed to fetch file: ${response.statusText}`);
@@ -106,33 +105,38 @@ async function fetchFileContent(
 }
 
 async function fetchFileAsText(
+  fspName: string,
   path: string,
   cookies: Record<string, string>
 ): Promise<string> {
-  const fileContent = await fetchFileContent(path, cookies);
+  const fileContent = await fetchFileContent(fspName, path, cookies);
   const decoder = new TextDecoder('utf-8');
   return decoder.decode(fileContent);
 }
 
 async function fetchFileAsJson(
+  fspName: string,
   path: string,
   cookies: Record<string, string>
 ): Promise<object> {
-  const fileText = await fetchFileAsText(path, cookies);
+  const fileText = await fetchFileAsText(fspName, path, cookies);
   return JSON.parse(fileText);
 }
 
 export {
-  formatFileSize,
-  formatDate,
-  HTTPError,
-  sendFetchRequest,
-  makeMapKey,
-  removeLastSegmentFromPath,
-  parsePermissions,
-  getCleanPath,
-  getFileFetchPath,
-  fetchFileContent,
+  convertPathToWindowsStyle,
+  fetchFileAsJson,
   fetchFileAsText,
-  fetchFileAsJson
+  fetchFileContent,
+  formatDate,
+  formatFileSize,
+  getFileFetchPath,
+  getLastSegmentFromPath,
+  HTTPError,
+  joinPaths,
+  makeMapKey,
+  makePathSegmentArray,
+  parsePermissions,
+  removeLastSegmentFromPath,
+  sendFetchRequest
 };
