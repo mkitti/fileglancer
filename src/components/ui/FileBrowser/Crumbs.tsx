@@ -12,11 +12,14 @@ import {
 } from '@heroicons/react/24/outline';
 
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
+import { makePathSegmentArray, joinPaths } from '@/utils';
 
 export default function Crumbs(): ReactNode {
-  const { dirArray, fetchAndFormatFilesForDisplay } = useFileBrowserContext();
-  const { currentFileSharePath } = useZoneBrowserContext();
+  const {
+    handleFileBrowserNavigation,
+    currentFileOrFolder,
+    currentFileSharePath
+  } = useFileBrowserContext();
 
   const dirDepth = dirArray.length;
   return (

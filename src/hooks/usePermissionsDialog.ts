@@ -1,17 +1,20 @@
 import React from 'react';
 import toast from 'react-hot-toast';
 
-import { sendFetchRequest, removeLastSegmentFromPath } from '../utils';
-import { useCookiesContext } from '../contexts/CookiesContext';
-import type { FileOrFolder } from '../shared.types';
-import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';
-import { useFileBrowserContext } from '../contexts/FileBrowserContext';
+import {
+  sendFetchRequest,
+  removeLastSegmentFromPath,
+  getFileFetchPath
+} from '@/utils';
+import { useCookiesContext } from '@/contexts/CookiesContext';
+import type { FileOrFolder } from '@/shared.types';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
 export default function usePermissionsDialog() {
   const [showAlert, setShowAlert] = React.useState<boolean>(false);
   const { cookies } = useCookiesContext();
-  const { currentFileSharePath } = useZoneBrowserContext();
-  const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
+  const { handleFileBrowserNavigation, currentFileSharePath } =
+    useFileBrowserContext();
 
   async function handleChangePermissions(
     targetItem: FileOrFolder,

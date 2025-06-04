@@ -9,7 +9,9 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
-import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import { convertPathToWindowsStyle, joinPaths } from '@/utils';
 
 type SharingDialogProps = {
   isImageShared: boolean;
@@ -27,8 +29,18 @@ export default function SharingDialog({
   setShowSharingDialog
 }: SharingDialogProps): JSX.Element {
   const { createProxiedPath, deleteProxiedPath } = useProxiedPathContext();
-  const { currentFileSharePath } = useZoneBrowserContext();
-  const displayPath = `${currentFileSharePath?.mount_path}/${filePathWithoutFsp}`;
+  const { currentFileSharePath } = useFileBrowserContext();
+  const { pathPreference } = usePreferencesContext();
+
+  if (!currentFileSharePath) {
+    return <>{toast.error('No file share path selected')}</>; // No file share path available
+  }
+  const displayPath =
+    pathPreference[0] === 'windows_path'
+      ? convertPathToWindowsStyle(
+          joinPaths(currentFileSharePath.mount_path, filePathWithoutFsp)
+        )
+      : joinPaths(currentFileSharePath.mount_path, filePathWithoutFsp);
 
   return (
     <Dialog open={showSharingDialog}>

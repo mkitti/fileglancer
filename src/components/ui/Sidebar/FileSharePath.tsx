@@ -8,7 +8,6 @@ import {
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
 import type { FileSharePath } from '@/shared.types';
-import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { makeMapKey } from '@/utils';
@@ -22,16 +21,14 @@ export default function FileSharePathComponent({
   fsp,
   index
 }: FileSharePathComponentProps) {
-  const {
-    currentFileSharePath,
-    setCurrentFileSharePath,
-    setCurrentNavigationZone
-  } = useZoneBrowserContext();
-
   const { pathPreference, fileSharePathPreferenceMap, handleFavoriteChange } =
     usePreferencesContext();
 
-  const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
+  const {
+    handleFileBrowserNavigation,
+    currentFileSharePath,
+    setCurrentFileSharePath
+  } = useFileBrowserContext();
 
   const isCurrentPath = currentFileSharePath?.name === fsp.name;
   const isFavoritePath = fileSharePathPreferenceMap[makeMapKey('fsp', fsp.name)]

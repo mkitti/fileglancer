@@ -20,7 +20,10 @@ import type { FileOrFolder } from '@/shared.types';
 import PermissionsTable from './PermissionsTable';
 import OverviewTable from './OverviewTable';
 import useCopyPath from '@/hooks/useCopyPath';
-import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
+import { joinPaths } from '@/utils';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import { convertPathToWindowsStyle } from '@/utils/pathHandling';
 
 type PropertiesDrawerProps = {
   propertiesTarget: FileOrFolder | null;
@@ -42,7 +45,13 @@ export default function PropertiesDrawer({
     copyToClipboard,
     dismissCopyAlert
   } = useCopyPath();
-  const { currentFileSharePath } = useZoneBrowserContext();
+  const { currentFileSharePath } = useFileBrowserContext();
+  const { pathPreference } = usePreferencesContext();
+
+  let fullPath =
+    currentFileSharePath && propertiesTarget
+      ? joinPaths(currentFileSharePath.name, propertiesTarget.path)
+      : '';
 
   const fullPath = `${currentFileSharePath?.name}/${propertiesTarget?.path}`;
 

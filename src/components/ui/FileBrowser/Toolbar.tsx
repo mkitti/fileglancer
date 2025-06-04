@@ -33,8 +33,12 @@ export default function Toolbar({
   setShowSidebar,
   setShowNewFolderDialog
 }: ToolbarProps): JSX.Element {
-  const { fetchAndFormatFilesForDisplay, currentNavigationPath } =
-    useFileBrowserContext();
+  const {
+    handleFileBrowserNavigation,
+    currentFileOrFolder,
+    currentFileSharePath
+  } = useFileBrowserContext();
+
   return (
     <div className="flex flex-col min-w-full p-2 border-b border-surface">
       <div className="flex justify-between items-center">
@@ -78,9 +82,17 @@ export default function Toolbar({
             <Tooltip.Trigger
               as={IconButton}
               variant="outline"
-              onClick={() =>
-                fetchAndFormatFilesForDisplay(currentNavigationPath)
-              }
+              onClick={async () => {
+                if (!currentFileSharePath || !currentFileOrFolder) {
+                  return;
+                }
+                await handleFileBrowserNavigation({
+                  path: joinPaths(
+                    currentFileSharePath.name,
+                    currentFileOrFolder.path
+                  )
+                });
+              }}
             >
               <ArrowPathIcon className="icon-default" />
               <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">

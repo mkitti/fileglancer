@@ -8,7 +8,6 @@ import {
 
 import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
 import useHandleLeftClick from '@/hooks/useHandleLeftClick';
 import { formatDate, formatFileSize } from '@/utils';
 
@@ -46,9 +45,9 @@ export default function FileRow({
   const nameRef = React.useRef<HTMLDivElement>(null);
   const [isTruncated, setIsTruncated] = React.useState(false);
 
-  const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
+  const { handleFileBrowserNavigation, currentFileSharePath } =
+    useFileBrowserContext();
   const { handleLeftClick } = useHandleLeftClick();
-  const { currentFileSharePath } = useZoneBrowserContext();
 
   const isSelected = selectedFiles.some(
     selectedFile => selectedFile.name === file.name

@@ -2,7 +2,7 @@ import React from 'react';
 
 import type { FileSharePath, Zone } from '@/shared.types';
 import { useCookiesContext } from '@/contexts/CookiesContext';
-import { useZoneBrowserContext } from './ZoneBrowserContext';
+import { useFileBrowserContext } from './FileBrowserContext';
 import { sendFetchRequest, makeMapKey, HTTPError } from '@/utils';
 
 export type FolderFavorite = {
@@ -82,7 +82,7 @@ export const PreferencesProvider = ({
 
   const { cookies } = useCookiesContext();
   const { isZonesMapReady, zonesAndFileSharePathsMap } =
-    useZoneBrowserContext();
+    useFileBrowserContext();
 
   async function fetchPreferences(key: string) {
     try {

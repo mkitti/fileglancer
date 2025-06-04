@@ -6,8 +6,7 @@ import {
   generateNeuroglancerState
 } from '@/omezarr-helper';
 import type { Metadata } from '@/omezarr-helper';
-import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
-import { fetchFileAsJson } from '@/utils';
+import { fetchFileAsJson, getFileFetchPath } from '@/utils';
 import { useCookies } from 'react-cookie';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 
@@ -21,8 +20,7 @@ export default function useZarrMetadata(files: FileOrFolder[]) {
   const [loadingThumbnail, setLoadingThumbnail] = React.useState(false);
 
   const neuroglancerBaseUrl = 'https://neuroglancer-demo.appspot.com/#!';
-  const { currentNavigationPath, getFileFetchPath } = useFileBrowserContext();
-  const { currentFileSharePath } = useZoneBrowserContext();
+  const { currentFileOrFolder, currentFileSharePath } = useFileBrowserContext();
   const { dataUrl } = useProxiedPathContext();
   const [cookies] = useCookies(['_xsrf']);
 

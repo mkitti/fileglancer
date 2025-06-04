@@ -11,8 +11,9 @@ export default function useNewFolderDialog() {
   const [showAlert, setShowAlert] = useState<boolean>(false);
   const [alertContent, setAlertContent] = useState<string>('');
 
-  const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
-  const { currentFileSharePath } = useZoneBrowserContext();
+  const { handleFileBrowserNavigation, currentFileOrFolder } =
+    useFileBrowserContext();
+  const { currentFileSharePath } = useFileBrowserContext();
   const { cookies } = useCookiesContext();
 
   async function addNewFolder(subpath: string) {

@@ -3,7 +3,6 @@ import toast from 'react-hot-toast';
 
 import { sendFetchRequest, removeLastSegmentFromPath } from '../utils';
 import { useFileBrowserContext } from '../contexts/FileBrowserContext';
-import { useZoneBrowserContext } from '../contexts/ZoneBrowserContext';
 import { useCookiesContext } from '../contexts/CookiesContext';
 
 export default function useRenameDialog() {
@@ -11,8 +10,8 @@ export default function useRenameDialog() {
   const [showAlert, setShowAlert] = useState<boolean>(false);
   const [alertContent, setAlertContent] = useState<string>('');
 
-  const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
-  const { currentFileSharePath } = useZoneBrowserContext();
+  const { handleFileBrowserNavigation, currentFileSharePath } =
+    useFileBrowserContext();
   const { cookies } = useCookiesContext();
 
   async function renameItem(

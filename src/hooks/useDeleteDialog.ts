@@ -7,8 +7,8 @@ import { useFileBrowserContext } from '../contexts/FileBrowserContext';
 
 export default function useDeleteDialog() {
   const { cookies } = useCookiesContext();
-  const { currentFileSharePath } = useZoneBrowserContext();
-  const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
+  const { handleFileBrowserNavigation, currentFileSharePath } =
+    useFileBrowserContext();
 
   async function handleDelete(targetItem: FileOrFolder) {
     try {

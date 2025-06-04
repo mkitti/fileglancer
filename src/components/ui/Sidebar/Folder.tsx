@@ -9,8 +9,12 @@ import {
 import { FolderIcon } from '@heroicons/react/24/outline';
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
-import { makeMapKey, getFileFetchPath, sendFetchRequest } from '@/utils';
-import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
+import {
+  makeMapKey,
+  getFileFetchPath,
+  sendFetchRequest,
+  getLastSegmentFromPath
+} from '@/utils';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import MissingFolderFavoriteDialog from './MissingFolderFavoriteDialog';
@@ -29,11 +33,11 @@ export default function Folder({ folderFavorite, setOpenZones }: FolderProps) {
   const [showMissingFolderFavoriteDialog, setShowMissingFolderFavoriteDialog] =
     React.useState(false);
   const {
-    setCurrentNavigationZone,
+    handleFileBrowserNavigation,
+    currentFileOrFolder,
     currentFileSharePath,
     setCurrentFileSharePath
-  } = useZoneBrowserContext();
-  const { currentDir, fetchAndFormatFilesForDisplay } = useFileBrowserContext();
+  } = useFileBrowserContext();
   const { pathPreference, handleFavoriteChange } = usePreferencesContext();
   const { cookies } = useCookiesContext();
 

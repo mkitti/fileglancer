@@ -9,7 +9,9 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 
 import useDeleteDialog from '@/hooks/useDeleteDialog';
 import type { FileOrFolder } from '@/shared.types';
-import { useZoneBrowserContext } from '@/contexts/ZoneBrowserContext';
+import { convertPathToWindowsStyle, joinPaths } from '@/utils';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
 
 type DeleteDialogProps = {
   targetItem: FileOrFolder;
@@ -23,7 +25,19 @@ export default function DeleteDialog({
   setShowDeleteDialog
 }: DeleteDialogProps): JSX.Element {
   const { handleDelete } = useDeleteDialog();
-  const { currentFileSharePath } = useZoneBrowserContext();
+  const { currentFileSharePath } = useFileBrowserContext();
+  const { pathPreference } = usePreferencesContext();
+
+  if (!currentFileSharePath) {
+    return <>{toast.error('No file share path selected')}</>; // No file share path available
+  }
+  const displayPath =
+    pathPreference[0] === 'windows_path'
+      ? convertPathToWindowsStyle(
+          joinPaths(currentFileSharePath.name, targetItem.path)
+        )
+      : joinPaths(currentFileSharePath.name, targetItem.path);
+
   return (
     <Dialog open={showDeleteDialog}>
       <Dialog.Overlay>
