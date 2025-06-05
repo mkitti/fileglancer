@@ -15,8 +15,11 @@ export default function useRenameDialog() {
   const [showAlert, setShowAlert] = useState<boolean>(false);
   const [alertContent, setAlertContent] = useState<string>('');
 
-  const { handleFileBrowserNavigation, currentFileSharePath } =
-    useFileBrowserContext();
+  const {
+    handleFileBrowserNavigation,
+    currentFileSharePath,
+    currentFileOrFolder
+  } = useFileBrowserContext();
   const { cookies } = useCookiesContext();
 
   async function renameItem(path: string) {
@@ -30,7 +33,7 @@ export default function useRenameDialog() {
     });
     await handleFileBrowserNavigation({
       fspName: currentFileSharePath.name,
-      path
+      path: currentFileOrFolder?.path
     });
   }
 

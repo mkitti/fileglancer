@@ -30,7 +30,7 @@ export default function useNewFolderDialog() {
     await sendFetchRequest(
       getFileFetchPath(
         currentFileSharePath.name,
-        joinPaths(removeLastSegmentFromPath(currentFileOrFolder.path), newName)
+        joinPaths(currentFileOrFolder.path, newName)
       ),
       'POST',
       cookies['_xsrf'],

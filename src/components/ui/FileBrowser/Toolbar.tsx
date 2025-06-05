@@ -89,10 +89,8 @@ export default function Toolbar({
                   return;
                 }
                 await handleFileBrowserNavigation({
-                  path: joinPaths(
-                    currentFileSharePath.name,
-                    currentFileOrFolder.path
-                  )
+                  fspName: currentFileSharePath.name,
+                  path: currentFileOrFolder.path
                 });
               }}
             >
