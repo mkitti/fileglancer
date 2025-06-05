@@ -3,7 +3,7 @@ name: Build
 on:
   workflow_dispatch:
   push:
-    branches: ga-with-pixi
+    branches: main
   pull_request:
     branches: '*'
 
