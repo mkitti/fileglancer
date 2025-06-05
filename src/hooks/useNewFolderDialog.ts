@@ -5,10 +5,11 @@ import {
   getFileFetchPath,
   sendFetchRequest,
   joinPaths,
-  removeLastSegmentFromPath
+  getPreferredPathForDisplay
 } from '@/utils';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { useCookiesContext } from '@/contexts/CookiesContext';
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
 
 export default function useNewFolderDialog() {
   const [newName, setNewName] = useState<string>('');
@@ -18,6 +19,7 @@ export default function useNewFolderDialog() {
   const { handleFileBrowserNavigation, currentFileOrFolder } =
     useFileBrowserContext();
   const { currentFileSharePath } = useFileBrowserContext();
+  const { pathPreference } = usePreferencesContext();
   const { cookies } = useCookiesContext();
 
   async function addNewFolder() {
@@ -49,10 +51,10 @@ export default function useNewFolderDialog() {
       setAlertContent('No current file or folder selected.');
       return false;
     } else {
-      const displayPath = joinPaths(
-        currentFileSharePath.mount_path,
-        currentFileOrFolder.path,
-        newName
+      const displayPath = getPreferredPathForDisplay(
+        pathPreference,
+        currentFileSharePath,
+        `${currentFileOrFolder.path}/${newName}`
       );
       try {
         await addNewFolder();

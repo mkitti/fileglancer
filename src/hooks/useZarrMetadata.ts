@@ -6,7 +6,7 @@ import {
   generateNeuroglancerState
 } from '@/omezarr-helper';
 import type { Metadata } from '@/omezarr-helper';
-import { fetchFileAsJson, getFileURL, joinPaths } from '@/utils';
+import { fetchFileAsJson, getFileURL } from '@/utils';
 import { useCookies } from 'react-cookie';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 

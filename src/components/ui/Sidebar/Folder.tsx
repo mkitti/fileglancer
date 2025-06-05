@@ -13,7 +13,8 @@ import {
   makeMapKey,
   getFileFetchPath,
   sendFetchRequest,
-  getLastSegmentFromPath
+  getLastSegmentFromPath,
+  getPreferredPathForDisplay
 } from '@/utils';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { useCookiesContext } from '@/contexts/CookiesContext';
@@ -41,15 +42,11 @@ export default function Folder({ folderFavorite, setOpenZones }: FolderProps) {
   const { pathPreference, handleFavoriteChange } = usePreferencesContext();
   const { cookies } = useCookiesContext();
 
-  // '' is for fsp=local, where linux, max, and windows paths are null
-  const fileSharePath =
-    pathPreference[0] === 'linux_path'
-      ? folderFavorite.fsp.linux_path || ''
-      : pathPreference[0] === 'windows_path'
-        ? folderFavorite.fsp.windows_path || ''
-        : pathPreference[0] === 'mac_path'
-          ? folderFavorite.fsp.mac_path || ''
-          : folderFavorite.fsp.linux_path || '';
+  const displayPath = getPreferredPathForDisplay(
+    pathPreference,
+    folderFavorite.fsp,
+    folderFavorite.folderPath
+  );
 
   const mapKey = makeMapKey(
     'folder',
@@ -119,10 +116,10 @@ export default function Folder({ folderFavorite, setOpenZones }: FolderProps) {
           <Tooltip placement="right">
             <Tooltip.Trigger className="w-full">
               <Typography className="text-left text-xs truncate">
-                {`${fileSharePath}/${folderFavorite.folderPath}`}
+                {displayPath}
               </Typography>
             </Tooltip.Trigger>
-            <Tooltip.Content>{`${fileSharePath}/${folderFavorite.folderPath}`}</Tooltip.Content>
+            <Tooltip.Content>{displayPath}</Tooltip.Content>
           </Tooltip>
         </Link>
         <div

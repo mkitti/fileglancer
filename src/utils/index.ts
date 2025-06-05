@@ -3,6 +3,7 @@ import {
   getFileFetchPath,
   getFileURL,
   getLastSegmentFromPath,
+  getPreferredPathForDisplay,
   joinPaths,
   makePathSegmentArray,
   removeLastSegmentFromPath
@@ -134,6 +135,7 @@ export {
   getFileFetchPath,
   getFileURL,
   getLastSegmentFromPath,
+  getPreferredPathForDisplay,
   HTTPError,
   joinPaths,
   makeMapKey,

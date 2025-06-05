@@ -10,7 +10,11 @@ import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 import type { FileSharePath } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import { makeMapKey } from '@/utils';
+import {
+  makeMapKey,
+  convertPathToWindowsStyle,
+  getPreferredPathForDisplay
+} from '@/utils';
 
 type FileSharePathComponentProps = {
   fsp: FileSharePath;
@@ -34,6 +38,7 @@ export default function FileSharePathComponent({
   const isFavoritePath = fileSharePathPreferenceMap[makeMapKey('fsp', fsp.name)]
     ? true
     : false;
+  const fspPath = getPreferredPathForDisplay(pathPreference, fsp);
 
   return (
     <List.Item
@@ -54,17 +59,9 @@ export default function FileSharePathComponent({
           </Typography>
         </div>
 
-        {fsp.linux_path ? (
-          <Typography className="text-xs truncate max-w-full">
-            {pathPreference[0] === 'linux_path'
-              ? fsp.linux_path
-              : pathPreference[0] === 'windows_path'
-                ? fsp.windows_path
-                : pathPreference[0] === 'mac_path'
-                  ? fsp.mac_path
-                  : fsp.linux_path}
-          </Typography>
-        ) : null}
+        <Typography className="text-xs truncate max-w-full">
+          {fspPath}
+        </Typography>
       </Link>
 
       <div

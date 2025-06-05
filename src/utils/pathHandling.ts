@@ -1,4 +1,5 @@
 import path from 'path';
+import type { FileSharePath } from '@/shared.types';
 
 function joinPaths(...paths: string[]): string {
   return path.posix.join(...paths.map(path => path.trim()));
@@ -58,11 +59,29 @@ function convertPathToWindowsStyle(pathString: string): string {
   return pathString.replace(/\//g, '\\');
 }
 
+function getPreferredPathForDisplay(
+  pathPreference: ['linux_path' | 'windows_path' | 'mac_path'] = ['linux_path'],
+  fsp: FileSharePath | null = null,
+  subPath?: string
+): string {
+  const pathKey = pathPreference[0] ?? 'linux_path';
+  const basePath = fsp ? (fsp[pathKey] ?? fsp.linux_path) : '';
+
+  let fullPath = subPath ? joinPaths(basePath, subPath) : basePath;
+
+  if (pathKey === 'windows_path') {
+    fullPath = convertPathToWindowsStyle(fullPath);
+  }
+
+  return fullPath;
+}
+
 export {
   convertPathToWindowsStyle,
   getFileFetchPath,
   getFileURL,
   getLastSegmentFromPath,
+  getPreferredPathForDisplay,
   joinPaths,
   makePathSegmentArray,
   removeLastSegmentFromPath

@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import { convertPathToWindowsStyle, joinPaths } from '@/utils';
+import { getPreferredPathForDisplay } from '@/utils';
 
 type SharingDialogProps = {
   isImageShared: boolean;
@@ -35,12 +35,11 @@ export default function SharingDialog({
   if (!currentFileSharePath) {
     return <>{toast.error('No file share path selected')}</>; // No file share path available
   }
-  const displayPath =
-    pathPreference[0] === 'windows_path'
-      ? convertPathToWindowsStyle(
-          joinPaths(currentFileSharePath.mount_path, filePathWithoutFsp)
-        )
-      : joinPaths(currentFileSharePath.mount_path, filePathWithoutFsp);
+  const displayPath = getPreferredPathForDisplay(
+    pathPreference,
+    currentFileSharePath,
+    filePathWithoutFsp
+  );
 
   return (
     <Dialog open={showSharingDialog}>

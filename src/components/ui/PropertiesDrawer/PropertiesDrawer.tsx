@@ -20,10 +20,9 @@ import type { FileOrFolder } from '@/shared.types';
 import PermissionsTable from './PermissionsTable';
 import OverviewTable from './OverviewTable';
 import useCopyPath from '@/hooks/useCopyPath';
-import { joinPaths } from '@/utils';
+import { getPreferredPathForDisplay } from '@/utils';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import { convertPathToWindowsStyle } from '@/utils/pathHandling';
 
 type PropertiesDrawerProps = {
   propertiesTarget: FileOrFolder | null;
@@ -48,14 +47,11 @@ export default function PropertiesDrawer({
   const { currentFileSharePath } = useFileBrowserContext();
   const { pathPreference } = usePreferencesContext();
 
-  let fullPath =
-    currentFileSharePath && propertiesTarget
-      ? joinPaths(currentFileSharePath.name, propertiesTarget.path)
-      : '';
-
-  if (pathPreference[0] === 'windows_path') {
-    fullPath = convertPathToWindowsStyle(fullPath);
-  }
+  const fullPath = getPreferredPathForDisplay(
+    pathPreference,
+    currentFileSharePath,
+    propertiesTarget?.path
+  );
 
   return (
     <Card className="min-w-full h-full max-h-full overflow-y-auto overflow-x-hidden p-4 rounded-none shadow-lg flex flex-col">
