@@ -1,6 +1,7 @@
 import {
   convertPathToWindowsStyle,
   getFileFetchPath,
+  getFileURL,
   getLastSegmentFromPath,
   joinPaths,
   makePathSegmentArray,
@@ -131,6 +132,7 @@ export {
   formatDate,
   formatFileSize,
   getFileFetchPath,
+  getFileURL,
   getLastSegmentFromPath,
   HTTPError,
   joinPaths,

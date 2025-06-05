@@ -25,6 +25,22 @@ function getFileFetchPath(
   return fetchPath;
 }
 
+function getFileURL(fspName: string, filePath?: string): string {
+  let url = joinPaths(
+    window.location.origin,
+    '/api/fileglancer/files/',
+    fspName
+  );
+  if (!filePath) {
+    return url;
+  } else if (filePath) {
+    // Ensure the filePath is URL-encoded
+    filePath = encodeURIComponent(filePath);
+    url = joinPaths(url, filePath);
+  }
+  return url;
+}
+
 function getLastSegmentFromPath(itemPath: string): string {
   return path.basename(itemPath);
 }
@@ -45,6 +61,7 @@ function convertPathToWindowsStyle(pathString: string): string {
 export {
   convertPathToWindowsStyle,
   getFileFetchPath,
+  getFileURL,
   getLastSegmentFromPath,
   joinPaths,
   makePathSegmentArray,
