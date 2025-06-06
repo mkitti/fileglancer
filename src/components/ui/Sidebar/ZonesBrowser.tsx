@@ -3,7 +3,7 @@ import { Collapse, Typography, List } from '@material-tailwind/react';
 import { ChevronRightIcon, Squares2X2Icon } from '@heroicons/react/24/outline';
 
 import { ZonesAndFileSharePathsMap } from '@/shared.types';
-import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
 import Zone from './Zone';
 
 export default function ZonesBrowser({
@@ -17,7 +17,7 @@ export default function ZonesBrowser({
   toggleOpenZones: (zone: string) => void;
   filteredZonesMap: ZonesAndFileSharePathsMap;
 }) {
-  const { zonesAndFileSharePathsMap } = useFileBrowserContext();
+  const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
 
   const displayZones: ZonesAndFileSharePathsMap =
     Object.keys(filteredZonesMap).length > 0 || searchQuery.length > 0
