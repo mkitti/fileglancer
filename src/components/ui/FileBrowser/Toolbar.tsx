@@ -11,12 +11,17 @@ import {
   EyeSlashIcon,
   FolderPlusIcon
 } from '@heroicons/react/24/solid';
+import { StarIcon as StarOutline } from '@heroicons/react/24/outline';
+import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
 
-import { joinPaths } from '@/utils';
+import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import { makeMapKey } from '@/utils';
 
 type ToolbarProps = {
+  selectedFiles: FileOrFolder[];
   hideDotFiles: boolean;
   setHideDotFiles: React.Dispatch<React.SetStateAction<boolean>>;
   showPropertiesDrawer: boolean;
@@ -27,6 +32,7 @@ type ToolbarProps = {
 };
 
 export default function Toolbar({
+  selectedFiles,
   hideDotFiles,
   setHideDotFiles,
   showPropertiesDrawer,
@@ -40,6 +46,56 @@ export default function Toolbar({
     currentFileOrFolder,
     currentFileSharePath
   } = useFileBrowserContext();
+
+  const {
+    folderPreferenceMap,
+    fileSharePathPreferenceMap,
+    handleFavoriteChange
+  } = usePreferencesContext();
+
+  const isFavorited = React.useMemo(() => {
+    if (!currentFileSharePath || !currentFileOrFolder) {
+      return false;
+    }
+    if (currentFileOrFolder.path === '.') {
+      const fspKey = makeMapKey('fsp', currentFileSharePath.name);
+      return fspKey in fileSharePathPreferenceMap;
+    }
+    const folderKey = makeMapKey(
+      'folder',
+      `${currentFileSharePath.name}_${currentFileOrFolder.path}`
+    );
+    return folderKey in folderPreferenceMap;
+  }, [
+    currentFileSharePath,
+    currentFileOrFolder,
+    folderPreferenceMap,
+    fileSharePathPreferenceMap
+  ]);
+
+  const handleFavoriteClick = React.useCallback(async () => {
+    if (!currentFileSharePath || !currentFileOrFolder) {
+      return;
+    }
+    console.log('path:', currentFileOrFolder.path);
+    if (currentFileOrFolder.path === '.') {
+      await handleFavoriteChange(currentFileSharePath, 'fileSharePath');
+      return;
+    } else {
+      await handleFavoriteChange(
+        {
+          type: 'folder',
+          folderPath: currentFileOrFolder.path,
+          fsp: currentFileSharePath
+        },
+        'folder'
+      );
+    }
+  }, [currentFileSharePath, handleFavoriteChange, currentFileOrFolder]);
+
+  // Don't show favorite button if not in a valid location
+  const showFavoriteButton =
+    currentFileSharePath && currentFileOrFolder && currentFileOrFolder.is_dir;
 
   return (
     <div className="flex flex-col min-w-full p-2 border-b border-surface">
@@ -147,6 +203,35 @@ export default function Toolbar({
               </Tooltip.Content>
             </Tooltip.Trigger>
           </Tooltip>
+
+          {/* Add/remove current folder from favorites */}
+          {showFavoriteButton && (
+            <Tooltip placement="top">
+              <Tooltip.Trigger
+                as={IconButton}
+                variant="outline"
+                disabled={!selectedFiles}
+                onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                  handleFavoriteClick();
+                  e.currentTarget.blur();
+                }}
+              >
+                {isFavorited ? (
+                  <StarFilled className="icon-default" />
+                ) : (
+                  <StarOutline className="icon-default" />
+                )}
+                <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
+                  <Typography type="small" className="opacity-90">
+                    {isFavorited
+                      ? 'Remove current directory from favorites'
+                      : 'Add current directory to favorites'}
+                  </Typography>
+                  <Tooltip.Arrow />
+                </Tooltip.Content>
+              </Tooltip.Trigger>
+            </Tooltip>
+          )}
         </ButtonGroup>
 
         {/* Show/hide properties drawer */}

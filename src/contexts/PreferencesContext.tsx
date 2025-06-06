@@ -37,7 +37,7 @@ type PreferencesContextType = {
   isFileSharePathFavoritesReady: boolean;
   handleFavoriteChange: (
     item: Zone | FileSharePath | FolderFavorite,
-    type: string
+    type: 'zone' | 'fileSharePath' | 'folder'
   ) => Promise<void>;
 };
 
@@ -310,7 +310,10 @@ export const PreferencesProvider = ({
   );
 
   const handleFavoriteChange = React.useCallback(
-    async (item: Zone | FileSharePath | FolderFavorite, type: string) => {
+    async (
+      item: Zone | FileSharePath | FolderFavorite,
+      type: 'zone' | 'fileSharePath' | 'folder'
+    ) => {
       try {
         switch (type) {
           case 'zone':
