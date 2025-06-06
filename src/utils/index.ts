@@ -39,6 +39,23 @@ class HTTPError extends Error {
   }
 }
 
+function getAPIPathRoot() {
+  const path = window.location.pathname;
+  const patterns = [
+    /^\/jupyter\/user\/[^/]+\//, // JupyterLab
+    /^\/user\/[^/]+\// // Jupyter Single User
+  ];
+
+  for (const pattern of patterns) {
+    const match = path.match(pattern);
+    if (match) {
+      return match[0];
+    }
+  }
+
+  return '/';
+}
+
 async function sendFetchRequest(
   url: string,
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
@@ -57,7 +74,7 @@ async function sendFetchRequest(
       method !== 'DELETE' &&
       body && { body: JSON.stringify(body) })
   };
-  const response = await fetch(url, options);
+  const response = await fetch(joinPaths(getAPIPathRoot(), url), options);
   if (!response.ok) {
     throw new HTTPError(
       `Request failed: ${response.status} - ${response.statusText}`,
