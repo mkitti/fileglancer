@@ -6,6 +6,7 @@ const baseConfig = require('@jupyterlab/galata/lib/playwright-config');
 module.exports = {
   ...baseConfig,
   use: {
+    headless: true,
     trace: 'on-first-retry',
     video: 'on',
     screenshot: 'only-on-failure',
