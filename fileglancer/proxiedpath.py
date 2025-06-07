@@ -15,12 +15,12 @@ class ProxiedPathManager:
         self.central_url = central_url
         self._cached_proxied_paths = {}
 
-    def get_proxied_path_by_key(self, username: str, sharing_key: str) -> ProxiedPath:
+    def get_proxied_path_by_key(self, username: str, sharing_key: str) -> requests.Response:
         """Retrieve a proxied path by sharing key."""
         log.info(f"Retrieve proxied path {sharing_key} for user {username} from {self.central_url}")
         return requests.get(f"{self.central_url}/proxied-path/{username}/{sharing_key}")
 
-    def get_proxied_paths(self, username: str, fsp_mount_path: Optional[str] = None, path: Optional[str] = None) -> ProxiedPathResponse:
+    def get_proxied_paths(self, username: str, fsp_mount_path: Optional[str] = None, path: Optional[str] = None) -> requests.Response:
         """Retrieve user proxied paths, optionally filtered by fsp_mount_path and path."""
         log.info(f"Retrieve all proxied paths for user {username} from {self.central_url}")
         return requests.get(

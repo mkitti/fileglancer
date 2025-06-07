@@ -3,7 +3,6 @@ import json
 import requests
 
 from jupyter_server.base.handlers import APIHandler, JupyterHandler
-from jupyter_server.utils import url_path_join
 from requests.exceptions import HTTPError
 from tornado import web
 
@@ -64,7 +63,7 @@ class StreamingProxy(BaseHandler):
             }))
 
 
-class FileSharePathsHandler(StreamingProxy):
+class FileSharePathsHandler(BaseHandler):
     """
     API handler for file share paths
     """
@@ -84,12 +83,6 @@ class FileShareHandler(BaseHandler):
     """
     API handler for file access using the Filestore class
     """
-    def set_cors_headers(self):
-        self.set_header('Access-Control-Allow-Origin', '*')
-        self.set_header('Access-Control-Allow-Credentials', 'true')
-        self.set_header('Access-Control-Allow-Methods', 'GET, POST')
-        self.set_header('Access-Control-Allow-Headers', 'Content-Type, X-XSRFToken')
-        self.set_header('Expose-Headers', 'Range, Content-Range')
 
     def _get_filestore(self, path_name):
         """
@@ -112,15 +105,14 @@ class FileShareHandler(BaseHandler):
 
         return filestore
 
-    # TODO: Uncomment once we have a file server for Neuroglancer
-    #@web.authenticated
+
+    @web.authenticated
     def get(self, path=""):
         """
         Handle GET requests to list directory contents, stream file contents, or return info for the file/folder itself
         """
         subpath = self.get_argument("subpath", '')
         cwd_only = self.get_argument("cwd_only", 'false').lower() == 'true'
-        self.set_cors_headers()
 
         if subpath:
             self.log.info(f"GET /api/fileglancer/files/{path} subpath={subpath} cwd_only={cwd_only}")
@@ -175,6 +167,7 @@ class FileShareHandler(BaseHandler):
             self.set_status(403)
             self.finish(json.dumps({"error": "Permission denied"}))
 
+
     @web.authenticated
     def post(self, path=""):
         """
@@ -202,6 +195,7 @@ class FileShareHandler(BaseHandler):
 
         self.set_status(201)
         self.finish()
+
 
     @web.authenticated
     def patch(self, path=""):
@@ -238,6 +232,7 @@ class FileShareHandler(BaseHandler):
         self.set_status(204)
         self.finish()
 
+
     @web.authenticated
     def delete(self, path=""):
         """
@@ -250,13 +245,6 @@ class FileShareHandler(BaseHandler):
             return
 
         filestore.remove_file_or_dir(subpath)
-        self.set_status(204)
-        self.finish()
-
-    # TODO: Uncomment once we have a file server for Neuroglancer
-    #@web.authenticated
-    def options(self, *args, **kwargs):
-        self.set_cors_headers()
         self.set_status(204)
         self.finish()
 
@@ -339,6 +327,45 @@ class ProxiedPathHandler(BaseHandler):
     """
     API handler for ProxiedPath (user shared data paths)
     """
+
+    @web.authenticated
+    def get(self):
+        """
+        Get all proxied paths or a specific proxied path for the current user.
+        """
+        username = self.get_current_user()
+        key = self.get_argument("sharing_key", None)
+        fsp_mount_path = self.get_argument("fsp_mount_path", None)
+        path = self.get_argument("path", None)
+        try:
+            proxied_path_manager = get_proxiedpath_manager(self.settings)
+            if key:
+                self.log.info(f"GET /api/fileglancer/proxied-path username={username} key={key}")
+                response = proxied_path_manager.get_proxied_path_by_key(username, key)
+            elif fsp_mount_path and path:
+                self.log.info(f"GET /api/fileglancer/proxied-path username={username} fsp_mount_path={fsp_mount_path} path={path}")
+                response = proxied_path_manager.get_proxied_paths(username, fsp_mount_path, path)
+            else:
+                self.log.info(f"GET /api/fileglancer/proxied-path username={username}")
+                response = proxied_path_manager.get_proxied_paths(username)
+            response.raise_for_status()
+            self.set_status(200)
+            self.finish(response.json())
+        except HTTPError as e:
+            if e.response.status_code == 404:
+                self.log.warning(f"Proxied path not found: {str(e)}")
+                self.set_status(404)
+                self.finish(json.dumps({"error": "Proxied path not found"}))
+            else:
+                self.log.error(f"Error getting proxied paths: {str(e)}")    
+                self.set_status(500)
+                self.finish(json.dumps({"error": str(e)}))
+        except Exception as e:
+            self.log.error(f"Error getting proxied paths: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
+
     @web.authenticated
     def post(self):
         """
@@ -367,13 +394,19 @@ class ProxiedPathHandler(BaseHandler):
             self.set_status(201)
             self.finish(rjson)
         except HTTPError as e:
-            self.log.error(f"Error getting proxied paths: {str(e)}")
-            self.set_status(e.response.status_code)
-            self.finish(json.dumps({"error": str(e.response.text)}))
+            if e.response.status_code == 404:
+                self.log.warning(f"Proxied path not found: {str(e)}")
+                self.set_status(404)
+                self.finish(json.dumps({"error": "Proxied path not found"}))
+            else:   
+                self.log.error(f"Error creating proxied path: {str(e)}")
+                self.set_status(500)
+                self.finish(json.dumps({"error": str(e)}))
         except Exception as e:
             self.log.error(f"Error creating proxied path: {str(e)}")
             self.set_status(500)
             self.finish(json.dumps({"error": str(e)}))
+
 
     @web.authenticated
     def put(self):
@@ -408,45 +441,19 @@ class ProxiedPathHandler(BaseHandler):
             self.set_status(200)
             self.finish(response.json())
         except HTTPError as e:
-            self.log.error(f"Error getting proxied paths: {str(e)}")
-            self.set_status(e.response.status_code)
-            self.finish(json.dumps({"error": str(e.response.text)}))
+            if e.response.status_code == 404:
+                self.log.warning(f"Proxied path not found: {str(e)}")
+                self.set_status(404)
+                self.finish(json.dumps({"error": "Proxied path not found"}))
+            else:
+                self.log.error(f"Error updating proxied path: {str(e)}")
+                self.set_status(500)
+                self.finish(json.dumps({"error": str(e)}))
         except Exception as e:
             self.log.error(f"Error updating proxied path: {str(e)}")
             self.set_status(500)
             self.finish(json.dumps({"error": str(e)}))
 
-    @web.authenticated
-    def get(self):
-        """
-        Get all proxied paths or a specific proxied path for the current user.
-        """
-        username = self.get_current_user()
-        key = self.get_argument("sharing_key", None)
-        fsp_mount_path = self.get_argument("fsp_mount_path", None)
-        path = self.get_argument("path", None)
-        try:
-            proxied_path_manager = get_proxiedpath_manager(self.settings)
-            if key:
-                self.log.info(f"GET /api/fileglancer/proxied-path username={username} key={key}")
-                response = proxied_path_manager.get_proxied_path_by_key(username, key)
-            elif fsp_mount_path and path:
-                self.log.info(f"GET /api/fileglancer/proxied-path username={username} fsp_mount_path={fsp_mount_path} path={path}")
-                response = proxied_path_manager.get_proxied_paths(username, fsp_mount_path, path)
-            else:
-                self.log.info(f"GET /api/fileglancer/proxied-path username={username}")
-                response = proxied_path_manager.get_proxied_paths(username)
-            response.raise_for_status()
-            self.set_status(200)
-            self.finish(response.json())
-        except HTTPError as e:
-            self.log.error(f"Error getting proxied paths: {str(e)}")
-            self.set_status(e.response.status_code)
-            self.finish(json.dumps({"error": str(e.response.text)}))
-        except Exception as e:
-            self.log.error(f"Error getting proxied paths: {str(e)}")
-            self.set_status(500)
-            self.finish(json.dumps({"error": str(e)}))
 
     @web.authenticated
     def delete(self):
@@ -468,12 +475,16 @@ class ProxiedPathHandler(BaseHandler):
             self.set_status(204)
             self.finish()
         except HTTPError as e:
-            self.log.warning(f"Proxied path not found: {str(e)}")
-            self.set_status(e.response.status_code)
-            self.finish(json.dumps({"error": str(e)}))
+            if e.response.status_code == 404:
+                self.log.warning(f"Proxied path not found: {str(e)}")
+                self.set_status(404)
+                self.finish(json.dumps({"error": "Proxied path not found"}))
+            else:
+                self.log.error(f"Error deleting proxied path: {str(e)}")
+                self.set_status(500)
+                self.finish(json.dumps({"error": str(e)}))
         except Exception as e:
-            # Handle the case where the proxied path is not found
-            self.log.error(f"Error deleting proxied paths: {str(e)}")
+            self.log.error(f"Error deleting proxied path: {str(e)}")
             self.set_status(500)
             self.finish(json.dumps({"error": str(e)}))
 
@@ -482,6 +493,29 @@ class TicketHandler(APIHandler):
     """
     API handler for ticket operations
     """
+
+    @web.authenticated
+    def get(self):
+        """Get ticket details"""
+        ticket_key = self.get_argument("ticket_key")
+        try:
+            response = requests.get(
+                f"{self.settings['fileglancer'].central_url}/ticket/{ticket_key}"
+            )
+            if response.status_code == 404:
+                self.set_status(404)
+                self.finish(json.dumps({"error": "Ticket not found"}))
+                return
+            response.raise_for_status()
+            self.set_status(200)
+            self.finish(response.text)
+
+        except Exception as e:
+            self.log.error(f"Error getting ticket: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
+
     @web.authenticated
     def post(self):
         """Create a new ticket"""
@@ -502,28 +536,6 @@ class TicketHandler(APIHandler):
 
         except Exception as e:
             self.log.error(f"Error creating ticket: {str(e)}")
-            self.set_status(500)
-            self.finish(json.dumps({"error": str(e)}))
-
-
-    @web.authenticated
-    def get(self):
-        """Get ticket details"""
-        ticket_key = self.get_argument("ticket_key")
-        try:
-            response = requests.get(
-                f"{self.settings['fileglancer'].central_url}/ticket/{ticket_key}"
-            )
-            if response.status_code == 404:
-                self.set_status(404)
-                self.finish(json.dumps({"error": "Ticket not found"}))
-                return
-            response.raise_for_status()
-            self.set_status(200)
-            self.finish(response.text)
-
-        except Exception as e:
-            self.log.error(f"Error getting ticket: {str(e)}")
             self.set_status(500)
             self.finish(json.dumps({"error": str(e)}))
 

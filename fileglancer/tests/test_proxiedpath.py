@@ -74,7 +74,7 @@ async def test_get_user_proxied_path_when_key_not_present(test_current_user, jp_
     except Exception as e:
         assert e.code == 404
         rj = json.loads(e.response.body)
-        assert rj["error"] == "{\"error\": \"Proxied path not found\"}"
+        assert rj["error"] == "Proxied path not found"
 
 
 @patch("fileglancer.handlers.ProxiedPathHandler.get_current_user", return_value=TEST_INVALID_USER)
@@ -89,7 +89,7 @@ async def test_get_user_proxied_path_when_central_responds_with_404(test_current
     except Exception as e:
         assert e.code == 404
         rj = json.loads(e.response.body)
-        assert rj["error"] == "{\"error\": \"Returned an error\"}"
+        assert rj["error"] == "Proxied path not found"
 
 
 @patch("fileglancer.handlers.ProxiedPathHandler.get_current_user", return_value=TEST_USER)
@@ -112,7 +112,7 @@ async def test_delete_user_proxied_path_exception(test_current_user, jp_fetch, r
     except Exception as e:
         assert e.code == 404
         rj = json.loads(e.response.body)
-        assert rj["error"] == f"404 Client Error: None for url: {test_delete_url}"
+        assert rj["error"] == "Proxied path not found"
 
 
 async def test_delete_user_proxied_path_without_key(jp_fetch):
@@ -175,7 +175,7 @@ async def test_post_user_proxied_path_exception(test_current_user, jp_fetch, req
     except Exception as e:
         assert e.code == 404
         rj = json.loads(e.response.body)
-        assert rj["error"] == "{\"error\": \"Some error\"}"
+        assert rj["error"] == "Proxied path not found"
 
 
 async def test_post_user_proxied_path_without_mountpath(jp_fetch):
@@ -251,7 +251,7 @@ async def test_put_user_proxied_path_exception(test_current_user, jp_fetch, requ
     except Exception as e:
         assert e.code == 404
         rj = json.loads(e.response.body)
-        assert rj["error"] == "{\"error\": \"Some error\"}"
+        assert rj["error"] == "Proxied path not found"
 
 
 async def test_post_user_proxied_path_without_sharingkey(jp_fetch):
