@@ -14,6 +14,6 @@ module.exports = {
     command: 'npm start',
     url: 'http://localhost:8888/lab',
     timeout: 120 * 1000,
-    reuseExistingServer: false,
+    reuseExistingServer: true,
   }
 };
