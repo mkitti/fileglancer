@@ -13,7 +13,7 @@ module.exports = {
   webServer: {
     command: 'npm start',
     url: 'http://localhost:8888/lab',
-    timeout: 20 * 1000,
+    timeout: 120 * 1000,
     reuseExistingServer: !process.env.CI
   }
 };
