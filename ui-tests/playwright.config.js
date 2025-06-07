@@ -7,7 +7,6 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   ...baseConfig,
   use: {
-    headless: true,
     trace: 'on-first-retry',
     video: 'on',
     screenshot: 'only-on-failure',
@@ -18,6 +17,6 @@ export default defineConfig({
   webServer: {
     command: 'npm start',
     url: 'http://localhost:8888/lab',
-    reuseExistingServer: false,
+    reuseExistingServer: !process.env.CI,
   },
 });
