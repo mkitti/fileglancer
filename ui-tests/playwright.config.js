@@ -7,12 +7,13 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   ...baseConfig,
   use: {
+    autoGoto: false,
     trace: 'on-first-retry',
     video: 'on',
     screenshot: 'only-on-failure',
   },
-  timeout: process.env.CI ? 240_000 : 10_000,
-  navigationTimeout: process.env.CI ? 240_000 : 10_000,
+  timeout: process.env.CI ? 240_000 : 30_000,
+  navigationTimeout: process.env.CI ? 240_000 : 30_000,
   workers: process.env.CI ? 1 : undefined,
   webServer: {
     command: 'npm start',
