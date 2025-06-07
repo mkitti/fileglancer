@@ -5,7 +5,6 @@ import { openFileGlancer } from './testutils';
 test.describe('Fileglancer zones', () => {
 
   test.describe.configure({
-    mode: 'parallel',
     retries: 2,
   });
 
