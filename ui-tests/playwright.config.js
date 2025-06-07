@@ -12,11 +12,11 @@ export default defineConfig({
     video: 'on',
     screenshot: 'only-on-failure',
   },
-  timeout: 120 * 1000,
+  timeout: (process.env.CI ? 120 : 20) * 1000,
   workers: process.env.CI ? 1 : undefined,
   webServer: {
     command: 'npm start',
     url: 'http://localhost:8888/lab',
     reuseExistingServer: false,
-  }
+  },
 });
