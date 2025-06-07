@@ -3,7 +3,7 @@ name: Build
 on:
   workflow_dispatch:
   push:
-    branches: main
+    branches: add-logger-ci
   pull_request:
     branches: '*'
 
@@ -108,33 +108,20 @@ jobs:
 
   integration-tests:
     name: Integration tests
+    needs: build
     runs-on: ubuntu-latest
 
     env:
       PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/pw-browsers
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
-    - name: Jupyterlab Base Setup
-      uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
-      with:
-        node_version: "22.13.0"
-
-    - name: Install pixi
-      uses: prefix-dev/setup-pixi@v0.8.8
-      with:
-        pixi-version: v0.46.0
-        cache: false
-        manifest-path: pyproject.toml
-
+    # only install dependencies for UI tests
+    # everything else should already be there
     - name: Install dependencies
       env:
         YARN_ENABLE_IMMUTABLE_INSTALLS: 0
         PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
       run: |
-        pixi run dev-install
         pixi run node-install-ui-test
 
     - name: Set up browser cache
