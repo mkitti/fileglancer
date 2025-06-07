@@ -1,6 +1,7 @@
 import os
 import json
 import requests
+from abc import ABC
 
 from jupyter_server.base.handlers import APIHandler, JupyterHandler
 from requests.exceptions import HTTPError
@@ -79,9 +80,11 @@ class FileSharePathsHandler(BaseHandler):
         self.finish()
 
 
-class FileShareHandler(BaseHandler):
+
+class FileShareHandler(BaseHandler, ABC):
     """
-    API handler for file access using the Filestore class
+    Abstract base handler for endpoints that use the Filestore class.
+    This class cannot be instantiated directly.
     """
 
     def _get_filestore(self, path_name):
@@ -106,19 +109,58 @@ class FileShareHandler(BaseHandler):
         return filestore
 
 
+class FileContentHandler(FileShareHandler):
+    """
+    API handler for file content
+    """
+
+    @web.authenticated
+    def get(self, path=""):
+        """
+        Handle GET requests to get file content
+        """
+        subpath = self.get_argument("subpath", '')
+        if not subpath:
+            self.log.warning("subpath is required to get file content")
+            self.set_status(400)
+            self.finish(json.dumps({"error": "subpath is required to get file content"}))
+            return
+
+        self.log.info(f"GET /api/fileglancer/files/{path} subpath={subpath}")
+        filestore = self._get_filestore(path)
+        if filestore is None:
+            return
+        
+        self.log.info(f"GET /api/fileglancer/content/{path} subpath={subpath}")
+        file_name = subpath.split('/')[-1]
+
+        # Stream file contents
+        self.set_status(200)
+        self.set_header('Content-Type', 'application/octet-stream')
+        self.set_header('Content-Disposition', f'attachment; filename="{file_name}"')
+
+        for chunk in filestore.stream_file_contents(subpath):
+            self.write(chunk)
+        self.finish()
+
+
+class FileMetadataHandler(FileShareHandler):
+    """
+    API handler for file metadata
+    """
+
     @web.authenticated
     def get(self, path=""):
         """
         Handle GET requests to list directory contents, stream file contents, or return info for the file/folder itself
         """
         subpath = self.get_argument("subpath", '')
-        cwd_only = self.get_argument("cwd_only", 'false').lower() == 'true'
 
         if subpath:
-            self.log.info(f"GET /api/fileglancer/files/{path} subpath={subpath} cwd_only={cwd_only}")
+            self.log.info(f"GET /api/fileglancer/files/{path} subpath={subpath}")
             filestore_name = path
         else:
-            self.log.info(f"GET /api/fileglancer/files/{path} cwd_only={cwd_only}")
+            self.log.info(f"GET /api/fileglancer/files/{path}")
             filestore_name, _, subpath = path.partition('/')
         
         filestore = self._get_filestore(filestore_name)
@@ -126,38 +168,24 @@ class FileShareHandler(BaseHandler):
             return
 
         try:
-            # Check if subpath is a directory by getting file info
             file_info = filestore.get_file_info(subpath)
-            self.log.info(f"File info: {file_info}")
+            self.log.debug(f"File info: {file_info}")
 
-            if cwd_only:
-                # Return only the info for the file/folder at the path
-                self.set_status(200)
-                self.set_header('Content-Type', 'application/json')
-                self.finish(json.dumps(file_info.model_dump(), indent=4))
-                return
-
+            # Write JSON response, streaming the files one by one
+            self.set_status(200)
+            self.set_header('Content-Type', 'application/json')
+            self.write("{\n")
+            self.write("\"info\":")
+            self.write(json.dumps(file_info.model_dump(), indent=4))
             if file_info.is_dir:
-                # Write JSON response, streaming the files one by one
-                self.set_status(200)
-                self.set_header('Content-Type', 'application/json')
-                self.write("{\n")
+                self.write(",\n")
                 self.write("\"files\": [\n")
                 for i, file in enumerate(filestore.yield_file_infos(subpath)):
                     if i > 0:
                         self.write(",\n")
                     self.write(json.dumps(file.model_dump(), indent=4))
                 self.write("]\n")
-                self.write("}\n")
-            else:
-                # Stream file contents
-                self.set_status(200)
-                self.set_header('Content-Type', 'application/octet-stream')
-                self.set_header('Content-Disposition', f'attachment; filename="{file_info.name}"')
-
-                for chunk in filestore.stream_file_contents(subpath):
-                    self.write(chunk)
-                self.finish()
+            self.write("}\n")
 
         except FileNotFoundError:
             self.log.error(f"File or directory not found: {subpath}")
