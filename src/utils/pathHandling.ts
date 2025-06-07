@@ -7,18 +7,13 @@ function joinPaths(...paths: string[]): string {
 
 function getFileFetchPath(
   fspName: string,
-  filePath?: string,
-  parentOnly?: boolean
+  filePath?: string
 ): string {
   let fetchPath = joinPaths('/api/fileglancer/files/', fspName);
 
   const params: string[] = [];
   if (filePath) {
     params.push(`subpath=${encodeURIComponent(filePath)}`);
-  }
-  if (parentOnly) {
-    // TODO: cwd_only is no longer supported, file info is always returned
-    //params.push(`cwd_only=${parentOnly}`);
   }
   if (params.length > 0) {
     fetchPath += `?${params.join('&')}`;

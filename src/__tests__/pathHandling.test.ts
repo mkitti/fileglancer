@@ -28,11 +28,6 @@ describe('getFileFetchPath', () => {
   test('handles empty string', () => {
     expect(getFileFetchPath('')).toBe('/api/fileglancer/files/');
   });
-  test('handles parentOnly param', () => {
-    expect(getFileFetchPath('fsp', 'file', true)).toBe(
-      '/api/fileglancer/files/fsp?subpath=file'
-    );
-  });
   test('encodes filePath', () => {
     expect(getFileFetchPath('fsp', 'a/b c')).toBe(
       '/api/fileglancer/files/fsp?subpath=a%2Fb%20c'
