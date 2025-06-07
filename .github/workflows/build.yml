@@ -145,7 +145,7 @@ jobs:
     #     key: ${{ runner.os }}-${{ hashFiles('ui-tests/yarn.lock') }}
 
     - name: Install browser
-      run: npx playwright install chromium
+      run: npx playwright install --with-deps
       working-directory: ui-tests
 
     - name: Execute integration tests
