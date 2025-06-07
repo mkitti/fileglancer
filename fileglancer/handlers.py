@@ -363,16 +363,16 @@ class ProxiedPathHandler(BaseHandler):
         """
         username = self.get_current_user()
         key = self.get_argument("sharing_key", None)
-        fsp_mount_path = self.get_argument("fsp_mount_path", None)
+        fsp_name = self.get_argument("fsp_name", None)
         path = self.get_argument("path", None)
         try:
             proxied_path_manager = get_proxiedpath_manager(self.settings)
             if key:
                 self.log.info(f"GET /api/fileglancer/proxied-path username={username} key={key}")
                 response = proxied_path_manager.get_proxied_path_by_key(username, key)
-            elif fsp_mount_path and path:
-                self.log.info(f"GET /api/fileglancer/proxied-path username={username} fsp_mount_path={fsp_mount_path} path={path}")
-                response = proxied_path_manager.get_proxied_paths(username, fsp_mount_path, path)
+            elif fsp_name and path:
+                self.log.info(f"GET /api/fileglancer/proxied-path username={username} fsp_name={fsp_name} path={path}")
+                response = proxied_path_manager.get_proxied_paths(username, fsp_name, path)
             else:
                 self.log.info(f"GET /api/fileglancer/proxied-path username={username}")
                 response = proxied_path_manager.get_proxied_paths(username)
@@ -403,20 +403,19 @@ class ProxiedPathHandler(BaseHandler):
         data = self.get_json_body()
         if data is None:
             self.set_status(400)
-            self.finish(json.dumps({"error": "JSON body with fsp_mount_path and path is required to create a proxied path"}))
+            self.finish(json.dumps({"error": "JSON body with fsp_name and path is required to create a proxied path"}))
             return
-        fsp_mount_path = data.get("fsp_mount_path", None)
+        fsp_name = data.get("fsp_name", None)
         path = data.get("path", None)
-        self.log.info(f"POST /api/fileglancer/proxied-path username={username} fsp_mount_path={fsp_mount_path} path={path}")
+        self.log.info(f"POST /api/fileglancer/proxied-path username={username} fsp_name={fsp_name} path={path}")
         try:
-            if fsp_mount_path is None or path is None:
-                self.log.warning("fsp_mount_path and path are required to create a proxied path")
+            if fsp_name is None or path is None:
+                self.log.warning("fsp and path are required to create a proxied path")
                 self.set_status(400)
-                self.finish(json.dumps({"error": "fsp_mount_path and path are required to create a proxied path"}))
+                self.finish(json.dumps({"error": "fsp_name and path are required to create a proxied path"}))
                 return
-
             proxied_path_manager = get_proxiedpath_manager(self.settings)
-            response = proxied_path_manager.create_proxied_path(username, fsp_mount_path, path)
+            response = proxied_path_manager.create_proxied_path(username, fsp_name, path)
             response.raise_for_status()
             rjson = response.json()
             self.set_status(201)
@@ -437,7 +436,7 @@ class ProxiedPathHandler(BaseHandler):
 
 
     @web.authenticated
-    def put(self):
+    def patch(self):
         """
         Update a shared path for the current user.
         """
@@ -448,23 +447,21 @@ class ProxiedPathHandler(BaseHandler):
             self.finish(json.dumps({"error": "JSON body is required to update a proxied path"}))
             return
         key = data.get("sharing_key", None)
-        fsp_mount_path = data.get("fsp_mount_path", None)
+        fsp_name = data.get("fsp_name", None)
         path = data.get("path", None)
         sharing_name = data.get("sharing_name", None)
         self.log.info((
-            "PUT /api/fileglancer/proxied-path "
-            f"username={username} key={key} "
-            f"fsp_mount_path={fsp_mount_path} path={path} sharing_name={sharing_name}"
+            "PATCH /api/fileglancer/proxied-path"
+            f"username={username} fsp_name={fsp_name} path={path} sharing_name={sharing_name}"
         ))
         try:
             if key is None:
-                self.log.warning("Key is required to update a proxied path")
+                self.log.warning("sharing_key is required to update a proxied path")
                 self.set_status(400)
-                self.finish(json.dumps({"error": "Key is required to update a proxied path"}))
+                self.finish(json.dumps({"error": "sharing_key is required to update a proxied path"}))
                 return
-
             proxied_path_manager = get_proxiedpath_manager(self.settings)
-            response = proxied_path_manager.update_proxied_path(username, key, fsp_mount_path, path, sharing_name)
+            response = proxied_path_manager.update_proxied_path(username, key, fsp_name, path, sharing_name)
             response.raise_for_status()
             self.set_status(200)
             self.finish(response.json())
