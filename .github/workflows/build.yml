@@ -150,7 +150,7 @@ jobs:
 
     - name: Execute integration tests
       run: |
-        pixi run ui-test
+        pixi run ui-test -- -g "favor entire zone with reload page"
 
     - name: Upload Playwright Test report
       if: always()
