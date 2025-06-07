@@ -60,7 +60,7 @@ def test_get_root_info(filestore, test_dir):
 
 
 def test_yield_file_and_dir_infos(filestore):
-    fs_iterator = filestore.yield_file_infos("")
+    fs_iterator = filestore.yield_file_infos(None)
 
     # Test directory info
     dir_info = next(fs_iterator)
