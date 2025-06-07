@@ -1,9 +1,10 @@
 /**
  * Configuration for Playwright using default from @jupyterlab/galata
  */
-const baseConfig = require('@jupyterlab/galata/lib/playwright-config');
+import { baseConfig } from "@jupyterlab/galata/lib/playwright-config";
+import { defineConfig } from '@playwright/test';
 
-module.exports = {
+export default defineConfig({
   ...baseConfig,
   use: {
     headless: true,
@@ -12,9 +13,10 @@ module.exports = {
     screenshot: 'only-on-failure',
   },
   timeout: 120 * 1000,
+  workers: process.env.CI ? 1 : undefined,
   webServer: {
     command: 'npm start',
     url: 'http://localhost:8888/lab',
     reuseExistingServer: false,
   }
-};
+});
