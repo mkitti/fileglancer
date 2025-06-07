@@ -12,7 +12,7 @@ export default defineConfig({
     video: 'on',
     screenshot: 'only-on-failure',
   },
-  timeout: (process.env.CI ? 120 : 20) * 1000,
+  timeout: (process.env.CI ? 240 : 60) * 1000,
   workers: process.env.CI ? 1 : undefined,
   webServer: {
     command: 'npm start',

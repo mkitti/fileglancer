@@ -1,7 +1,11 @@
 import { expect, test } from '@jupyterlab/galata';
 import { openFileGlancer } from './testutils';
 
+
 test.describe('Fileglancer zones', () => {
+
+  test.describe.configure({ mode: 'parallel' });
+
   test.beforeEach(async ({ page }) => {
     await openFileGlancer(page);
   });
