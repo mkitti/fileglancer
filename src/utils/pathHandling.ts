@@ -17,6 +17,7 @@ function getFileFetchPath(
     params.push(`subpath=${encodeURIComponent(filePath)}`);
   }
   if (parentOnly) {
+    // TODO: cwd_only is no longer supported, file info is always returned
     params.push(`cwd_only=${parentOnly}`);
   }
   if (params.length > 0) {
