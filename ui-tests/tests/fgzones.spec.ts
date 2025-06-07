@@ -182,8 +182,9 @@ test.describe('Fileglancer zones', () => {
       await expect(
         z2ExpandedStarButton.locator('svg path[stroke-linecap]') // empty star
       ).toHaveCount(0);
+
       // reload page - somehow page.reload hangs so I am going back to jupyterlab page
-      await openFileGlancer(page);
+      await page.goto("http://localhost:8888/fg/", { waitUntil: "domcontentloaded" });
 
       const z2CollapsedStarButton = page
         .getByRole('button')
