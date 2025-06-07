@@ -1,5 +1,5 @@
 import { expect, test } from '@jupyterlab/galata';
-import { openFileGlancer } from './testutils';
+import { openFileGlancer, sleepInSecs } from './testutils';
 
 test.describe('Fileglancer zones', () => {
   test.beforeEach(async ({ page }) => {
@@ -182,6 +182,8 @@ test.describe('Fileglancer zones', () => {
       ).toHaveCount(0);
       // reload page - somehow page.reload hangs so I am going back to jupyterlab page
       await openFileGlancer(page);
+
+      sleepInSecs(60)
 
       const z2CollapsedStarButton = page
         .getByRole('button')
