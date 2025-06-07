@@ -184,7 +184,7 @@ test.describe('Fileglancer zones', () => {
       ).toHaveCount(0);
 
       // reload page - somehow page.reload hangs so I am going back to jupyterlab page
-      await page.goto("http://localhost:8888/fg/", { waitUntil: "domcontentloaded" });
+      await openFileGlancer(page);
 
       const z2CollapsedStarButton = page
         .getByRole('button')
