@@ -154,7 +154,6 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: fileglancer-playwright-tests
-        retention-days: 7
         path: |
           ui-tests/test-results
           ui-tests/playwright-report
