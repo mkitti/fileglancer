@@ -115,8 +115,14 @@ jobs:
       PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/pw-browsers
 
     steps:
-    # only install dependencies for UI tests
-    # everything else should already be there
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Jupyterlab Base Setup
+      uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
+      with:
+        node_version: "22.13.0"
+
     - name: Install pixi
       uses: prefix-dev/setup-pixi@v0.8.8
       with:
