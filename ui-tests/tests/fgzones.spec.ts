@@ -4,7 +4,7 @@ import { openFileGlancer } from './testutils';
 
 test.describe('Fileglancer zones', () => {
 
-  test.describe.configure({ mode: 'parallel' });
+  test.describe.configure({ mode: 'default' });
 
   test.beforeEach(async ({ page }) => {
     await openFileGlancer(page);
