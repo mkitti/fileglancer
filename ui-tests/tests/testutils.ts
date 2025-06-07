@@ -7,6 +7,8 @@ const openFileGlancer = async (page: IJupyterLabPageFixture) => {
   await page.waitForSelector('.jp-FileBrowser');
   // click on Fileglancer icon
   await page.getByText('Fileglancer', { exact: true }).click();
+  // Wait for response or changes on the page
+  await page.waitForResponse((response) => response.status() === 200);
 };
 
 export { sleepInSecs, openFileGlancer };
