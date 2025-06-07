@@ -120,28 +120,34 @@ class FileContentHandler(FileShareHandler):
         Handle GET requests to get file content
         """
         subpath = self.get_argument("subpath", '')
-        if not subpath:
-            self.log.warning("subpath is required to get file content")
-            self.set_status(400)
-            self.finish(json.dumps({"error": "subpath is required to get file content"}))
-            return
+        if subpath:
+            self.log.info(f"GET /api/fileglancer/content/{path} subpath={subpath}")
+            filestore_name = path
+        else:
+            self.log.info(f"GET /api/fileglancer/content/{path}")
+            filestore_name, _, subpath = path.partition('/')
 
-        self.log.info(f"GET /api/fileglancer/files/{path} subpath={subpath}")
-        filestore = self._get_filestore(path)
+        filestore = self._get_filestore(filestore_name)
         if filestore is None:
             return
         
-        self.log.info(f"GET /api/fileglancer/content/{path} subpath={subpath}")
-        file_name = subpath.split('/')[-1]
-
         # Stream file contents
+        file_name = subpath.split('/')[-1]
         self.set_status(200)
         self.set_header('Content-Type', 'application/octet-stream')
         self.set_header('Content-Disposition', f'attachment; filename="{file_name}"')
 
-        for chunk in filestore.stream_file_contents(subpath):
-            self.write(chunk)
-        self.finish()
+        try:
+            for chunk in filestore.stream_file_contents(subpath):
+                self.write(chunk)
+            self.finish()
+        except FileNotFoundError:
+            self.log.error(f"File or directory not found: {subpath}")
+            self.set_status(404)
+            self.finish(json.dumps({"error": "File or directory not found"}))
+        except PermissionError:
+            self.set_status(403)
+            self.finish(json.dumps({"error": "Permission denied"}))
 
 
 class FileMetadataHandler(FileShareHandler):

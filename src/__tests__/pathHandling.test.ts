@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest';
 import {
   joinPaths,
-  getFileFetchPath,
+  getFileBrowsePath,
   getLastSegmentFromPath,
   getPreferredPathForDisplay,
   makePathSegmentArray,
@@ -19,17 +19,17 @@ describe('joinPaths', () => {
   });
 });
 
-describe('getFileFetchPath', () => {
+describe('getFileBrowsePath', () => {
   test('returns correct API path for normal path', () => {
-    expect(getFileFetchPath('fsp_name', 'file.zarr')).toBe(
+    expect(getFileBrowsePath('fsp_name', 'file.zarr')).toBe(
       '/api/fileglancer/files/fsp_name?subpath=file.zarr'
     );
   });
   test('handles empty string', () => {
-    expect(getFileFetchPath('')).toBe('/api/fileglancer/files/');
+    expect(getFileBrowsePath('')).toBe('/api/fileglancer/files/');
   });
   test('encodes filePath', () => {
-    expect(getFileFetchPath('fsp', 'a/b c')).toBe(
+    expect(getFileBrowsePath('fsp', 'a/b c')).toBe(
       '/api/fileglancer/files/fsp?subpath=a%2Fb%20c'
     );
   });

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Zone, FileOrFolder, FileSharePath } from '@/shared.types';
-import { getFileFetchPath, sendFetchRequest } from '@/utils';
+import { getFileBrowsePath, sendFetchRequest } from '@/utils';
 import { useCookiesContext } from './CookiesContext';
 import { useZoneAndFspMapContext } from './ZonesAndFspMapContext';
 import { usePreferencesContext } from './PreferencesContext';
@@ -58,7 +58,7 @@ export const FileBrowserContextProvider = ({
 
   const updateCurrentFileOrFolder = React.useCallback(
     async ({ fspName, path }: { fspName: string; path?: string }) => {
-      const url = getFileFetchPath(fspName, path);
+      const url = getFileBrowsePath(fspName, path);
       try {
         const response = await sendFetchRequest(url, 'GET', cookies['_xsrf']);
         const data = await response.json();
@@ -79,8 +79,8 @@ export const FileBrowserContextProvider = ({
   const fetchAndFormatFilesForDisplay = React.useCallback(
     async ({ fspName, path }: { fspName: string; path?: string }) => {
       const url = path
-        ? getFileFetchPath(fspName, path)
-        : getFileFetchPath(fspName);
+        ? getFileBrowsePath(fspName, path)
+        : getFileBrowsePath(fspName);
 
       let data = [];
       try {
