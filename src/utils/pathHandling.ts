@@ -83,12 +83,14 @@ function getLastSegmentFromPath(itemPath: string): string {
 }
 
 /**
- * Converts a path string to an array of path segments.
+ * Converts a path string to an array of path segments, using pathSep as the delimiter.
  * For example, as used in the Crumbs UI component:
  * makePathSegmentArray('/path/to/folder'); // Returns ['path', 'to', 'folder']
  */
+const pathSep = '/';
+
 function makePathSegmentArray(itemPath: string): string[] {
-  return itemPath.split(path.sep);
+  return itemPath.split(pathSep);
 }
 
 /**
