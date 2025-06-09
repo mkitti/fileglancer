@@ -114,16 +114,18 @@ export const FileBrowserContextProvider = ({
     async ({ fspName, path }: { fspName?: string; path?: string }) => {
       const fetchPathFsp = fspName || currentFileSharePath?.name;
       if (!fetchPathFsp) {
-        throw new Error('No current file share path set');
+        setCurrentFileOrFolder(null);
+        setCurrentFileSharePath(null);
+        setFiles([]);
       }
       try {
         await fetchAndFormatFilesForDisplay({
-          fspName: fetchPathFsp,
+          fspName: fetchPathFsp as string,
           ...(path && { path })
         });
         if (!currentFileOrFolder || currentFileOrFolder.path !== path) {
           await updateCurrentFileOrFolder({
-            fspName: fetchPathFsp,
+            fspName: fetchPathFsp as string,
             ...(path && { path })
           });
         }
@@ -153,16 +155,6 @@ export const FileBrowserContextProvider = ({
     if (!currentFileSharePath) {
       if (fileSharePathFavorites.length > 0) {
         setCurrentFileSharePath(() => fileSharePathFavorites[0]);
-      } else {
-        // Otherwise, fallback to first FSP in the map
-        const zones = Object.values(zonesAndFileSharePathsMap).filter(
-          (item): item is Zone => (item as Zone).fileSharePaths !== undefined
-        );
-        const firstFsp =
-          zones.length > 0 && zones[0].fileSharePaths.length > 0
-            ? zones[0].fileSharePaths[0]
-            : null;
-        setCurrentFileSharePath(() => firstFsp);
       }
     }
   }, [
