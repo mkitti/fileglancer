@@ -44,7 +44,7 @@ jobs:
     - name: Test the extension frontend
       run: |
         set -eux
-        pixi run test-frontend
+        pixi run --environment default test-frontend
 
     - name: Test the extension backend
       run: |
