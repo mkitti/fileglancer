@@ -1,4 +1,5 @@
 import React from 'react';
+import { default as log } from '@/logger';
 import { Zone, FileSharePath, ZonesAndFileSharePathsMap } from '@/shared.types';
 import { sendFetchRequest, makeMapKey } from '@/utils';
 import { useCookiesContext } from './CookiesContext';
@@ -40,9 +41,9 @@ export const ZonesAndFspMapContextProvider = ({
       rawData = await response.json();
     } catch (error: unknown) {
       if (error instanceof Error) {
-        console.error(error.message);
+        log.error(error.message);
       } else {
-        console.error('An unknown error occurred');
+        log.error('An unknown error occurred');
       }
     }
     return rawData;
@@ -116,12 +117,12 @@ export const ZonesAndFspMapContextProvider = ({
       const sortedMap = alphabetizeZonesAndFsps(newZonesAndFileSharePathsMap);
       setZonesAndFileSharePathsMap(sortedMap);
       setIsZonesMapReady(true);
-      console.log('zones and fsp map in ZoneBrowserContext:', sortedMap);
+      log.debug('zones and fsp map in ZoneBrowserContext:', sortedMap);
     } catch (error: unknown) {
       if (error instanceof Error) {
-        console.error(error.message);
+        log.error(error.message);
       } else {
-        console.error('An unknown error occurred when fetching zones');
+        log.error('An unknown error occurred when fetching zones');
       }
     }
   }, [getZones]);

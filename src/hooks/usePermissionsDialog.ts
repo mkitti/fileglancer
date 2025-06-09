@@ -1,4 +1,5 @@
 import React from 'react';
+import { default as log } from '@/logger';
 import toast from 'react-hot-toast';
 
 import {

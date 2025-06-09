@@ -1,4 +1,5 @@
 import React from 'react';
+import { default as log } from '@/logger';
 import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import {
@@ -45,12 +46,12 @@ export default function useZarrMetadata(files: FileOrFolder[]) {
           zattrsFile.path,
           cookies
         )) as any;
-        console.log('Zattrs', zattrs);
+        log.debug('Zattrs', zattrs);
         if (zattrs.multiscales) {
           setHasMultiscales(true);
         }
       } catch (error) {
-        console.error('Error fetching OME-Zarr metadata:', error);
+        log.error('Error fetching OME-Zarr metadata:', error);
       }
     }
   }, [files, currentFileSharePath, currentFileOrFolder, cookies]);

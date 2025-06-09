@@ -1,3 +1,4 @@
+import { default as log } from '@/logger';
 import { useEffect, useState } from 'react';
 import { sendFetchRequest } from '@/utils';
 import { useCookiesContext } from '@/contexts/CookiesContext';
@@ -22,7 +23,7 @@ function useProfile() {
         const profileData: Profile = await response.json();
         setProfile(profileData);
       } catch (err) {
-        console.error('Error fetching profile:', err);
+        log.error('Error fetching profile:', err);
         setError(err as Error);
       } finally {
         setLoading(false);

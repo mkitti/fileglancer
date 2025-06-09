@@ -1,4 +1,5 @@
 import React from 'react';
+import { default as log } from '@/logger';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { sendFetchRequest } from '@/utils';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
@@ -65,7 +66,7 @@ export const ProxiedPathProvider = ({
 
   const fetchProxiedPath = React.useCallback(async () => {
     if (!currentFileSharePath || !currentFileOrFolder) {
-      console.error('No current file share path or file/folder selected');
+      log.error('No current file share path or file/folder selected');
       return null;
     }
     try {
@@ -75,7 +76,7 @@ export const ProxiedPathProvider = ({
         cookies['_xsrf']
       );
       if (!response.ok) {
-        console.error(
+        log.error(
           `Failed to fetch proxied path: ${response.status} ${response.statusText}`
         );
         return null;
@@ -85,7 +86,7 @@ export const ProxiedPathProvider = ({
         return data.paths[0] as ProxiedPath;
       }
     } catch (error) {
-      console.error('Error fetching proxied path:', error);
+      log.error('Error fetching proxied path:', error);
     }
     return null;
   }, [cookies, currentFileSharePath, currentFileOrFolder]);
@@ -105,7 +106,7 @@ export const ProxiedPathProvider = ({
       }
       const proxiedPath = (await response.json()) as ProxiedPath;
       updateProxiedPath(proxiedPath);
-      console.log('Created proxied path:', proxiedPath);
+      log.debug('Created proxied path:', proxiedPath);
       return proxiedPath;
     },
     [updateProxiedPath, cookies]
@@ -113,7 +114,7 @@ export const ProxiedPathProvider = ({
 
   const deleteProxiedPath = React.useCallback(async () => {
     if (!proxiedPath) {
-      console.error('No proxied path to delete');
+      log.error('No proxied path to delete');
       return;
     }
     const response = await sendFetchRequest(
@@ -126,7 +127,7 @@ export const ProxiedPathProvider = ({
         `Failed to delete proxied path: ${response.status} ${response.statusText}`
       );
     }
-    console.log('Deleted proxied path:', proxiedPath);
+    log.debug('Deleted proxied path:', proxiedPath);
     updateProxiedPath(null);
   }, [updateProxiedPath, proxiedPath, cookies]);
 
@@ -140,7 +141,7 @@ export const ProxiedPathProvider = ({
           updateProxiedPath(null);
         }
       } catch (error) {
-        console.error('Error in useEffect:', error);
+        log.error('Error in useEffect:', error);
       }
     })();
   }, [

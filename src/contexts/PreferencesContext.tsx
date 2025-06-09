@@ -1,4 +1,5 @@
 import React from 'react';
+import { default as log } from '@/logger';
 
 import type { FileSharePath, Zone } from '@/shared.types';
 import { useCookiesContext } from '@/contexts/CookiesContext';
@@ -98,9 +99,9 @@ export const PreferencesProvider = ({
         return data?.value;
       } catch (error) {
         if (error instanceof HTTPError && error.responseCode === 404) {
-          console.log(`Preference '${key}' not found`);
+          log.debug(`Preference '${key}' not found`);
         } else {
-          console.log(`Error fetching preference '${key}':`, error);
+          log.error(`Error fetching preference '${key}':`, error);
         }
         return null;
       }
@@ -114,13 +115,8 @@ export const PreferencesProvider = ({
         return zonesAndFileSharePathsMap[key];
       });
       // To help with debugging edge cases
-      console.log(
-        'length of preference keys list: ',
-        keys.length,
-        '\n',
-        'length of accessed items list: ',
-        itemsArray.length
-      );
+      log.debug(`length of preference keys list: ${keys.length}`);
+      log.debug(`length of accessed items list: ${itemsArray.length}`);
       return itemsArray;
     },
     [zonesAndFileSharePathsMap]
@@ -343,7 +339,7 @@ export const PreferencesProvider = ({
     (async function () {
       const rawPathPreference = await fetchPreferences('path');
       if (rawPathPreference) {
-        console.log('setting initial path preference:', rawPathPreference);
+        log.debug('setting initial path preference:', rawPathPreference);
         setPathPreference(rawPathPreference);
       }
     })();
