@@ -10,11 +10,7 @@ import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 import type { FileSharePath } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import {
-  makeMapKey,
-  convertPathToWindowsStyle,
-  getPreferredPathForDisplay
-} from '@/utils';
+import { makeMapKey, getPreferredPathForDisplay } from '@/utils';
 
 type FileSharePathComponentProps = {
   fsp: FileSharePath;

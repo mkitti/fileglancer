@@ -1,5 +1,4 @@
 import {
-  convertPathToWindowsStyle,
   getFileContentPath,
   getFileBrowsePath,
   getFileURL,
@@ -144,7 +143,6 @@ async function fetchFileAsJson(
 }
 
 export {
-  convertPathToWindowsStyle,
   fetchFileAsJson,
   fetchFileAsText,
   fetchFileContent,
