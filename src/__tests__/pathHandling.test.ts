@@ -5,8 +5,7 @@ import {
   getLastSegmentFromPath,
   getPreferredPathForDisplay,
   makePathSegmentArray,
-  removeLastSegmentFromPath,
-  convertPathToWindowsStyle
+  removeLastSegmentFromPath
 } from '@/utils';
 import type { FileSharePath } from '@/shared.types';
 
@@ -50,18 +49,6 @@ describe('makePathSegmentArray', () => {
 describe('removeLastSegmentFromPath', () => {
   test('removes last segment from POSIX-style path', () => {
     expect(removeLastSegmentFromPath('/a/b/c.txt')).toBe('/a/b');
-  });
-});
-
-describe('convertPathToWindowsStyle', () => {
-  test('converts POSIX path to Windows path', () => {
-    expect(convertPathToWindowsStyle('/a/b/c')).toBe('\\a\\b\\c');
-  });
-  test('handles already Windows-style path', () => {
-    expect(convertPathToWindowsStyle('a\\b\\c')).toBe('a\\b\\c');
-  });
-  test('handles mixed slashes', () => {
-    expect(convertPathToWindowsStyle('/a/b\\c/d')).toBe('\\a\\b\\c\\d');
   });
 });
 
