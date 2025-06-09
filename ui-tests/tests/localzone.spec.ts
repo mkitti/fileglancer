@@ -13,8 +13,8 @@ test.afterAll('Close browser', ({ browser }) => {
 
 test('Home becomes visible when Local is expanded', async ({ page }) => {
   const zonesLocator = page.getByText('Zones');
-  const localZoneLocator = page.getByText('Local');
   const homeLocator = page.getByRole('link', { name: 'home' });
+  const localZoneLocator = page.getByText('Local');
 
   await expect(zonesLocator).toBeVisible();
   // the home locator initially is not visible
@@ -22,6 +22,7 @@ test('Home becomes visible when Local is expanded', async ({ page }) => {
 
   // assume local is visible so click on zones and hide all zones (including local)
   await zonesLocator.click();
+
   await expect(localZoneLocator).toHaveCount(0);
   // click again on zones to make them visible
   await zonesLocator.click();
