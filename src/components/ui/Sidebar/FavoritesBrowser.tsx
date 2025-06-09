@@ -48,7 +48,7 @@ export default function FavoritesBrowser({
       : folderFavorites;
 
   return (
-    <div className="w-[calc(100%-1.5rem)] min-h-fit flex flex-col overflow-hidden h-full mt-3 x-short:mt-1 mx-3 pb-1">
+    <div className="w-[calc(100%-1.5rem)] min-h-fit flex flex-col h-full x-short:mt-1 mt-3 mx-3 pb-1">
       <List className="bg-background !min-w-40">
         <List.Item
           onClick={() => toggleOpenFavorites('all')}
@@ -67,13 +67,14 @@ export default function FavoritesBrowser({
           </List.ItemEnd>
         </List.Item>
       </List>
-      <div className="overflow-y-auto">
+      <div className="overflow-y-auto max-h-[calc(100%-3.5rem)]">
         <Collapse open={openFavorites['all'] ? true : false}>
           <List className="bg-surface-light !py-0 !gap-0 !min-w-20 overflow-hidden">
             {/* Zone favorites */}
             {displayZones.map(zone => {
               return (
                 <ZoneComponent
+                  key={zone.name}
                   zone={zone}
                   openZones={openFavorites}
                   toggleOpenZones={toggleOpenFavorites}
@@ -83,13 +84,22 @@ export default function FavoritesBrowser({
 
             {/* File share path favorites */}
             {displayFileSharePaths.map((fsp, index) => {
-              return <FileSharePathComponent fsp={fsp} index={index} />;
+              return (
+                <FileSharePathComponent
+                  key={fsp.name}
+                  fsp={fsp}
+                  index={index}
+                />
+              );
             })}
 
             {/* Directory favorites */}
             {displayFolders.map(folderFavorite => {
               return (
                 <Folder
+                  key={
+                    folderFavorite.fsp.name + '-' + folderFavorite.folderPath
+                  }
                   folderFavorite={folderFavorite}
                   setOpenZones={setOpenZones}
                 />

@@ -1,5 +1,5 @@
 import React from 'react';
-
+import { default as log } from '@/logger';
 import {
   Zone,
   FileSharePath,
@@ -60,9 +60,9 @@ export const ZoneBrowserContextProvider = ({
       rawData = await response.json();
     } catch (error: unknown) {
       if (error instanceof Error) {
-        console.error(error.message);
+        log.error(error.message);
       } else {
-        console.error('An unknown error occurred');
+        log.error('An unknown error occurred');
       }
     }
     return rawData;
@@ -137,12 +137,12 @@ export const ZoneBrowserContextProvider = ({
         const sortedMap = alphabetizeZonesAndFsps(newZonesAndFileSharePathsMap);
         setZonesAndFileSharePathsMap(sortedMap);
         setIsZonesMapReady(true);
-        console.log('zones and fsp map in ZoneBrowserContext:', sortedMap);
+        log.debug('zones and fsp map in ZoneBrowserContext:', sortedMap);
       } catch (error: unknown) {
         if (error instanceof Error) {
-          console.error(error.message);
+          log.error(error.message);
         } else {
-          console.error('An unknown error occurred when fetching zones');
+          log.error('An unknown error occurred when fetching zones');
         }
       }
     }, [getZones]);
