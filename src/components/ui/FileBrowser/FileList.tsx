@@ -50,17 +50,36 @@ export default function FileList({
       : files;
   }, [files, hideDotFiles]);
 
+  const zarrPreviewRef = React.useRef<HTMLDivElement>(null);
+  const [zarrPreviewHeight, setZarrPreviewHeight] = React.useState(0);
+
+  // Runs after dom mutations but before paint, unlike useEffect which runs after paint
+  React.useLayoutEffect(() => {
+    if (zarrPreviewRef.current) {
+      console.log('zarr ref height:', zarrPreviewRef.current.offsetHeight);
+      setZarrPreviewHeight(zarrPreviewRef.current.offsetHeight);
+    } else {
+      console.log('set zarr ref height to 0');
+      setZarrPreviewHeight(0);
+    }
+  }, [hasMultiscales, thumbnailSrc, loadingThumbnail, metadata]);
+
+  const baseOffset = 220; // px, accounts for header andtoolbar
+  const maxHeight = `calc(100vh - ${hasMultiscales ? zarrPreviewHeight + baseOffset : baseOffset})`;
+
   return (
-    <div className="px-2 transition-all duration-300">
+    <div className="px-2 transition-all duration-300 flex flex-col h-full overflow-hidden">
       <FileListCrumbs />
 
       {hasMultiscales ? (
-        <ZarrPreview
-          thumbnailSrc={thumbnailSrc}
-          loadingThumbnail={loadingThumbnail}
-          openWithToolUrls={openWithToolUrls}
-          metadata={metadata}
-        />
+        <div ref={zarrPreviewRef}>
+          <ZarrPreview
+            thumbnailSrc={thumbnailSrc}
+            loadingThumbnail={loadingThumbnail}
+            openWithToolUrls={openWithToolUrls}
+            metadata={metadata}
+          />
+        </div>
       ) : null}
 
       <div className="min-w-full bg-background select-none">
@@ -90,7 +109,7 @@ export default function FileList({
         </div>
       </div>
       {/* File rows */}
-      <div className="overflow-y-auto max-h-[calc(100vh-220px)]">
+      <div className="overflow-y-auto" style={{ maxHeight: maxHeight }}>
         {displayFiles.length > 0 &&
           displayFiles.map((file, index) => {
             return (
