@@ -1,19 +1,17 @@
 import React from 'react';
 import { default as log } from '@/logger';
 import { useCookiesContext } from '@/contexts/CookiesContext';
-import { getAPIPathRoot, sendFetchRequest } from '@/utils/index';
-import { makeSharedDataUrl } from '@/utils/proxiedPaths';
-import { useZoneBrowserContext } from './ZoneBrowserContext';
+import { sendFetchRequest, makeProxiedPathUrl } from '@/utils';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
 export type ProxiedPath = {
-  username: string;
+  fsp_name: string;
+  path: string;
   sharing_key: string;
   sharing_name: string;
   created_at: string;
   updated_at: string;
-  fsp_mount_path: string;
-  path: string;
+  username: string;
 };
 
 type ProxiedPathContextType = {
@@ -21,7 +19,7 @@ type ProxiedPathContextType = {
   dataUrl: string | null;
   allProxiedPaths?: ProxiedPath[];
   createProxiedPath: (
-    fspMountPath: string,
+    fspName: string,
     path: string
   ) => Promise<ProxiedPath | null>;
   deleteProxiedPath: () => Promise<void>;
@@ -61,21 +59,23 @@ export const ProxiedPathProvider = ({
   );
   const [dataUrl, setDataUrl] = React.useState<string | null>(null);
   const { cookies } = useCookiesContext();
-  const { currentFileSharePath } = useZoneBrowserContext();
-  const { currentNavigationPath } = useFileBrowserContext();
+  const { currentFileOrFolder, currentFileSharePath } = useFileBrowserContext();
 
-  function updateProxiedPath(proxiedPath: ProxiedPath | null) {
-    setProxiedPath(proxiedPath);
-    if (proxiedPath) {
-      setDataUrl(makeSharedDataUrl(proxiedPath));
-    } else {
-      setDataUrl(null);
-    }
-  }
+  const updateProxiedPath = React.useCallback(
+    (proxiedPath: ProxiedPath | null) => {
+      setProxiedPath(proxiedPath);
+      if (proxiedPath) {
+        setDataUrl(makeProxiedPathUrl(proxiedPath));
+      } else {
+        setDataUrl(null);
+      }
+    },
+    []
+  );
 
   const fetchAllProxiedPaths = React.useCallback(async (): Promise<void> => {
     const response = await sendFetchRequest(
-      `${getAPIPathRoot()}api/fileglancer/proxied-path`,
+      'api/fileglancer/proxied-path',
       'GET',
       cookies['_xsrf']
     );
@@ -97,49 +97,42 @@ export const ProxiedPathProvider = ({
     }
   }, [cookies]);
 
-  const fetchProxiedPath =
-    React.useCallback(async (): Promise<ProxiedPath | null> => {
-      const filePath = currentNavigationPath.replace('?subpath=', '/');
-      const filePathWithoutFsp = filePath.split('/').slice(1).join('/');
-      if (!currentFileSharePath || !filePathWithoutFsp) {
+  const fetchProxiedPath = React.useCallback(async () => {
+    if (!currentFileSharePath || !currentFileOrFolder) {
+      log.error('No current file share path or file/folder selected');
+      return null;
+    }
+    try {
+      const response = await sendFetchRequest(
+        `api/fileglancer/proxied-path?fsp_name=${currentFileSharePath?.name}&path=${currentFileOrFolder?.path}`,
+        'GET',
+        cookies['_xsrf']
+      );
+      if (!response.ok) {
+        log.error(
+          `Failed to fetch proxied path: ${response.status} ${response.statusText}`
+        );
         return null;
       }
-      try {
-        log.debug(
-          'Fetching proxied path for',
-          currentFileSharePath?.mount_path,
-          filePathWithoutFsp
-        );
-        const response = await sendFetchRequest(
-          `${getAPIPathRoot()}api/fileglancer/proxied-path?fsp_mount_path=${currentFileSharePath?.mount_path}&path=${filePathWithoutFsp}`,
-          'GET',
-          cookies['_xsrf']
-        );
-        if (!response.ok) {
-          log.error(
-            `Failed to fetch proxied path: ${response.status} ${response.statusText}`
-          );
-          return null;
-        }
-        const data = (await response.json()) as any;
-        if (data?.paths) {
-          return data.paths[0] as ProxiedPath;
-        }
-      } catch (error) {
-        log.error('Error fetching proxied path:', error);
+      const data = (await response.json()) as any;
+      if (data?.paths) {
+        return data.paths[0] as ProxiedPath;
       }
-      return null;
-    }, [currentFileSharePath, currentNavigationPath, cookies]);
+    } catch (error) {
+      log.error('Error fetching proxied path:', error);
+    }
+    return null;
+  }, [currentFileSharePath, currentFileOrFolder, cookies]);
 
   async function createProxiedPath(
-    fspMountPath: string,
+    fspName: string,
     path: string
   ): Promise<ProxiedPath | null> {
     const response = await sendFetchRequest(
-      `${getAPIPathRoot()}api/fileglancer/proxied-path`,
+      'api/fileglancer/proxied-path',
       'POST',
       cookies['_xsrf'],
-      { fsp_mount_path: fspMountPath, path: path }
+      { fsp_name: fspName, path: path }
     );
     if (!response.ok) {
       throw new Error(
@@ -152,13 +145,13 @@ export const ProxiedPathProvider = ({
     return proxiedPath;
   }
 
-  async function deleteProxiedPath(): Promise<void> {
+  const deleteProxiedPath = React.useCallback(async () => {
     if (!proxiedPath) {
       log.error('No proxied path to delete');
       return;
     }
     const response = await sendFetchRequest(
-      `${getAPIPathRoot()}api/fileglancer/proxied-path?sharing_key=${proxiedPath.sharing_key}`,
+      `/api/fileglancer/proxied-path?sharing_key=${proxiedPath.sharing_key}`,
       'DELETE',
       cookies['_xsrf']
     );
@@ -169,13 +162,13 @@ export const ProxiedPathProvider = ({
     }
     log.debug('Deleted proxied path:', proxiedPath);
     updateProxiedPath(null);
-  }
+  }, [proxiedPath, cookies, updateProxiedPath]);
 
   React.useEffect(() => {
     (async function () {
       await fetchAllProxiedPaths();
     })();
-  }, [fetchAllProxiedPaths, proxiedPath]);
+  }, [fetchAllProxiedPaths]);
 
   React.useEffect(() => {
     (async function () {
@@ -190,7 +183,12 @@ export const ProxiedPathProvider = ({
         log.error('Error in useEffect:', error);
       }
     })();
-  }, [currentFileSharePath, currentNavigationPath, fetchProxiedPath]);
+  }, [
+    currentFileSharePath,
+    currentFileOrFolder,
+    fetchProxiedPath,
+    updateProxiedPath
+  ]);
 
   return (
     <ProxiedPathContext.Provider

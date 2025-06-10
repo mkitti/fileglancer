@@ -2,7 +2,7 @@ import { Switch, IconButton, Typography } from '@material-tailwind/react';
 import { EllipsisHorizontalCircleIcon } from '@heroicons/react/24/outline';
 import { Link } from 'react-router';
 import { type ProxiedPath } from '@/contexts/ProxiedPathContext';
-import { makeSharedDataUrl } from '@/utils/proxiedPaths';
+import { makeProxiedPathUrl } from '@/utils';
 import useSharingDialog from '@/hooks/useSharingDialog';
 import SharingDialog from '@/components/ui/Dialogs/SharingDialog';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
@@ -29,17 +29,20 @@ export default function ProxiedPathRow({
   setMenuOpenId
 }: ProxiedPathRowProps) {
   const { showSharingDialog, setShowSharingDialog } = useSharingDialog();
-  const { fetchAndFormatFilesForDisplay } = useFileBrowserContext();
+  const { handleFileBrowserNavigation } = useFileBrowserContext();
 
   const handleCopyUrl = (item: ProxiedPath) => {
-    navigator.clipboard.writeText(makeSharedDataUrl(item));
+    navigator.clipboard.writeText(makeProxiedPathUrl(item));
     setMenuOpenId(null);
   };
 
-  const handleOpenBrowse = async (fsp_mount_path: string, path: string) => {
+  const handleOpenBrowse = async () => {
     setMenuOpenId(null);
     // Problem: fsp_mount_path does not use underscores like fsp names
-    await fetchAndFormatFilesForDisplay(`${fsp_mount_path}/${path}`);
+    await handleFileBrowserNavigation({
+      fspName: item.fsp_name,
+      path: item.path
+    });
   };
 
   return (
@@ -77,7 +80,7 @@ export default function ProxiedPathRow({
         </Typography>
         {/* Mount path */}
         <Typography variant="small" className="text-foreground">
-          {item.fsp_mount_path}/{item.path}
+          {item.fsp_name}/{item.path}
         </Typography>
         {/* Date shared */}
         <Typography variant="small" className="text-foreground">
@@ -104,9 +107,7 @@ export default function ProxiedPathRow({
                   as={Link}
                   to="/browse"
                   className="flex items-center gap-2 text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
-                  onClick={() =>
-                    handleOpenBrowse(item.fsp_mount_path, item.path)
-                  }
+                  onClick={handleOpenBrowse}
                 >
                   Open in Browse
                 </Typography>
