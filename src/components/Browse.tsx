@@ -14,6 +14,7 @@ import RenameDialog from './ui/Dialogs/RenameDialog';
 import NewFolderDialog from './ui/Dialogs/NewFolderDialog';
 import Delete from './ui/Dialogs/Delete';
 import ChangePermissions from './ui/Dialogs/ChangePermissions';
+import Dashboard from './ui/FileBrowser/Dashboard';
 
 type OutletContextType = {
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
@@ -50,7 +51,8 @@ export default function Browse() {
 
   const { hideDotFiles, setHideDotFiles } = useHideDotFiles();
   const { selectedFiles, setSelectedFiles } = useSelectedFiles();
-  const { files } = useFileBrowserContext();
+  const { files, currentFileOrFolder, currentFileSharePath } =
+    useFileBrowserContext();
 
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
   const [showNewFolderDialog, setShowNewFolderDialog] = React.useState(false);
@@ -59,6 +61,7 @@ export default function Browse() {
   return (
     <div className="flex-1 overflow-auto flex flex-col h-full">
       <Toolbar
+        selectedFiles={selectedFiles}
         hideDotFiles={hideDotFiles}
         setHideDotFiles={setHideDotFiles}
         showPropertiesDrawer={showPropertiesDrawer}
@@ -68,15 +71,19 @@ export default function Browse() {
         setShowNewFolderDialog={setShowNewFolderDialog}
       />
       <div className="relative grow h-full flex flex-col overflow-hidden mb-3">
-        <FileList
-          files={files}
-          selectedFiles={selectedFiles}
-          setSelectedFiles={setSelectedFiles}
-          showPropertiesDrawer={showPropertiesDrawer}
-          setPropertiesTarget={setPropertiesTarget}
-          hideDotFiles={hideDotFiles}
-          handleRightClick={handleRightClick}
-        />
+        {files.length === 0 && !currentFileOrFolder && !currentFileSharePath ? (
+          <Dashboard />
+        ) : (
+          <FileList
+            files={files}
+            selectedFiles={selectedFiles}
+            setSelectedFiles={setSelectedFiles}
+            showPropertiesDrawer={showPropertiesDrawer}
+            setPropertiesTarget={setPropertiesTarget}
+            hideDotFiles={hideDotFiles}
+            handleRightClick={handleRightClick}
+          />
+        )}
       </div>
       {showContextMenu ? (
         <ContextMenu

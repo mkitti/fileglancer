@@ -62,14 +62,6 @@ export default function useFileBrowser() {
     getFiles(path);
   };
 
-  function getAPIPathRoot() {
-    const match = window.location.pathname.match(/^\/jupyter\/user\/[^/]+\//);
-    if (match) {
-      return match[0];
-    }
-    return '/';
-  }
-
   async function getFiles(path: File['path']): Promise<void> {
     let cleanPath = path;
 
@@ -80,7 +72,7 @@ export default function useFileBrowser() {
         : path.trim();
     }
 
-    const url = `${getAPIPathRoot()}api/fileglancer/files/${cleanPath}`;
+    const url = `/api/fileglancer/files/${cleanPath}`;
 
     let data = [];
     try {
@@ -120,7 +112,7 @@ export default function useFileBrowser() {
   }
 
   async function getFileSharePaths() {
-    const url = `${getAPIPathRoot()}api/fileglancer/file-share-paths`;
+    const url = '/api/fileglancer/file-share-paths';
 
     try {
       const response = await fetch(url, {
