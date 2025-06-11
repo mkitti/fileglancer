@@ -22,7 +22,7 @@ type ProxiedPathContextType = {
     fspName: string,
     path: string
   ) => Promise<ProxiedPath | null>;
-  deleteProxiedPath: () => Promise<void>;
+  deleteProxiedPath: (proxiedPath: ProxiedPath) => Promise<void>;
 };
 
 function sortProxiedPathsByDate(paths: ProxiedPath[]): ProxiedPath[] {
@@ -141,15 +141,12 @@ export const ProxiedPathProvider = ({
     }
     const proxiedPath = (await response.json()) as ProxiedPath;
     updateProxiedPath(proxiedPath);
+    await fetchAllProxiedPaths();
     log.debug('Created proxied path:', proxiedPath);
     return proxiedPath;
   }
 
-  const deleteProxiedPath = React.useCallback(async () => {
-    if (!proxiedPath) {
-      log.error('No proxied path to delete');
-      return;
-    }
+  const deleteProxiedPath = React.useCallback(async (proxiedPath: ProxiedPath) => {
     const response = await sendFetchRequest(
       `/api/fileglancer/proxied-path?sharing_key=${proxiedPath.sharing_key}`,
       'DELETE',
@@ -162,6 +159,7 @@ export const ProxiedPathProvider = ({
     }
     log.debug('Deleted proxied path:', proxiedPath);
     updateProxiedPath(null);
+    await fetchAllProxiedPaths();
   }, [proxiedPath, cookies, updateProxiedPath]);
 
   React.useEffect(() => {

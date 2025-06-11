@@ -1,5 +1,6 @@
 import { Switch, IconButton, Tooltip, Typography } from '@material-tailwind/react';
 import { EllipsisHorizontalCircleIcon } from '@heroicons/react/24/outline';
+import {TbShareOff} from 'react-icons/tb';
 import log from 'loglevel';
 import toast from 'react-hot-toast';
 
@@ -9,9 +10,9 @@ import { getPreferredPathForDisplay, makeMapKey, makeProxiedPathUrl } from '@/ut
 import useSharingDialog from '@/hooks/useSharingDialog';
 import useCopyPath from '@/hooks/useCopyPath';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
-import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
 type ProxiedPathRowProps = {
   item: ProxiedPath;
@@ -36,9 +37,9 @@ export default function ProxiedPathRow({
 }: ProxiedPathRowProps) {
   const { showSharingDialog, setShowSharingDialog } = useSharingDialog();
   const { copyToClipboard } = useCopyPath();
-  const { handleFileBrowserNavigation} = useFileBrowserContext();
   const {pathPreference} = usePreferencesContext();
   const {zonesAndFileSharePathsMap} = useZoneAndFspMapContext();
+  const {setCurrentFileSharePath} = useFileBrowserContext();
 
   const pathFsp = zonesAndFileSharePathsMap[makeMapKey('fsp', item.fsp_name)] as FileSharePath;
   const displayPath = getPreferredPathForDisplay(pathPreference, pathFsp, item.path);
@@ -54,44 +55,23 @@ export default function ProxiedPathRow({
   };
 }
 
-  const handleOpenBrowse = async () => {
-    setMenuOpenId(null);
-    // Problem: fsp_mount_path does not use underscores like fsp names
-    await handleFileBrowserNavigation({
-      fspName: item.fsp_name,
-      path: item.path
-    });
-  };
-
   return (
     <>
       <div
         key={item.sharing_key}
-        className="grid grid-cols-[0.8fr_1.5fr_2.5fr_1.5fr_0.5fr] gap-4 items-center px-4 py-3 border-b last:border-b-0 border-surface hover:bg-primary-light/20 relative"
+        className="grid grid-cols-[0.5fr_1.5fr_2.5fr_1.5fr_0.5fr] gap-4 items-center px-4 py-3 border-b last:border-b-0 border-surface hover:bg-primary-light/20 relative"
       >
-        {/* Sharing switch */}
-        <div className="flex items-center gap-2">
-          <label
-            htmlFor={`share-switch-${item.sharing_key}`}
-            className="flex flex-col items-center gap-1"
-          >
-            <Typography
-              as="label"
-              htmlFor={`share-switch-${item.sharing_key}`}
-              className="cursor-pointer text-foreground text-xs"
-            >
-              Unshare
-            </Typography>
-          </label>
-          <Switch
-            id={`share-switch-${item.sharing_key}`}
-            className="bg-secondary-light border-secondary-light hover:!bg-secondary-light/80 hover:!border-secondary-light/80"
+        {/* Unshare button */}
+        <IconButton
+            variant='ghost'
+            className="p-1 self-start max-w-fit"
             onClick={() => {
+              setCurrentFileSharePath(pathFsp);
               setShowSharingDialog(true);
             }}
-            checked
-          />
-        </div>
+          >
+          <TbShareOff className="w-6 h-6 p-1 text-foreground rounded-full border border-foreground" />
+        </IconButton>
         {/* Sharing name */}
         <Tooltip>
           <Tooltip.Trigger className="max-w-full truncate">
@@ -137,22 +117,15 @@ export default function ProxiedPathRow({
             <div className="absolute z-10 right-0 top-8 bg-background shadow-lg shadow-surface rounded-md p-2 min-w-[180px] border border-surface">
               <div className="flex flex-col gap-2">
                 <Typography
-                  as={Link}
-                  to="/browse"
                   className="flex items-center gap-2 text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
-                  onClick={handleOpenBrowse}
-                >
-                  Open in Browse
-                </Typography>
-                <Typography
-                  className="flex items-center gap-2 text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
-                  onClick={() => handleCopyUrl(item)}
+                  onClick={handleCopyUrl}
                 >
                   Copy sharing URL
                 </Typography>
                 <Typography
                   className="flex items-center gap-2 text-sm p-1 cursor-pointer text-red-600 hover:bg-red-50 transition-colors whitespace-nowrap"
-                  onClick={() => setShowSharingDialog(true)}
+                  onClick={() => {setCurrentFileSharePath(pathFsp)
+                    setShowSharingDialog(true)}}
                 >
                   Unshare
                 </Typography>
@@ -168,6 +141,7 @@ export default function ProxiedPathRow({
           filePathWithoutFsp={item.path}
           showSharingDialog={showSharingDialog}
           setShowSharingDialog={setShowSharingDialog}
+          proxiedPath={item}
         />
       ) : null}
     </>

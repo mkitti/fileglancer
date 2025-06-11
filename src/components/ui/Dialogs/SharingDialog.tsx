@@ -8,7 +8,7 @@ import {
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
-import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
+import { ProxiedPath, useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { getPreferredPathForDisplay } from '@/utils';
@@ -19,6 +19,7 @@ type SharingDialogProps = {
   filePathWithoutFsp: string;
   showSharingDialog: boolean;
   setShowSharingDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  proxiedPath?: ProxiedPath;
 };
 
 export default function SharingDialog({
@@ -26,7 +27,8 @@ export default function SharingDialog({
   setIsImageShared,
   filePathWithoutFsp,
   showSharingDialog,
-  setShowSharingDialog
+  setShowSharingDialog,
+  proxiedPath
 }: SharingDialogProps): JSX.Element {
   const { createProxiedPath, deleteProxiedPath } = useProxiedPathContext();
   const { currentFileSharePath } = useFileBrowserContext();
@@ -121,7 +123,11 @@ export default function SharingDialog({
                 className="!rounded-md flex items-center gap-2"
                 onClick={async () => {
                   try {
-                    await deleteProxiedPath();
+                    if (proxiedPath){
+                      await deleteProxiedPath(proxiedPath);
+                    } else {
+                    toast.error("Proxied path not found")
+                  }
                     toast.success(`Successfully unshared ${displayPath}`);
                     setShowSharingDialog(false);
                     if (setIsImageShared) {
