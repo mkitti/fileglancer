@@ -5,16 +5,16 @@ import ProxiedPathRow from './ui/Shared/ProxiedPathRow';
 
 export default function Shared() {
   const [menuOpenId, setMenuOpenId] = React.useState<string | null>(null);
-
   const { allProxiedPaths } = useProxiedPathContext();
+  
   return (
     <div className="w-full flex justify-center">
-      <div className="w-full max-w-4xl p-6">
+      <div className="w-full max-w-6xl p-6">
         <Typography variant="h5" className="mb-6 text-foreground font-bold">
           Shared Paths
         </Typography>
         <div className="rounded-lg shadow bg-background">
-          <div className="grid grid-cols-[0.8fr_2fr_2fr_1.5fr_0.5fr] gap-4 px-4 py-2 border-b border-surface">
+          <div className="grid grid-cols-[0.8fr_1.5fr_2.5fr_1.5fr_0.5fr] gap-4 px-4 py-2 border-b border-surface">
             <div className="w-[100px]" /> {/* Intenionally empty cell */}
             <Typography variant="small" className="font-bold">
               Name

@@ -1,11 +1,17 @@
-import { Switch, IconButton, Typography } from '@material-tailwind/react';
+import { Switch, IconButton, Tooltip, Typography } from '@material-tailwind/react';
 import { EllipsisHorizontalCircleIcon } from '@heroicons/react/24/outline';
-import { Link } from 'react-router';
-import { type ProxiedPath } from '@/contexts/ProxiedPathContext';
-import { makeProxiedPathUrl } from '@/utils';
-import useSharingDialog from '@/hooks/useSharingDialog';
+import log from 'loglevel';
+import toast from 'react-hot-toast';
+
 import SharingDialog from '@/components/ui/Dialogs/SharingDialog';
+import type { FileSharePath } from '@/shared.types';
+import { getPreferredPathForDisplay, makeMapKey, makeProxiedPathUrl } from '@/utils';
+import useSharingDialog from '@/hooks/useSharingDialog';
+import useCopyPath from '@/hooks/useCopyPath';
+import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
 
 type ProxiedPathRowProps = {
   item: ProxiedPath;
@@ -29,12 +35,24 @@ export default function ProxiedPathRow({
   setMenuOpenId
 }: ProxiedPathRowProps) {
   const { showSharingDialog, setShowSharingDialog } = useSharingDialog();
-  const { handleFileBrowserNavigation } = useFileBrowserContext();
+  const { copyToClipboard } = useCopyPath();
+  const { handleFileBrowserNavigation} = useFileBrowserContext();
+  const {pathPreference} = usePreferencesContext();
+  const {zonesAndFileSharePathsMap} = useZoneAndFspMapContext();
 
-  const handleCopyUrl = (item: ProxiedPath) => {
-    navigator.clipboard.writeText(makeProxiedPathUrl(item));
-    setMenuOpenId(null);
+  const pathFsp = zonesAndFileSharePathsMap[makeMapKey('fsp', item.fsp_name)] as FileSharePath;
+  const displayPath = getPreferredPathForDisplay(pathPreference, pathFsp, item.path);
+  const proxiedPathUrl = makeProxiedPathUrl(item);
+
+  const handleCopyUrl = async() => {
+    try{
+      await copyToClipboard(proxiedPathUrl);
+      toast.success('URL copied to clipboard');
+    } catch (error) {
+      log.error('Failed to copy sharing URL:', error);
+      toast.error('Failed to copy URL');
   };
+}
 
   const handleOpenBrowse = async () => {
     setMenuOpenId(null);
@@ -49,7 +67,7 @@ export default function ProxiedPathRow({
     <>
       <div
         key={item.sharing_key}
-        className="grid grid-cols-[0.8fr_2fr_2fr_1.5fr_0.5fr] gap-4 items-center px-4 py-3 border-b last:border-b-0 border-surface hover:bg-primary-light/20 relative"
+        className="grid grid-cols-[0.8fr_1.5fr_2.5fr_1.5fr_0.5fr] gap-4 items-center px-4 py-3 border-b last:border-b-0 border-surface hover:bg-primary-light/20 relative"
       >
         {/* Sharing switch */}
         <div className="flex items-center gap-2">
@@ -75,17 +93,32 @@ export default function ProxiedPathRow({
           />
         </div>
         {/* Sharing name */}
-        <Typography variant="small" className="font-medium text-foreground">
-          {item.sharing_name}
-        </Typography>
+        <Tooltip>
+          <Tooltip.Trigger className="max-w-full truncate">
+            <Typography variant="small" className="text-left text-foreground truncate">
+              {item.sharing_name}
+            </Typography>
+          </Tooltip.Trigger>
+          <Tooltip.Content>{item.sharing_name}</Tooltip.Content>
+        </Tooltip>
         {/* Mount path */}
-        <Typography variant="small" className="text-foreground">
-          {item.fsp_name}/{item.path}
-        </Typography>
+        <Tooltip>
+            <Tooltip.Trigger className="max-w-full truncate">
+            <Typography variant="small" className="text-left text-foreground truncate">
+              {displayPath}
+            </Typography>
+          </Tooltip.Trigger>
+          <Tooltip.Content>{displayPath}</Tooltip.Content>
+        </Tooltip>
         {/* Date shared */}
-        <Typography variant="small" className="text-foreground">
-          {formatDateString(item.created_at)}
-        </Typography>
+        <Tooltip>
+          <Tooltip.Trigger className="max-w-full truncate">
+            <Typography variant="small" className="text-left text-foreground truncate">
+              {formatDateString(item.created_at)}
+            </Typography>
+          </Tooltip.Trigger>
+          <Tooltip.Content>{formatDateString(item.created_at)}</Tooltip.Content>
+        </Tooltip>
         {/* Actions */}
         <div className="flex justify-center relative">
           <IconButton

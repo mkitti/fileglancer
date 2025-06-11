@@ -5,14 +5,14 @@ import type {
   ZonesAndFileSharePathsMap,
   FileSharePath
 } from '@/shared.types';
-import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
 import {
   FolderFavorite,
   usePreferencesContext
 } from '@/contexts/PreferencesContext';
 
 export default function useSearchFilter() {
-  const { zonesAndFileSharePathsMap } = useFileBrowserContext();
+  const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
   const { zoneFavorites, fileSharePathFavorites, folderFavorites } =
     usePreferencesContext();
 

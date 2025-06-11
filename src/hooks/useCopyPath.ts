@@ -44,7 +44,7 @@ export default function useCopyPath() {
           isCopied: true
         });
         setShowCopyAlert(true);
-        console.log('Copied to clipboard:', text);
+        log.debug('Copied to clipboard:', text);
       } catch (error) {
         log.error('Failed to copy to clipboard:', error);
         setCopiedText({
