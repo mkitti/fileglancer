@@ -20,12 +20,10 @@
     },
     "files": [
         "lib/**/*.{d.ts,eot,gif,html,jpg,js,js.map,json,png,svg,woff2,ttf}",
-        "style/**/*.{css,js,eot,gif,html,jpg,json,png,svg,woff2,ttf}",
         "src/**/*.{ts,tsx}"
     ],
     "main": "lib/src/index.js",
     "types": "lib/src/index.d.ts",
-    "style": "style/index.css",
     "scripts": {
         "dev": "vite",
         "build": "tsc -p tsconfig.extension.json && vite build && npm run build:labextension:dev",

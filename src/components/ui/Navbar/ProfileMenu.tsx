@@ -23,9 +23,9 @@ export default function ProfileMenu() {
         size="sm"
         variant="ghost"
         color="secondary"
-        className="flex items-center justify-center p-1 rounded-full h-8 w-8 x-short:h-6 x-short:w-6 text-foreground dark:text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
+        className="flex items-center justify-center p-1 rounded-full h-8 w-8 short:h-6 short:w-6 text-foreground dark:text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
       >
-        <UserCircleIcon className="icon-large x-short:icon-default" />
+        <UserCircleIcon className="icon-large short:icon-default" />
       </Menu.Trigger>
       <Menu.Content>
         <Menu.Item

@@ -17,13 +17,3 @@
     @apply w-3 h-3;
   }
 }
-
-/* Override built-in Jupyter Lab extension CSS */
-.jp-ThemedContainer a:hover {
-  color: rgb(var(--color-primary-foreground) / var(--tw-text-opacity, 1));
-}
-
-/* Color fileglancer SVG */
-.fileglancer-logo svg {
-  color: rgb(var(--color-primary-default));
-}
