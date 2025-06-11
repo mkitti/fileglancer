@@ -1,12 +1,21 @@
-import { Switch, IconButton, Tooltip, Typography } from '@material-tailwind/react';
+import {
+  Switch,
+  IconButton,
+  Tooltip,
+  Typography
+} from '@material-tailwind/react';
 import { EllipsisHorizontalCircleIcon } from '@heroicons/react/24/outline';
-import {TbShareOff} from 'react-icons/tb';
+import { TbShareOff } from 'react-icons/tb';
 import log from 'loglevel';
 import toast from 'react-hot-toast';
 
 import SharingDialog from '@/components/ui/Dialogs/SharingDialog';
 import type { FileSharePath } from '@/shared.types';
-import { getPreferredPathForDisplay, makeMapKey, makeProxiedPathUrl } from '@/utils';
+import {
+  getPreferredPathForDisplay,
+  makeMapKey,
+  makeProxiedPathUrl
+} from '@/utils';
 import useSharingDialog from '@/hooks/useSharingDialog';
 import useCopyPath from '@/hooks/useCopyPath';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
@@ -37,23 +46,29 @@ export default function ProxiedPathRow({
 }: ProxiedPathRowProps) {
   const { showSharingDialog, setShowSharingDialog } = useSharingDialog();
   const { copyToClipboard } = useCopyPath();
-  const {pathPreference} = usePreferencesContext();
-  const {zonesAndFileSharePathsMap} = useZoneAndFspMapContext();
-  const {setCurrentFileSharePath} = useFileBrowserContext();
+  const { pathPreference } = usePreferencesContext();
+  const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
+  const { setCurrentFileSharePath } = useFileBrowserContext();
 
-  const pathFsp = zonesAndFileSharePathsMap[makeMapKey('fsp', item.fsp_name)] as FileSharePath;
-  const displayPath = getPreferredPathForDisplay(pathPreference, pathFsp, item.path);
+  const pathFsp = zonesAndFileSharePathsMap[
+    makeMapKey('fsp', item.fsp_name)
+  ] as FileSharePath;
+  const displayPath = getPreferredPathForDisplay(
+    pathPreference,
+    pathFsp,
+    item.path
+  );
   const proxiedPathUrl = makeProxiedPathUrl(item);
 
-  const handleCopyUrl = async() => {
-    try{
+  const handleCopyUrl = async () => {
+    try {
       await copyToClipboard(proxiedPathUrl);
       toast.success('URL copied to clipboard');
     } catch (error) {
       log.error('Failed to copy sharing URL:', error);
       toast.error('Failed to copy URL');
+    }
   };
-}
 
   return (
     <>
@@ -63,19 +78,22 @@ export default function ProxiedPathRow({
       >
         {/* Unshare button */}
         <IconButton
-            variant='ghost'
-            className="p-1 self-start max-w-fit"
-            onClick={() => {
-              setCurrentFileSharePath(pathFsp);
-              setShowSharingDialog(true);
-            }}
-          >
+          variant="ghost"
+          className="p-1 self-start max-w-fit"
+          onClick={() => {
+            setCurrentFileSharePath(pathFsp);
+            setShowSharingDialog(true);
+          }}
+        >
           <TbShareOff className="w-6 h-6 p-1 text-foreground rounded-full border border-foreground" />
         </IconButton>
         {/* Sharing name */}
         <Tooltip>
           <Tooltip.Trigger className="max-w-full truncate">
-            <Typography variant="small" className="text-left text-foreground truncate">
+            <Typography
+              variant="small"
+              className="text-left text-foreground truncate"
+            >
               {item.sharing_name}
             </Typography>
           </Tooltip.Trigger>
@@ -83,8 +101,11 @@ export default function ProxiedPathRow({
         </Tooltip>
         {/* Mount path */}
         <Tooltip>
-            <Tooltip.Trigger className="max-w-full truncate">
-            <Typography variant="small" className="text-left text-foreground truncate">
+          <Tooltip.Trigger className="max-w-full truncate">
+            <Typography
+              variant="small"
+              className="text-left text-foreground truncate"
+            >
               {displayPath}
             </Typography>
           </Tooltip.Trigger>
@@ -93,7 +114,10 @@ export default function ProxiedPathRow({
         {/* Date shared */}
         <Tooltip>
           <Tooltip.Trigger className="max-w-full truncate">
-            <Typography variant="small" className="text-left text-foreground truncate">
+            <Typography
+              variant="small"
+              className="text-left text-foreground truncate"
+            >
               {formatDateString(item.created_at)}
             </Typography>
           </Tooltip.Trigger>
@@ -124,8 +148,10 @@ export default function ProxiedPathRow({
                 </Typography>
                 <Typography
                   className="flex items-center gap-2 text-sm p-1 cursor-pointer text-red-600 hover:bg-red-50 transition-colors whitespace-nowrap"
-                  onClick={() => {setCurrentFileSharePath(pathFsp)
-                    setShowSharingDialog(true)}}
+                  onClick={() => {
+                    setCurrentFileSharePath(pathFsp);
+                    setShowSharingDialog(true);
+                  }}
                 >
                   Unshare
                 </Typography>

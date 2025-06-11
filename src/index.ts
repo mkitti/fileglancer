@@ -33,7 +33,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
   optional: [ILauncher],
   activate: (app: JupyterFrontEnd, launcher: ILauncher) => {
     console.log('JupyterLab extension fileglancer is activated!');
-    
+
     const { commands } = app;
     const command = CommandIDs.createFileglancerWidget;
 

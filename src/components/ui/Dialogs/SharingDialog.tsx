@@ -8,7 +8,10 @@ import {
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
-import { ProxiedPath, useProxiedPathContext } from '@/contexts/ProxiedPathContext';
+import {
+  ProxiedPath,
+  useProxiedPathContext
+} from '@/contexts/ProxiedPathContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { getPreferredPathForDisplay } from '@/utils';
@@ -123,11 +126,11 @@ export default function SharingDialog({
                 className="!rounded-md flex items-center gap-2"
                 onClick={async () => {
                   try {
-                    if (proxiedPath){
+                    if (proxiedPath) {
                       await deleteProxiedPath(proxiedPath);
                     } else {
-                    toast.error("Proxied path not found")
-                  }
+                      toast.error('Proxied path not found');
+                    }
                     toast.success(`Successfully unshared ${displayPath}`);
                     setShowSharingDialog(false);
                     if (setIsImageShared) {

@@ -146,21 +146,24 @@ export const ProxiedPathProvider = ({
     return proxiedPath;
   }
 
-  const deleteProxiedPath = React.useCallback(async (proxiedPath: ProxiedPath) => {
-    const response = await sendFetchRequest(
-      `/api/fileglancer/proxied-path?sharing_key=${proxiedPath.sharing_key}`,
-      'DELETE',
-      cookies['_xsrf']
-    );
-    if (!response.ok) {
-      throw new Error(
-        `Failed to delete proxied path: ${response.status} ${response.statusText}`
+  const deleteProxiedPath = React.useCallback(
+    async (proxiedPath: ProxiedPath) => {
+      const response = await sendFetchRequest(
+        `/api/fileglancer/proxied-path?sharing_key=${proxiedPath.sharing_key}`,
+        'DELETE',
+        cookies['_xsrf']
       );
-    }
-    log.debug('Deleted proxied path:', proxiedPath);
-    updateProxiedPath(null);
-    await fetchAllProxiedPaths();
-  }, [proxiedPath, cookies, updateProxiedPath]);
+      if (!response.ok) {
+        throw new Error(
+          `Failed to delete proxied path: ${response.status} ${response.statusText}`
+        );
+      }
+      log.debug('Deleted proxied path:', proxiedPath);
+      updateProxiedPath(null);
+      await fetchAllProxiedPaths();
+    },
+    [proxiedPath, cookies, updateProxiedPath]
+  );
 
   React.useEffect(() => {
     (async function () {

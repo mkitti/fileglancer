@@ -21,10 +21,11 @@ test('should emit an activation console message', async ({ page }) => {
   ).toHaveLength(1);
   // we are still on the JupyterLab page
   await expect(page).toHaveTitle('JupyterLab');
-
 });
 
-test('when fg icon clicked should open fileglancer extension', async ({ page }) => {
+test('when fg icon clicked should open fileglancer extension', async ({
+  page
+}) => {
   const logs: string[] = [];
 
   page.on('console', message => {
@@ -35,5 +36,4 @@ test('when fg icon clicked should open fileglancer extension', async ({ page }) 
 
   // we are still on the Fileglancer page
   await expect(page).toHaveTitle('Fileglancer');
-
-})
+});
