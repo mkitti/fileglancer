@@ -1,6 +1,6 @@
-import React from 'react';
 import { Collapse, Typography, List } from '@material-tailwind/react';
-import { ChevronRightIcon, Squares2X2Icon } from '@heroicons/react/24/outline';
+import { HiChevronRight } from 'react-icons/hi';
+import { HiSquares2X2 } from 'react-icons/hi2';
 
 import { ZonesAndFileSharePathsMap } from '@/shared.types';
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
@@ -25,30 +25,30 @@ export default function ZonesBrowser({
       : zonesAndFileSharePathsMap;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden w-[calc(100%-1.5rem)] my-3 x-short:my-1 mx-3 bg-surface/50">
-      <List className="bg-background py-0">
+    <div className="flex flex-col my-3 short:my-1 mx-1">
+      <List className="bg-background py-0 pt-3 border-t border-surface !min-w-50">
         <List.Item
           onClick={() => toggleOpenZones('all')}
-          className="cursor-pointer rounded-none py-3 x-short:py-1 bg-surface/50 hover:!bg-surface-light focus:!bg-surface-light"
+          className="cursor-pointer rounded-md py-3 short:py-1 hover:!bg-surface-light focus:!bg-surface-light"
         >
           <List.ItemStart>
-            <Squares2X2Icon className="icon-default x-short:icon-xsmall text-surface-foreground" />
+            <HiSquares2X2 className="icon-default short:icon-small text-surface-foreground" />
           </List.ItemStart>
-          <Typography className="x-short:text-xs short:text-xs font-semibold text-surface-foreground">
+          <Typography className="short:text-sm text-base font-semibold text-surface-foreground">
             Zones
           </Typography>
-          <List.ItemEnd className="pr-2">
-            <ChevronRightIcon
-              className={`icon-small x-short:icon-xsmall ${openZones['all'] ? 'rotate-90' : ''}`}
+          <List.ItemEnd>
+            <HiChevronRight
+              className={`icon-default short:icon-small ${openZones['all'] ? 'rotate-90' : ''}`}
             />
           </List.ItemEnd>
         </List.Item>
       </List>
       <Collapse
         open={openZones['all'] ? true : false}
-        className="!overflow-y-auto overflow-x-hidden flex-grow"
+        className="overflow-x-hidden flex-grow w-full"
       >
-        <List className="!overflow-y-auto h-full py-0 gap-0 pr-2 bg-background">
+        <List className="h-full py-0 gap-0 bg-background">
           {Object.entries(displayZones).map(([key, value]) => {
             if (key.startsWith('zone') && 'fileSharePaths' in value) {
               return (

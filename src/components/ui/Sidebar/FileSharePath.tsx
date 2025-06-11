@@ -24,13 +24,9 @@ export default function FileSharePathComponent({
   const { pathPreference, fileSharePathPreferenceMap, handleFavoriteChange } =
     usePreferencesContext();
 
-  const {
-    handleFileBrowserNavigation,
-    currentFileSharePath,
-    setCurrentFileSharePath
-  } = useFileBrowserContext();
+  const { handleFileBrowserNavigation, setCurrentFileSharePath } =
+    useFileBrowserContext();
 
-  const isCurrentPath = currentFileSharePath?.name === fsp.name;
   const isFavoritePath = fileSharePathPreferenceMap[makeMapKey('fsp', fsp.name)]
     ? true
     : false;
@@ -42,20 +38,20 @@ export default function FileSharePathComponent({
         setCurrentFileSharePath(fsp);
         await handleFileBrowserNavigation({ fspName: fsp.name });
       }}
-      className={`w-full x-short:py-0 flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30 ${isCurrentPath ? '!bg-primary-light/30' : index % 2 !== 0 ? '!bg-background' : '!bg-surface/50'}`}
+      className="pl-6 w-full flex items-center justify-between rounded-md cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30"
     >
       <Link
         to="/browse"
-        className="max-w-[calc(100%-4rem)] grow flex flex-col gap-2 !text-foreground hover:!text-black focus:!text-black dark:hover:!text-white dark:focus:!text-white"
+        className="max-w-[calc(100%-4rem)] grow flex flex-col gap-1 !text-foreground hover:!text-black focus:!text-black dark:hover:!text-white dark:focus:!text-white"
       >
         <div className="flex gap-1 items-center max-w-full">
-          <RectangleStackIcon className="icon-small x-short:icon-xsmall" />
-          <Typography className="truncate text-sm font-medium leading-4 x-short:text-xs">
+          <RectangleStackIcon className="icon-small short:icon-xsmall stroke-2" />
+          <Typography className="truncate text-sm leading-4 short:text-xs font-semibold">
             {fsp.storage}
           </Typography>
         </div>
 
-        <Typography className="text-xs truncate max-w-full">
+        <Typography className="text-sm short:text-xs truncate max-w-full">
           {fspPath}
         </Typography>
       </Link>
@@ -67,6 +63,7 @@ export default function FileSharePathComponent({
         }}
       >
         <IconButton
+          className="min-w-0 min-h-0"
           variant="ghost"
           isCircular
           onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
@@ -75,9 +72,9 @@ export default function FileSharePathComponent({
           }}
         >
           {isFavoritePath ? (
-            <StarFilled className="icon-small x-short:icon-xsmall mb-[2px]" />
+            <StarFilled className="icon-small short:icon-xsmall mb-[2px]" />
           ) : (
-            <StarOutline className="icon-small x-short:icon-xsmall mb-[2px]" />
+            <StarOutline className="icon-small short:icon-xsmall mb-[2px]" />
           )}
         </IconButton>
       </div>
