@@ -22,7 +22,7 @@ type SharingDialogProps = {
   filePathWithoutFsp: string;
   showSharingDialog: boolean;
   setShowSharingDialog: React.Dispatch<React.SetStateAction<boolean>>;
-  proxiedPath?: ProxiedPath;
+  proxiedPath: ProxiedPath | null;
 };
 
 export default function SharingDialog({

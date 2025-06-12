@@ -110,15 +110,7 @@ export default function ZarrPreview({
             </label>
           </div>
 
-          {showSharingDialog && !proxiedPath ? (
-            <SharingDialog
-              isImageShared={isImageShared}
-              setIsImageShared={setIsImageShared}
-              filePathWithoutFsp={currentFileOrFolder?.path || ''}
-              showSharingDialog={showSharingDialog}
-              setShowSharingDialog={setShowSharingDialog}
-            />
-          ) : showSharingDialog && proxiedPath ? (
+          {showSharingDialog ? (
             <SharingDialog
               isImageShared={isImageShared}
               setIsImageShared={setIsImageShared}
