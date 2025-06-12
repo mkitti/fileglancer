@@ -18,6 +18,13 @@
   }
 }
 
+/* Indent only those file share paths nested inside a zone in the sidebar */
+.file-share-path-list > .file-share-path {
+  padding-left: 2.5rem;
+}
+
+/* Force sidebar scrollbar to always appear in Chrome, including on MacOS */
+/* Note - no analogous fix for Firefox on MacOS */
 .sidebar-scroll::-webkit-scrollbar {
   width: 8px;
   height: 8px;
