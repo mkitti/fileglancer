@@ -2,9 +2,9 @@ import React, { ReactNode } from 'react';
 import { IconButton, Tooltip, Typography } from '@material-tailwind/react';
 import {
   DocumentIcon,
-  EllipsisHorizontalCircleIcon,
   FolderIcon
 } from '@heroicons/react/24/outline';
+import { HiOutlineEllipsisHorizontalCircle } from "react-icons/hi2";
 import toast from 'react-hot-toast';
 
 import type { FileOrFolder } from '@/shared.types';
@@ -190,7 +190,7 @@ export default function FileRow({
         }}
       >
         <IconButton variant="ghost">
-          <EllipsisHorizontalCircleIcon className="icon-default text-foreground" />
+          <HiOutlineEllipsisHorizontalCircle className="icon-default text-foreground" />
         </IconButton>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { Typography } from '@material-tailwind/react';
+import { Menu, Typography } from '@material-tailwind/react';
 
 import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
@@ -35,16 +35,16 @@ export default function ContextMenu({
   return ReactDOM.createPortal(
     <div
       ref={menuRef}
-      className="fixed z-[9999] bg-background shadow-lg shadow-surface rounded-md p-2"
+      className="fixed z-[9999] min-w-40 rounded-lg space-y-0.5 border border-surface bg-background p-1"
       style={{
         left: `${x}px`,
         top: `${y}px`
       }}
     >
-      <div className="flex flex-col gap-2">
-        {/* Show/hide properties drawer */}
+        <Menu.Item>
+          {/* Show/hide properties drawer */}
         <Typography
-          className="text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
+          className="text-sm p-1 cursor-pointer text-secondary-light"
           onClick={() => {
             setShowPropertiesDrawer(true);
             setShowContextMenu(false);
@@ -52,10 +52,12 @@ export default function ContextMenu({
         >
           View file properties
         </Typography>
+        </Menu.Item>
         {/* Set/unset folders as favorites */}
         {selectedFiles.length === 1 && selectedFiles[0].is_dir ? (
+          <Menu.Item>
           <Typography
-            className="text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
+            className="text-sm p-1 cursor-pointer text-secondary-light"
             onClick={() => {
               if (currentFileSharePath) {
                 handleFavoriteChange(
@@ -72,23 +74,27 @@ export default function ContextMenu({
           >
             Set/unset as favorite
           </Typography>
+          </Menu.Item>
         ) : null}
         {/* Rename file or folder */}
         {selectedFiles.length === 1 ? (
+          <Menu.Item>
           <Typography
             onClick={() => {
               setShowRenameDialog(true);
               setShowContextMenu(false);
             }}
-            className="text-left text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
+            className="text-left text-sm p-1 cursor-pointer text-secondary-light"
           >
             Rename
           </Typography>
+          </Menu.Item>
         ) : null}
         {/* Change permissions on file(s) */}
         {selectedFiles.length === 1 && !selectedFiles[0].is_dir ? (
+          <Menu.Item>
           <Typography
-            className="text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
+            className="text-sm p-1 cursor-pointer text-secondary-light"
             onClick={() => {
               setShowPermissionsDialog(true);
               setShowContextMenu(false);
@@ -96,10 +102,12 @@ export default function ContextMenu({
           >
             Change permissions
           </Typography>
+          </Menu.Item>
         ) : null}
         {/* Delete file(s) or folder(s) */}
+        <Menu.Item>
         <Typography
-          className="text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
+          className="text-sm p-1 cursor-pointer text-red-600"
           onClick={() => {
             setShowDeleteDialog(true);
             setShowContextMenu(false);
@@ -107,7 +115,7 @@ export default function ContextMenu({
         >
           Delete
         </Typography>
-      </div>
+        </Menu.Item>
     </div>,
 
     document.body // Render context menu directly to body

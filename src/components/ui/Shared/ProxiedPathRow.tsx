@@ -1,12 +1,10 @@
 import {
-  ButtonGroup,
   IconButton,
   Menu,
   Tooltip,
   Typography
 } from '@material-tailwind/react';
-import { HiEllipsisHorizontal } from 'react-icons/hi2';
-import { TbShareOff } from 'react-icons/tb';
+import { HiOutlineEllipsisHorizontalCircle } from "react-icons/hi2";
 import log from 'loglevel';
 import toast from 'react-hot-toast';
 
@@ -115,13 +113,13 @@ export default function ProxiedPathRow({
         </Tooltip>
         {/* Actions */}
         <Menu>
-          <Menu.Trigger as={IconButton}>
-            <HiEllipsisHorizontal className="icon-default" />
+          <Menu.Trigger as={IconButton} variant="ghost" className="p-1 max-w-fit">
+            <HiOutlineEllipsisHorizontalCircle className="icon-default text-foreground" />
           </Menu.Trigger>
-          <Menu.Content>
-            <Menu.Item>
+          <Menu.Content className="menu-content">
+            <Menu.Item className="menu-item">
               <Typography
-                className="flex items-center gap-2 text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
+                className="text-sm p-1 cursor-pointer text-secondary-light"
                 onClick={handleCopyUrl}
               >
                 Copy sharing URL
@@ -129,7 +127,7 @@ export default function ProxiedPathRow({
             </Menu.Item>
             <Menu.Item>
               <Typography
-                className="flex items-center gap-2 text-sm p-1 cursor-pointer text-red-600 hover:bg-red-50 transition-colors whitespace-nowrap"
+                className="text-sm p-1 cursor-pointer text-red-600"
                 onClick={() => {
                   setCurrentFileSharePath(pathFsp);
                   setShowSharingDialog(true);
@@ -140,51 +138,6 @@ export default function ProxiedPathRow({
             </Menu.Item>
           </Menu.Content>
         </Menu>
-        {/* Context menu
-
-          <div className="flex justify-center relative">
-            <Tooltip>
-              <Tooltip.Trigger
-                as={IconButton}
-                variant="outline"
-                onClick={() =>
-                  setMenuOpenId(
-                    menuOpenId === item.sharing_key ? null : item.sharing_key
-                  )
-                }
-              >
-                <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-                  <Typography type="small" className="opacity-90">
-                    More actions
-                  </Typography>
-                  <Tooltip.Arrow />
-                </Tooltip.Content>
-              </Tooltip.Trigger>
-            </Tooltip>
-            {menuOpenId === item.sharing_key ? (
-              <div className="absolute z-10 right-0 top-8 bg-background shadow-lg shadow-surface rounded-md p-2 min-w-[180px] border border-surface">
-                <div className="flex flex-col gap-2">
-                  <Typography
-                    className="flex items-center gap-2 text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
-                    onClick={handleCopyUrl}
-                  >
-                    Copy sharing URL
-                  </Typography>
-                  <Typography
-                    className="flex items-center gap-2 text-sm p-1 cursor-pointer text-red-600 hover:bg-red-50 transition-colors whitespace-nowrap"
-                    onClick={() => {
-                      setCurrentFileSharePath(pathFsp);
-                      setShowSharingDialog(true);
-                    }}
-                  >
-                    Unshare
-                  </Typography>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </ButtonGroup>
-      */}
       </div>
       {/* Sharing dialog */}
       {showSharingDialog ? (
