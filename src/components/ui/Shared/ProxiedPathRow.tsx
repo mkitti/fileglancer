@@ -1,10 +1,11 @@
 import {
   ButtonGroup,
   IconButton,
+  Menu,
   Tooltip,
   Typography
 } from '@material-tailwind/react';
-import { HiEllipsisHorizontal } from "react-icons/hi2";
+import { HiEllipsisHorizontal } from 'react-icons/hi2';
 import { TbShareOff } from 'react-icons/tb';
 import log from 'loglevel';
 import toast from 'react-hot-toast';
@@ -113,40 +114,45 @@ export default function ProxiedPathRow({
           <Tooltip.Content>{formatDateString(item.created_at)}</Tooltip.Content>
         </Tooltip>
         {/* Actions */}
-        <ButtonGroup className="gap-1">
-          {/* Unshare button */}
-          <Tooltip>
-            <Tooltip.Trigger
-            as={IconButton}
-            variant="outline"
-            className='!rounded-md'
-            onClick={() => {
-              setCurrentFileSharePath(pathFsp);
-              setShowSharingDialog(true);
-            }}
-            >
-            <TbShareOff className='icon-default'/>
-            <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-              <Typography type="small" className="opacity-90">
+        <Menu>
+          <Menu.Trigger as={IconButton}>
+            <HiEllipsisHorizontal className="icon-default" />
+          </Menu.Trigger>
+          <Menu.Content>
+            <Menu.Item>
+              <Typography
+                className="flex items-center gap-2 text-sm p-1 cursor-pointer text-secondary-light hover:bg-secondary-light/30 transition-colors whitespace-nowrap"
+                onClick={handleCopyUrl}
+              >
+                Copy sharing URL
+              </Typography>
+            </Menu.Item>
+            <Menu.Item>
+              <Typography
+                className="flex items-center gap-2 text-sm p-1 cursor-pointer text-red-600 hover:bg-red-50 transition-colors whitespace-nowrap"
+                onClick={() => {
+                  setCurrentFileSharePath(pathFsp);
+                  setShowSharingDialog(true);
+                }}
+              >
                 Unshare
               </Typography>
-              <Tooltip.Arrow />
-            </Tooltip.Content>
-            </Tooltip.Trigger>
-          </Tooltip>
-            {/* Context menu */}
+            </Menu.Item>
+          </Menu.Content>
+        </Menu>
+        {/* Context menu
 
           <div className="flex justify-center relative">
             <Tooltip>
               <Tooltip.Trigger
-              as={IconButton}
-              variant="outline"
-              onClick={() =>
-                setMenuOpenId(
-                  menuOpenId === item.sharing_key ? null : item.sharing_key
-                )
-              }>
-                <HiEllipsisHorizontal className="icon-default" />
+                as={IconButton}
+                variant="outline"
+                onClick={() =>
+                  setMenuOpenId(
+                    menuOpenId === item.sharing_key ? null : item.sharing_key
+                  )
+                }
+              >
                 <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
                   <Typography type="small" className="opacity-90">
                     More actions
@@ -178,6 +184,7 @@ export default function ProxiedPathRow({
             ) : null}
           </div>
         </ButtonGroup>
+      */}
       </div>
       {/* Sharing dialog */}
       {showSharingDialog ? (
