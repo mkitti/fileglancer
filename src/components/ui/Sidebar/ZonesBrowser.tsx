@@ -25,11 +25,11 @@ export default function ZonesBrowser({
       : zonesAndFileSharePathsMap;
 
   return (
-    <div className="flex flex-col my-3 short:my-1 mx-1">
+    <div className="flex flex-col my-1 mx-1">
       <List className="!min-w-20">
         <List.Item
           onClick={() => toggleOpenZones('all')}
-          className="cursor-pointer rounded-md py-3 short:py-1 hover:!bg-surface-light focus:!bg-surface-light"
+          className="cursor-pointer rounded-md py-2 short:py-1 hover:!bg-surface-light focus:!bg-surface-light"
         >
           <List.ItemStart>
             <HiSquares2X2 className="icon-default short:icon-small text-surface-foreground" />
