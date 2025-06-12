@@ -6,6 +6,7 @@ import {
   getPreferredPathForDisplay,
   joinPaths,
   makePathSegmentArray,
+  makeProxiedPathUrl,
   removeLastSegmentFromPath
 } from './pathHandling';
 
@@ -21,7 +22,7 @@ const formatFileSize = (sizeInBytes: number): string => {
   }
 };
 
-const formatDate = (timestamp: number): string => {
+const formatUnixTimestamp = (timestamp: number): string => {
   const date = new Date(timestamp * 1000);
   return date.toLocaleDateString('en-US', {
     month: 'short',
@@ -146,7 +147,7 @@ export {
   fetchFileAsJson,
   fetchFileAsText,
   fetchFileContent,
-  formatDate,
+  formatUnixTimestamp,
   formatFileSize,
   getFileBrowsePath,
   getFileURL,
@@ -156,6 +157,7 @@ export {
   joinPaths,
   makeMapKey,
   makePathSegmentArray,
+  makeProxiedPathUrl,
   parsePermissions,
   removeLastSegmentFromPath,
   sendFetchRequest

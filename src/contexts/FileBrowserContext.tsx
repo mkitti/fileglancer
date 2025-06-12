@@ -1,6 +1,6 @@
 import React from 'react';
 import { default as log } from '@/logger';
-import { Zone, FileOrFolder, FileSharePath } from '@/shared.types';
+import { FileOrFolder, FileSharePath } from '@/shared.types';
 import { getFileBrowsePath, sendFetchRequest } from '@/utils';
 import { useCookiesContext } from './CookiesContext';
 import { useZoneAndFspMapContext } from './ZonesAndFspMapContext';

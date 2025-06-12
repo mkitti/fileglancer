@@ -14,6 +14,12 @@ git clone git@github.com:JaneliaSciComp/fileglancer.git
 cd fileglancer
 ```
 
+Copy the .env example and edit the environmental variable values for your setup:
+
+```bash
+cp .env.example .env
+```
+
 If this is your first time installing the extension in dev mode, install package in development mode.
 
 ```bash
@@ -26,7 +32,7 @@ You can build the frontend extension in watch mode - it will automatically rebui
 pixi run dev-watch
 ```
 
-In new terminal, run Jupyter Lab in autoreload mode - it will automatically rebuild when there are file changes to the backend:
+In new terminal, run JupyterLab in autoreload mode - it will automatically rebuild when there are file changes to the backend:
 
 ```bash
 pixi run dev-launch
@@ -34,9 +40,9 @@ pixi run dev-launch
 
 Saved changes in your directory should now be automatically built locally and available in your running JupyterLab. Refresh JupyterLab to load the change in your browser (you may need to wait several seconds for the extension to be rebuilt).
 
-If everything has worked so far, you should see the React Widget on the Launcher pane:
+If everything has worked so far, you should see the Fileglancer widget on the Launcher pane:
 
-![Screenshot of the JupyterLab Launcher panel. In the bottom section, titled "Other", the square tile with the title "React Widget" is circled](./assets/img/JupyterLab-launcher.png)
+![Screenshot of the JupyterLab Launcher panel. In the bottom section, titled "Other", the square tile with the title "Fileglancer" is circled](./assets/img/launcher.png)
 
 ### Troubleshooting the extension
 

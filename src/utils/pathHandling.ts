@@ -1,5 +1,13 @@
 import path from 'path';
+import log from 'loglevel';
 import type { FileSharePath } from '@/shared.types';
+import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
+
+const PATH_DELIMITER = '/';
+const PROXY_BASE_URL = import.meta.env.VITE_PROXY_BASE_URL;
+if (!PROXY_BASE_URL) {
+  log.warn('VITE_PROXY_BASE_URL is not defined in the environment.');
+}
 
 /**
  * Joins multiple path segments into a single POSIX-style path, trimming any whitespace first.
@@ -83,14 +91,12 @@ function getLastSegmentFromPath(itemPath: string): string {
 }
 
 /**
- * Converts a path string to an array of path segments, using pathSep as the delimiter.
+ * Converts a path string to an array of path segments, splitting at PATH_DELIMITER.
  * For example, as used in the Crumbs UI component:
  * makePathSegmentArray('/path/to/folder'); // Returns ['path', 'to', 'folder']
  */
-const pathSep = '/';
-
 function makePathSegmentArray(itemPath: string): string[] {
-  return itemPath.split(pathSep);
+  return itemPath.split(PATH_DELIMITER);
 }
 
 /**
@@ -137,6 +143,16 @@ function getPreferredPathForDisplay(
   return fullPath;
 }
 
+/**
+ * Constructs a shareable URL for a proxied path item.
+ * Example:
+ * makeProxiedPathUrl({ sharing_key: 'key123', sharing_name: 'shared-folder' });
+ * // Returns 'http://localhost:8888/proxy/key123/shared-folder'
+ */
+function makeProxiedPathUrl(item: ProxiedPath): string {
+  return joinPaths(PROXY_BASE_URL, item.sharing_key, item.sharing_name);
+}
+
 export {
   getFileBrowsePath,
   getFileContentPath,
@@ -145,5 +161,6 @@ export {
   getPreferredPathForDisplay,
   joinPaths,
   makePathSegmentArray,
+  makeProxiedPathUrl,
   removeLastSegmentFromPath
 };

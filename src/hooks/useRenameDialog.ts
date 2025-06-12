@@ -7,10 +7,10 @@ import {
   sendFetchRequest,
   removeLastSegmentFromPath,
   getPreferredPathForDisplay
-} from '../utils';
-import { useFileBrowserContext } from '../contexts/FileBrowserContext';
+} from '@/utils';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import { useCookiesContext } from '../contexts/CookiesContext';
+import { useCookiesContext } from '@/contexts/CookiesContext';
 
 export default function useRenameDialog() {
   const [newName, setNewName] = useState<string>('');

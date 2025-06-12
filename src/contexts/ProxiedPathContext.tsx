@@ -1,28 +1,36 @@
 import React from 'react';
 import { default as log } from '@/logger';
 import { useCookiesContext } from '@/contexts/CookiesContext';
-import { sendFetchRequest } from '@/utils';
+import { sendFetchRequest, makeProxiedPathUrl } from '@/utils';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
-const proxyBaseUrl = import.meta.env.VITE_PROXY_BASE_URL;
-
-type ProxiedPath = {
+export type ProxiedPath = {
   fsp_name: string;
   path: string;
   sharing_key: string;
   sharing_name: string;
+  created_at: string;
+  updated_at: string;
   username: string;
 };
 
 type ProxiedPathContextType = {
   proxiedPath: ProxiedPath | null;
   dataUrl: string | null;
+  allProxiedPaths?: ProxiedPath[];
   createProxiedPath: (
     fspName: string,
     path: string
   ) => Promise<ProxiedPath | null>;
-  deleteProxiedPath: () => Promise<void>;
+  deleteProxiedPath: (proxiedPath: ProxiedPath) => Promise<void>;
 };
+
+function sortProxiedPathsByDate(paths: ProxiedPath[]): ProxiedPath[] {
+  return paths.sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+}
 
 const ProxiedPathContext = React.createContext<ProxiedPathContextType | null>(
   null
@@ -43,6 +51,9 @@ export const ProxiedPathProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
+  const [allProxiedPaths, setAllProxiedPaths] = React.useState<ProxiedPath[]>(
+    []
+  );
   const [proxiedPath, setProxiedPath] = React.useState<ProxiedPath | null>(
     null
   );
@@ -54,15 +65,37 @@ export const ProxiedPathProvider = ({
     (proxiedPath: ProxiedPath | null) => {
       setProxiedPath(proxiedPath);
       if (proxiedPath) {
-        setDataUrl(
-          `${proxyBaseUrl}/${proxiedPath.sharing_key}/${proxiedPath.sharing_name}`
-        );
+        setDataUrl(makeProxiedPathUrl(proxiedPath));
       } else {
         setDataUrl(null);
       }
     },
     []
   );
+
+  const fetchAllProxiedPaths = React.useCallback(async (): Promise<void> => {
+    const response = await sendFetchRequest(
+      'api/fileglancer/proxied-path',
+      'GET',
+      cookies['_xsrf']
+    );
+    if (!response.ok) {
+      let errorMsg = `HTTP error: ${response.status}`;
+      try {
+        const data = await response.json();
+        if (data && data.error) {
+          errorMsg = data.error;
+        }
+      } catch (e) {
+        // response was not JSON, keeping default errorMsg...
+      }
+      throw new Error(errorMsg);
+    }
+    const data = await response.json();
+    if (data?.paths) {
+      setAllProxiedPaths(sortProxiedPathsByDate(data.paths) as ProxiedPath[]);
+    }
+  }, [cookies]);
 
   const fetchProxiedPath = React.useCallback(async () => {
     if (!currentFileSharePath || !currentFileOrFolder) {
@@ -71,7 +104,7 @@ export const ProxiedPathProvider = ({
     }
     try {
       const response = await sendFetchRequest(
-        `/api/fileglancer/proxied-path?fsp_name=${currentFileSharePath.name}&path=${currentFileOrFolder.path}`,
+        `api/fileglancer/proxied-path?fsp_name=${currentFileSharePath?.name}&path=${currentFileOrFolder?.path}`,
         'GET',
         cookies['_xsrf']
       );
@@ -89,47 +122,54 @@ export const ProxiedPathProvider = ({
       log.error('Error fetching proxied path:', error);
     }
     return null;
-  }, [cookies, currentFileSharePath, currentFileOrFolder]);
+  }, [currentFileSharePath, currentFileOrFolder, cookies]);
 
-  const createProxiedPath = React.useCallback(
-    async (fspName: string, path: string) => {
-      const response = await sendFetchRequest(
-        '/api/fileglancer/proxied-path',
-        'POST',
-        cookies['_xsrf'],
-        { fsp_name: fspName, path: path }
-      );
-      if (!response.ok) {
-        throw new Error(
-          `Failed to create proxied path: ${response.status} ${response.statusText}`
-        );
-      }
-      const proxiedPath = (await response.json()) as ProxiedPath;
-      updateProxiedPath(proxiedPath);
-      log.debug('Created proxied path:', proxiedPath);
-      return proxiedPath;
-    },
-    [updateProxiedPath, cookies]
-  );
-
-  const deleteProxiedPath = React.useCallback(async () => {
-    if (!proxiedPath) {
-      log.error('No proxied path to delete');
-      return;
-    }
+  async function createProxiedPath(
+    fspName: string,
+    path: string
+  ): Promise<ProxiedPath | null> {
     const response = await sendFetchRequest(
-      `/api/fileglancer/proxied-path?sharing_key=${proxiedPath.sharing_key}`,
-      'DELETE',
-      cookies['_xsrf']
+      'api/fileglancer/proxied-path',
+      'POST',
+      cookies['_xsrf'],
+      { fsp_name: fspName, path: path }
     );
     if (!response.ok) {
       throw new Error(
-        `Failed to delete proxied path: ${response.status} ${response.statusText}`
+        `Failed to create proxied path: ${response.status} ${response.statusText}`
       );
     }
-    log.debug('Deleted proxied path:', proxiedPath);
-    updateProxiedPath(null);
-  }, [updateProxiedPath, proxiedPath, cookies]);
+    const proxiedPath = (await response.json()) as ProxiedPath;
+    updateProxiedPath(proxiedPath);
+    await fetchAllProxiedPaths();
+    log.debug('Created proxied path:', proxiedPath);
+    return proxiedPath;
+  }
+
+  const deleteProxiedPath = React.useCallback(
+    async (proxiedPath: ProxiedPath) => {
+      const response = await sendFetchRequest(
+        `/api/fileglancer/proxied-path?sharing_key=${proxiedPath.sharing_key}`,
+        'DELETE',
+        cookies['_xsrf']
+      );
+      if (!response.ok) {
+        throw new Error(
+          `Failed to delete proxied path: ${response.status} ${response.statusText}`
+        );
+      }
+      log.debug('Deleted proxied path:', proxiedPath);
+      updateProxiedPath(null);
+      await fetchAllProxiedPaths();
+    },
+    [proxiedPath, cookies, updateProxiedPath]
+  );
+
+  React.useEffect(() => {
+    (async function () {
+      await fetchAllProxiedPaths();
+    })();
+  }, [fetchAllProxiedPaths]);
 
   React.useEffect(() => {
     (async function () {
@@ -153,7 +193,13 @@ export const ProxiedPathProvider = ({
 
   return (
     <ProxiedPathContext.Provider
-      value={{ proxiedPath, dataUrl, createProxiedPath, deleteProxiedPath }}
+      value={{
+        proxiedPath,
+        dataUrl,
+        allProxiedPaths,
+        createProxiedPath,
+        deleteProxiedPath
+      }}
     >
       {children}
     </ProxiedPathContext.Provider>

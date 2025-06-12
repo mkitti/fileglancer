@@ -20,6 +20,7 @@ import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import ZarrMetadataTable from './ZarrMetadataTable';
 import SharingDialog from '../Dialogs/SharingDialog';
+import useSharingDialog from '@/hooks/useSharingDialog';
 import type { OpenWithToolUrls } from '@/hooks/useZarrMetadata';
 
 type ZarrPreviewProps = {
@@ -35,11 +36,10 @@ export default function ZarrPreview({
   openWithToolUrls,
   metadata
 }: ZarrPreviewProps): React.ReactNode {
-  const [showSharingDialog, setShowSharingDialog] =
-    React.useState<boolean>(false);
   const [isImageShared, setIsImageShared] = React.useState(false);
   const [showCopiedTooltip, setShowCopiedTooltip] = React.useState(false);
 
+  const { showSharingDialog, setShowSharingDialog } = useSharingDialog();
   const { copyToClipboard } = useCopyPath();
   const { proxiedPath } = useProxiedPathContext();
   const { currentFileOrFolder } = useFileBrowserContext();
@@ -117,6 +117,7 @@ export default function ZarrPreview({
               filePathWithoutFsp={currentFileOrFolder?.path || ''}
               showSharingDialog={showSharingDialog}
               setShowSharingDialog={setShowSharingDialog}
+              proxiedPath={proxiedPath}
             />
           ) : null}
 

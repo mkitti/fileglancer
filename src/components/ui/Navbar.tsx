@@ -14,6 +14,7 @@ import {
   Bars3Icon as MenuIcon,
   BriefcaseIcon,
   XMarkIcon,
+  ShareIcon,
   SunIcon
 } from '@heroicons/react/24/outline';
 
@@ -25,6 +26,11 @@ const LINKS = [
     icon: FolderIcon,
     title: 'Browse',
     href: '/browse'
+  },
+  {
+    icon: ShareIcon,
+    title: 'Shared',
+    href: '/shared'
   },
   {
     icon: BriefcaseIcon,

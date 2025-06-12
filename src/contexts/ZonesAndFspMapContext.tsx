@@ -33,8 +33,10 @@ export const ZonesAndFspMapContextProvider = ({
 
   const { cookies } = useCookiesContext();
 
-  const getZones = React.useCallback(async () => {
-    const url = '/api/fileglancer/file-share-paths';
+  const getZones = React.useCallback(async (): Promise<{
+    paths: FileSharePath[];
+  }> => {
+    const url = 'api/fileglancer/file-share-paths';
     let rawData: { paths: FileSharePath[] } = { paths: [] };
     try {
       const response = await sendFetchRequest(url, 'GET', cookies['_xsrf']);
@@ -108,24 +110,25 @@ export const ZonesAndFspMapContextProvider = ({
     return sortedMap;
   }
 
-  const updateZonesAndFileSharePathsMap = React.useCallback(async () => {
-    let rawData: { paths: FileSharePath[] } = { paths: [] };
-    try {
-      rawData = await getZones();
-      const newZonesAndFileSharePathsMap =
-        createZonesAndFileSharePathsMap(rawData);
-      const sortedMap = alphabetizeZonesAndFsps(newZonesAndFileSharePathsMap);
-      setZonesAndFileSharePathsMap(sortedMap);
-      setIsZonesMapReady(true);
-      log.debug('zones and fsp map in ZoneBrowserContext:', sortedMap);
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        log.error(error.message);
-      } else {
-        log.error('An unknown error occurred when fetching zones');
+  const updateZonesAndFileSharePathsMap =
+    React.useCallback(async (): Promise<void> => {
+      let rawData: { paths: FileSharePath[] } = { paths: [] };
+      try {
+        rawData = await getZones();
+        const newZonesAndFileSharePathsMap =
+          createZonesAndFileSharePathsMap(rawData);
+        const sortedMap = alphabetizeZonesAndFsps(newZonesAndFileSharePathsMap);
+        setZonesAndFileSharePathsMap(sortedMap);
+        setIsZonesMapReady(true);
+        log.debug('zones and fsp map in ZoneBrowserContext:', sortedMap);
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          log.error(error.message);
+        } else {
+          log.error('An unknown error occurred when fetching zones');
+        }
       }
-    }
-  }, [getZones]);
+    }, [getZones]);
 
   // When app first loads, fetch file share paths
   // and create a map of zones and file share paths

@@ -16,7 +16,11 @@ function useProfile() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await sendFetchRequest('/api/fileglancer/profile', 'GET', cookies['_xsrf']);
+        const response = await sendFetchRequest(
+          '/api/fileglancer/profile',
+          'GET',
+          cookies['_xsrf']
+        );
         if (!response.ok) {
           throw new Error('Failed to fetch profile data');
         }

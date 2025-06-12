@@ -8,17 +8,21 @@ import {
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
-import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
+import {
+  ProxiedPath,
+  useProxiedPathContext
+} from '@/contexts/ProxiedPathContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { getPreferredPathForDisplay } from '@/utils';
 
 type SharingDialogProps = {
   isImageShared: boolean;
-  setIsImageShared: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsImageShared?: React.Dispatch<React.SetStateAction<boolean>>;
   filePathWithoutFsp: string;
   showSharingDialog: boolean;
   setShowSharingDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  proxiedPath: ProxiedPath | null;
 };
 
 export default function SharingDialog({
@@ -26,7 +30,8 @@ export default function SharingDialog({
   setIsImageShared,
   filePathWithoutFsp,
   showSharingDialog,
-  setShowSharingDialog
+  setShowSharingDialog,
+  proxiedPath
 }: SharingDialogProps): JSX.Element {
   const { createProxiedPath, deleteProxiedPath } = useProxiedPathContext();
   const { currentFileSharePath } = useFileBrowserContext();
@@ -98,8 +103,10 @@ export default function SharingDialog({
                     } else {
                       toast.error(`Error sharing ${displayPath}`);
                     }
-                    setIsImageShared(true);
                     setShowSharingDialog(false);
+                    if (setIsImageShared) {
+                      setIsImageShared(true);
+                    }
                   } catch (error) {
                     toast.error(
                       `Error sharing ${displayPath}: ${
@@ -119,10 +126,16 @@ export default function SharingDialog({
                 className="!rounded-md flex items-center gap-2"
                 onClick={async () => {
                   try {
-                    await deleteProxiedPath();
-                    setIsImageShared(false);
+                    if (proxiedPath) {
+                      await deleteProxiedPath(proxiedPath);
+                    } else {
+                      toast.error('Proxied path not found');
+                    }
                     toast.success(`Successfully unshared ${displayPath}`);
                     setShowSharingDialog(false);
+                    if (setIsImageShared) {
+                      setIsImageShared(false);
+                    }
                   } catch (error) {
                     toast.error(
                       `Error unsharing ${displayPath}: ${

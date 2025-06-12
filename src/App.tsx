@@ -7,6 +7,7 @@ import Browse from '@/components/Browse';
 import Help from '@/components/Help';
 import Jobs from '@/components/Jobs';
 import Preferences from '@/components/Preferences';
+import Shared from '@/components/Shared';
 
 function Profile() {
   return (
@@ -52,6 +53,7 @@ const AppComponent = () => {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/*" element={<MainLayout />}>
+          <Route path="shared" element={<Shared />} />
           <Route path="jobs" element={<Jobs />} />
           <Route path="help" element={<Help />} />
           <Route path="profile" element={<Profile />} />

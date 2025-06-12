@@ -3,7 +3,9 @@ const sleepInSecs = (secs: number) =>
 
 const openFileGlancer = async (page: IJupyterLabPageFixture) => {
   // open jupyter lab
-  await page.goto("http://localhost:8888/lab", { waitUntil: "domcontentloaded" });
+  await page.goto('http://localhost:8888/lab', {
+    waitUntil: 'domcontentloaded'
+  });
   // click on Fileglancer icon
   await page.getByText('Fileglancer', { exact: true }).click();
 };
