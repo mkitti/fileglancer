@@ -34,12 +34,8 @@ type FolderProps = {
 export default function Folder({ folderFavorite, setOpenZones }: FolderProps) {
   const [showMissingFolderFavoriteDialog, setShowMissingFolderFavoriteDialog] =
     React.useState(false);
-  const {
-    handleFileBrowserNavigation,
-    currentFileOrFolder,
-    currentFileSharePath,
-    setCurrentFileSharePath
-  } = useFileBrowserContext();
+  const { handleFileBrowserNavigation, setCurrentFileSharePath } =
+    useFileBrowserContext();
   const { pathPreference, handleFavoriteChange } = usePreferencesContext();
   const { cookies } = useCookiesContext();
 
@@ -102,21 +98,21 @@ export default function Folder({ folderFavorite, setOpenZones }: FolderProps) {
             setShowMissingFolderFavoriteDialog(true);
           }
         }}
-        className={`x-short:py-0 flex gap-2 items-center justify-between rounded-none cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 ${folderFavorite.fsp === currentFileSharePath && folderFavorite.fsp.name === currentFileOrFolder?.name ? '!bg-primary-light/30' : '!bg-background'}`}
+        className="pl-6 w-full flex gap-2 items-center justify-between rounded-md cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 "
       >
         <Link
           to="/browse"
-          className="w-[calc(100%-4rem)] flex flex-col items-start gap-2 x-short:gap-1 !text-foreground hover:!text-black focus:!text-black hover:dark:!text-white focus:dark:!text-white"
+          className="w-[calc(100%-4rem)] flex flex-col items-start gap-2 short:gap-1 !text-foreground hover:!text-black focus:!text-black hover:dark:!text-white focus:dark:!text-white"
         >
           <div className="w-full flex gap-1 items-center">
-            <FolderIcon className="icon-small x-short:icon-xsmall" />
-            <Typography className="w-[calc(100%-2rem)] truncate text-sm font-medium leading-4 x-short:text-xs">
+            <FolderIcon className="icon-small short:icon-xsmall stroke-2" />
+            <Typography className="w-[calc(100%-2rem)] truncate text-sm leading-4 short:text-xs font-semibold">
               {getLastSegmentFromPath(folderFavorite.folderPath)}
             </Typography>
           </div>
           <Tooltip placement="right">
             <Tooltip.Trigger className="w-full">
-              <Typography className="text-left text-xs truncate">
+              <Typography className="text-left text-sm short:text-xs truncate">
                 {displayPath}
               </Typography>
             </Tooltip.Trigger>
@@ -130,6 +126,7 @@ export default function Folder({ folderFavorite, setOpenZones }: FolderProps) {
           }}
         >
           <IconButton
+            className="min-w-0 min-h-0"
             variant="ghost"
             isCircular
             onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
@@ -137,7 +134,7 @@ export default function Folder({ folderFavorite, setOpenZones }: FolderProps) {
               handleFavoriteChange(folderFavorite, 'folder');
             }}
           >
-            <StarFilled className="icon-small x-short:icon-xsmall mb-[2px]" />
+            <StarFilled className="icon-small short:icon-xsmall mb-[2px]" />
           </IconButton>
         </div>
       </List.Item>

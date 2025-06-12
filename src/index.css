@@ -18,12 +18,13 @@
   }
 }
 
-/* Override built-in Jupyter Lab extension CSS */
-.jp-ThemedContainer a:hover {
-  color: rgb(var(--color-primary-foreground) / var(--tw-text-opacity, 1));
+.sidebar-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background: var(--tw-prose-invert-scrollbar-track, #f1f5f9);
 }
 
-/* Color fileglancer SVG */
-.fileglancer-logo svg {
-  color: rgb(var(--color-primary-default));
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: var(--tw-prose-invert-scrollbar-thumb, #cbd5e1);
+  border-radius: 4px;
 }

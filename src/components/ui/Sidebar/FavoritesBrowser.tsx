@@ -1,7 +1,7 @@
 import React from 'react';
 import { Collapse, Typography, List } from '@material-tailwind/react';
-import { ChevronRightIcon } from '@heroicons/react/24/outline';
-import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
+import { HiChevronRight } from 'react-icons/hi';
+import { HiStar } from 'react-icons/hi';
 
 import ZoneComponent from './Zone';
 import FileSharePathComponent from './FileSharePath';
@@ -48,66 +48,58 @@ export default function FavoritesBrowser({
       : folderFavorites;
 
   return (
-    <div className="w-[calc(100%-1.5rem)] min-h-fit flex flex-col h-full x-short:mt-1 mt-3 mx-3 pb-1">
-      <List className="bg-background !min-w-40">
+    <div className="flex flex-col short:mt-1 mt-2 mx-1">
+      <List className="!min-w-50">
         <List.Item
           onClick={() => toggleOpenFavorites('all')}
-          className="cursor-pointer rounded-none py-3 x-short:py-1 bg-surface/50 hover:!bg-surface-light focus:!bg-surface-light"
+          className="cursor-pointer rounded-md py-3 short:py-1 hover:!bg-surface-light focus:!bg-surface-light"
         >
           <List.ItemStart>
-            <StarFilled className="icon-default x-short:icon-xsmall text-surface-foreground" />
+            <HiStar className="icon-default short:icon-small text-surface-foreground" />
           </List.ItemStart>
-          <Typography className="font-semibold text-surface-foreground x-short:text-xs short:text-xs">
+          <Typography className="font-bold text-surface-foreground short:text-sm text-base">
             Favorites
           </Typography>
-          <List.ItemEnd className="pr-2">
-            <ChevronRightIcon
-              className={`icon-small x-short:icon-xsmall ${openFavorites['all'] ? 'rotate-90' : ''}`}
+          <List.ItemEnd>
+            <HiChevronRight
+              className={`icon-default short:icon-small ${openFavorites['all'] ? 'rotate-90' : ''}`}
             />
           </List.ItemEnd>
         </List.Item>
       </List>
-      <div className="overflow-y-auto max-h-[calc(100%-3.5rem)]">
-        <Collapse open={openFavorites['all'] ? true : false}>
-          <List className="bg-surface-light !py-0 !gap-0 !min-w-20 overflow-hidden">
-            {/* Zone favorites */}
-            {displayZones.map(zone => {
-              return (
-                <ZoneComponent
-                  key={zone.name}
-                  zone={zone}
-                  openZones={openFavorites}
-                  toggleOpenZones={toggleOpenFavorites}
-                />
-              );
-            })}
+      <Collapse className="w-full" open={openFavorites['all'] ? true : false}>
+        <List className="!py-0 !gap-0 ">
+          {/* Zone favorites */}
+          {displayZones.map(zone => {
+            return (
+              <ZoneComponent
+                key={zone.name}
+                zone={zone}
+                openZones={openFavorites}
+                toggleOpenZones={toggleOpenFavorites}
+              />
+            );
+          })}
 
-            {/* File share path favorites */}
-            {displayFileSharePaths.map((fsp, index) => {
-              return (
-                <FileSharePathComponent
-                  key={fsp.name}
-                  fsp={fsp}
-                  index={index}
-                />
-              );
-            })}
+          {/* File share path favorites */}
+          {displayFileSharePaths.map((fsp, index) => {
+            return (
+              <FileSharePathComponent key={fsp.name} fsp={fsp} index={index} />
+            );
+          })}
 
-            {/* Directory favorites */}
-            {displayFolders.map(folderFavorite => {
-              return (
-                <Folder
-                  key={
-                    folderFavorite.fsp.name + '-' + folderFavorite.folderPath
-                  }
-                  folderFavorite={folderFavorite}
-                  setOpenZones={setOpenZones}
-                />
-              );
-            })}
-          </List>
-        </Collapse>
-      </div>
+          {/* Directory favorites */}
+          {displayFolders.map(folderFavorite => {
+            return (
+              <Folder
+                key={folderFavorite.fsp.name + '-' + folderFavorite.folderPath}
+                folderFavorite={folderFavorite}
+                setOpenZones={setOpenZones}
+              />
+            );
+          })}
+        </List>
+      </Collapse>
     </div>
   );
 }

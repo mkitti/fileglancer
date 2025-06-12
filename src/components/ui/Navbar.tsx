@@ -16,10 +16,9 @@ import {
   XMarkIcon,
   SunIcon
 } from '@heroicons/react/24/outline';
-import ProfileMenu from './Navbar/ProfileMenu';
 
+import ProfileMenu from './Navbar/ProfileMenu';
 import useTheme from '@/hooks/useTheme';
-import { set } from 'node_modules/zarrita/dist/src/indexing/set';
 
 const LINKS = [
   {
@@ -51,9 +50,9 @@ function NavList() {
           className="flex items-center dark:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark hover:!text-foreground focus:!text-foreground"
         >
           <List.ItemStart className="flex items-center mr-1.5">
-            <Icon className="icon-default x-short:icon-xsmall short-icon-xsmall" />
+            <Icon className="icon-default short:icon-xsmall" />
           </List.ItemStart>
-          <Typography type="small" className="x-short:text-xs">
+          <Typography type="small" className="short:text-xs">
             {title}
           </Typography>
         </List.Item>
@@ -81,13 +80,13 @@ export default function FileglancerNavbar() {
   }, [setIsLightTheme]);
 
   return (
-    <Navbar className="mx-auto w-full rounded-none bg-background p-4 short:py-3 x-short:py-1 dark:shadow-surface">
+    <Navbar className="mx-auto w-full rounded-none bg-background p-4 short:py-3 short:py-1 dark:shadow-surface">
       <div className="flex items-center justify-between ">
         {/* Logo */}
         <Link to="/">
           <div className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent flex items-center">
             <svg
-              className="icon-large x-short:icon-small text-primary"
+              className="icon-large short:icon-small text-primary"
               viewBox="0 0 18 24"
               version="1.1"
               xmlns="http://www.w3.org/2000/svg"
@@ -115,7 +114,7 @@ export default function FileglancerNavbar() {
             </svg>
             <Typography
               type="h6"
-              className="ml-2 mr-2 block font-semibold pointer-events-none x-short:text-base"
+              className="ml-2 mr-2 block font-semibold pointer-events-none short:text-base"
             >
               Janelia Fileglancer
             </Typography>
@@ -139,9 +138,9 @@ export default function FileglancerNavbar() {
             onClick={toggleTheme}
           >
             {isLightTheme ? (
-              <SunIcon className="icon-large x-short:icon-default" />
+              <SunIcon className="icon-large short:icon-default" />
             ) : (
-              <MoonIcon className="icon-large x-short:icon-default" />
+              <MoonIcon className="icon-large short:icon-default" />
             )}
           </IconButton>
           <ProfileMenu />
@@ -154,9 +153,9 @@ export default function FileglancerNavbar() {
             className="mr-2 grid ml-auto text-foreground dark:text-foreground hover:!text-foreground focus:!text-foreground lg:hidden hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
           >
             {openNav ? (
-              <XMarkIcon className="icon-large x-short:icon-default" />
+              <XMarkIcon className="icon-large short:icon-default" />
             ) : (
-              <MenuIcon className="icon-large x-short:icon-default" />
+              <MenuIcon className="icon-large short:icon-default" />
             )}
           </IconButton>
         </div>

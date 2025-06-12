@@ -5,12 +5,8 @@ import {
   Typography,
   IconButton
 } from '@material-tailwind/react';
-import {
-  ChevronRightIcon,
-  Squares2X2Icon,
-  StarIcon as StarOutline
-} from '@heroicons/react/24/outline';
-import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
+import { HiChevronRight, HiOutlineStar, HiStar } from 'react-icons/hi';
+import { HiOutlineSquares2X2 } from 'react-icons/hi2';
 
 import FileSharePathComponent from './FileSharePath';
 import type { Zone } from '@/shared.types';
@@ -35,13 +31,13 @@ export default function Zone({
     <React.Fragment>
       <List.Item
         onClick={() => toggleOpenZones(zone.name)}
-        className="cursor-pointer rounded-none py-1 x-short:py-0 short:py-0 flex-shrink-0 hover:!bg-primary-light/30 focus:!bg-primary-light/30 !bg-background"
+        className="cursor-pointer rounded-md px-3 py-1 flex-shrink-0 hover:!bg-primary-light/30 focus:!bg-primary-light/30 !bg-background"
       >
         <List.ItemStart>
-          <Squares2X2Icon className="icon-small x-short:icon-xsmall" />
+          <HiOutlineSquares2X2 className="icon-small short:icon-xsmall stroke-2" />
         </List.ItemStart>
         <div className="flex-1 min-w-0 flex items-center gap-1">
-          <Typography className="truncate x-short:text-xs short:text-xs text-sm">
+          <Typography className="truncate short:text-xs text-sm font-semibold">
             {zone.name}
           </Typography>
 
@@ -52,21 +48,21 @@ export default function Zone({
               onClick={() => handleFavoriteChange(zone, 'zone')}
             >
               {isFavoriteZone ? (
-                <StarFilled className="icon-small x-short:icon-xsmall mb-[2px]" />
+                <HiStar className="icon-small short:icon-xsmall mb-[2px]" />
               ) : (
-                <StarOutline className="icon-small x-short:icon-xsmall mb-[2px]" />
+                <HiOutlineStar className="icon-small short:icon-xsmall mb-[2px]" />
               )}
             </IconButton>
           </div>
         </div>
         <List.ItemEnd>
-          <ChevronRightIcon
-            className={`icon-small x-short:icon-xsmall ${isOpen ? 'rotate-90' : ''}`}
+          <HiChevronRight
+            className={`icon-small short:icon-xsmall ${isOpen ? 'rotate-90' : ''}`}
           />
         </List.ItemEnd>
       </List.Item>
       <Collapse open={isOpen}>
-        <List className="bg-background !gap-0">
+        <List className="bg-background w-full !gap-0">
           {zone.fileSharePaths.map((fsp, index) => {
             return (
               <FileSharePathComponent key={fsp.name} fsp={fsp} index={index} />

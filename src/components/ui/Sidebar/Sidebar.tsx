@@ -18,10 +18,10 @@ export default function Sidebar() {
     filteredFolderFavorites
   } = useSearchFilter();
   return (
-    <Card className="min-w-full h-full overflow-hidden rounded-none bg-surface shadow-lg flex flex-col">
-      <div className="w-[calc(100%-1.5rem)] mx-3 my-3 x-short:my-1">
+    <Card className="min-w-full h-full overflow-hidden rounded-none bg-surface shadow-lg flex flex-col px-3">
+      <div className="my-3 short:my-1">
         <Input
-          className="bg-background text-foreground x-short:text-xs"
+          className="bg-background text-foreground short:text-xs"
           type="search"
           placeholder="Type to filter zones"
           value={searchQuery}
@@ -34,26 +34,20 @@ export default function Sidebar() {
           </Input.Icon>
         </Input>
       </div>
-      <div className="flex flex-col overflow-hidden flex-grow mb-3 gap-3 x-short:gap-1">
-        <div
-          className={`flex-shrink ${openZones['all'] ? 'max-h-[50%]' : 'max-h-[100%]'}`}
-        >
-          <FavoritesBrowser
-            searchQuery={searchQuery}
-            setOpenZones={setOpenZones}
-            filteredZoneFavorites={filteredZoneFavorites}
-            filteredFileSharePathFavorites={filteredFileSharePathFavorites}
-            filteredFolderFavorites={filteredFolderFavorites}
-          />
-        </div>
-        <div className="flex-grow overflow-hidden">
-          <ZonesBrowser
-            searchQuery={searchQuery}
-            openZones={openZones}
-            toggleOpenZones={toggleOpenZones}
-            filteredZonesMap={filteredZonesMap}
-          />
-        </div>
+      <div className="flex flex-col overflow-y-scroll flex-grow mb-3 short:gap-1 w-full border border-surface rounded-md py-2 px-2.5 shadow-sm bg-background sidebar-scroll">
+        <FavoritesBrowser
+          searchQuery={searchQuery}
+          setOpenZones={setOpenZones}
+          filteredZoneFavorites={filteredZoneFavorites}
+          filteredFileSharePathFavorites={filteredFileSharePathFavorites}
+          filteredFolderFavorites={filteredFolderFavorites}
+        />
+        <ZonesBrowser
+          searchQuery={searchQuery}
+          openZones={openZones}
+          toggleOpenZones={toggleOpenZones}
+          filteredZonesMap={filteredZonesMap}
+        />
       </div>
     </Card>
   );
