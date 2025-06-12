@@ -31,7 +31,7 @@ export default function Zone({
     <React.Fragment>
       <List.Item
         onClick={() => toggleOpenZones(zone.name)}
-        className="cursor-pointer rounded-md px-3 py-1 flex-shrink-0 hover:!bg-primary-light/30 focus:!bg-primary-light/30 !bg-background"
+        className="pl-6 w-full flex items-center justify-between rounded-md cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30"
       >
         <List.ItemStart>
           <HiOutlineSquares2X2 className="icon-small short:icon-xsmall stroke-2" />
