@@ -35,3 +35,11 @@
   background: var(--tw-prose-invert-scrollbar-thumb, #cbd5e1);
   border-radius: 4px;
 }
+
+/* Dark mode for scrollbar */
+.dark .sidebar-scroll::-webkit-scrollbar {
+  background: var(--tw-prose-invert-scrollbar-track-dark, #1e293b);
+}
+.dark .sidebar-scroll::-webkit-scrollbar-thumb {
+  background: var(--tw-prose-invert-scrollbar-thumb-dark, #334155);
+}
