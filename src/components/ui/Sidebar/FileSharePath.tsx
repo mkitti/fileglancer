@@ -42,7 +42,7 @@ export default function FileSharePathComponent({
     >
       <Link
         to="/browse"
-        className="max-w-[calc(100%-4rem)] grow flex flex-col gap-1 !text-foreground hover:!text-black focus:!text-black dark:hover:!text-white dark:focus:!text-white"
+        className="max-w-[calc(100%-1rem)] grow flex flex-col gap-1 !text-foreground hover:!text-black focus:!text-black dark:hover:!text-white dark:focus:!text-white"
       >
         <div className="flex gap-1 items-center max-w-full">
           <RectangleStackIcon className="icon-small short:icon-xsmall stroke-2" />
