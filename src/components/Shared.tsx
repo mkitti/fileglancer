@@ -14,10 +14,7 @@ export default function Shared() {
           Shared Paths
         </Typography>
         <div className="rounded-lg shadow bg-background">
-          <div className="grid grid-cols-[0.5fr_1.5fr_2.5fr_1.5fr_0.5fr] gap-4 px-4 py-2 border-b border-surface">
-            <Typography variant="small" className="font-bold">
-              Unshare
-            </Typography>
+          <div className="grid grid-cols-[1.5fr_2.5fr_1.5fr_1fr] gap-4 px-4 py-2 border-b border-surface">
             <Typography variant="small" className="font-bold">
               Name
             </Typography>
@@ -27,7 +24,7 @@ export default function Shared() {
             <Typography variant="small" className="font-bold">
               Date shared
             </Typography>
-            <Typography variant="small" className="font-bold text-center">
+            <Typography variant="small" className="font-bold">
               Actions
             </Typography>
           </div>
