@@ -4,7 +4,7 @@ import {
   Tooltip,
   Typography
 } from '@material-tailwind/react';
-import { HiOutlineEllipsisHorizontalCircle } from "react-icons/hi2";
+import { HiOutlineEllipsisHorizontalCircle } from 'react-icons/hi2';
 import log from 'loglevel';
 import toast from 'react-hot-toast';
 
@@ -113,7 +113,11 @@ export default function ProxiedPathRow({
         </Tooltip>
         {/* Actions */}
         <Menu>
-          <Menu.Trigger as={IconButton} variant="ghost" className="p-1 max-w-fit">
+          <Menu.Trigger
+            as={IconButton}
+            variant="ghost"
+            className="p-1 max-w-fit"
+          >
             <HiOutlineEllipsisHorizontalCircle className="icon-default text-foreground" />
           </Menu.Trigger>
           <Menu.Content className="menu-content">

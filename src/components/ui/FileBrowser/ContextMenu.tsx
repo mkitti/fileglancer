@@ -41,8 +41,8 @@ export default function ContextMenu({
         top: `${y}px`
       }}
     >
-        <Menu.Item>
-          {/* Show/hide properties drawer */}
+      <Menu.Item>
+        {/* Show/hide properties drawer */}
         <Typography
           className="text-sm p-1 cursor-pointer text-secondary-light"
           onClick={() => {
@@ -52,10 +52,10 @@ export default function ContextMenu({
         >
           View file properties
         </Typography>
-        </Menu.Item>
-        {/* Set/unset folders as favorites */}
-        {selectedFiles.length === 1 && selectedFiles[0].is_dir ? (
-          <Menu.Item>
+      </Menu.Item>
+      {/* Set/unset folders as favorites */}
+      {selectedFiles.length === 1 && selectedFiles[0].is_dir ? (
+        <Menu.Item>
           <Typography
             className="text-sm p-1 cursor-pointer text-secondary-light"
             onClick={() => {
@@ -74,11 +74,11 @@ export default function ContextMenu({
           >
             Set/unset as favorite
           </Typography>
-          </Menu.Item>
-        ) : null}
-        {/* Rename file or folder */}
-        {selectedFiles.length === 1 ? (
-          <Menu.Item>
+        </Menu.Item>
+      ) : null}
+      {/* Rename file or folder */}
+      {selectedFiles.length === 1 ? (
+        <Menu.Item>
           <Typography
             onClick={() => {
               setShowRenameDialog(true);
@@ -88,11 +88,11 @@ export default function ContextMenu({
           >
             Rename
           </Typography>
-          </Menu.Item>
-        ) : null}
-        {/* Change permissions on file(s) */}
-        {selectedFiles.length === 1 && !selectedFiles[0].is_dir ? (
-          <Menu.Item>
+        </Menu.Item>
+      ) : null}
+      {/* Change permissions on file(s) */}
+      {selectedFiles.length === 1 && !selectedFiles[0].is_dir ? (
+        <Menu.Item>
           <Typography
             className="text-sm p-1 cursor-pointer text-secondary-light"
             onClick={() => {
@@ -102,10 +102,10 @@ export default function ContextMenu({
           >
             Change permissions
           </Typography>
-          </Menu.Item>
-        ) : null}
-        {/* Delete file(s) or folder(s) */}
-        <Menu.Item>
+        </Menu.Item>
+      ) : null}
+      {/* Delete file(s) or folder(s) */}
+      <Menu.Item>
         <Typography
           className="text-sm p-1 cursor-pointer text-red-600"
           onClick={() => {
@@ -115,7 +115,7 @@ export default function ContextMenu({
         >
           Delete
         </Typography>
-        </Menu.Item>
+      </Menu.Item>
     </div>,
 
     document.body // Render context menu directly to body

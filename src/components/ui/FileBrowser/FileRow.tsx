@@ -1,10 +1,7 @@
 import React, { ReactNode } from 'react';
 import { IconButton, Tooltip, Typography } from '@material-tailwind/react';
-import {
-  DocumentIcon,
-  FolderIcon
-} from '@heroicons/react/24/outline';
-import { HiOutlineEllipsisHorizontalCircle } from "react-icons/hi2";
+import { DocumentIcon, FolderIcon } from '@heroicons/react/24/outline';
+import { HiOutlineEllipsisHorizontalCircle } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 
 import type { FileOrFolder } from '@/shared.types';
