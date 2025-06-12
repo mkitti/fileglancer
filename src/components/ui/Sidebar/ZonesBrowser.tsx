@@ -26,7 +26,7 @@ export default function ZonesBrowser({
 
   return (
     <div className="flex flex-col my-3 short:my-1 mx-1">
-      <List className="bg-background py-0 pt-3 border-t border-surface !min-w-50">
+      <List className="!min-w-20">
         <List.Item
           onClick={() => toggleOpenZones('all')}
           className="cursor-pointer rounded-md py-3 short:py-1 hover:!bg-surface-light focus:!bg-surface-light"
@@ -34,7 +34,7 @@ export default function ZonesBrowser({
           <List.ItemStart>
             <HiSquares2X2 className="icon-default short:icon-small text-surface-foreground" />
           </List.ItemStart>
-          <Typography className="short:text-sm text-base font-semibold text-surface-foreground">
+          <Typography className="font-bold text-surface-foreground short:text-sm text-base">
             Zones
           </Typography>
           <List.ItemEnd>

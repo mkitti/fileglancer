@@ -48,8 +48,8 @@ export default function FavoritesBrowser({
       : folderFavorites;
 
   return (
-    <div className="flex flex-col short:mt-1 mt-2 mx-1">
-      <List className="!min-w-50">
+    <div className="flex flex-col my-3 short:my-1 mx-1">
+      <List className="!min-w-20">
         <List.Item
           onClick={() => toggleOpenFavorites('all')}
           className="cursor-pointer rounded-md py-3 short:py-1 hover:!bg-surface-light focus:!bg-surface-light"
@@ -67,8 +67,11 @@ export default function FavoritesBrowser({
           </List.ItemEnd>
         </List.Item>
       </List>
-      <Collapse className="w-full" open={openFavorites['all'] ? true : false}>
-        <List className="!py-0 !gap-0 ">
+      <Collapse
+        open={openFavorites['all'] ? true : false}
+        className="overflow-x-hidden flex-grow w-full"
+      >
+        <List className="h-full py-0 gap-0 bg-background">
           {/* Zone favorites */}
           {displayZones.map(zone => {
             return (
