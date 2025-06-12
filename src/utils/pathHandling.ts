@@ -4,6 +4,9 @@ import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 
 const PATH_DELIMITER = '/';
 const PROXY_BASE_URL = import.meta.env.VITE_PROXY_BASE_URL;
+if (!PROXY_BASE_URL) {
+  throw new Error('VITE_PROXY_BASE_URL is not defined in the environment.');
+}
 
 /**
  * Joins multiple path segments into a single POSIX-style path, trimming any whitespace first.
