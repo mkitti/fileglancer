@@ -62,7 +62,7 @@ export default function Zone({
         </List.ItemEnd>
       </List.Item>
       <Collapse open={isOpen}>
-        <List className="bg-background w-full !gap-0">
+        <List className="file-share-path-list bg-background w-full !gap-0">
           {zone.fileSharePaths.map((fsp, index) => {
             return (
               <FileSharePathComponent key={fsp.name} fsp={fsp} index={index} />

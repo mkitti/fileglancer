@@ -38,7 +38,7 @@ export default function FileSharePathComponent({
         setCurrentFileSharePath(fsp);
         await handleFileBrowserNavigation({ fspName: fsp.name });
       }}
-      className="pl-6 w-full flex items-center justify-between rounded-md cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30"
+      className="file-share-path pl-6 w-full flex items-center justify-between rounded-md cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30"
     >
       <Link
         to="/browse"
