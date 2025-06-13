@@ -99,7 +99,7 @@ export const ProxiedPathProvider = ({
 
   const fetchProxiedPath = React.useCallback(async () => {
     if (!currentFileSharePath || !currentFileOrFolder) {
-      log.error('No current file share path or file/folder selected');
+      log.trace('No current file share path or file/folder selected');
       return null;
     }
     try {
