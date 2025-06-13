@@ -59,6 +59,16 @@ export default function ProxiedPathRow({
   );
   const proxiedPathUrl = makeProxiedPathUrl(item);
 
+  const handleCopyPath = async () => {
+    try {
+      await copyToClipboard(displayPath);
+      toast.success('Path copied to clipboard');
+    } catch (error) {
+      log.error('Failed to copy path:', error);
+      toast.error('Failed to copy path');
+    }
+  };
+
   const handleCopyUrl = async () => {
     try {
       await copyToClipboard(proxiedPathUrl);
@@ -121,6 +131,14 @@ export default function ProxiedPathRow({
             <HiOutlineEllipsisHorizontalCircle className="icon-default text-foreground" />
           </Menu.Trigger>
           <Menu.Content className="menu-content">
+            <Menu.Item className="menu-item">
+              <Typography
+                className="text-sm p-1 cursor-pointer text-secondary-light"
+                onClick={handleCopyPath}
+              >
+                Copy path
+              </Typography>
+            </Menu.Item>
             <Menu.Item className="menu-item">
               <Typography
                 className="text-sm p-1 cursor-pointer text-secondary-light"
