@@ -31,7 +31,7 @@ export default function Zone({
     <React.Fragment>
       <List.Item
         onClick={() => toggleOpenZones(zone.name)}
-        className="cursor-pointer rounded-md px-3 py-1 flex-shrink-0 hover:!bg-primary-light/30 focus:!bg-primary-light/30 !bg-background"
+        className="pl-6 w-full flex items-center justify-between rounded-md cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30"
       >
         <List.ItemStart>
           <HiOutlineSquares2X2 className="icon-small short:icon-xsmall stroke-2" />
@@ -62,7 +62,7 @@ export default function Zone({
         </List.ItemEnd>
       </List.Item>
       <Collapse open={isOpen}>
-        <List className="bg-background w-full !gap-0">
+        <List className="file-share-path-list bg-background w-full !gap-0">
           {zone.fileSharePaths.map((fsp, index) => {
             return (
               <FileSharePathComponent key={fsp.name} fsp={fsp} index={index} />

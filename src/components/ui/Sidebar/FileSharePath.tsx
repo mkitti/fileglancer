@@ -38,11 +38,11 @@ export default function FileSharePathComponent({
         setCurrentFileSharePath(fsp);
         await handleFileBrowserNavigation({ fspName: fsp.name });
       }}
-      className="pl-6 w-full flex items-center justify-between rounded-md cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30"
+      className="file-share-path pl-6 w-full flex items-center justify-between rounded-md cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30"
     >
       <Link
         to="/browse"
-        className="max-w-[calc(100%-4rem)] grow flex flex-col gap-1 !text-foreground hover:!text-black focus:!text-black dark:hover:!text-white dark:focus:!text-white"
+        className="max-w-[calc(100%-1rem)] grow flex flex-col gap-1 !text-foreground hover:!text-black focus:!text-black dark:hover:!text-white dark:focus:!text-white"
       >
         <div className="flex gap-1 items-center max-w-full">
           <RectangleStackIcon className="icon-small short:icon-xsmall stroke-2" />

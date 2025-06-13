@@ -102,7 +102,7 @@ export default function Folder({ folderFavorite, setOpenZones }: FolderProps) {
       >
         <Link
           to="/browse"
-          className="w-[calc(100%-4rem)] flex flex-col items-start gap-2 short:gap-1 !text-foreground hover:!text-black focus:!text-black hover:dark:!text-white focus:dark:!text-white"
+          className="w-[calc(100%-2rem)] flex flex-col items-start gap-2 short:gap-1 !text-foreground hover:!text-black focus:!text-black hover:dark:!text-white focus:dark:!text-white"
         >
           <div className="w-full flex gap-1 items-center">
             <FolderIcon className="icon-small short:icon-xsmall stroke-2" />
