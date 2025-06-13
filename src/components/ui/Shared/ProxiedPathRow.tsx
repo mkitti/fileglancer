@@ -126,7 +126,7 @@ export default function ProxiedPathRow({
                 className="text-sm p-1 cursor-pointer text-secondary-light"
                 onClick={handleCopyUrl}
               >
-                Copy sharing URL
+                Copy sharing link (S3-compatible URL)
               </Typography>
             </Menu.Item>
             <Menu.Item>
