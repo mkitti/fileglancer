@@ -142,7 +142,7 @@ class FileContentHandler(FileShareHandler):
                 self.write(chunk)
             self.finish()
         except FileNotFoundError:
-            self.log.error(f"File or directory not found: {subpath}")
+            self.log.error(f"File not found in {filestore_name}: {subpath}")
             self.set_status(404)
             self.finish(json.dumps({"error": "File or directory not found"}))
         except PermissionError:
