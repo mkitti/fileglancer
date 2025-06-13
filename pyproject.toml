@@ -122,8 +122,8 @@ ext-overwrite = { cmd = "jupyter labextension develop . --overwrite" }
 ext-enable = { cmd = "jupyter server extension enable fileglancer", depends-on = ["ext-overwrite"] }
 dev-install = { depends-on = ["pip-install", "node-install", "ext-enable"] }
 dev-watch = { cmd = "npm run watch" }
-dev-launch = { cmd = "jupyter lab --autoreload" }
-dev-launch-remote = { cmd = "jupyter lab --autoreload --ip=0.0.0.0 --no-browser" }
+dev-launch = { cmd = "NODE_ENV=development jupyter lab --autoreload" }
+dev-launch-remote = { cmd = "NODE_ENV=development jupyter lab --autoreload --ip=0.0.0.0 --no-browser" }
 pypi-build = { cmd = "pip install build && python -m build", depends-on = ["node-install"] }
 node-install-ui-test = "npm --prefix ui-tests install"
 test-frontend = "npm run test"
