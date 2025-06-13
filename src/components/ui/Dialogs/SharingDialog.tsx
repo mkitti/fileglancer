@@ -69,9 +69,9 @@ export default function SharingDialog({
                 <span className="font-semibold break-all">{displayPath}</span>?
               </Typography>
               <Typography className="mt-4">
-                If you previously shared a link to these data with
-                collaborators, the link will no longer work. You can always
-                share these data again later.
+                Warning: The existing sharing link to this data will be disabled. 
+                Collaborators who previously received the link will no longer be able to access it.
+                You can create a new sharing link at any time if needed.
               </Typography>
             </div>
           ) : (
@@ -116,7 +116,7 @@ export default function SharingDialog({
                   }
                 }}
               >
-                Share image
+                Share path
               </Button>
             ) : null}
             {isImageShared ? (
@@ -145,7 +145,7 @@ export default function SharingDialog({
                   }
                 }}
               >
-                Unshare image
+                Unshare path
               </Button>
             ) : null}
             <Button

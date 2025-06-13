@@ -19,7 +19,7 @@ export default function Shared() {
               Name
             </Typography>
             <Typography variant="small" className="font-bold">
-              Mount path
+              Path
             </Typography>
             <Typography variant="small" className="font-bold">
               Date shared
