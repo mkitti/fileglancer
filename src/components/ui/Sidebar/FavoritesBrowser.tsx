@@ -97,7 +97,6 @@ export default function FavoritesBrowser({
               <Folder
                 key={folderFavorite.fsp.name + '-' + folderFavorite.folderPath}
                 folderFavorite={folderFavorite}
-                setOpenZones={setOpenZones}
               />
             );
           })}

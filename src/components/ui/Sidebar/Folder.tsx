@@ -28,10 +28,9 @@ import {
 
 type FolderProps = {
   folderFavorite: FolderFavorite;
-  setOpenZones: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
 };
 
-export default function Folder({ folderFavorite, setOpenZones }: FolderProps) {
+export default function Folder({ folderFavorite }: FolderProps) {
   const [showMissingFolderFavoriteDialog, setShowMissingFolderFavoriteDialog] =
     React.useState(false);
   const { handleFileBrowserNavigation, setCurrentFileSharePath } =
@@ -85,10 +84,6 @@ export default function Folder({ folderFavorite, setOpenZones }: FolderProps) {
             log.error('Error checking folder existence:', error);
           }
           if (folderExists) {
-            setOpenZones({
-              all: true,
-              [folderFavorite.fsp.zone]: true
-            });
             setCurrentFileSharePath(folderFavorite.fsp);
             await handleFileBrowserNavigation({
               fspName: folderFavorite.fsp.name,
