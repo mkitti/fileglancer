@@ -57,8 +57,12 @@ function getAPIPathRoot() {
   return '/';
 }
 
+function getFullPath(relativePath: string) {
+  return joinPaths(getAPIPathRoot(), relativePath);
+}
+
 async function sendFetchRequest(
-  url: string,
+  apiPath: string,
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   xrsfCookie: string,
   body?: { [key: string]: any }
@@ -75,7 +79,7 @@ async function sendFetchRequest(
       method !== 'DELETE' &&
       body && { body: JSON.stringify(body) })
   };
-  const response = await fetch(joinPaths(getAPIPathRoot(), url), options);
+  const response = await fetch(getFullPath(apiPath), options);
   if (!response.ok) {
     throw new HTTPError(
       `Request failed: ${response.status} - ${response.statusText}`,
@@ -147,6 +151,7 @@ export {
   fetchFileAsJson,
   fetchFileAsText,
   fetchFileContent,
+  getFullPath,
   formatUnixTimestamp,
   formatFileSize,
   getFileBrowsePath,

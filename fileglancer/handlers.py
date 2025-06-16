@@ -114,7 +114,8 @@ class FileContentHandler(FileShareHandler):
     API handler for file content
     """
 
-    @web.authenticated
+    # TODO: Uncomment this when we have a way to use authenticated endpoints in fileglancer-hub
+    #@web.authenticated
     def get(self, path=""):
         """
         Handle GET requests to get file content

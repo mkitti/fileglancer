@@ -2,6 +2,7 @@ import path from 'path';
 import log from 'loglevel';
 import type { FileSharePath } from '@/shared.types';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
+import { getFullPath } from '@/utils';
 
 const PATH_DELIMITER = '/';
 const PROXY_BASE_URL = import.meta.env.VITE_PROXY_BASE_URL;
@@ -16,7 +17,8 @@ if (!PROXY_BASE_URL) {
  * joinPaths('/api', 'fileglancer', 'files'); // Returns '/api/fileglancer/files'
  */
 function joinPaths(...paths: string[]): string {
-  return path.posix.join(...paths.map(path => path.trim()));
+  console.log('joining paths', paths);
+  return path.posix.join(...paths.map(path => path?.trim() ?? ''));
 }
 
 /**
@@ -68,17 +70,13 @@ function getFileContentPath(fspName: string, filePath: string): string {
  * getFileURL('myFSP', 'path/to/file.txt'); // Returns 'http://localhost:8888/api/fileglancer/content/myFSP/path/to/file.txt'
  */
 function getFileURL(fspName: string, filePath?: string): string {
-  let url = joinPaths(
+  const fspPath = joinPaths('/api/fileglancer/content/', fspName);
+  const apiPath = getFullPath(fspPath);
+  const apiFilePath = filePath ? joinPaths(apiPath, filePath) : apiPath;
+  return joinPaths(
     window.location.origin,
-    '/api/fileglancer/content/',
-    fspName
+    apiFilePath
   );
-  if (!filePath) {
-    return url;
-  } else if (filePath) {
-    url = joinPaths(url, filePath);
-  }
-  return url;
 }
 
 /**

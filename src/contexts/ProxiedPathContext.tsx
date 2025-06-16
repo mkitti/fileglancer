@@ -75,7 +75,7 @@ export const ProxiedPathProvider = ({
 
   const fetchAllProxiedPaths = React.useCallback(async (): Promise<void> => {
     const response = await sendFetchRequest(
-      'api/fileglancer/proxied-path',
+      '/api/fileglancer/proxied-path',
       'GET',
       cookies['_xsrf']
     );
@@ -104,7 +104,7 @@ export const ProxiedPathProvider = ({
     }
     try {
       const response = await sendFetchRequest(
-        `api/fileglancer/proxied-path?fsp_name=${currentFileSharePath?.name}&path=${currentFileOrFolder?.path}`,
+        `/api/fileglancer/proxied-path?fsp_name=${currentFileSharePath?.name}&path=${currentFileOrFolder?.path}`,
         'GET',
         cookies['_xsrf']
       );
@@ -129,7 +129,7 @@ export const ProxiedPathProvider = ({
     path: string
   ): Promise<ProxiedPath | null> {
     const response = await sendFetchRequest(
-      'api/fileglancer/proxied-path',
+      '/api/fileglancer/proxied-path',
       'POST',
       cookies['_xsrf'],
       { fsp_name: fspName, path: path }

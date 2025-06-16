@@ -1,8 +1,10 @@
 import * as React from 'react';
-import { File } from '../hooks/useFileBrowser';
+import { FileOrFolder } from '@/shared.types';
 
-export default function useDisplayOptions(files: File[]) {
-  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+export default function useDisplayOptions(files: FileOrFolder[]) {
+  const [selectedFile, setSelectedFile] = React.useState<FileOrFolder | null>(
+    null
+  );
   const [hideDotFiles, setHideDotFiles] = React.useState<boolean>(true);
   const [showFileDrawer, setShowFileDrawer] = React.useState<boolean>(false);
   const [showFileContextMenu, setShowFileContextMenu] =
@@ -18,7 +20,10 @@ export default function useDisplayOptions(files: File[]) {
       : files;
   }, [files, hideDotFiles]);
 
-  const handleFileClick = (e: React.MouseEvent<HTMLDivElement>, file: File) => {
+  const handleFileClick = (
+    e: React.MouseEvent<HTMLDivElement>,
+    file: FileOrFolder
+  ) => {
     e.preventDefault();
     setSelectedFile(prev => (prev === file ? null : file));
     if (e.type === 'contextmenu') {
