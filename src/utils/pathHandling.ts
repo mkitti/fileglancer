@@ -17,7 +17,6 @@ if (!PROXY_BASE_URL) {
  * joinPaths('/api', 'fileglancer', 'files'); // Returns '/api/fileglancer/files'
  */
 function joinPaths(...paths: string[]): string {
-  console.log('joining paths', paths);
   return path.posix.join(...paths.map(path => path?.trim() ?? ''));
 }
 
