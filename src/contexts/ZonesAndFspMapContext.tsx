@@ -36,10 +36,13 @@ export const ZonesAndFspMapContextProvider = ({
   const getZones = React.useCallback(async (): Promise<{
     paths: FileSharePath[];
   }> => {
-    const url = 'api/fileglancer/file-share-paths';
     let rawData: { paths: FileSharePath[] } = { paths: [] };
     try {
-      const response = await sendFetchRequest(url, 'GET', cookies['_xsrf']);
+      const response = await sendFetchRequest(
+        '/api/fileglancer/file-share-paths', 
+        'GET', 
+        cookies['_xsrf']
+      );
       rawData = await response.json();
     } catch (error: unknown) {
       if (error instanceof Error) {
