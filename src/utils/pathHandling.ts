@@ -72,10 +72,7 @@ function getFileURL(fspName: string, filePath?: string): string {
   const fspPath = joinPaths('/api/fileglancer/content/', fspName);
   const apiPath = getFullPath(fspPath);
   const apiFilePath = filePath ? joinPaths(apiPath, filePath) : apiPath;
-  return joinPaths(
-    window.location.origin,
-    apiFilePath
-  );
+  return new URL(apiFilePath, window.location.origin).href;
 }
 
 /**
@@ -147,7 +144,7 @@ function getPreferredPathForDisplay(
  * // Returns 'http://localhost:8888/proxy/key123/shared-folder'
  */
 function makeProxiedPathUrl(item: ProxiedPath): string {
-  return joinPaths(PROXY_BASE_URL, item.sharing_key, item.sharing_name);
+  return new URL(joinPaths(item.sharing_key, item.sharing_name), PROXY_BASE_URL).href;
 }
 
 export {
