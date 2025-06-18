@@ -175,12 +175,15 @@ function getPreferredPathForDisplay(
 
 /**
  * Constructs a shareable URL for a proxied path item.
+ * Optional override for the proxy base URL; defaults to VITE_PROXY_BASE_URL env variable.
  * Example:
  * makeProxiedPathUrl({ sharing_key: 'key123', sharing_name: 'shared-folder' });
  * // Returns 'http://localhost:8888/proxy/key123/shared-folder'
  */
-function makeProxiedPathUrl(item: ProxiedPath): string {
-  return new URL(joinPaths(item.sharing_key, item.sharing_name), PROXY_BASE_URL).href;
+function makeProxiedPathUrl(item: ProxiedPath, proxyBaseUrl: string = PROXY_BASE_URL): string {
+   // Ensure the base URL ends with a slash for proper path joining
+   const baseWithSlash = proxyBaseUrl.endsWith('/') ? proxyBaseUrl : `${proxyBaseUrl}/`;
+  return new URL(joinPaths(item.sharing_key, item.sharing_name), baseWithSlash).href;
 }
 
 export {
