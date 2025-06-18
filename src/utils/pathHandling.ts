@@ -2,7 +2,6 @@ import path from 'path';
 import log from 'loglevel';
 import type { FileSharePath } from '@/shared.types';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
-import { getFullPath } from '@/utils';
 
 const PATH_DELIMITER = '/';
 const PROXY_BASE_URL = import.meta.env.VITE_PROXY_BASE_URL;
@@ -18,6 +17,30 @@ if (!PROXY_BASE_URL) {
  */
 function joinPaths(...paths: string[]): string {
   return path.posix.join(...paths.map(path => path?.trim() ?? ''));
+}
+
+/**
+ * Returns the root path for the Fileglancer API based on the current window location.
+ * This is used to construct API paths relative to the current Jupyter environment, if applicable.
+ * It checks for common JupyterLab and Jupyter Single User URL patterns.
+ * Example:
+ * getAPIPathRoot(); // Returns '/jupyter/user/username/' or '/user/username/'
+ */
+function getAPIPathRoot() {
+  const path = window.location.pathname;
+  const patterns = [
+    /^\/jupyter\/user\/[^/]+\//, // JupyterLab
+    /^\/user\/[^/]+\// // Jupyter Single User
+  ];
+
+  for (const pattern of patterns) {
+    const match = path.match(pattern);
+    if (match) {
+      return match[0];
+    }
+  }
+
+  return '/';
 }
 
 /**
@@ -73,6 +96,19 @@ function getFileURL(fspName: string, filePath?: string): string {
   const apiPath = getFullPath(fspPath);
   const apiFilePath = filePath ? joinPaths(apiPath, filePath) : apiPath;
   return new URL(apiFilePath, window.location.origin).href;
+}
+
+/** * Constructs a full API path by joining the API root with a relative path.
+ * This is useful for creating complete API endpoints based on the current Jupyter environment.
+ * Example:
+ * getFullPath('files/myFSP'); // Returns '/jupyter/user/username/files/myFSP'
+ * getFullPath('content/myFSP/path/to/file.txt'); // Returns '/jupyter/user/username/content/myFSP/path/to/file.txt'
+ * If no Jupyter environment is detected, it returns the relative path as is.
+ * Example:
+ * getFullPath('files/myFSP'); // Returns '/files/myFSP'
+ */
+function getFullPath(relativePath: string) {
+  return joinPaths(getAPIPathRoot(), relativePath);
 }
 
 /**
@@ -148,9 +184,11 @@ function makeProxiedPathUrl(item: ProxiedPath): string {
 }
 
 export {
+  getAPIPathRoot,
   getFileBrowsePath,
   getFileContentPath,
   getFileURL,
+  getFullPath,
   getLastSegmentFromPath,
   getPreferredPathForDisplay,
   joinPaths,

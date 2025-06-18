@@ -2,6 +2,7 @@ import {
   getFileContentPath,
   getFileBrowsePath,
   getFileURL,
+  getFullPath,
   getLastSegmentFromPath,
   getPreferredPathForDisplay,
   joinPaths,
@@ -38,27 +39,6 @@ class HTTPError extends Error {
     super(message);
     this.responseCode = responseCode;
   }
-}
-
-function getAPIPathRoot() {
-  const path = window.location.pathname;
-  const patterns = [
-    /^\/jupyter\/user\/[^/]+\//, // JupyterLab
-    /^\/user\/[^/]+\// // Jupyter Single User
-  ];
-
-  for (const pattern of patterns) {
-    const match = path.match(pattern);
-    if (match) {
-      return match[0];
-    }
-  }
-
-  return '/';
-}
-
-function getFullPath(relativePath: string) {
-  return joinPaths(getAPIPathRoot(), relativePath);
 }
 
 async function sendFetchRequest(
