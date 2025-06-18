@@ -1,13 +1,16 @@
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect, afterEach, beforeEach } from 'vitest';
 import {
   joinPaths,
   getFileBrowsePath,
+  getFileURL,
   getLastSegmentFromPath,
   getPreferredPathForDisplay,
   makePathSegmentArray,
+  makeProxiedPathUrl,
   removeLastSegmentFromPath
 } from '@/utils';
 import type { FileSharePath } from '@/shared.types';
+import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 
 describe('joinPaths', () => {
   test('joins paths in POSIX style', () => {
@@ -34,6 +37,35 @@ describe('getFileBrowsePath', () => {
   });
 });
 
+describe('getFileURL', () => {
+  // Save the original location to restore later
+  const originalLocation = window.location;
+
+  beforeEach(() => {
+    Object.defineProperty(window, 'location', {
+      writable: true,
+      value: {
+        ...window.location,
+        origin: 'https://fileglancer-int.janelia.org',
+        pathname: '/'
+      }
+    });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(window, 'location', {
+      writable: true,
+      value: originalLocation
+    });
+  });
+
+  test('returns correctly formatted URL', () => {
+    expect(getFileURL('file-share-path', 'file.zarr')).toBe(
+      'https://fileglancer-int.janelia.org/api/fileglancer/content/file-share-path/file.zarr'
+    );
+  });
+});
+
 describe('getLastSegmentFromPath', () => {
   test('returns last segment of POSIX-style path', () => {
     expect(getLastSegmentFromPath('/a/b/c.txt')).toBe('c.txt');
@@ -43,6 +75,27 @@ describe('getLastSegmentFromPath', () => {
 describe('makePathSegmentArray', () => {
   test('splits POSIX-style path into segments', () => {
     expect(makePathSegmentArray('/a/b/c')).toEqual(['', 'a', 'b', 'c']);
+  });
+});
+
+describe('makeProxiedPathUrl', () => {
+  test('returns correctly formatted URL', () => {
+    const mockProxiedPath = {
+      fsp_name: 'file-share-path',
+      path: 'file.zarr',
+      sharing_key: '12345',
+      sharing_name: 'shared-file',
+      created_at: '2025-06-01T12:00:00Z',
+      updated_at: '2025-06-02T12:00:00Z',
+      username: 'test_user'
+    } as ProxiedPath;
+
+    expect(
+      makeProxiedPathUrl(
+        mockProxiedPath,
+        'https://fileglancer-int.janelia.org/files'
+      )
+    ).toBe('https://fileglancer-int.janelia.org/files/12345/shared-file');
   });
 });
 
