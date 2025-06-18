@@ -25,7 +25,7 @@ export default defineConfig({
       '**/ui-tests/**'
     ],
     globals: true,
-    environment: 'jsdom',
+    environment: 'happy-dom',
     coverage: {
       reporter: ['text', 'html'],
       include: ['src/**/*.{ts,tsx,js,jsx}'],
