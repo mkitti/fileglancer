@@ -1,5 +1,4 @@
 import React from 'react';
-import { default as log } from '@/logger';
 import toast from 'react-hot-toast';
 
 import {
@@ -14,31 +13,24 @@ import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 export default function usePermissionsDialog() {
   const [showAlert, setShowAlert] = React.useState<boolean>(false);
   const { cookies } = useCookiesContext();
-  const { handleFileBrowserNavigation, currentFileSharePath } =
-    useFileBrowserContext();
+  const { fspName, fetchFiles } = useFileBrowserContext();
 
   async function handleChangePermissions(
     targetItem: FileOrFolder,
     localPermissions: FileOrFolder['permissions']
   ) {
-    if (!currentFileSharePath) {
+    if (!fspName) {
       toast.error('No file share path selected.');
       return;
     }
 
-    const fetchPath = getFileBrowsePath(
-      currentFileSharePath.name,
-      targetItem.path
-    );
+    const fetchPath = getFileBrowsePath(fspName, targetItem.path);
 
     try {
       await sendFetchRequest(fetchPath, 'PATCH', cookies['_xsrf'], {
         permissions: localPermissions
       });
-      await handleFileBrowserNavigation({
-        fspName: currentFileSharePath.name,
-        path: removeLastSegmentFromPath(targetItem.path)
-      });
+      await fetchFiles(fspName, removeLastSegmentFromPath(targetItem.path));
       toast.success(`Successfully updated permissions for ${fetchPath}`);
     } catch (error) {
       toast.error(

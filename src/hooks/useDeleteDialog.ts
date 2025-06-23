@@ -1,5 +1,4 @@
 import toast from 'react-hot-toast';
-
 import type { FileOrFolder } from '@/shared.types';
 import {
   getFileBrowsePath,
@@ -11,26 +10,19 @@ import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
 export default function useDeleteDialog() {
   const { cookies } = useCookiesContext();
-  const { handleFileBrowserNavigation, currentFileSharePath } =
-    useFileBrowserContext();
+  const { fspName, fetchFiles } = useFileBrowserContext();
 
   async function handleDelete(targetItem: FileOrFolder) {
-    if (!currentFileSharePath) {
+    if (!fspName) {
       toast.error('No file share path selected.');
       return false;
     }
 
-    const fetchPath = getFileBrowsePath(
-      currentFileSharePath.name,
-      targetItem.path
-    );
+    const fetchPath = getFileBrowsePath(fspName, targetItem.path);
 
     try {
       await sendFetchRequest(fetchPath, 'DELETE', cookies['_xsrf']);
-      await handleFileBrowserNavigation({
-        fspName: currentFileSharePath.name,
-        path: removeLastSegmentFromPath(targetItem.path)
-      });
+      await fetchFiles(fspName, removeLastSegmentFromPath(targetItem.path));
       toast.success(`Successfully deleted ${targetItem.path}`);
       return true;
     } catch (error) {

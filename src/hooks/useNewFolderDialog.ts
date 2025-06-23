@@ -16,8 +16,7 @@ export default function useNewFolderDialog() {
   const [showAlert, setShowAlert] = useState<boolean>(false);
   const [alertContent, setAlertContent] = useState<string>('');
 
-  const { handleFileBrowserNavigation, currentFileOrFolder } =
-    useFileBrowserContext();
+  const { filePath, currentFileOrFolder, fetchFiles } = useFileBrowserContext();
   const { currentFileSharePath } = useFileBrowserContext();
   const { pathPreference } = usePreferencesContext();
   const { cookies } = useCookiesContext();
@@ -58,10 +57,7 @@ export default function useNewFolderDialog() {
       );
       try {
         await addNewFolder();
-        await handleFileBrowserNavigation({
-          fspName: currentFileSharePath.name,
-          path: currentFileOrFolder.path
-        });
+        await fetchFiles(currentFileSharePath.name, filePath);
         const alertContent = `Created new folder at path: ${displayPath}`;
         toast.success(alertContent);
         return true;

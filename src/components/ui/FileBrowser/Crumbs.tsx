@@ -10,20 +10,17 @@ import {
   SlashIcon,
   Squares2X2Icon
 } from '@heroicons/react/24/outline';
+import { Link } from 'react-router';
 
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import { makePathSegmentArray, joinPaths } from '@/utils';
+import { makeBrowseLink, makePathSegmentArray, joinPaths } from '@/utils';
 
 export default function Crumbs(): ReactNode {
-  const {
-    handleFileBrowserNavigation,
-    currentFileOrFolder,
-    currentFileSharePath
-  } = useFileBrowserContext();
+  const { fspName, filePath } = useFileBrowserContext();
 
-  const dirArray = makePathSegmentArray(currentFileOrFolder?.path || '');
+  const dirArray = makePathSegmentArray(filePath || '');
   // Add the current file share path name as the first segment in the array
-  dirArray.unshift(currentFileSharePath?.name || '');
+  dirArray.unshift(fspName || '');
   const dirDepth = dirArray.length;
 
   return (
@@ -36,48 +33,46 @@ export default function Crumbs(): ReactNode {
 
         {/* Path segments */}
         {dirArray.map((pathSegment, index) => {
-          if (index < dirDepth - 1) {
-            // Render a breadcrumb link for each segment in the parent path
-            return (
-              <React.Fragment key={pathSegment + '-' + index}>
-                <BreadcrumbLink
-                  variant="text"
-                  className="rounded-md hover:bg-primary-light/20 hover:!text-black focus:!text-black transition-colors cursor-pointer"
-                  onClick={async () => {
-                    if (!currentFileSharePath) {
-                      return;
-                    }
-                    await handleFileBrowserNavigation({
-                      fspName: currentFileSharePath.name,
-                      path: joinPaths(...dirArray.slice(1, index + 1))
-                    });
-                  }}
-                >
+          if (fspName) {
+            const path = joinPaths(...dirArray.slice(1, index + 1));
+            const link = makeBrowseLink(fspName, path);
+
+            if (index < dirDepth - 1) {
+              // Render a breadcrumb link for each segment in the parent path
+              return (
+                <React.Fragment key={pathSegment + '-' + index}>
+                  <BreadcrumbLink
+                    as={Link}
+                    to={link}
+                    variant="text"
+                    className="rounded-md hover:bg-primary-light/20 hover:!text-black focus:!text-black transition-colors cursor-pointer"
+                  >
+                    <Typography
+                      variant="small"
+                      className="font-medium text-primary-light"
+                    >
+                      {pathSegment}
+                    </Typography>
+                  </BreadcrumbLink>
+                  {/* Add separator since is not the last segment */}
+                  <BreadcrumbSeparator>
+                    <SlashIcon className="icon-default" />
+                  </BreadcrumbSeparator>
+                </React.Fragment>
+              );
+            } else {
+              // Render the last path component as text only
+              return (
+                <React.Fragment key={pathSegment + '-' + index}>
                   <Typography
                     variant="small"
-                    className="font-medium text-primary-light"
+                    className="font-medium text-primary-default"
                   >
                     {pathSegment}
                   </Typography>
-                </BreadcrumbLink>
-                {/* Add separator since is not the last segment */}
-                <BreadcrumbSeparator>
-                  <SlashIcon className="icon-default" />
-                </BreadcrumbSeparator>
-              </React.Fragment>
-            );
-          } else {
-            // Render the last path component as text only
-            return (
-              <React.Fragment key={pathSegment + '-' + index}>
-                <Typography
-                  variant="small"
-                  className="font-medium text-primary-default"
-                >
-                  {pathSegment}
-                </Typography>
-              </React.Fragment>
-            );
+                </React.Fragment>
+              );
+            }
           }
         })}
       </Breadcrumb>

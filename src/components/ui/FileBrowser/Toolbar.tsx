@@ -18,7 +18,7 @@ import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
 import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import { makeMapKey } from '@/utils';
+import { makeBrowseLink, makeMapKey } from '@/utils';
 
 type ToolbarProps = {
   selectedFiles: FileOrFolder[];
@@ -42,9 +42,11 @@ export default function Toolbar({
   setShowNewFolderDialog
 }: ToolbarProps): JSX.Element {
   const {
-    handleFileBrowserNavigation,
     currentFileOrFolder,
-    currentFileSharePath
+    currentFileSharePath,
+    filePath,
+    fspName,
+    fetchFiles
   } = useFileBrowserContext();
 
   const {
@@ -54,44 +56,43 @@ export default function Toolbar({
   } = usePreferencesContext();
 
   const isFavorited = React.useMemo(() => {
-    if (!currentFileSharePath || !currentFileOrFolder) {
+    if (!fspName) {
       return false;
     }
-    if (currentFileOrFolder.path === '.') {
-      const fspKey = makeMapKey('fsp', currentFileSharePath.name);
+    if (!filePath || filePath === '') {
+      const fspKey = makeMapKey('fsp', fspName);
       return fspKey in fileSharePathPreferenceMap;
     }
-    const folderKey = makeMapKey(
-      'folder',
-      `${currentFileSharePath.name}_${currentFileOrFolder.path}`
-    );
+    const folderKey = makeMapKey('folder', `${fspName}_${filePath}`);
     return folderKey in folderPreferenceMap;
-  }, [
-    currentFileSharePath,
-    currentFileOrFolder,
-    folderPreferenceMap,
-    fileSharePathPreferenceMap
-  ]);
+  }, [filePath, fspName, folderPreferenceMap, fileSharePathPreferenceMap]);
+
+  const link = makeBrowseLink(fspName, filePath);
 
   const handleFavoriteClick = React.useCallback(async () => {
     if (!currentFileSharePath || !currentFileOrFolder) {
       return;
     }
-    console.log('path:', currentFileOrFolder.path);
-    if (currentFileOrFolder.path === '.') {
+    console.log('path:', filePath);
+    if (!filePath || filePath === '') {
       await handleFavoriteChange(currentFileSharePath, 'fileSharePath');
       return;
     } else {
       await handleFavoriteChange(
         {
           type: 'folder',
-          folderPath: currentFileOrFolder.path,
+          folderPath: filePath,
           fsp: currentFileSharePath
         },
         'folder'
       );
     }
-  }, [currentFileSharePath, handleFavoriteChange, currentFileOrFolder]);
+  }, [
+    currentFileOrFolder,
+    currentFileSharePath,
+    handleFavoriteChange,
+    filePath
+  ]);
 
   // Don't show favorite button if not in a valid location
   const showFavoriteButton =
@@ -141,13 +142,10 @@ export default function Toolbar({
               as={IconButton}
               variant="outline"
               onClick={async () => {
-                if (!currentFileSharePath || !currentFileOrFolder) {
+                if (!fspName) {
                   return;
                 }
-                await handleFileBrowserNavigation({
-                  fspName: currentFileSharePath.name,
-                  path: currentFileOrFolder.path
-                });
+                await fetchFiles(fspName, filePath);
               }}
             >
               <ArrowPathIcon className="icon-default" />
