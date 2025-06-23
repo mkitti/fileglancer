@@ -180,10 +180,36 @@ function getPreferredPathForDisplay(
  * makeProxiedPathUrl({ sharing_key: 'key123', sharing_name: 'shared-folder' });
  * // Returns 'http://localhost:8888/proxy/key123/shared-folder'
  */
-function makeProxiedPathUrl(item: ProxiedPath, proxyBaseUrl: string = PROXY_BASE_URL): string {
-   // Ensure the base URL ends with a slash for proper path joining
-   const baseWithSlash = proxyBaseUrl.endsWith('/') ? proxyBaseUrl : `${proxyBaseUrl}/`;
-  return new URL(joinPaths(item.sharing_key, item.sharing_name), baseWithSlash).href;
+function makeProxiedPathUrl(
+  item: ProxiedPath,
+  proxyBaseUrl: string = PROXY_BASE_URL
+): string {
+  // Ensure the base URL ends with a slash for proper path joining
+  const baseWithSlash = proxyBaseUrl.endsWith('/')
+    ? proxyBaseUrl
+    : `${proxyBaseUrl}/`;
+  return new URL(joinPaths(item.sharing_key, item.sharing_name), baseWithSlash)
+    .href;
+}
+
+/**
+ * Constructs a browse link for a file share path.
+ * If filePath is provided, appends it to the base path.
+ * Example:
+ * makeBrowseLink('myFSP'); // Returns '/browse/myFSP'
+ * makeBrowseLink('myFSP', 'path/to/file.txt'); // Returns '/browse/myFSP/path/to/file.txt'
+ */
+function makeBrowseLink(
+  fspName: string | undefined,
+  filePath?: string
+): string {
+  if (!fspName) {
+    log.warn('FSP name is required to create a browse link.');
+    return '/browse';
+  }
+  return filePath
+    ? `/browse/${encodeURIComponent(fspName)}/${encodeURIComponent(filePath)}`
+    : `/browse/${encodeURIComponent(fspName)}`;
 }
 
 export {
@@ -195,6 +221,7 @@ export {
   getLastSegmentFromPath,
   getPreferredPathForDisplay,
   joinPaths,
+  makeBrowseLink,
   makePathSegmentArray,
   makeProxiedPathUrl,
   removeLastSegmentFromPath
