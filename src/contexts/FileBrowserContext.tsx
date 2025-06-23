@@ -40,11 +40,12 @@ export const useFileBrowserContext = () => {
   return context;
 };
 
+// fspName and filePath come from URL parameters, accessed in MainLayout
 export const FileBrowserContextProvider = ({
-  children
-}: {
-  children: React.ReactNode;
-}) => {
+  children,
+  fspName,
+  filePath
+}: FileBrowserContextProviderProps) => {
   const [files, setFiles] = React.useState<FileOrFolder[]>([]);
   const [currentFileOrFolder, setCurrentFileOrFolder] =
     React.useState<FileOrFolder | null>(null);
@@ -180,6 +181,8 @@ export const FileBrowserContextProvider = ({
   return (
     <FileBrowserContext.Provider
       value={{
+        fspName,
+        filePath,
         files,
         currentFileOrFolder,
         currentFileSharePath,

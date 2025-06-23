@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router';
+import { Outlet, useParams } from 'react-router';
 import { Toaster } from 'react-hot-toast';
 
 import { CookiesProvider } from '@/contexts/CookiesContext';
@@ -9,11 +9,17 @@ import { ProxiedPathProvider } from '@/contexts/ProxiedPathContext';
 import FileglancerNavbar from '@/components/ui/Navbar';
 
 export const MainLayout = () => {
+  const { fspName, filePath } = useParams();
+  const decodedFilePath = filePath ? decodeURIComponent(filePath) : '';
+
   return (
     <CookiesProvider>
       <ZonesAndFspMapContextProvider>
         <PreferencesProvider>
-          <FileBrowserContextProvider>
+          <FileBrowserContextProvider
+            fspName={fspName}
+            filePath={decodedFilePath}
+          >
             <ProxiedPathProvider>
               <Toaster
                 position="bottom-center"
