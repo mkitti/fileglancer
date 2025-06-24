@@ -10,7 +10,8 @@ import useHandleLeftClick from '@/hooks/useHandleLeftClick';
 import {
   formatUnixTimestamp,
   formatFileSize,
-  makeBrowseLink
+  makeBrowseLink,
+  removeLastSegmentFromPath
 } from '@/utils/index';
 
 type FileRowProps = {
@@ -51,7 +52,10 @@ export default function FileRow({
     selectedFile => selectedFile.name === file.name
   );
 
-  const link = makeBrowseLink(fspName, file.path);
+  let link = '#';
+  if (file.is_dir) {
+    link = makeBrowseLink(fspName, file.path) as string;
+  }
 
   return (
     <div
@@ -81,13 +85,19 @@ export default function FileRow({
       <div className="flex items-center pl-3 py-1">
         <Tooltip>
           <Tooltip.Trigger className="max-w-full truncate">
-            <Typography
-              as={Link}
-              to={link}
-              className="font-medium text-primary-light hover:underline"
-            >
-              {file.name}
-            </Typography>
+            {file.is_dir ? (
+              <Typography
+                as={Link}
+                to={link}
+                className="font-medium text-primary-light hover:underline"
+              >
+                {file.name}
+              </Typography>
+            ) : (
+              <Typography className="font-medium text-primary-default">
+                {file.name}
+              </Typography>
+            )}
           </Tooltip.Trigger>
           <Tooltip.Content>{file.name}</Tooltip.Content>
         </Tooltip>
