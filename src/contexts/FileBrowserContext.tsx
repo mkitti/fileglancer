@@ -1,14 +1,16 @@
 import React from 'react';
 import { default as log } from '@/logger';
+import { useErrorBoundary } from 'react-error-boundary';
+
 import { FileOrFolder, FileSharePath } from '@/shared.types';
 import {
   getFileBrowsePath,
+  HTTPError,
   removeLastSegmentFromPath,
   sendFetchRequest
 } from '@/utils';
 import { useCookiesContext } from './CookiesContext';
 import { useZoneAndFspMapContext } from './ZonesAndFspMapContext';
-import { url } from 'inspector';
 
 type FileBrowserContextProviderProps = {
   children: React.ReactNode;
@@ -17,6 +19,7 @@ type FileBrowserContextProviderProps = {
 };
 
 type FileBrowserContextType = {
+  isFileBrowserReady: boolean;
   fspName: string | undefined;
   filePath: string | undefined;
   files: FileOrFolder[];
@@ -45,6 +48,7 @@ export const FileBrowserContextProvider = ({
   fspName,
   filePath
 }: FileBrowserContextProviderProps) => {
+  const [isFileBrowserReady, setIsFileBrowserReady] = React.useState(true);
   const [files, setFiles] = React.useState<FileOrFolder[]>([]);
   const [currentFolder, setCurrentFolder] = React.useState<FileOrFolder | null>(
     null
@@ -52,6 +56,7 @@ export const FileBrowserContextProvider = ({
   const [currentFileSharePath, setCurrentFileSharePath] =
     React.useState<FileSharePath | null>(null);
 
+  const { showBoundary } = useErrorBoundary();
   const { cookies } = useCookiesContext();
   const { zonesAndFileSharePathsMap, isZonesMapReady } =
     useZoneAndFspMapContext();
@@ -66,18 +71,16 @@ export const FileBrowserContextProvider = ({
         if (data && data['info']) {
           return data['info'] as FileOrFolder;
         }
-      } catch (error: unknown) {
-        if (error instanceof Error) {
-          log.error(`Failed to fetch file/folder info: ${error.message}`);
+      } catch (error) {
+        if (error instanceof HTTPError && error.responseCode === 404) {
+          showBoundary(error);
         } else {
-          log.error(
-            'An unknown error occurred while fetching file/folder info'
-          );
+          log.error(error);
         }
       }
       return null;
     },
-    [cookies]
+    [cookies, showBoundary]
   );
 
   // Function to fetch files for a directory
@@ -100,21 +103,23 @@ export const FileBrowserContextProvider = ({
             return a.is_dir ? -1 : 1;
           }) as FileOrFolder[];
         }
-      } catch (error: unknown) {
-        if (error instanceof Error) {
-          log.error(`Failed to fetch files: ${error.message}`);
+      } catch (error) {
+        if (error instanceof HTTPError && error.responseCode === 404) {
+          showBoundary(error);
         } else {
-          log.error('An unknown error occurred while fetching files');
+          log.error(error);
         }
       }
       return [];
     },
-    [cookies]
+    [cookies, showBoundary]
   );
 
   // Effect to update context based on URL parameters
   React.useEffect(() => {
     const updateFromUrlParams = async () => {
+      setIsFileBrowserReady(false);
+
       // If we don't have an fspName, reset state
       if (!fspName) {
         setCurrentFolder(null);
@@ -150,6 +155,7 @@ export const FileBrowserContextProvider = ({
             fspName,
             removeLastSegmentFromPath(urlParamFolder.path)
           )) as FileOrFolder;
+          console.log('Updated urlParamFolder:', urlParamFolder);
         }
 
         if (
@@ -162,8 +168,12 @@ export const FileBrowserContextProvider = ({
           setCurrentFolder(urlParamFolder);
           const fetchedFiles = await fetchFiles(fspName, urlParamFolder.path);
           setFiles(fetchedFiles);
+        } else if (!urlParamFolder) {
+          setCurrentFolder(null);
+          setFiles([]);
         }
       }
+      setIsFileBrowserReady(true);
     };
 
     updateFromUrlParams();
@@ -181,6 +191,7 @@ export const FileBrowserContextProvider = ({
   return (
     <FileBrowserContext.Provider
       value={{
+        isFileBrowserReady,
         fspName,
         filePath,
         files,

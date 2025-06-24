@@ -6,9 +6,10 @@ import FileListCrumbs from './Crumbs';
 import FileRow from './FileRow';
 import ZarrPreview from './ZarrPreview';
 import useZarrMetadata from '@/hooks/useZarrMetadata';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import Loader from '../Loader';
 
 type FileListProps = {
-  files: FileOrFolder[];
   selectedFiles: FileOrFolder[];
   setSelectedFiles: React.Dispatch<React.SetStateAction<FileOrFolder[]>>;
   showPropertiesDrawer: boolean;
@@ -28,7 +29,6 @@ type FileListProps = {
 };
 
 export default function FileList({
-  files,
   selectedFiles,
   setSelectedFiles,
   showPropertiesDrawer,
@@ -36,13 +36,14 @@ export default function FileList({
   hideDotFiles,
   handleRightClick
 }: FileListProps): React.ReactNode {
+  const { files, isFileBrowserReady } = useFileBrowserContext();
   const {
     thumbnailSrc,
     openWithToolUrls,
     metadata,
     hasMultiscales,
     loadingThumbnail
-  } = useZarrMetadata(files);
+  } = useZarrMetadata();
 
   const displayFiles = React.useMemo(() => {
     return hideDotFiles
@@ -90,7 +91,7 @@ export default function FileList({
           </div>
         </div>
         {/* File rows */}
-        {displayFiles.length > 0 &&
+        {isFileBrowserReady && displayFiles.length > 0 ? (
           displayFiles.map((file, index) => {
             return (
               <FileRow
@@ -105,7 +106,12 @@ export default function FileList({
                 handleRightClick={handleRightClick}
               />
             );
-          })}
+          })
+        ) : (
+          <div className="flex justify-center w-full py-2">
+            <Loader />
+          </div>
+        )}
       </div>
     </div>
   );

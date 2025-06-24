@@ -18,7 +18,7 @@ export type OpenWithToolUrls = {
   vole: string;
 };
 
-export default function useZarrMetadata(files: FileOrFolder[]) {
+export default function useZarrMetadata() {
   const [thumbnailSrc, setThumbnailSrc] = React.useState<string | null>(null);
   const [openWithToolUrls, setOpenWithToolUrls] =
     React.useState<OpenWithToolUrls | null>(null);
@@ -29,7 +29,8 @@ export default function useZarrMetadata(files: FileOrFolder[]) {
   const validatorBaseUrl = 'https://ome.github.io/ome-ngff-validator/?source=';
   const neuroglancerBaseUrl = 'https://neuroglancer-demo.appspot.com/#!';
   const voleBaseUrl = 'https://volumeviewer.allencell.org/viewer?url=';
-  const { currentFolder, currentFileSharePath } = useFileBrowserContext();
+  const { currentFolder, currentFileSharePath, files } =
+    useFileBrowserContext();
   const { dataUrl } = useProxiedPathContext();
   const [cookies] = useCookies(['_xsrf']);
 
