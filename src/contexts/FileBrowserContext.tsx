@@ -160,7 +160,7 @@ export const FileBrowserContextProvider = ({
             currentFolder.name !== urlParamFolder.name)
         ) {
           setCurrentFolder(urlParamFolder);
-          const fetchedFiles = await fetchFiles(fspName, filePath);
+          const fetchedFiles = await fetchFiles(fspName, urlParamFolder.path);
           setFiles(fetchedFiles);
         }
       }
