@@ -1,9 +1,14 @@
 import React from 'react';
 import { default as log } from '@/logger';
 import { FileOrFolder, FileSharePath } from '@/shared.types';
-import { getFileBrowsePath, sendFetchRequest } from '@/utils';
+import {
+  getFileBrowsePath,
+  removeLastSegmentFromPath,
+  sendFetchRequest
+} from '@/utils';
 import { useCookiesContext } from './CookiesContext';
 import { useZoneAndFspMapContext } from './ZonesAndFspMapContext';
+import { url } from 'inspector';
 
 type FileBrowserContextProviderProps = {
   children: React.ReactNode;
@@ -15,7 +20,7 @@ type FileBrowserContextType = {
   fspName: string | undefined;
   filePath: string | undefined;
   files: FileOrFolder[];
-  currentFileOrFolder: FileOrFolder | null;
+  currentFolder: FileOrFolder | null;
   currentFileSharePath: FileSharePath | null;
   fetchFiles: (fspName: string, path?: string) => Promise<FileOrFolder[]>;
 };
@@ -41,8 +46,9 @@ export const FileBrowserContextProvider = ({
   filePath
 }: FileBrowserContextProviderProps) => {
   const [files, setFiles] = React.useState<FileOrFolder[]>([]);
-  const [currentFileOrFolder, setCurrentFileOrFolder] =
-    React.useState<FileOrFolder | null>(null);
+  const [currentFolder, setCurrentFolder] = React.useState<FileOrFolder | null>(
+    null
+  );
   const [currentFileSharePath, setCurrentFileSharePath] =
     React.useState<FileSharePath | null>(null);
 
@@ -111,7 +117,7 @@ export const FileBrowserContextProvider = ({
     const updateFromUrlParams = async () => {
       // If we don't have an fspName, reset state
       if (!fspName) {
-        setCurrentFileOrFolder(null);
+        setCurrentFolder(null);
         setFiles([]);
         return;
       }
@@ -132,20 +138,28 @@ export const FileBrowserContextProvider = ({
         }
 
         // Fetch file/folder info based on URL parameters
-        const fileInfo = await fetchFileOrFolderInfo(fspName, filePath);
+        let urlParamFolder = (await fetchFileOrFolderInfo(
+          fspName,
+          filePath
+        )) as FileOrFolder;
 
-        // Only update if the file info is different
-        if (
-          fileInfo &&
-          (!currentFileOrFolder ||
-            currentFileOrFolder.path !== fileInfo.path ||
-            currentFileOrFolder.name !== fileInfo.name)
-        ) {
-          setCurrentFileOrFolder(fileInfo);
+        // If urlParamFolder is actually a file, remove the last segment from the path
+        // until reaching a directory, then fetch that directory's info
+        while (urlParamFolder && !urlParamFolder.is_dir) {
+          urlParamFolder = (await fetchFileOrFolderInfo(
+            fspName,
+            removeLastSegmentFromPath(urlParamFolder.path)
+          )) as FileOrFolder;
         }
 
-        // Fetch files if we're looking at a directory
-        if (!filePath || (fileInfo && fileInfo.is_dir)) {
+        if (
+          urlParamFolder &&
+          urlParamFolder.is_dir &&
+          (!currentFolder ||
+            currentFolder.path !== urlParamFolder.path ||
+            currentFolder.name !== urlParamFolder.name)
+        ) {
+          setCurrentFolder(urlParamFolder);
           const fetchedFiles = await fetchFiles(fspName, filePath);
           setFiles(fetchedFiles);
         }
@@ -159,7 +173,7 @@ export const FileBrowserContextProvider = ({
     isZonesMapReady,
     zonesAndFileSharePathsMap,
     currentFileSharePath,
-    currentFileOrFolder,
+    currentFolder,
     fetchFileOrFolderInfo,
     fetchFiles
   ]);
@@ -170,7 +184,7 @@ export const FileBrowserContextProvider = ({
         fspName,
         filePath,
         files,
-        currentFileOrFolder,
+        currentFolder,
         currentFileSharePath,
         fetchFiles
       }}

@@ -41,13 +41,8 @@ export default function Toolbar({
   setShowSidebar,
   setShowNewFolderDialog
 }: ToolbarProps): JSX.Element {
-  const {
-    currentFileOrFolder,
-    currentFileSharePath,
-    filePath,
-    fspName,
-    fetchFiles
-  } = useFileBrowserContext();
+  const { currentFolder, currentFileSharePath, filePath, fspName, fetchFiles } =
+    useFileBrowserContext();
 
   const {
     folderPreferenceMap,
@@ -70,7 +65,7 @@ export default function Toolbar({
   const link = makeBrowseLink(fspName, filePath);
 
   const handleFavoriteClick = React.useCallback(async () => {
-    if (!currentFileSharePath || !currentFileOrFolder) {
+    if (!currentFileSharePath || !currentFolder) {
       return;
     }
     console.log('path:', filePath);
@@ -87,16 +82,11 @@ export default function Toolbar({
         'folder'
       );
     }
-  }, [
-    currentFileOrFolder,
-    currentFileSharePath,
-    handleFavoriteChange,
-    filePath
-  ]);
+  }, [currentFolder, currentFileSharePath, handleFavoriteChange, filePath]);
 
   // Don't show favorite button if not in a valid location
   const showFavoriteButton =
-    currentFileSharePath && currentFileOrFolder && currentFileOrFolder.is_dir;
+    currentFileSharePath && currentFolder && currentFolder.is_dir;
 
   return (
     <div className="flex flex-col min-w-full p-2 border-b border-surface">

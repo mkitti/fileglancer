@@ -51,7 +51,7 @@ export default function Browse() {
 
   const { hideDotFiles, setHideDotFiles } = useHideDotFiles();
   const { selectedFiles, setSelectedFiles } = useSelectedFiles();
-  const { files, currentFileOrFolder, currentFileSharePath } =
+  const { files, currentFolder, currentFileSharePath } =
     useFileBrowserContext();
 
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
@@ -71,7 +71,7 @@ export default function Browse() {
         setShowNewFolderDialog={setShowNewFolderDialog}
       />
       <div className="relative grow h-full flex flex-col overflow-hidden mb-3">
-        {files.length === 0 && !currentFileOrFolder && !currentFileSharePath ? (
+        {files.length === 0 && !currentFolder && !currentFileSharePath ? (
           <Dashboard />
         ) : (
           <FileList

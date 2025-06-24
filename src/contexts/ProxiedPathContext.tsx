@@ -59,7 +59,7 @@ export const ProxiedPathProvider = ({
   );
   const [dataUrl, setDataUrl] = React.useState<string | null>(null);
   const { cookies } = useCookiesContext();
-  const { currentFileOrFolder, currentFileSharePath } = useFileBrowserContext();
+  const { currentFolder, currentFileSharePath } = useFileBrowserContext();
 
   const updateProxiedPath = React.useCallback(
     (proxiedPath: ProxiedPath | null) => {
@@ -98,13 +98,13 @@ export const ProxiedPathProvider = ({
   }, [cookies]);
 
   const fetchProxiedPath = React.useCallback(async () => {
-    if (!currentFileSharePath || !currentFileOrFolder) {
+    if (!currentFileSharePath || !currentFolder) {
       log.trace('No current file share path or file/folder selected');
       return null;
     }
     try {
       const response = await sendFetchRequest(
-        `/api/fileglancer/proxied-path?fsp_name=${currentFileSharePath?.name}&path=${currentFileOrFolder?.path}`,
+        `/api/fileglancer/proxied-path?fsp_name=${currentFileSharePath?.name}&path=${currentFolder?.path}`,
         'GET',
         cookies['_xsrf']
       );
@@ -122,7 +122,7 @@ export const ProxiedPathProvider = ({
       log.error('Error fetching proxied path:', error);
     }
     return null;
-  }, [currentFileSharePath, currentFileOrFolder, cookies]);
+  }, [currentFileSharePath, currentFolder, cookies]);
 
   async function createProxiedPath(
     fspName: string,
@@ -186,7 +186,7 @@ export const ProxiedPathProvider = ({
     })();
   }, [
     currentFileSharePath,
-    currentFileOrFolder,
+    currentFolder,
     fetchProxiedPath,
     updateProxiedPath
   ]);
