@@ -68,7 +68,6 @@ export default function Toolbar({
     if (!currentFileSharePath || !currentFolder) {
       return;
     }
-    console.log('path:', filePath);
     if (!filePath || filePath === '') {
       await handleFavoriteChange(currentFileSharePath, 'fileSharePath');
       return;

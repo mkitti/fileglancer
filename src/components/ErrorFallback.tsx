@@ -1,8 +1,9 @@
 import errorImg from '@/assets/error-icon.png';
+import { default as log } from 'loglevel';
 
 export default function ErrorFallback({ error }: any) {
   if (error instanceof Error) {
-    console.log(error);
+    log.error(error);
     return (
       <div className="flex flex-col h-full gap-4 justify-center items-center">
         <h2 className="text-black dark:text-white text-4xl font-bold">

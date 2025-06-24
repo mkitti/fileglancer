@@ -15,7 +15,7 @@ function fallbackCopyTextToClipboard(text: string) {
     textArea.focus();
     textArea.select();
     if (document.execCommand('copy')) {
-      console.log('Fallback clipboard copy succeeded');
+      log.debug('Fallback clipboard copy succeeded');
     } else {
       throw new Error('Fallback clipboard copy failed');
     }

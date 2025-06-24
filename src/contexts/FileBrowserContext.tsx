@@ -155,7 +155,7 @@ export const FileBrowserContextProvider = ({
             fspName,
             removeLastSegmentFromPath(urlParamFolder.path)
           )) as FileOrFolder;
-          console.log('Updated urlParamFolder:', urlParamFolder);
+          log.debug('Updated urlParamFolder:', urlParamFolder);
         }
 
         if (
