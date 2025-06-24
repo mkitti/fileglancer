@@ -64,10 +64,7 @@ export default function Crumbs(): ReactNode {
               // Render the last path component as text only
               return (
                 <React.Fragment key={pathSegment + '-' + index}>
-                  <Typography
-                    variant="small"
-                    className="font-medium text-primary-default"
-                  >
+                  <Typography className="font-medium text-primary-default">
                     {pathSegment}
                   </Typography>
                 </React.Fragment>
