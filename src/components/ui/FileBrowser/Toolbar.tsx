@@ -18,7 +18,7 @@ import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
 import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import { makeBrowseLink, makeMapKey } from '@/utils';
+import { makeMapKey } from '@/utils';
 
 type ToolbarProps = {
   selectedFiles: FileOrFolder[];
@@ -61,8 +61,6 @@ export default function Toolbar({
     const folderKey = makeMapKey('folder', `${fspName}_${filePath}`);
     return folderKey in folderPreferenceMap;
   }, [filePath, fspName, folderPreferenceMap, fileSharePathPreferenceMap]);
-
-  const link = makeBrowseLink(fspName, filePath);
 
   const handleFavoriteClick = React.useCallback(async () => {
     if (!currentFileSharePath || !currentFolder) {
