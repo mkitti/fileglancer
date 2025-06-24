@@ -10,7 +10,7 @@ import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
 export default function useDeleteDialog() {
   const { cookies } = useCookiesContext();
-  const { fspName, fetchFiles } = useFileBrowserContext();
+  const { fspName, fetchAndSetFiles } = useFileBrowserContext();
 
   async function handleDelete(targetItem: FileOrFolder) {
     if (!fspName) {
@@ -22,7 +22,10 @@ export default function useDeleteDialog() {
 
     try {
       await sendFetchRequest(fetchPath, 'DELETE', cookies['_xsrf']);
-      await fetchFiles(fspName, removeLastSegmentFromPath(targetItem.path));
+      await fetchAndSetFiles(
+        fspName,
+        removeLastSegmentFromPath(targetItem.path)
+      );
       toast.success(`Successfully deleted ${targetItem.path}`);
       return true;
     } catch (error) {

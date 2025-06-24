@@ -41,8 +41,13 @@ export default function Toolbar({
   setShowSidebar,
   setShowNewFolderDialog
 }: ToolbarProps): JSX.Element {
-  const { currentFolder, currentFileSharePath, filePath, fspName, fetchFiles } =
-    useFileBrowserContext();
+  const {
+    currentFolder,
+    currentFileSharePath,
+    filePath,
+    fspName,
+    fetchAndSetFiles
+  } = useFileBrowserContext();
 
   const {
     folderPreferenceMap,
@@ -132,7 +137,7 @@ export default function Toolbar({
                 if (!fspName) {
                   return;
                 }
-                await fetchFiles(fspName, filePath);
+                await fetchAndSetFiles(fspName, filePath);
               }}
             >
               <ArrowPathIcon className="icon-default" />

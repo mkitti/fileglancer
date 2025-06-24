@@ -25,7 +25,7 @@ type FileBrowserContextType = {
   files: FileOrFolder[];
   currentFolder: FileOrFolder | null;
   currentFileSharePath: FileSharePath | null;
-  fetchFiles: (fspName: string, path?: string) => Promise<FileOrFolder[]>;
+  fetchAndSetFiles: (fspName: string, path?: string) => Promise<void>;
 };
 
 const FileBrowserContext = React.createContext<FileBrowserContextType | null>(
@@ -84,11 +84,13 @@ export const FileBrowserContextProvider = ({
   );
 
   // Function to fetch files for a directory
-  const fetchFiles = React.useCallback(
-    async (fspName: string, path?: string): Promise<FileOrFolder[]> => {
+  const fetchAndSetFiles = React.useCallback(
+    async (fspName: string, path?: string): Promise<void> => {
       const url = path
         ? getFileBrowsePath(fspName, path)
         : getFileBrowsePath(fspName);
+
+      let files: FileOrFolder[] = [];
 
       try {
         const response = await sendFetchRequest(url, 'GET', cookies['_xsrf']);
@@ -96,7 +98,7 @@ export const FileBrowserContextProvider = ({
 
         if (data.files) {
           // Sort: directories first, then files; alphabetically within each type
-          return data.files.sort((a: FileOrFolder, b: FileOrFolder) => {
+          files = data.files.sort((a: FileOrFolder, b: FileOrFolder) => {
             if (a.is_dir === b.is_dir) {
               return a.name.localeCompare(b.name);
             }
@@ -110,7 +112,7 @@ export const FileBrowserContextProvider = ({
           log.error(error);
         }
       }
-      return [];
+      setFiles(files);
     },
     [cookies, showBoundary]
   );
@@ -166,8 +168,7 @@ export const FileBrowserContextProvider = ({
             currentFolder.name !== urlParamFolder.name)
         ) {
           setCurrentFolder(urlParamFolder);
-          const fetchedFiles = await fetchFiles(fspName, urlParamFolder.path);
-          setFiles(fetchedFiles);
+          await fetchAndSetFiles(fspName, urlParamFolder.path);
         } else if (!urlParamFolder) {
           setCurrentFolder(null);
           setFiles([]);
@@ -185,7 +186,7 @@ export const FileBrowserContextProvider = ({
     currentFileSharePath,
     currentFolder,
     fetchFileOrFolderInfo,
-    fetchFiles
+    fetchAndSetFiles
   ]);
 
   return (
@@ -197,7 +198,7 @@ export const FileBrowserContextProvider = ({
         files,
         currentFolder,
         currentFileSharePath,
-        fetchFiles
+        fetchAndSetFiles
       }}
     >
       {children}
