@@ -94,7 +94,7 @@ export default function FileRow({
                 {file.name}
               </Typography>
             ) : (
-              <Typography className="font-medium text-primary-default">
+              <Typography className="font-medium text-primary-default truncate">
                 {file.name}
               </Typography>
             )}
