@@ -207,9 +207,7 @@ function makeBrowseLink(
     log.warn('FSP name is required to create a browse link.');
     return '/browse';
   }
-  return filePath
-    ? `/browse/${encodeURIComponent(fspName)}/${encodeURIComponent(filePath)}`
-    : `/browse/${encodeURIComponent(fspName)}`;
+  return filePath ? `/browse/${fspName}/${filePath}` : `/browse/${fspName}`;
 }
 
 export {

@@ -64,7 +64,7 @@ const AppComponent = () => {
           <Route element={<BrowseLayout />}>
             <Route path="browse" element={<Browse />} />
             <Route path="browse/:fspName" element={<Browse />} />
-            <Route path="browse/:fspName/:filePath" element={<Browse />} />
+            <Route path="browse/:fspName/*" element={<Browse />} />
             <Route index path="*" element={<Home />} />
           </Route>
         </Route>

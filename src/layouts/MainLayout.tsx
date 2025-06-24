@@ -11,17 +11,15 @@ import FileglancerNavbar from '@/components/ui/Navbar';
 import ErrorFallback from '@/components/ErrorFallback';
 
 export const MainLayout = () => {
-  const { fspName, filePath } = useParams();
-  const decodedFilePath = filePath ? decodeURIComponent(filePath) : '';
+  const params = useParams();
+  const fspName = params.fspName;
+  const filePath = params['*']; // Catch-all for file path
 
   return (
     <CookiesProvider>
       <ZonesAndFspMapContextProvider>
         <PreferencesProvider>
-          <FileBrowserContextProvider
-            fspName={fspName}
-            filePath={decodedFilePath}
-          >
+          <FileBrowserContextProvider fspName={fspName} filePath={filePath}>
             <ProxiedPathProvider>
               <Toaster
                 position="bottom-center"
