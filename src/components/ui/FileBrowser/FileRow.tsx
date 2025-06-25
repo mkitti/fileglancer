@@ -10,8 +10,7 @@ import useHandleLeftClick from '@/hooks/useHandleLeftClick';
 import {
   formatUnixTimestamp,
   formatFileSize,
-  makeBrowseLink,
-  removeLastSegmentFromPath
+  makeBrowseLink
 } from '@/utils/index';
 
 type FileRowProps = {
