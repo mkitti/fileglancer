@@ -6,11 +6,14 @@ import { FileOrFolder, FileSharePath } from '@/shared.types';
 import {
   getFileBrowsePath,
   HTTPError,
+  makeMapKey,
   removeLastSegmentFromPath,
   sendFetchRequest
 } from '@/utils';
 import { useCookiesContext } from './CookiesContext';
 import { useZoneAndFspMapContext } from './ZonesAndFspMapContext';
+import { url } from 'happy-dom/lib/PropertySymbol.js';
+import { set } from 'node_modules/zarrita/dist/src/indexing/set';
 
 type FileBrowserContextProviderProps = {
   children: React.ReactNode;
@@ -85,10 +88,18 @@ export const FileBrowserContextProvider = ({
 
   // Function to fetch files for a directory
   const fetchAndSetFiles = React.useCallback(
-    async (fspName: string, path?: string): Promise<void> => {
-      const url = path
-        ? getFileBrowsePath(fspName, path)
-        : getFileBrowsePath(fspName);
+    async (): Promise<void> => {
+      if (!currentFileSharePath) {
+        log.error('No current file share path set');
+        return;
+      } else if (!currentFolder) {
+        log.error('No current folder set');
+        return;
+      }
+
+      const url = currentFolder.path
+        ? getFileBrowsePath(currentFileSharePath.name, currentFolder.path)
+        : getFileBrowsePath(currentFileSharePath.name);
 
       let files: FileOrFolder[] = [];
 
@@ -117,36 +128,48 @@ export const FileBrowserContextProvider = ({
     [cookies, showBoundary]
   );
 
-  // Effect to update context based on URL parameters
-  React.useEffect(() => {
-    const updateFromUrlParams = async () => {
-      setIsFileBrowserReady(false);
-
-      // If we don't have an fspName, reset state
-      if (!fspName) {
-        setCurrentFolder(null);
-        setFiles([]);
+  // Update currentFileSharePath based on URL param
+   React.useEffect(() => {
+    (function () {
+      if (!isZonesMapReady || !zonesAndFileSharePathsMap || !fspName ) {
         return;
       }
 
-      // Find matching FileSharePath from available ones
-      if (isZonesMapReady && zonesAndFileSharePathsMap) {
-        const allFsps = Object.values(zonesAndFileSharePathsMap).flat();
-        const matchingFsp = allFsps.find(
-          fsp => fsp.name === fspName
-        ) as FileSharePath;
+      // Reset state before updating
+      setIsFileBrowserReady(false);
+      setCurrentFileSharePath(null);
 
-        // Update currentFileSharePath if it's different
-        if (
-          matchingFsp &&
-          (!currentFileSharePath || currentFileSharePath.name !== fspName)
-        ) {
-          setCurrentFileSharePath(matchingFsp);
-        }
+      const fspKey = makeMapKey('fsp', fspName);
+      const urlFsp = zonesAndFileSharePathsMap[fspKey] as FileSharePath;
+
+      if (urlFsp) {
+        setCurrentFileSharePath(urlFsp);
+        
+    }})();
+
+  }, [
+    fspName,
+    isZonesMapReady,
+    setIsFileBrowserReady,
+    zonesAndFileSharePathsMap,
+    currentFileSharePath,
+    setCurrentFileSharePath,
+    makeMapKey
+  ]);
+
+  // Effect to update currentFolder based on URL parameters
+  React.useEffect(() => {
+    const updateFolderAndFilesFromUrlParams = async () => {
+      if (!currentFileSharePath || (currentFileSharePath.name === fspName && filePath === currentFolder?.path)) {
+        return;
+      }
+
+      // Reset state before updating
+      setCurrentFolder(null);
 
         // Fetch file/folder info based on URL parameters
         let urlParamFolder = (await fetchFileOrFolderInfo(
-          fspName,
+          currentFileSharePath.name,
           filePath
         )) as FileOrFolder;
 
@@ -154,7 +177,7 @@ export const FileBrowserContextProvider = ({
         // until reaching a directory, then fetch that directory's info
         while (urlParamFolder && !urlParamFolder.is_dir) {
           urlParamFolder = (await fetchFileOrFolderInfo(
-            fspName,
+            currentFileSharePath.name,
             removeLastSegmentFromPath(urlParamFolder.path)
           )) as FileOrFolder;
           log.debug('Updated urlParamFolder:', urlParamFolder);
@@ -164,30 +187,39 @@ export const FileBrowserContextProvider = ({
           urlParamFolder &&
           urlParamFolder.is_dir &&
           (!currentFolder ||
-            currentFolder.path !== urlParamFolder.path ||
-            currentFolder.name !== urlParamFolder.name)
+            currentFolder.path !== urlParamFolder.path || (currentFolder.path === urlParamFolder.path && fspName !== currentFileSharePath.name))
         ) {
           setCurrentFolder(urlParamFolder);
-          await fetchAndSetFiles(fspName, urlParamFolder.path);
         } else if (!urlParamFolder) {
           setCurrentFolder(null);
           setFiles([]);
         }
-      }
-      setIsFileBrowserReady(true);
-    };
 
-    updateFromUrlParams();
+      }
+
+    updateFolderAndFilesFromUrlParams();
   }, [
-    fspName,
     filePath,
-    isZonesMapReady,
-    zonesAndFileSharePathsMap,
     currentFileSharePath,
     currentFolder,
+    setCurrentFolder,
+    setFiles,
     fetchFileOrFolderInfo,
-    fetchAndSetFiles
+    fetchAndSetFiles,
   ]);
+
+  // Effect to fetch files when currentFolder changes
+  React.useEffect(() => {
+    const updateFiles = async ()=>{
+    if (!currentFolder) {
+      return;
+    }
+    await fetchAndSetFiles();
+    setIsFileBrowserReady(true);
+  }
+  updateFiles();
+
+  }, [currentFolder, fetchAndSetFiles, setIsFileBrowserReady]);
 
   return (
     <FileBrowserContext.Provider

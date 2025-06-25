@@ -107,6 +107,12 @@ export default function FileList({
               />
             );
           })
+        ) : isFileBrowserReady && displayFiles.length === 0 ? (
+          <div className="flex items-center pl-3 py-1">
+            <Typography className="text-primary-default">
+              No files available for display.
+            </Typography>
+          </div>
         ) : (
           <div className="flex justify-center w-full py-2">
             <Loader />
