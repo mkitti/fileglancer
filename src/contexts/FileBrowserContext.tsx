@@ -165,7 +165,13 @@ export const FileBrowserContextProvider = ({
       // in an asynchronous operation
       cancelled = true;
     };
-  }, [fspName, filePath, fetchFileOrFolderInfo]);
+  }, [
+    isZonesMapReady,
+    zonesAndFileSharePathsMap,
+    fspName,
+    filePath,
+    fetchFileOrFolderInfo
+  ]);
 
   // Effect to fetch files when currentFolder changes
   React.useEffect(() => {
