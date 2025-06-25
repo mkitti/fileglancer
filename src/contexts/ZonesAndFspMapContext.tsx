@@ -144,7 +144,7 @@ export const ZonesAndFspMapContextProvider = ({
       // to avoid unnecessary re-fetching
       fetchAndSetInitialFspsAndZones();
     }
-  }, [updateZonesAndFileSharePathsMap]);
+  }, [updateZonesAndFileSharePathsMap, isZonesMapReady]);
 
   return (
     <ZonesAndFspMapContext.Provider
