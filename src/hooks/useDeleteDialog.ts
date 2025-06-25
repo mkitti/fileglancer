@@ -10,20 +10,23 @@ import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
 export default function useDeleteDialog() {
   const { cookies } = useCookiesContext();
-  const { fspName, fetchAndSetFiles } = useFileBrowserContext();
+  const { currentFileSharePath, fetchAndSetFiles } = useFileBrowserContext();
 
   async function handleDelete(targetItem: FileOrFolder) {
-    if (!fspName) {
+    if (!currentFileSharePath) {
       toast.error('No file share path selected.');
       return false;
     }
 
-    const fetchPath = getFileBrowsePath(fspName, targetItem.path);
+    const fetchPath = getFileBrowsePath(
+      currentFileSharePath.name,
+      targetItem.path
+    );
 
     try {
       await sendFetchRequest(fetchPath, 'DELETE', cookies['_xsrf']);
       await fetchAndSetFiles(
-        fspName,
+        currentFileSharePath.name,
         removeLastSegmentFromPath(targetItem.path)
       );
       toast.success(`Successfully deleted ${targetItem.path}`);

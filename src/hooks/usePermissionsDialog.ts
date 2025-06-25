@@ -13,25 +13,28 @@ import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 export default function usePermissionsDialog() {
   const [showAlert, setShowAlert] = React.useState<boolean>(false);
   const { cookies } = useCookiesContext();
-  const { fspName, fetchAndSetFiles } = useFileBrowserContext();
+  const { currentFileSharePath, fetchAndSetFiles } = useFileBrowserContext();
 
   async function handleChangePermissions(
     targetItem: FileOrFolder,
     localPermissions: FileOrFolder['permissions']
   ) {
-    if (!fspName) {
+    if (!currentFileSharePath) {
       toast.error('No file share path selected.');
       return;
     }
 
-    const fetchPath = getFileBrowsePath(fspName, targetItem.path);
+    const fetchPath = getFileBrowsePath(
+      currentFileSharePath.name,
+      targetItem.path
+    );
 
     try {
       await sendFetchRequest(fetchPath, 'PATCH', cookies['_xsrf'], {
         permissions: localPermissions
       });
       await fetchAndSetFiles(
-        fspName,
+        currentFileSharePath.name,
         removeLastSegmentFromPath(targetItem.path)
       );
       toast.success(`Successfully updated permissions for ${fetchPath}`);

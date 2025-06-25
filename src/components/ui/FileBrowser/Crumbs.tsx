@@ -16,11 +16,11 @@ import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { makeBrowseLink, makePathSegmentArray, joinPaths } from '@/utils';
 
 export default function Crumbs(): ReactNode {
-  const { fspName, filePath } = useFileBrowserContext();
+  const { currentFileSharePath, currentFolder } = useFileBrowserContext();
 
-  const dirArray = makePathSegmentArray(filePath || '');
+  const dirArray = makePathSegmentArray(currentFolder?.path || '');
   // Add the current file share path name as the first segment in the array
-  dirArray.unshift(fspName || '');
+  dirArray.unshift(currentFileSharePath?.name || '');
   const dirDepth = dirArray.length;
 
   return (
@@ -33,9 +33,9 @@ export default function Crumbs(): ReactNode {
 
         {/* Path segments */}
         {dirArray.map((pathSegment, index) => {
-          if (fspName) {
+          if (currentFileSharePath) {
             const path = joinPaths(...dirArray.slice(1, index + 1));
-            const link = makeBrowseLink(fspName, path);
+            const link = makeBrowseLink(currentFileSharePath.name, path);
 
             if (index < dirDepth - 1) {
               // Render a breadcrumb link for each segment in the parent path

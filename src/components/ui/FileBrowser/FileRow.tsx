@@ -44,7 +44,7 @@ export default function FileRow({
   setPropertiesTarget,
   handleRightClick
 }: FileRowProps): ReactNode {
-  const { fspName } = useFileBrowserContext();
+  const { currentFileSharePath } = useFileBrowserContext();
   const { handleLeftClick } = useHandleLeftClick();
 
   const isSelected = selectedFiles.some(
@@ -52,8 +52,8 @@ export default function FileRow({
   );
 
   let link = '#';
-  if (file.is_dir) {
-    link = makeBrowseLink(fspName, file.path) as string;
+  if (file.is_dir && currentFileSharePath) {
+    link = makeBrowseLink(currentFileSharePath.name, file.path) as string;
   }
 
   return (
