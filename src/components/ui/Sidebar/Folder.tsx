@@ -15,9 +15,9 @@ import {
   getFileBrowsePath,
   sendFetchRequest,
   getLastSegmentFromPath,
-  getPreferredPathForDisplay
+  getPreferredPathForDisplay,
+  makeBrowseLink
 } from '@/utils';
-import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import MissingFolderFavoriteDialog from './MissingFolderFavoriteDialog';
 
@@ -33,8 +33,6 @@ type FolderProps = {
 export default function Folder({ folderFavorite }: FolderProps) {
   const [showMissingFolderFavoriteDialog, setShowMissingFolderFavoriteDialog] =
     React.useState(false);
-  const { handleFileBrowserNavigation, setCurrentFileSharePath } =
-    useFileBrowserContext();
   const { pathPreference, handleFavoriteChange } = usePreferencesContext();
   const { cookies } = useCookiesContext();
 
@@ -48,6 +46,11 @@ export default function Folder({ folderFavorite }: FolderProps) {
     'folder',
     `${folderFavorite.fsp.name}_${folderFavorite.folderPath}`
   ) as string;
+
+  const link = makeBrowseLink(
+    folderFavorite.fsp.name,
+    folderFavorite.folderPath
+  );
 
   async function checkFolderExists(folderFavorite: FolderFavorite) {
     try {
@@ -83,20 +86,14 @@ export default function Folder({ folderFavorite }: FolderProps) {
           } catch (error) {
             log.error('Error checking folder existence:', error);
           }
-          if (folderExists) {
-            setCurrentFileSharePath(folderFavorite.fsp);
-            await handleFileBrowserNavigation({
-              fspName: folderFavorite.fsp.name,
-              path: folderFavorite.folderPath
-            });
-          } else if (folderExists === false) {
+          if (folderExists === false) {
             setShowMissingFolderFavoriteDialog(true);
           }
         }}
         className="pl-6 w-full flex gap-2 items-center justify-between rounded-md cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 "
       >
         <Link
-          to="/browse"
+          to={link}
           className="w-[calc(100%-2rem)] flex flex-col items-start gap-2 short:gap-1 !text-foreground hover:!text-black focus:!text-black hover:dark:!text-white focus:dark:!text-white"
         >
           <div className="w-full flex gap-1 items-center">
@@ -124,9 +121,9 @@ export default function Folder({ folderFavorite }: FolderProps) {
             className="min-w-0 min-h-0"
             variant="ghost"
             isCircular
-            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+            onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
               e.stopPropagation();
-              handleFavoriteChange(folderFavorite, 'folder');
+              await handleFavoriteChange(folderFavorite, 'folder');
             }}
           >
             <StarFilled className="icon-small short:icon-xsmall mb-[2px]" />

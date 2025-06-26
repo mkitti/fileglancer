@@ -15,6 +15,7 @@ import NewFolderDialog from './ui/Dialogs/NewFolderDialog';
 import Delete from './ui/Dialogs/Delete';
 import ChangePermissions from './ui/Dialogs/ChangePermissions';
 import Dashboard from './ui/FileBrowser/Dashboard';
+import Loader from './ui/Loader';
 
 type OutletContextType = {
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
@@ -51,8 +52,7 @@ export default function Browse() {
 
   const { hideDotFiles, setHideDotFiles } = useHideDotFiles();
   const { selectedFiles, setSelectedFiles } = useSelectedFiles();
-  const { files, currentFileOrFolder, currentFileSharePath } =
-    useFileBrowserContext();
+  const { currentFileSharePath } = useFileBrowserContext();
 
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
   const [showNewFolderDialog, setShowNewFolderDialog] = React.useState(false);
@@ -71,11 +71,10 @@ export default function Browse() {
         setShowNewFolderDialog={setShowNewFolderDialog}
       />
       <div className="relative grow h-full flex flex-col overflow-hidden mb-3">
-        {files.length === 0 && !currentFileOrFolder && !currentFileSharePath ? (
+        {!currentFileSharePath ? (
           <Dashboard />
         ) : (
           <FileList
-            files={files}
             selectedFiles={selectedFiles}
             setSelectedFiles={setSelectedFiles}
             showPropertiesDrawer={showPropertiesDrawer}

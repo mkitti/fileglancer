@@ -16,8 +16,7 @@ export default function useNewFolderDialog() {
   const [showAlert, setShowAlert] = useState<boolean>(false);
   const [alertContent, setAlertContent] = useState<string>('');
 
-  const { handleFileBrowserNavigation, currentFileOrFolder } =
-    useFileBrowserContext();
+  const { filePath, currentFolder, fetchAndSetFiles } = useFileBrowserContext();
   const { currentFileSharePath } = useFileBrowserContext();
   const { pathPreference } = usePreferencesContext();
   const { cookies } = useCookiesContext();
@@ -26,13 +25,13 @@ export default function useNewFolderDialog() {
     if (!currentFileSharePath) {
       throw new Error('No file share path selected.');
     }
-    if (!currentFileOrFolder) {
+    if (!currentFolder) {
       throw new Error('No current file or folder selected.');
     }
     await sendFetchRequest(
       getFileBrowsePath(
         currentFileSharePath.name,
-        joinPaths(currentFileOrFolder.path, newName)
+        joinPaths(currentFolder.path, newName)
       ),
       'POST',
       cookies['_xsrf'],
@@ -47,21 +46,18 @@ export default function useNewFolderDialog() {
     if (!currentFileSharePath) {
       setAlertContent('No file share path selected.');
       return false;
-    } else if (!currentFileOrFolder) {
+    } else if (!currentFolder) {
       setAlertContent('No current file or folder selected.');
       return false;
     } else {
       const displayPath = getPreferredPathForDisplay(
         pathPreference,
         currentFileSharePath,
-        `${currentFileOrFolder.path}/${newName}`
+        `${currentFolder.path}/${newName}`
       );
       try {
         await addNewFolder();
-        await handleFileBrowserNavigation({
-          fspName: currentFileSharePath.name,
-          path: currentFileOrFolder.path
-        });
+        await fetchAndSetFiles(currentFileSharePath.name, filePath);
         const alertContent = `Created new folder at path: ${displayPath}`;
         toast.success(alertContent);
         return true;
