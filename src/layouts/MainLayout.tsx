@@ -8,7 +8,8 @@ import { FileBrowserContextProvider } from '@/contexts/FileBrowserContext';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
 import { ProxiedPathProvider } from '@/contexts/ProxiedPathContext';
 import { OpenFavoritesProvider } from '@/contexts/OpenFavoritesContext';
-import FileglancerNavbar from '@/components/ui/Navbar';
+import FileglancerNavbar from '@/components/ui/Navbar/Navbar';
+import { BetaBanner } from '@/components/ui/Beta';
 import ErrorFallback from '@/components/ErrorFallback';
 
 export const MainLayout = () => {
@@ -32,6 +33,7 @@ export const MainLayout = () => {
                 />
                 <div className="flex flex-col items-center h-full w-full overflow-y-hidden bg-background text-foreground box-border">
                   <FileglancerNavbar />
+                  <BetaBanner />
                   <ErrorBoundary FallbackComponent={ErrorFallback}>
                     <Outlet />
                   </ErrorBoundary>
