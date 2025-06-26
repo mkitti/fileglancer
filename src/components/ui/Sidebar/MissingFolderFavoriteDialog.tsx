@@ -60,9 +60,9 @@ export default function MissingFolderFavoriteDialog({
               variant="outline"
               color="error"
               className="!rounded-md flex items-center gap-2"
-              onClick={() => {
+              onClick={async () => {
                 try {
-                  handleFavoriteChange(folderFavorite, 'folder');
+                  await handleFavoriteChange(folderFavorite, 'folder');
                   toast.success(`Deleted favorite folder ${displayPath}`);
                 } catch (error) {
                   toast.error(

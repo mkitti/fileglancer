@@ -66,9 +66,9 @@ export default function FileSharePathComponent({
           className="min-w-0 min-h-0"
           variant="ghost"
           isCircular
-          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+          onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
             e.stopPropagation();
-            handleFavoriteChange(fsp, 'fileSharePath');
+            await handleFavoriteChange(fsp, 'fileSharePath');
           }}
         >
           {isFavoritePath ? (

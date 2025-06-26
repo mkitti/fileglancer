@@ -58,9 +58,9 @@ export default function ContextMenu({
         <Menu.Item>
           <Typography
             className="text-sm p-1 cursor-pointer text-secondary-light"
-            onClick={() => {
+            onClick={async () => {
               if (currentFileSharePath) {
-                handleFavoriteChange(
+                await handleFavoriteChange(
                   {
                     type: 'folder',
                     folderPath: selectedFiles[0].path,
