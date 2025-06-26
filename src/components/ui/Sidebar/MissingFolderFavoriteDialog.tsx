@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router';
 import toast from 'react-hot-toast';
 import {
   Button,
@@ -12,7 +13,7 @@ import {
   FolderFavorite,
   usePreferencesContext
 } from '@/contexts/PreferencesContext';
-import { getPreferredPathForDisplay } from '@/utils';
+import { getPreferredPathForDisplay, removeLastSegmentFromPath } from '@/utils';
 
 type MissingFolderFavoriteDialogProps = {
   folderFavorite: FolderFavorite;
@@ -28,6 +29,7 @@ export default function MissingFolderFavoriteDialog({
   setShowMissingFolderFavoriteDialog
 }: MissingFolderFavoriteDialogProps): JSX.Element {
   const { handleFavoriteChange, pathPreference } = usePreferencesContext();
+  const navigate = useNavigate();
 
   const displayPath = getPreferredPathForDisplay(
     pathPreference,
@@ -63,6 +65,9 @@ export default function MissingFolderFavoriteDialog({
               onClick={async () => {
                 try {
                   await handleFavoriteChange(folderFavorite, 'folder');
+                  navigate(
+                    `/browse/${folderFavorite.fsp.name}/${removeLastSegmentFromPath(folderFavorite.folderPath)}`
+                  );
                   toast.success(`Deleted favorite folder ${displayPath}`);
                 } catch (error) {
                   toast.error(

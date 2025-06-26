@@ -8,40 +8,33 @@ import {
 import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
 
 import type { FileSharePath } from '@/shared.types';
-import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import { makeMapKey, getPreferredPathForDisplay } from '@/utils';
+import {
+  makeBrowseLink,
+  makeMapKey,
+  getPreferredPathForDisplay
+} from '@/utils';
 
 type FileSharePathComponentProps = {
   fsp: FileSharePath;
-  index: number;
 };
 
 export default function FileSharePathComponent({
-  fsp,
-  index
+  fsp
 }: FileSharePathComponentProps) {
   const { pathPreference, fileSharePathPreferenceMap, handleFavoriteChange } =
     usePreferencesContext();
-
-  const { handleFileBrowserNavigation, setCurrentFileSharePath } =
-    useFileBrowserContext();
 
   const isFavoritePath = fileSharePathPreferenceMap[makeMapKey('fsp', fsp.name)]
     ? true
     : false;
   const fspPath = getPreferredPathForDisplay(pathPreference, fsp);
+  const link = makeBrowseLink(fsp.name);
 
   return (
-    <List.Item
-      onClick={async () => {
-        setCurrentFileSharePath(fsp);
-        await handleFileBrowserNavigation({ fspName: fsp.name });
-      }}
-      className="file-share-path pl-6 w-full flex items-center justify-between rounded-md cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30"
-    >
+    <List.Item className="file-share-path pl-6 w-full flex items-center justify-between rounded-md cursor-pointer text-foreground hover:!bg-primary-light/30 focus:!bg-primary-light/30">
       <Link
-        to="/browse"
+        to={link}
         className="max-w-[calc(100%-1rem)] grow flex flex-col gap-1 !text-foreground hover:!text-black focus:!text-black dark:hover:!text-white dark:focus:!text-white"
       >
         <div className="flex gap-1 items-center max-w-full">

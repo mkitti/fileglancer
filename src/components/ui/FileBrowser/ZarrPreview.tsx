@@ -14,14 +14,15 @@ import volE_logo from '@/assets/aics_website-3d-cell-viewer.png';
 import copy_logo from '@/assets/copy-link-64.png';
 // import napari_logo from '@/assets/napari.png';
 
+import ZarrMetadataTable from '@/components/ui/FileBrowser/ZarrMetadataTable';
+import SharingDialog from '@/components/ui/Dialogs/SharingDialog';
+import Loader from '@/components/ui/Loader';
 import useCopyPath from '@/hooks/useCopyPath';
-import type { Metadata } from '@/omezarr-helper';
+import type { OpenWithToolUrls } from '@/hooks/useZarrMetadata';
+import useSharingDialog from '@/hooks/useSharingDialog';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import ZarrMetadataTable from './ZarrMetadataTable';
-import SharingDialog from '../Dialogs/SharingDialog';
-import useSharingDialog from '@/hooks/useSharingDialog';
-import type { OpenWithToolUrls } from '@/hooks/useZarrMetadata';
+import type { Metadata } from '@/omezarr-helper';
 
 type ZarrPreviewProps = {
   thumbnailSrc: string | null;
@@ -42,7 +43,7 @@ export default function ZarrPreview({
   const { showSharingDialog, setShowSharingDialog } = useSharingDialog();
   const { copyToClipboard } = useCopyPath();
   const { proxiedPath } = useProxiedPathContext();
-  const { currentFileOrFolder } = useFileBrowserContext();
+  const { currentFolder } = useFileBrowserContext();
 
   React.useEffect(() => {
     setIsImageShared(proxiedPath !== null);
@@ -68,10 +69,7 @@ export default function ZarrPreview({
                 <Typography variant="small" className="text-surface-foreground">
                   Loading OME-Zarr image thumbnail...
                 </Typography>
-                <div
-                  className="w-10 h-10 border-4 border-surface-foreground border-t-transparent rounded-full animate-spin"
-                  title="Loading Thumbnail..."
-                ></div>
+                <Loader />
               </>
             ) : null}
             {!loadingThumbnail && thumbnailSrc ? (
@@ -114,7 +112,7 @@ export default function ZarrPreview({
             <SharingDialog
               isImageShared={isImageShared}
               setIsImageShared={setIsImageShared}
-              filePathWithoutFsp={currentFileOrFolder?.path || ''}
+              filePathWithoutFsp={currentFolder?.path || ''}
               showSharingDialog={showSharingDialog}
               setShowSharingDialog={setShowSharingDialog}
               proxiedPath={proxiedPath}

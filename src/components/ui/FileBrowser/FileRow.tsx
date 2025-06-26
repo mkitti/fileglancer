@@ -1,13 +1,17 @@
 import React, { ReactNode } from 'react';
+import { Link } from 'react-router';
 import { IconButton, Tooltip, Typography } from '@material-tailwind/react';
 import { DocumentIcon, FolderIcon } from '@heroicons/react/24/outline';
 import { HiOutlineEllipsisHorizontalCircle } from 'react-icons/hi2';
-import toast from 'react-hot-toast';
 
 import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import useHandleLeftClick from '@/hooks/useHandleLeftClick';
-import { formatUnixTimestamp, formatFileSize } from '@/utils/index';
+import {
+  formatUnixTimestamp,
+  formatFileSize,
+  makeBrowseLink
+} from '@/utils/index';
 
 type FileRowProps = {
   file: FileOrFolder;
@@ -40,51 +44,17 @@ export default function FileRow({
   setPropertiesTarget,
   handleRightClick
 }: FileRowProps): ReactNode {
-  const nameRef = React.useRef<HTMLDivElement>(null);
-  const [isTruncated, setIsTruncated] = React.useState(false);
-
-  const { handleFileBrowserNavigation, currentFileSharePath } =
-    useFileBrowserContext();
+  const { currentFileSharePath } = useFileBrowserContext();
   const { handleLeftClick } = useHandleLeftClick();
 
   const isSelected = selectedFiles.some(
     selectedFile => selectedFile.name === file.name
   );
 
-  React.useEffect(() => {
-    const checkTruncation = () => {
-      if (nameRef.current) {
-        setIsTruncated(
-          nameRef.current.scrollWidth > nameRef.current.clientWidth
-        );
-      }
-    };
-    checkTruncation();
-    window.addEventListener('resize', checkTruncation);
-    return () => window.removeEventListener('resize', checkTruncation);
-  }, [file.name]);
-
-  const handleNavigationClick = async (e: React.MouseEvent<HTMLElement>) => {
-    e.stopPropagation();
-    if (file.is_dir) {
-      try {
-        if (!currentFileSharePath) {
-          throw new Error('No current file share path set');
-        }
-        await handleFileBrowserNavigation({
-          fspName: currentFileSharePath.name,
-          path: file.path
-        });
-        setPropertiesTarget(file);
-      } catch (error) {
-        toast.error(
-          `Failed to open folder: ${
-            error instanceof Error ? error.message : 'Unknown error'
-          }`
-        );
-      }
-    }
-  };
+  let link = '#';
+  if (file.is_dir && currentFileSharePath) {
+    link = makeBrowseLink(currentFileSharePath.name, file.path) as string;
+  }
 
   return (
     <div
@@ -109,42 +79,27 @@ export default function FileRow({
           setPropertiesTarget
         )
       }
-      onDoubleClick={e => handleNavigationClick(e)}
     >
       {/* Name column */}
-      <div className="flex items-center gap-3 pl-3 py-1">
-        {isTruncated ? (
-          <Tooltip>
-            <Tooltip.Trigger className="max-w-full">
+      <div className="flex items-center pl-3 py-1">
+        <Tooltip>
+          <Tooltip.Trigger className="max-w-full truncate">
+            {file.is_dir ? (
               <Typography
-                ref={nameRef}
-                variant="small"
-                className="font-medium text-primary-light hover:underline truncate"
-                onClick={(e: React.MouseEvent<HTMLElement>) => {
-                  if (e.detail === 1) {
-                    handleNavigationClick(e);
-                  }
-                }}
+                as={Link}
+                to={link}
+                className="font-medium text-primary-light hover:underline"
               >
                 {file.name}
               </Typography>
-            </Tooltip.Trigger>
-            <Tooltip.Content>{file.name}</Tooltip.Content>
-          </Tooltip>
-        ) : (
-          <Typography
-            ref={nameRef}
-            variant="small"
-            className="font-medium text-primary-light hover:underline truncate"
-            onClick={(e: React.MouseEvent<HTMLElement>) => {
-              if (e.detail === 1) {
-                handleNavigationClick(e);
-              }
-            }}
-          >
-            {file.name}
-          </Typography>
-        )}
+            ) : (
+              <Typography className="font-medium text-primary-default truncate">
+                {file.name}
+              </Typography>
+            )}
+          </Tooltip.Trigger>
+          <Tooltip.Content>{file.name}</Tooltip.Content>
+        </Tooltip>
       </div>
 
       {/* Type column */}

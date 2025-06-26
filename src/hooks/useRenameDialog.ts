@@ -17,11 +17,8 @@ export default function useRenameDialog() {
   const [showAlert, setShowAlert] = useState<boolean>(false);
   const [alertContent, setAlertContent] = useState<string>('');
 
-  const {
-    handleFileBrowserNavigation,
-    currentFileSharePath,
-    currentFileOrFolder
-  } = useFileBrowserContext();
+  const { currentFileSharePath, currentFolder, fetchAndSetFiles } =
+    useFileBrowserContext();
   const { pathPreference } = usePreferencesContext();
   const { cookies } = useCookiesContext();
 
@@ -34,10 +31,7 @@ export default function useRenameDialog() {
     await sendFetchRequest(fetchPath, 'PATCH', cookies['_xsrf'], {
       path: newPath
     });
-    await handleFileBrowserNavigation({
-      fspName: currentFileSharePath.name,
-      path: currentFileOrFolder?.path
-    });
+    await fetchAndSetFiles(currentFileSharePath.name, currentFolder?.path);
   }
 
   async function handleRenameSubmit(path: string) {

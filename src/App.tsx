@@ -1,5 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router';
 import { CookiesProvider } from 'react-cookie';
+import { ErrorBoundary } from 'react-error-boundary';
+
 import { MainLayout } from './layouts/MainLayout';
 import { BrowseLayout } from './layouts/BrowseLayout';
 import Home from '@/components/Home';
@@ -8,6 +10,7 @@ import Help from '@/components/Help';
 import Jobs from '@/components/Jobs';
 import Preferences from '@/components/Preferences';
 import Shared from '@/components/Shared';
+import ErrorFallback from '@/components/ErrorFallback';
 
 function Profile() {
   return (
@@ -60,6 +63,8 @@ const AppComponent = () => {
           <Route path="preferences" element={<Preferences />} />
           <Route element={<BrowseLayout />}>
             <Route path="browse" element={<Browse />} />
+            <Route path="browse/:fspName" element={<Browse />} />
+            <Route path="browse/:fspName/*" element={<Browse />} />
             <Route index path="*" element={<Home />} />
           </Route>
         </Route>
@@ -71,7 +76,9 @@ const AppComponent = () => {
 export default function App() {
   return (
     <CookiesProvider>
-      <AppComponent />
+      <ErrorBoundary FallbackComponent={ErrorFallback}>
+        <AppComponent />
+      </ErrorBoundary>
     </CookiesProvider>
   );
 }
