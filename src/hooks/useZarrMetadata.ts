@@ -1,6 +1,5 @@
 import React from 'react';
 import { default as log } from '@/logger';
-import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import {
   getOmeZarrMetadata,
@@ -19,6 +18,7 @@ export type OpenWithToolUrls = {
 };
 
 export default function useZarrMetadata() {
+  const [imageUrl, setImageUrl] = React.useState<string | null>(null);
   const [thumbnailSrc, setThumbnailSrc] = React.useState<string | null>(null);
   const [openWithToolUrls, setOpenWithToolUrls] =
     React.useState<OpenWithToolUrls | null>(null);
@@ -29,13 +29,17 @@ export default function useZarrMetadata() {
   const validatorBaseUrl = 'https://ome.github.io/ome-ngff-validator/?source=';
   const neuroglancerBaseUrl = 'https://neuroglancer-demo.appspot.com/#!';
   const voleBaseUrl = 'https://volumeviewer.allencell.org/viewer?url=';
-  const { currentFolder, currentFileSharePath, files } =
+  const { currentFolder, currentFileSharePath, files, isFileBrowserReady } =
     useFileBrowserContext();
   const { dataUrl } = useProxiedPathContext();
   const [cookies] = useCookies(['_xsrf']);
 
   const checkZattrsForMultiscales = React.useCallback(async () => {
+    if (!isFileBrowserReady) {
+      return;
+    }
     setHasMultiscales(false);
+    setImageUrl(null);
     setThumbnailSrc(null);
     setMetadata(null);
     setOpenWithToolUrls(null);
@@ -50,40 +54,52 @@ export default function useZarrMetadata() {
         log.debug('Zattrs', zattrs);
         if (zattrs.multiscales) {
           setHasMultiscales(true);
+          setImageUrl(
+            getFileURL(currentFileSharePath.name, currentFolder.path)
+          );
         }
       } catch (error) {
         log.error('Error fetching OME-Zarr metadata:', error);
       }
     }
-  }, [files, currentFileSharePath, currentFolder, cookies]);
+  }, [files, currentFileSharePath, currentFolder, cookies, isFileBrowserReady]);
 
   // 2. Run checkZattrsForMultiscales when dependencies change
   React.useEffect(() => {
-    checkZattrsForMultiscales();
+    let cancelled = false;
+    if (!cancelled) {
+      checkZattrsForMultiscales();
+    }
+    return () => {
+      cancelled = true;
+    };
   }, [checkZattrsForMultiscales]);
 
   // 3. Run your metadata/thumbnail logic when hasMultiscales and currentFolder are ready
   React.useEffect(() => {
-    if (hasMultiscales && currentFileSharePath && currentFolder) {
-      const fetchMetadata = async () => {
-        setLoadingThumbnail(true);
-        try {
-          const imageUrl = getFileURL(
-            currentFileSharePath.name,
-            currentFolder.path
-          );
-          const metadata = await getOmeZarrMetadata(imageUrl);
+    if (!hasMultiscales || !imageUrl) {
+      return;
+    }
+    let cancelled = false;
+    const fetchMetadata = async () => {
+      setLoadingThumbnail(true);
+      try {
+        const metadata = await getOmeZarrMetadata(imageUrl);
+        if (!cancelled) {
           setMetadata(metadata);
           setThumbnailSrc(metadata.thumbnail);
-        } catch (error) {
-          console.error('Error fetching OME-Zarr metadata:', error);
-        } finally {
-          setLoadingThumbnail(false);
         }
-      };
-      fetchMetadata();
-    }
-  }, [hasMultiscales, currentFileSharePath, currentFolder]);
+      } catch (error) {
+        log.error('Error fetching OME-Zarr metadata:', error);
+      } finally {
+        setLoadingThumbnail(false);
+      }
+    };
+    fetchMetadata();
+    return () => {
+      cancelled = true;
+    };
+  }, [hasMultiscales, imageUrl]);
 
   React.useEffect(() => {
     setOpenWithToolUrls(null);
