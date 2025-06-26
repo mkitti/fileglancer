@@ -4,20 +4,18 @@ import { HiSquares2X2 } from 'react-icons/hi2';
 
 import { ZonesAndFileSharePathsMap } from '@/shared.types';
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
+import useOpenZones from '@/hooks/useOpenZones';
 import Zone from './Zone';
 
 export default function ZonesBrowser({
   searchQuery,
-  openZones,
-  toggleOpenZones,
   filteredZonesMap
 }: {
   searchQuery: string;
-  openZones: Record<string, boolean>;
-  toggleOpenZones: (zone: string) => void;
   filteredZonesMap: ZonesAndFileSharePathsMap;
 }) {
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
+  const { openZones, toggleOpenZones } = useOpenZones();
 
   const displayZones: ZonesAndFileSharePathsMap =
     Object.keys(filteredZonesMap).length > 0 || searchQuery.length > 0
