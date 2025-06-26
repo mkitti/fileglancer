@@ -39,8 +39,8 @@ export const ZonesAndFspMapContextProvider = ({
     let rawData: { paths: FileSharePath[] } = { paths: [] };
     try {
       const response = await sendFetchRequest(
-        '/api/fileglancer/file-share-paths', 
-        'GET', 
+        '/api/fileglancer/file-share-paths',
+        'GET',
         cookies['_xsrf']
       );
       rawData = await response.json();
@@ -139,8 +139,12 @@ export const ZonesAndFspMapContextProvider = ({
     const fetchAndSetInitialFspsAndZones = async () => {
       await updateZonesAndFileSharePathsMap();
     };
-    fetchAndSetInitialFspsAndZones();
-  }, [updateZonesAndFileSharePathsMap]);
+    if (!isZonesMapReady) {
+      // Only fetch if the map is not already ready
+      // to avoid unnecessary re-fetching
+      fetchAndSetInitialFspsAndZones();
+    }
+  }, [updateZonesAndFileSharePathsMap, isZonesMapReady]);
 
   return (
     <ZonesAndFspMapContext.Provider

@@ -217,7 +217,7 @@ function generateNeuroglancerState(
   arr: zarr.Array<any>,
   omero?: Omero | null
 ): string | null {
-  log.info('Generating Neuroglancer state for', dataUrl);
+  log.debug('Generating Neuroglancer state for', dataUrl);
 
   // Convert axes array to a map for easier access
   const axesMap = getAxesMap(multiscale);
@@ -390,7 +390,7 @@ async function getOmeZarrMetadata(
   maxThumbnailSize: number = 1024,
   autoBoost: boolean = true
 ): Promise<Metadata> {
-  console.log('Getting OME-Zarr metadata for', dataUrl);
+  log.debug('Getting OME-Zarr metadata for', dataUrl);
   const store = new zarr.FetchStore(dataUrl);
   const { arr, shapes, multiscale, omero, scales, zarr_version } =
     await omezarr.getMultiscaleWithArray(store, 0);

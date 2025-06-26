@@ -1,5 +1,4 @@
 import React from 'react';
-import { default as log } from '@/logger';
 import toast from 'react-hot-toast';
 
 import {
@@ -14,8 +13,7 @@ import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 export default function usePermissionsDialog() {
   const [showAlert, setShowAlert] = React.useState<boolean>(false);
   const { cookies } = useCookiesContext();
-  const { handleFileBrowserNavigation, currentFileSharePath } =
-    useFileBrowserContext();
+  const { currentFileSharePath, fetchAndSetFiles } = useFileBrowserContext();
 
   async function handleChangePermissions(
     targetItem: FileOrFolder,
@@ -35,10 +33,10 @@ export default function usePermissionsDialog() {
       await sendFetchRequest(fetchPath, 'PATCH', cookies['_xsrf'], {
         permissions: localPermissions
       });
-      await handleFileBrowserNavigation({
-        fspName: currentFileSharePath.name,
-        path: removeLastSegmentFromPath(targetItem.path)
-      });
+      await fetchAndSetFiles(
+        currentFileSharePath.name,
+        removeLastSegmentFromPath(targetItem.path)
+      );
       toast.success(`Successfully updated permissions for ${fetchPath}`);
     } catch (error) {
       toast.error(

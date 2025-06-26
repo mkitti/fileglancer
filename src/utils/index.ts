@@ -6,6 +6,7 @@ import {
   getLastSegmentFromPath,
   getPreferredPathForDisplay,
   joinPaths,
+  makeBrowseLink,
   makePathSegmentArray,
   makeProxiedPathUrl,
   removeLastSegmentFromPath
@@ -140,6 +141,7 @@ export {
   getPreferredPathForDisplay,
   HTTPError,
   joinPaths,
+  makeBrowseLink,
   makeMapKey,
   makePathSegmentArray,
   makeProxiedPathUrl,
