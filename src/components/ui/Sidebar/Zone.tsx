@@ -45,7 +45,7 @@ export default function Zone({
             <IconButton
               variant="ghost"
               isCircular
-              onClick={() => handleFavoriteChange(zone, 'zone')}
+              onClick={async () => await handleFavoriteChange(zone, 'zone')}
             >
               {isFavoriteZone ? (
                 <HiStar className="icon-small short:icon-xsmall mb-[2px]" />

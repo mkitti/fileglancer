@@ -5,10 +5,8 @@ import { FunnelIcon } from '@heroicons/react/24/outline';
 import FavoritesBrowser from './FavoritesBrowser';
 import ZonesBrowser from './ZonesBrowser';
 import useSearchFilter from '@/hooks/useSearchFilter';
-import useOpenZones from '@/hooks/useOpenZones';
 
 export default function Sidebar() {
-  const { openZones, setOpenZones, toggleOpenZones } = useOpenZones();
   const {
     searchQuery,
     handleSearchChange,
@@ -37,15 +35,12 @@ export default function Sidebar() {
       <div className="flex flex-col overflow-y-scroll flex-grow mb-3 short:gap-1 w-full border border-surface rounded-md py-2 px-2.5 shadow-sm bg-background sidebar-scroll">
         <FavoritesBrowser
           searchQuery={searchQuery}
-          setOpenZones={setOpenZones}
           filteredZoneFavorites={filteredZoneFavorites}
           filteredFileSharePathFavorites={filteredFileSharePathFavorites}
           filteredFolderFavorites={filteredFolderFavorites}
         />
         <ZonesBrowser
           searchQuery={searchQuery}
-          openZones={openZones}
-          toggleOpenZones={toggleOpenZones}
           filteredZonesMap={filteredZonesMap}
         />
       </div>

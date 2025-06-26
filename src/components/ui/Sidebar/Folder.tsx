@@ -121,9 +121,9 @@ export default function Folder({ folderFavorite }: FolderProps) {
             className="min-w-0 min-h-0"
             variant="ghost"
             isCircular
-            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+            onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
               e.stopPropagation();
-              handleFavoriteChange(folderFavorite, 'folder');
+              await handleFavoriteChange(folderFavorite, 'folder');
             }}
           >
             <StarFilled className="icon-small short:icon-xsmall mb-[2px]" />

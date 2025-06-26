@@ -1,4 +1,3 @@
-import React from 'react';
 import { Collapse, Typography, List } from '@material-tailwind/react';
 import { HiChevronRight } from 'react-icons/hi';
 import { HiStar } from 'react-icons/hi';
@@ -10,12 +9,11 @@ import {
   FolderFavorite,
   usePreferencesContext
 } from '@/contexts/PreferencesContext';
-import useToggleOpenFavorites from '@/hooks/useToggleOpenFavorites';
+import { useOpenFavoritesContext } from '@/contexts/OpenFavoritesContext';
 import { FileSharePath, Zone } from '@/shared.types';
 
 type FavoritesBrowserProps = {
   searchQuery: string;
-  setOpenZones: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   filteredZoneFavorites: Zone[];
   filteredFileSharePathFavorites: FileSharePath[];
   filteredFolderFavorites: FolderFavorite[];
@@ -23,14 +21,13 @@ type FavoritesBrowserProps = {
 
 export default function FavoritesBrowser({
   searchQuery,
-  setOpenZones,
   filteredZoneFavorites,
   filteredFileSharePathFavorites,
   filteredFolderFavorites
 }: FavoritesBrowserProps) {
-  const { openFavorites, toggleOpenFavorites } = useToggleOpenFavorites();
   const { zoneFavorites, fileSharePathFavorites, folderFavorites } =
     usePreferencesContext();
+  const { openFavorites, toggleOpenFavorites } = useOpenFavoritesContext();
 
   const displayZones =
     filteredZoneFavorites.length > 0 || searchQuery.length > 0
