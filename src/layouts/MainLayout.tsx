@@ -6,7 +6,8 @@ import { ZonesAndFspMapContextProvider } from '@/contexts/ZonesAndFspMapContext'
 import { FileBrowserContextProvider } from '@/contexts/FileBrowserContext';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
 import { ProxiedPathProvider } from '@/contexts/ProxiedPathContext';
-import FileglancerNavbar from '@/components/ui/Navbar';
+import FileglancerNavbar from '@/components/ui/Navbar/Navbar';
+import { BetaBanner } from '@/components/ui/Beta';
 
 export const MainLayout = () => {
   return (
@@ -24,6 +25,7 @@ export const MainLayout = () => {
               />
               <div className="flex flex-col items-center h-full w-full overflow-y-hidden bg-background text-foreground box-border">
                 <FileglancerNavbar />
+                <BetaBanner />
                 <Outlet />
               </div>
             </ProxiedPathProvider>

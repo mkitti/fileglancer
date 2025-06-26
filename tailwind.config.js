@@ -55,7 +55,7 @@ const config = {
           foreground: '#FFFFFF'
         },
         warning: {
-          default: '#DD8235', // HHMI accent brand color
+          default: '#EEDC11', // HHMI accent brand color
           dark: '#B66F2B',
           light: '#F2A860',
           foreground: '#030712'
