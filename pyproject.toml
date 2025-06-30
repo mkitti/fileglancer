@@ -115,7 +115,7 @@ test-frontend = "npm test"
 
 [tool.pixi.feature.release.tasks]
 set-version = "hatch version"
-pypi-build = "python -m build"
+pypi-build = "pip install build && python -m build"
 pypi-upload = "twine upload dist/*"
 
 [tool.pixi.environments]
@@ -135,7 +135,6 @@ dev-install = { depends-on = ["pip-install", "node-install", "ext-enable"] }
 dev-watch = { cmd = "NODE_ENV=development npm run watch" }
 dev-launch = { cmd = "NODE_ENV=development jupyter lab --autoreload" }
 dev-launch-remote = { cmd = "NODE_ENV=development jupyter lab --autoreload --ip=0.0.0.0 --no-browser" }
-pypi-build = { cmd = "pip install build && python -m build", depends-on = ["node-install"] }
 node-install-ui-test = "npm --prefix ui-tests install"
 test-frontend = "npm run test"
 ui-test = { cmd = "npm --prefix ui-tests run test", depends-on = ["node-install-ui-test"] }
