@@ -32,7 +32,9 @@ const LINKS = [
     icon: ShareIcon,
     title: 'Shared',
     href: '/shared'
-  },
+  }
+  /**
+   * TODO: Add these back in when they are implemented
   {
     icon: BriefcaseIcon,
     title: 'Jobs',
@@ -43,6 +45,7 @@ const LINKS = [
     title: 'Help',
     href: '/help'
   }
+  */
 ];
 
 // Links list component
@@ -91,7 +94,7 @@ export default function FileglancerNavbar() {
       <div className="flex items-center justify-between ">
         {/* Logo */}
         <div className="flex items-center gap-1">
-          <Link to="/">
+          <Link to="/browse">
             <div className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent flex items-center">
               <svg
                 className="icon-large short:icon-small text-primary"
