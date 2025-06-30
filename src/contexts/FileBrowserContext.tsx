@@ -27,6 +27,7 @@ type FileBrowserContextType = {
   currentFolder: FileOrFolder | null;
   currentFileSharePath: FileSharePath | null;
   fetchAndSetFiles: (fspName: string, path?: string) => Promise<void>;
+  setCurrentFileSharePath: (fspName: string) => void;
 };
 
 const FileBrowserContext = React.createContext<FileBrowserContextType | null>(
