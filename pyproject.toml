@@ -37,6 +37,11 @@ test = [
     "pytest-jupyter[server]>=0.6.0",
     "requests-mock"
 ]
+release = [
+    "build",
+    "twine",
+    "hatch"
+]
 
 [tool.hatch.version]
 source = "nodejs"
@@ -108,9 +113,15 @@ platforms = ["osx-arm64", "osx-64", "linux-64"]
 test-backend = "pytest"
 test-frontend = "npm test"
 
+[tool.pixi.feature.release.tasks]
+set-version = "hatch version"
+pypi-build = "python -m build"
+pypi-upload = "twine upload dist/*"
+
 [tool.pixi.environments]
 default = { solve-group = "default" }
 test = { features = ["test"], solve-group = "default" }
+release = { features = ["release"], solve-group = "default" }
 
 [tool.pixi.tasks]
 ext-clean = "rm -rf fileglancer/labextension && rm -rf .pixi/envs/default/share/jupyter/labextensions/fileglancer"
