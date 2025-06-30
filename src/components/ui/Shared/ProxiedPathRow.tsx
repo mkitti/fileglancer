@@ -104,7 +104,7 @@ export default function ProxiedPathRow({
           <Tooltip.Trigger className="max-w-full truncate">
             <Typography
               variant="small"
-              className="text-left text-foreground truncate hover:text-primary-light hover:underline"
+              className="text-left text-primary-light truncate hover:underline"
               onClick={handleNameClick}
             >
               {item.sharing_name}
