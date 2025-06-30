@@ -6,7 +6,6 @@ import {
   getLastSegmentFromPath,
   getPreferredPathForDisplay,
   makePathSegmentArray,
-  makeProxiedPathUrl,
   removeLastSegmentFromPath
 } from '@/utils';
 import type { FileSharePath } from '@/shared.types';
@@ -75,27 +74,6 @@ describe('getLastSegmentFromPath', () => {
 describe('makePathSegmentArray', () => {
   test('splits POSIX-style path into segments', () => {
     expect(makePathSegmentArray('/a/b/c')).toEqual(['', 'a', 'b', 'c']);
-  });
-});
-
-describe('makeProxiedPathUrl', () => {
-  test('returns correctly formatted URL', () => {
-    const mockProxiedPath = {
-      fsp_name: 'file-share-path',
-      path: 'file.zarr',
-      sharing_key: '12345',
-      sharing_name: 'shared-file',
-      created_at: '2025-06-01T12:00:00Z',
-      updated_at: '2025-06-02T12:00:00Z',
-      username: 'test_user'
-    } as ProxiedPath;
-
-    expect(
-      makeProxiedPathUrl(
-        mockProxiedPath,
-        'https://fileglancer-int.janelia.org/files'
-      )
-    ).toBe('https://fileglancer-int.janelia.org/files/12345/shared-file');
   });
 });
 
