@@ -6,7 +6,7 @@ export default function Dashboard() {
       <Card className="p-6 bg-surface-light shadow-none border border-surface-dark">
         <Card.Header>
           <Typography className="font-semibold text-surface-foreground">
-            Quick Access Dashboard
+            Quick Access Dashboard (under development)
           </Typography>
         </Card.Header>
         <Card.Body className="flex flex-col gap-4 pb-4">
