@@ -5,7 +5,7 @@ import {
   IconButton,
   Typography
 } from '@material-tailwind/react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { HiX } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 
 import {
@@ -59,7 +59,7 @@ export default function SharingDialog({
               setShowSharingDialog(false);
             }}
           >
-            <XMarkIcon className="icon-default" />
+            <HiX className="icon-default" />
           </IconButton>
           {/* TODO: Move Janelia-specific text elsewhere */}
           {isImageShared ? (
@@ -69,9 +69,10 @@ export default function SharingDialog({
                 <span className="font-semibold break-all">{displayPath}</span>?
               </Typography>
               <Typography className="mt-4">
-                Warning: The existing sharing link to this data will be disabled. 
-                Collaborators who previously received the link will no longer be able to access it.
-                You can create a new sharing link at any time if needed.
+                Warning: The existing sharing link to this data will be
+                disabled. Collaborators who previously received the link will no
+                longer be able to access it. You can create a new sharing link
+                at any time if needed.
               </Typography>
             </div>
           ) : (

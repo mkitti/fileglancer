@@ -5,7 +5,7 @@ import {
   IconButton,
   Typography
 } from '@material-tailwind/react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { HiX } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 
 import useDeleteDialog from '@/hooks/useDeleteDialog';
@@ -53,7 +53,7 @@ export default function DeleteDialog({
               setShowDeleteDialog(false);
             }}
           >
-            <XMarkIcon className="icon-default" />
+            <HiX className="icon-default" />
           </IconButton>
           <Typography className="my-8 text-large text-foreground">
             Are you sure you want to delete{' '}

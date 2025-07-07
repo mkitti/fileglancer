@@ -8,15 +8,13 @@ import {
 } from '@material-tailwind/react';
 import { Link } from 'react-router-dom';
 import {
-  FolderIcon,
-  MoonIcon,
-  // InformationCircleIcon,
-  Bars3Icon as MenuIcon,
-  // BriefcaseIcon,
-  XMarkIcon,
-  ShareIcon,
-  SunIcon
-} from '@heroicons/react/24/outline';
+  HiOutlineMoon,
+  HiOutlineMenu,
+  HiOutlineX,
+  HiOutlineShare,
+  HiOutlineSun
+} from 'react-icons/hi';
+import { HiOutlineFolder } from 'react-icons/hi2';
 import { TbBrandGithub } from 'react-icons/tb';
 
 import ProfileMenu from './ProfileMenu';
@@ -25,12 +23,12 @@ import { BetaSticker } from '@/components/ui/Beta';
 
 const LINKS = [
   {
-    icon: FolderIcon,
+    icon: HiOutlineFolder,
     title: 'Browse',
     href: '/browse'
   },
   {
-    icon: ShareIcon,
+    icon: HiOutlineShare,
     title: 'Shared',
     href: '/shared'
   }
@@ -165,9 +163,9 @@ export default function FileglancerNavbar() {
             onClick={toggleTheme}
           >
             {isLightTheme ? (
-              <SunIcon className="stroke-2 icon-large short:icon-default" />
+              <HiOutlineSun className="stroke-2 icon-large short:icon-default" />
             ) : (
-              <MoonIcon className="stroke-2 icon-large short:icon-default" />
+              <HiOutlineMoon className="stroke-2 icon-large short:icon-default" />
             )}
           </IconButton>
           <ProfileMenu />
@@ -180,9 +178,9 @@ export default function FileglancerNavbar() {
             className="mr-2 text-foreground hover:!text-foreground focus:!text-foreground lg:hidden hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
           >
             {openNav ? (
-              <XMarkIcon className="stroke-2 icon-large short:icon-default" />
+              <HiOutlineX className="stroke-2 icon-large short:icon-default" />
             ) : (
-              <MenuIcon className="stroke-2 icon-large short:icon-default" />
+              <HiOutlineMenu className="stroke-2 icon-large short:icon-default" />
             )}
           </IconButton>
         </div>

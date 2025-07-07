@@ -5,7 +5,7 @@ import {
   IconButton,
   Typography
 } from '@material-tailwind/react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { HiX } from 'react-icons/hi';
 
 import usePermissionsDialog from '@/hooks/usePermissionsDialog';
 import type { FileOrFolder } from '@/shared.types';
@@ -65,7 +65,7 @@ export default function ChangePermissions({
               setShowPermissionsDialog(false);
             }}
           >
-            <XMarkIcon className="icon-default" />
+            <HiX className="icon-default" />
           </IconButton>
           {targetItem ? (
             <form

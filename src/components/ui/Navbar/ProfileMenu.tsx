@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react';
 import useProfile from '@/hooks/useProfile'; // Assuming you have a custom hook for fetching profile
 import { IconButton, Menu } from '@material-tailwind/react';
-import {
-  ArrowRightStartOnRectangleIcon as LogoutIcon,
-  UserCircleIcon,
-  AdjustmentsHorizontalIcon
-} from '@heroicons/react/24/outline';
+import { HiOutlineLogout, HiOutlineUserCircle } from 'react-icons/hi';
+import { HiOutlineAdjustmentsHorizontal } from 'react-icons/hi2';
 import { Link } from 'react-router-dom';
 
 export default function ProfileMenu() {
@@ -25,7 +22,7 @@ export default function ProfileMenu() {
         color="secondary"
         className="text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
       >
-        <UserCircleIcon className="stroke-2 icon-large short:icon-default" />
+        <HiOutlineUserCircle className="stroke-2 icon-large short:icon-default" />
       </Menu.Trigger>
       <Menu.Content>
         <Menu.Item
@@ -33,7 +30,7 @@ export default function ProfileMenu() {
           to="/profile"
           className="text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
         >
-          <UserCircleIcon className="mr-2 icon-default" />{' '}
+          <HiOutlineUserCircle className="mr-2 icon-default" />
           {profile ? profile.username : 'Loading...'}
         </Menu.Item>
         <Menu.Item
@@ -41,7 +38,7 @@ export default function ProfileMenu() {
           to="/preferences"
           className="text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
         >
-          <AdjustmentsHorizontalIcon className="mr-2 icon-default" />{' '}
+          <HiOutlineAdjustmentsHorizontal className="mr-2 icon-default" />
           Preferences
         </Menu.Item>
         <hr className="!my-1 -mx-1 border-surface" />
@@ -50,7 +47,7 @@ export default function ProfileMenu() {
           to={`${origin}/logout`}
           className="text-error hover:bg-error/10 hover:!text-error focus:bg-error/10 focus:!text-error"
         >
-          <LogoutIcon className="mr-2 h-[18px] w-[18px]" /> Logout
+          <HiOutlineLogout className="mr-2 h-[18px] w-[18px]" /> Logout
         </Menu.Item>
       </Menu.Content>
     </Menu>
