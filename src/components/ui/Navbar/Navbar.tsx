@@ -10,9 +10,9 @@ import { Link } from 'react-router-dom';
 import {
   FolderIcon,
   MoonIcon,
-  InformationCircleIcon,
+  // InformationCircleIcon,
   Bars3Icon as MenuIcon,
-  BriefcaseIcon,
+  // BriefcaseIcon,
   XMarkIcon,
   ShareIcon,
   SunIcon
@@ -61,7 +61,7 @@ function NavList() {
           className="flex items-center dark:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark hover:!text-foreground focus:!text-foreground"
         >
           <List.ItemStart className="flex items-center mr-1.5">
-            <Icon className="icon-default short:icon-xsmall" />
+            <Icon className="stroke-2 icon-default short:icon-xsmall" />
           </List.ItemStart>
           <Typography type="small" className="short:text-xs">
             {title}
@@ -161,13 +161,13 @@ export default function FileglancerNavbar() {
             size="sm"
             variant="ghost"
             color="secondary"
-            className="grid ml-auto text-foreground dark:text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark stroke-2"
+            className="text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
             onClick={toggleTheme}
           >
             {isLightTheme ? (
-              <SunIcon className="icon-large short:icon-default" />
+              <SunIcon className="stroke-2 icon-large short:icon-default" />
             ) : (
-              <MoonIcon className="icon-large short:icon-default" />
+              <MoonIcon className="stroke-2 icon-large short:icon-default" />
             )}
           </IconButton>
           <ProfileMenu />
@@ -177,12 +177,12 @@ export default function FileglancerNavbar() {
             variant="ghost"
             color="secondary"
             onClick={() => setOpenNav(!openNav)}
-            className="mr-2 grid ml-auto text-foreground dark:text-foreground hover:!text-foreground focus:!text-foreground lg:hidden hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
+            className="mr-2 text-foreground hover:!text-foreground focus:!text-foreground lg:hidden hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
           >
             {openNav ? (
-              <XMarkIcon className="icon-large short:icon-default" />
+              <XMarkIcon className="stroke-2 icon-large short:icon-default" />
             ) : (
-              <MenuIcon className="icon-large short:icon-default" />
+              <MenuIcon className="stroke-2 icon-large short:icon-default" />
             )}
           </IconButton>
         </div>
