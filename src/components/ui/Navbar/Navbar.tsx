@@ -17,6 +17,7 @@ import {
   ShareIcon,
   SunIcon
 } from '@heroicons/react/24/outline';
+import { TbBrandGithub } from 'react-icons/tb';
 
 import ProfileMenu from './ProfileMenu';
 import useTheme from '@/hooks/useTheme';
@@ -144,6 +145,18 @@ export default function FileglancerNavbar() {
 
         {/* Theme toggle and profile dropdown menu */}
         <div className="flex items-center gap-1">
+          <IconButton
+            as={Link}
+            to="https://github.com/JaneliaSciComp/fileglancer"
+            target="_blank"
+            rel="noopener noreferrer"
+            size="sm"
+            variant="ghost"
+            color="secondary"
+            className="text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
+          >
+            <TbBrandGithub className="icon-large short:icon-default" />
+          </IconButton>
           <IconButton
             size="sm"
             variant="ghost"
