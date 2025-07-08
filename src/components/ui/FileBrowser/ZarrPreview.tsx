@@ -66,19 +66,25 @@ export default function ZarrPreview({
           <div className="flex flex-col gap-2 max-h-full">
             {loadingThumbnail ? (
               <>
-                <Typography variant="small" className="text-surface-foreground">
+                <Typography className="text-surface-foreground">
                   Loading OME-Zarr image thumbnail...
                 </Typography>
                 <Loader />
               </>
             ) : null}
-            {!loadingThumbnail && thumbnailSrc ? (
+            {!loadingThumbnail && metadata && thumbnailSrc ? (
               <img
                 id="thumbnail"
                 src={thumbnailSrc}
                 alt="Thumbnail"
                 className="max-h-72 max-w-max rounded-md"
               />
+            ) : !loadingThumbnail && metadata && !thumbnailSrc ? (
+              <div className="h-[225px] w-[225px] flex items-center bg-surface-light rounded-sm p-2">
+                <Typography className="text-foreground">
+                  Unable to load OME-Zarr image thumbnail.
+                </Typography>
+              </div>
             ) : null}
           </div>
 
