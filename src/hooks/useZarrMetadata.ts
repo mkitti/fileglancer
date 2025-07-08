@@ -120,7 +120,7 @@ export default function useZarrMetadata() {
             metadata.omero
           );
       } catch (error) {
-        console.error('Error generating neuroglancer state:', error);
+        log.error('Error generating neuroglancer state:', error);
       }
       setOpenWithToolUrls(openWithToolUrls);
     }
