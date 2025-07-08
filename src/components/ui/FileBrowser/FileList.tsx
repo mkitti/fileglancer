@@ -42,7 +42,8 @@ export default function FileList({
     openWithToolUrls,
     metadata,
     hasMultiscales,
-    loadingThumbnail
+    loadingThumbnail,
+    thumbnailError
   } = useZarrMetadata();
 
   const displayFiles = React.useMemo(() => {
@@ -61,6 +62,7 @@ export default function FileList({
             loadingThumbnail={loadingThumbnail}
             openWithToolUrls={openWithToolUrls}
             metadata={metadata}
+            thumbnailError={thumbnailError}
           />
         ) : null}
 

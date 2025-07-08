@@ -8,6 +8,7 @@ import {
 } from '@material-tailwind/react';
 import { Link } from 'react-router-dom';
 
+import zarr from '@/assets/zarr.jpg';
 import neuroglancer_logo from '@/assets/neuroglancer.png';
 import validator_logo from '@/assets/ome-ngff-validator.png';
 import volE_logo from '@/assets/aics_website-3d-cell-viewer.png';
@@ -29,13 +30,15 @@ type ZarrPreviewProps = {
   loadingThumbnail: boolean;
   openWithToolUrls: OpenWithToolUrls | null;
   metadata: Metadata | null;
+  thumbnailError: string | null;
 };
 
 export default function ZarrPreview({
   thumbnailSrc,
   loadingThumbnail,
   openWithToolUrls,
-  metadata
+  metadata,
+  thumbnailError
 }: ZarrPreviewProps): React.ReactNode {
   const [isImageShared, setIsImageShared] = React.useState(false);
   const [showCopiedTooltip, setShowCopiedTooltip] = React.useState(false);
@@ -80,10 +83,13 @@ export default function ZarrPreview({
                 className="max-h-72 max-w-max rounded-md"
               />
             ) : !loadingThumbnail && metadata && !thumbnailSrc ? (
-              <div className="h-[225px] w-[225px] flex items-center bg-surface-light rounded-sm p-2">
-                <Typography className="text-foreground">
-                  Unable to load OME-Zarr image thumbnail.
-                </Typography>
+              <div className="h-[225px] w-[290px] flex flex-col gap-2 items-center bg-background/90 rounded-sm p-2">
+                <img
+                  src={zarr}
+                  alt="Zarr logo"
+                  className="max-h-44 rounded-md"
+                />
+                <Typography className="text-error text-xs ">{`Error: ${thumbnailError}`}</Typography>
               </div>
             ) : null}
           </div>
