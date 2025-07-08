@@ -399,12 +399,18 @@ async function getOmeZarrMetadata(
   log.debug('Omero: ', omero);
   log.debug('Array: ', arr);
   log.debug('Shapes: ', shapes);
-  const thumbnail = await omezarr.renderThumbnail(
-    store,
-    thumbnailSize,
-    autoBoost,
-    maxThumbnailSize
-  );
+  let thumbnail;
+  try {
+    thumbnail = await omezarr.renderThumbnail(
+      store,
+      thumbnailSize,
+      autoBoost,
+      maxThumbnailSize
+    );
+  } catch (error) {
+    log.warn(`Error rendering thumbnail: ${error.message}`);
+    thumbnail = null;
+  }
   return {
     arr,
     shapes,
