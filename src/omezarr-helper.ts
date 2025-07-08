@@ -389,7 +389,7 @@ async function getOmeZarrMetadata(
   thumbnailSize: number = 300,
   maxThumbnailSize: number = 1024,
   autoBoost: boolean = true
-): Promise<Metadata> {
+): Promise<[Metadata, string | null]> {
   log.debug('Getting OME-Zarr metadata for', dataUrl);
   const store = new zarr.FetchStore(dataUrl);
   const { arr, shapes, multiscale, omero, scales, zarr_version } =
@@ -399,7 +399,9 @@ async function getOmeZarrMetadata(
   log.debug('Omero: ', omero);
   log.debug('Array: ', arr);
   log.debug('Shapes: ', shapes);
-  let thumbnail;
+  let thumbnail = null;
+  let errorMessage: string | null = null;
+
   try {
     thumbnail = await omezarr.renderThumbnail(
       store,
@@ -407,11 +409,16 @@ async function getOmeZarrMetadata(
       autoBoost,
       maxThumbnailSize
     );
-  } catch (error) {
-    log.warn(`Error rendering thumbnail: ${error.message}`);
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      errorMessage = err.message;
+    } else {
+      errorMessage = String(err);
+    }
     thumbnail = null;
   }
-  return {
+
+  const metadata: Metadata = {
     arr,
     shapes,
     multiscale,
@@ -420,6 +427,8 @@ async function getOmeZarrMetadata(
     zarr_version,
     thumbnail
   };
+
+  return [metadata, errorMessage];
 }
 
 export { getOmeZarrMetadata, generateNeuroglancerState };
