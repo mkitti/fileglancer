@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { FileOrFolder } from '../shared.types';
+import { FileOrFolder } from '@/shared.types';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
 export default function useContextMenu() {
   const [contextMenuCoords, setContextMenuCoords] = React.useState({
@@ -9,6 +10,8 @@ export default function useContextMenu() {
   const [showContextMenu, setShowContextMenu] = React.useState<boolean>(false);
 
   const menuRef = React.useRef<HTMLDivElement>(null);
+
+  const { setPropertiesTarget } = useFileBrowserContext();
 
   function onClose() {
     setShowContextMenu(false);
@@ -53,10 +56,7 @@ export default function useContextMenu() {
     e: React.MouseEvent<HTMLDivElement>,
     file: FileOrFolder,
     selectedFiles: FileOrFolder[],
-    setSelectedFiles: React.Dispatch<React.SetStateAction<FileOrFolder[]>>,
-    setPropertiesTarget: React.Dispatch<
-      React.SetStateAction<FileOrFolder | null>
-    >
+    setSelectedFiles: React.Dispatch<React.SetStateAction<FileOrFolder[]>>
   ) {
     e.preventDefault();
     e.stopPropagation();

@@ -15,18 +15,13 @@ import NewFolderDialog from './ui/Dialogs/NewFolderDialog';
 import Delete from './ui/Dialogs/Delete';
 import ChangePermissions from './ui/Dialogs/ChangePermissions';
 import Dashboard from './ui/FileBrowser/Dashboard';
-import Loader from './ui/Loader';
 
 type OutletContextType = {
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
-  setPropertiesTarget: React.Dispatch<
-    React.SetStateAction<FileOrFolder | null>
-  >;
   setShowSidebar: React.Dispatch<React.SetStateAction<boolean>>;
   showPermissionsDialog: boolean;
   showPropertiesDrawer: boolean;
-  propertiesTarget: FileOrFolder | null;
   showSidebar: boolean;
 };
 
@@ -34,11 +29,9 @@ export default function Browse() {
   const {
     setShowPermissionsDialog,
     setShowPropertiesDrawer,
-    setPropertiesTarget,
     setShowSidebar,
     showPermissionsDialog,
     showPropertiesDrawer,
-    propertiesTarget,
     showSidebar
   } = useOutletContext<OutletContextType>();
 
@@ -78,7 +71,6 @@ export default function Browse() {
             selectedFiles={selectedFiles}
             setSelectedFiles={setSelectedFiles}
             showPropertiesDrawer={showPropertiesDrawer}
-            setPropertiesTarget={setPropertiesTarget}
             hideDotFiles={hideDotFiles}
             handleRightClick={handleRightClick}
           />
@@ -99,7 +91,6 @@ export default function Browse() {
       ) : null}
       {showRenameDialog ? (
         <RenameDialog
-          propertiesTarget={propertiesTarget}
           showRenameDialog={showRenameDialog}
           setShowRenameDialog={setShowRenameDialog}
         />
@@ -119,7 +110,6 @@ export default function Browse() {
       ) : null}
       {showPermissionsDialog ? (
         <ChangePermissions
-          targetItem={propertiesTarget}
           showPermissionsDialog={showPermissionsDialog}
           setShowPermissionsDialog={setShowPermissionsDialog}
         />

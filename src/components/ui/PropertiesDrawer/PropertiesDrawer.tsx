@@ -15,8 +15,6 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 
-import type { FileOrFolder } from '@/shared.types';
-
 import PermissionsTable from './PermissionsTable';
 import OverviewTable from './OverviewTable';
 import useCopyPath from '@/hooks/useCopyPath';
@@ -25,14 +23,12 @@ import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 
 type PropertiesDrawerProps = {
-  propertiesTarget: FileOrFolder | null;
   open: boolean;
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function PropertiesDrawer({
-  propertiesTarget,
   open,
   setShowPropertiesDrawer,
   setShowPermissionsDialog
@@ -44,7 +40,7 @@ export default function PropertiesDrawer({
     copyToClipboard,
     dismissCopyAlert
   } = useCopyPath();
-  const { currentFileSharePath } = useFileBrowserContext();
+  const { currentFileSharePath, propertiesTarget } = useFileBrowserContext();
   const { pathPreference } = usePreferencesContext();
 
   const fullPath = getPreferredPathForDisplay(

@@ -13,18 +13,12 @@ type FileListProps = {
   selectedFiles: FileOrFolder[];
   setSelectedFiles: React.Dispatch<React.SetStateAction<FileOrFolder[]>>;
   showPropertiesDrawer: boolean;
-  setPropertiesTarget: React.Dispatch<
-    React.SetStateAction<FileOrFolder | null>
-  >;
   hideDotFiles: boolean;
   handleRightClick: (
     e: React.MouseEvent<HTMLDivElement>,
     file: FileOrFolder,
     selectedFiles: FileOrFolder[],
-    setSelectedFiles: React.Dispatch<React.SetStateAction<FileOrFolder[]>>,
-    setPropertiesTarget: React.Dispatch<
-      React.SetStateAction<FileOrFolder | null>
-    >
+    setSelectedFiles: React.Dispatch<React.SetStateAction<FileOrFolder[]>>
   ) => void;
 };
 
@@ -32,7 +26,6 @@ export default function FileList({
   selectedFiles,
   setSelectedFiles,
   showPropertiesDrawer,
-  setPropertiesTarget,
   hideDotFiles,
   handleRightClick
 }: FileListProps): React.ReactNode {
@@ -102,7 +95,6 @@ export default function FileList({
                 setSelectedFiles={setSelectedFiles}
                 displayFiles={displayFiles}
                 showPropertiesDrawer={showPropertiesDrawer}
-                setPropertiesTarget={setPropertiesTarget}
                 handleRightClick={handleRightClick}
               />
             );

@@ -8,17 +8,15 @@ import {
 } from '@material-tailwind/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
-import type { FileOrFolder } from '@/shared.types';
 import useRenameDialog from '@/hooks/useRenameDialog';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
 type ItemNamingDialogProps = {
-  propertiesTarget: FileOrFolder | null;
   showRenameDialog: boolean;
   setShowRenameDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function RenameDialog({
-  propertiesTarget,
   showRenameDialog,
   setShowRenameDialog
 }: ItemNamingDialogProps): JSX.Element {
@@ -30,6 +28,7 @@ export default function RenameDialog({
     setShowAlert,
     alertContent
   } = useRenameDialog();
+  const { propertiesTarget } = useFileBrowserContext();
 
   return (
     <Dialog open={showRenameDialog}>

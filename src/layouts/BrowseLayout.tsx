@@ -5,8 +5,6 @@ import { PiDotsSixVerticalBold } from 'react-icons/pi';
 import { ErrorBoundary } from 'react-error-boundary';
 
 import useShowPropertiesDrawer from '@/hooks/useShowPropertiesDrawer';
-import usePropertiesTarget from '@/hooks/usePropertiesTarget';
-
 import Sidebar from '@/components/ui/Sidebar/Sidebar';
 import PropertiesDrawer from '@/components/ui/PropertiesDrawer/PropertiesDrawer';
 import ErrorFallback from '@/components/ErrorFallback';
@@ -18,16 +16,13 @@ export const BrowseLayout = () => {
 
   const { showPropertiesDrawer, setShowPropertiesDrawer } =
     useShowPropertiesDrawer();
-  const { propertiesTarget, setPropertiesTarget } = usePropertiesTarget();
 
   const outletContextValue = {
     setShowPermissionsDialog: setShowPermissionsDialog,
     setShowPropertiesDrawer: setShowPropertiesDrawer,
-    setPropertiesTarget: setPropertiesTarget,
     setShowSidebar: setShowSidebar,
     showPermissionsDialog: showPermissionsDialog,
     showPropertiesDrawer: showPropertiesDrawer,
-    propertiesTarget: propertiesTarget,
     showSidebar: showSidebar
   };
 
@@ -67,7 +62,6 @@ export const BrowseLayout = () => {
                 maxSize={50}
               >
                 <PropertiesDrawer
-                  propertiesTarget={propertiesTarget}
                   open={showPropertiesDrawer}
                   setShowPropertiesDrawer={setShowPropertiesDrawer}
                   setShowPermissionsDialog={setShowPermissionsDialog}
