@@ -21,17 +21,20 @@ import useCopyPath from '@/hooks/useCopyPath';
 import { getPreferredPathForDisplay } from '@/utils';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import { set } from 'node_modules/zarrita/dist/src/indexing/set';
 
 type PropertiesDrawerProps = {
   open: boolean;
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowConvertFileDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function PropertiesDrawer({
   open,
   setShowPropertiesDrawer,
-  setShowPermissionsDialog
+  setShowPermissionsDialog,
+  setShowConvertFileDialog
 }: PropertiesDrawerProps): JSX.Element {
   const {
     copiedText,
@@ -167,7 +170,12 @@ export default function PropertiesDrawer({
             <Typography variant="small" className="font-medium">
               Convert data to OME-Zarr
             </Typography>
-            <Button as="a" href="#" variant="outline">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowConvertFileDialog(true);
+              }}
+            >
               Submit
             </Button>
           </Tabs.Panel>

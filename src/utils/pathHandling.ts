@@ -1,7 +1,6 @@
 import path from 'path';
-import log from 'loglevel';
+import logger from '@/logger';
 import type { FileSharePath } from '@/shared.types';
-import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 
 const PATH_DELIMITER = '/';
 
@@ -181,7 +180,7 @@ function makeBrowseLink(
   filePath?: string
 ): string {
   if (!fspName) {
-    log.warn('FSP name is required to create a browse link.');
+    logger.warn('FSP name is required to create a browse link.');
     return '/browse';
   }
   return filePath ? `/browse/${fspName}/${filePath}` : `/browse/${fspName}`;

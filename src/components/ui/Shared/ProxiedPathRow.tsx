@@ -6,7 +6,7 @@ import {
 } from '@material-tailwind/react';
 import { HiOutlineEllipsisHorizontalCircle } from 'react-icons/hi2';
 import { useNavigate } from 'react-router';
-import log from 'loglevel';
+import logger from '@/logger';
 import toast from 'react-hot-toast';
 
 import SharingDialog from '@/components/ui/Dialogs/Sharing';
@@ -21,7 +21,6 @@ import useCopyPath from '@/hooks/useCopyPath';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
-import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
 type ProxiedPathRowProps = {
   item: ProxiedPath;
@@ -39,16 +38,11 @@ function formatDateString(dateStr: string) {
   return date.toLocaleString();
 }
 
-export default function ProxiedPathRow({
-  item,
-  menuOpenId,
-  setMenuOpenId
-}: ProxiedPathRowProps) {
+export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
   const { showSharingDialog, setShowSharingDialog } = useSharingDialog();
   const { copyToClipboard } = useCopyPath();
   const { pathPreference } = usePreferencesContext();
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
-  const { setCurrentFileSharePath } = useFileBrowserContext();
   const navigate = useNavigate();
 
   const pathFsp = zonesAndFileSharePathsMap[
@@ -68,7 +62,7 @@ export default function ProxiedPathRow({
       await copyToClipboard(displayPath);
       toast.success('Path copied to clipboard');
     } catch (error) {
-      log.error('Failed to copy path:', error);
+      logger.error('Failed to copy path:', error);
       toast.error('Failed to copy path');
     }
   };
@@ -78,7 +72,7 @@ export default function ProxiedPathRow({
       await copyToClipboard(item.url);
       toast.success('URL copied to clipboard');
     } catch (error) {
-      log.error('Failed to copy sharing URL:', error);
+      logger.error('Failed to copy sharing URL:', error);
       toast.error('Failed to copy URL');
     }
   };
@@ -167,7 +161,6 @@ export default function ProxiedPathRow({
               <Typography
                 className="text-sm p-1 cursor-pointer text-red-600"
                 onClick={() => {
-                  setCurrentFileSharePath(item.fsp_name);
                   setShowSharingDialog(true);
                 }}
               >
