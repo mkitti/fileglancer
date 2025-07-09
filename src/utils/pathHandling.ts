@@ -1,7 +1,6 @@
 import path from 'path';
 import log from 'loglevel';
 import type { FileSharePath } from '@/shared.types';
-import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 
 const PATH_DELIMITER = '/';
 
