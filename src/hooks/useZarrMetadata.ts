@@ -25,6 +25,9 @@ export default function useZarrMetadata() {
   const [metadata, setMetadata] = React.useState<Metadata | null>(null);
   const [hasMultiscales, setHasMultiscales] = React.useState(false);
   const [loadingThumbnail, setLoadingThumbnail] = React.useState(false);
+  const [thumbnailError, setThumbnailError] = React.useState<string | null>(
+    null
+  );
 
   const validatorBaseUrl = 'https://ome.github.io/ome-ngff-validator/?source=';
   const neuroglancerBaseUrl = 'https://neuroglancer-demo.appspot.com/#!';
@@ -84,10 +87,16 @@ export default function useZarrMetadata() {
     const fetchMetadata = async () => {
       setLoadingThumbnail(true);
       try {
-        const metadata = await getOmeZarrMetadata(imageUrl);
+        const [metadata, error] = await getOmeZarrMetadata(imageUrl);
         if (!cancelled) {
           setMetadata(metadata);
           setThumbnailSrc(metadata.thumbnail);
+          if (error) {
+            setThumbnailError(error);
+            log.error('Error fetching OME-Zarr metadata:', error);
+          } else {
+            setThumbnailError(null);
+          }
         }
       } catch (error) {
         log.error('Error fetching OME-Zarr metadata:', error);
@@ -120,7 +129,7 @@ export default function useZarrMetadata() {
             metadata.omero
           );
       } catch (error) {
-        console.error('Error generating neuroglancer state:', error);
+        log.error('Error generating neuroglancer state:', error);
       }
       setOpenWithToolUrls(openWithToolUrls);
     }
@@ -131,6 +140,7 @@ export default function useZarrMetadata() {
     openWithToolUrls,
     metadata,
     hasMultiscales,
-    loadingThumbnail
+    loadingThumbnail,
+    thumbnailError
   };
 }
