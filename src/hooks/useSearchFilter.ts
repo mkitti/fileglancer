@@ -28,68 +28,74 @@ export default function useSearchFilter() {
     FolderFavorite[]
   >([]);
 
-  function filterZonesMap(query: string) {
-    const matches = Object.entries(zonesAndFileSharePathsMap)
-      .map(([key, value]) => {
-        if (key.startsWith('zone')) {
-          const zone = value as Zone;
-          const zoneNameMatches = zone.name.toLowerCase().includes(query);
+  const filterZonesMap = React.useCallback(
+    (query: string) => {
+      const matches = Object.entries(zonesAndFileSharePathsMap)
+        .map(([key, value]) => {
+          if (key.startsWith('zone')) {
+            const zone = value as Zone;
+            const zoneNameMatches = zone.name.toLowerCase().includes(query);
 
-          // Filter the file share paths inside the zone
-          const matchingFileSharePaths = zone.fileSharePaths.filter(fsp =>
-            fsp.name.toLowerCase().includes(query)
-          );
+            // Filter the file share paths inside the zone
+            const matchingFileSharePaths = zone.fileSharePaths.filter(fsp =>
+              fsp.name.toLowerCase().includes(query)
+            );
 
-          // If Zone.name matches or any FileSharePath.name inside the zone matches,
-          // return a modified Zone object with only the matching file share paths
-          if (zoneNameMatches || matchingFileSharePaths.length > 0) {
-            return [
-              key,
-              {
-                ...zone,
-                fileSharePaths: matchingFileSharePaths
-              }
-            ];
+            // If Zone.name matches or any FileSharePath.name inside the zone matches,
+            // return a modified Zone object with only the matching file share paths
+            if (zoneNameMatches || matchingFileSharePaths.length > 0) {
+              return [
+                key,
+                {
+                  ...zone,
+                  fileSharePaths: matchingFileSharePaths
+                }
+              ];
+            }
           }
-        }
-        return null; // Return null for non-matching entries
-      })
-      .filter(Boolean); // Remove null entries
+          return null; // Return null for non-matching entries
+        })
+        .filter(Boolean); // Remove null entries
 
-    setFilteredZonesMap(Object.fromEntries(matches as [string, Zone][]));
-  }
+      setFilteredZonesMap(Object.fromEntries(matches as [string, Zone][]));
+    },
+    [zonesAndFileSharePathsMap]
+  );
 
-  function filterAllFavorites(query: string) {
-    const filteredZoneFavorites = zoneFavorites.filter(
-      zone =>
-        zone.name.toLowerCase().includes(query) ||
-        // any of the file share paths inside the zone match
-        zone.fileSharePaths.some(fileSharePath =>
-          fileSharePath.name.toLowerCase().includes(query)
-        )
-    );
+  const filterAllFavorites = React.useCallback(
+    (query: string) => {
+      const filteredZoneFavorites = zoneFavorites.filter(
+        zone =>
+          zone.name.toLowerCase().includes(query) ||
+          // any of the file share paths inside the zone match
+          zone.fileSharePaths.some(fileSharePath =>
+            fileSharePath.name.toLowerCase().includes(query)
+          )
+      );
 
-    const filteredFileSharePathFavorites = fileSharePathFavorites.filter(
-      fileSharePath =>
-        fileSharePath.zone.toLowerCase().includes(query) ||
-        fileSharePath.name.toLowerCase().includes(query) ||
-        fileSharePath.group.toLowerCase().includes(query) ||
-        fileSharePath.storage.toLowerCase().includes(query)
-    );
+      const filteredFileSharePathFavorites = fileSharePathFavorites.filter(
+        fileSharePath =>
+          fileSharePath.zone.toLowerCase().includes(query) ||
+          fileSharePath.name.toLowerCase().includes(query) ||
+          fileSharePath.group.toLowerCase().includes(query) ||
+          fileSharePath.storage.toLowerCase().includes(query)
+      );
 
-    const filteredFolderFavorites = folderFavorites.filter(
-      folder =>
-        folder.folderPath.toLowerCase().includes(query) ||
-        folder.fsp.name.toLowerCase().includes(query) ||
-        folder.fsp.zone.toLowerCase().includes(query) ||
-        folder.fsp.group.toLowerCase().includes(query) ||
-        folder.fsp.storage.toLowerCase().includes(query)
-    );
+      const filteredFolderFavorites = folderFavorites.filter(
+        folder =>
+          folder.folderPath.toLowerCase().includes(query) ||
+          folder.fsp.name.toLowerCase().includes(query) ||
+          folder.fsp.zone.toLowerCase().includes(query) ||
+          folder.fsp.group.toLowerCase().includes(query) ||
+          folder.fsp.storage.toLowerCase().includes(query)
+      );
 
-    setFilteredZoneFavorites(filteredZoneFavorites);
-    setFilteredFileSharePathFavorites(filteredFileSharePathFavorites);
-    setFilteredFolderFavorites(filteredFolderFavorites);
-  }
+      setFilteredZoneFavorites(filteredZoneFavorites);
+      setFilteredFileSharePathFavorites(filteredFileSharePathFavorites);
+      setFilteredFolderFavorites(filteredFolderFavorites);
+    },
+    [zoneFavorites, fileSharePathFavorites, folderFavorites]
+  );
 
   const handleSearchChange = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -114,7 +120,9 @@ export default function useSearchFilter() {
     zonesAndFileSharePathsMap,
     zoneFavorites,
     fileSharePathFavorites,
-    folderFavorites
+    folderFavorites,
+    filterAllFavorites,
+    filterZonesMap
   ]);
 
   return {
