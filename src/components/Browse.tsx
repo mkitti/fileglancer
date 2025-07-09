@@ -14,14 +14,17 @@ import NewFolderDialog from './ui/Dialogs/NewFolder';
 import Delete from './ui/Dialogs/Delete';
 import ChangePermissions from './ui/Dialogs/ChangePermissions';
 import Dashboard from './ui/FileBrowser/Dashboard';
+import ConvertFileDialog from './ui/Dialogs/ConvertFile';
 
 type OutletContextType = {
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
   setShowSidebar: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowConvertFileDialog: React.Dispatch<React.SetStateAction<boolean>>;
   showPermissionsDialog: boolean;
   showPropertiesDrawer: boolean;
   showSidebar: boolean;
+  showConvertFileDialog: boolean;
 };
 
 export default function Browse() {
@@ -29,9 +32,11 @@ export default function Browse() {
     setShowPermissionsDialog,
     setShowPropertiesDrawer,
     setShowSidebar,
+    setShowConvertFileDialog,
     showPermissionsDialog,
     showPropertiesDrawer,
-    showSidebar
+    showSidebar,
+    showConvertFileDialog
   } = useOutletContext<OutletContextType>();
 
   const {
@@ -86,6 +91,7 @@ export default function Browse() {
           setShowRenameDialog={setShowRenameDialog}
           setShowDeleteDialog={setShowDeleteDialog}
           setShowPermissionsDialog={setShowPermissionsDialog}
+          setShowConvertFileDialog={setShowConvertFileDialog}
         />
       ) : null}
       {showRenameDialog ? (
@@ -111,6 +117,12 @@ export default function Browse() {
         <ChangePermissions
           showPermissionsDialog={showPermissionsDialog}
           setShowPermissionsDialog={setShowPermissionsDialog}
+        />
+      ) : null}
+      {showConvertFileDialog ? (
+        <ConvertFileDialog
+          showConvertFileDialog={showConvertFileDialog}
+          setShowConvertFileDialog={setShowConvertFileDialog}
         />
       ) : null}
     </div>
