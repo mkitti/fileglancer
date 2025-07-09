@@ -163,7 +163,7 @@ export const ProxiedPathProvider = ({
       updateProxiedPath(null);
       await fetchAllProxiedPaths();
     },
-    [proxiedPath, cookies, updateProxiedPath]
+    [cookies, updateProxiedPath, fetchAllProxiedPaths]
   );
 
   React.useEffect(() => {
