@@ -1,7 +1,6 @@
 import React from 'react';
 import { useOutletContext } from 'react-router';
 
-import type { FileOrFolder } from '@/shared.types';
 import useContextMenu from '@/hooks/useContextMenu';
 import useHideDotFiles from '@/hooks/useHideDotFiles';
 import useSelectedFiles from '@/hooks/useSelectedFiles';
@@ -10,8 +9,8 @@ import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import FileList from './ui/FileBrowser/FileList';
 import Toolbar from './ui/FileBrowser/Toolbar';
 import ContextMenu from './ui/FileBrowser/ContextMenu';
-import RenameDialog from './ui/Dialogs/RenameDialog';
-import NewFolderDialog from './ui/Dialogs/NewFolderDialog';
+import RenameDialog from './ui/Dialogs/Rename';
+import NewFolderDialog from './ui/Dialogs/NewFolder';
 import Delete from './ui/Dialogs/Delete';
 import ChangePermissions from './ui/Dialogs/ChangePermissions';
 import Dashboard from './ui/FileBrowser/Dashboard';

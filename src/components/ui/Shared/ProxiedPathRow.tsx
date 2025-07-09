@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router';
 import log from 'loglevel';
 import toast from 'react-hot-toast';
 
-import SharingDialog from '@/components/ui/Dialogs/SharingDialog';
+import SharingDialog from '@/components/ui/Dialogs/Sharing';
 import type { FileSharePath } from '@/shared.types';
 import {
   getPreferredPathForDisplay,
