@@ -2,7 +2,7 @@ import React from 'react';
 import { default as log } from '@/logger';
 import { useErrorBoundary } from 'react-error-boundary';
 
-import { FileOrFolder, FileSharePath } from '@/shared.types';
+import type { FileOrFolder, FileSharePath } from '@/shared.types';
 import {
   getFileBrowsePath,
   HTTPError,
@@ -12,6 +12,7 @@ import {
 } from '@/utils';
 import { useCookiesContext } from './CookiesContext';
 import { useZoneAndFspMapContext } from './ZonesAndFspMapContext';
+import { set } from 'node_modules/zarrita/dist/src/indexing/set';
 
 type FileBrowserContextProviderProps = {
   children: React.ReactNode;
@@ -26,8 +27,8 @@ type FileBrowserContextType = {
   files: FileOrFolder[];
   currentFolder: FileOrFolder | null;
   currentFileSharePath: FileSharePath | null;
+  fetchErrorMsg: string | null;
   fetchAndSetFiles: (fspName: string, path?: string) => Promise<void>;
-  setCurrentFileSharePath: (fspName: string) => void;
 };
 
 const FileBrowserContext = React.createContext<FileBrowserContextType | null>(
@@ -57,6 +58,7 @@ export const FileBrowserContextProvider = ({
   );
   const [currentFileSharePath, setCurrentFileSharePath] =
     React.useState<FileSharePath | null>(null);
+  const [fetchErrorMsg, setFetchErrorMsg] = React.useState<string | null>(null);
 
   const { showBoundary } = useErrorBoundary();
   const { cookies } = useCookiesContext();
@@ -88,6 +90,7 @@ export const FileBrowserContextProvider = ({
   // Function to fetch files for the current FSP and current folder
   const fetchAndSetFiles = React.useCallback(
     async (fspName: string, path?: string): Promise<void> => {
+      setFetchErrorMsg(null);
       const url = path
         ? getFileBrowsePath(fspName, path)
         : getFileBrowsePath(fspName);
@@ -110,6 +113,10 @@ export const FileBrowserContextProvider = ({
       } catch (error) {
         if (error instanceof HTTPError && error.responseCode === 404) {
           showBoundary(error);
+        } else if (error instanceof HTTPError && error.responseCode === 403) {
+          setFetchErrorMsg(
+            'You do not have permission to view this folder. Contact the owner for access.'
+          );
         } else {
           log.error(error);
         }
@@ -211,6 +218,7 @@ export const FileBrowserContextProvider = ({
         files,
         currentFolder,
         currentFileSharePath,
+        fetchErrorMsg,
         fetchAndSetFiles
       }}
     >
