@@ -189,15 +189,28 @@ class FileMetadataHandler(FileShareHandler):
             if file_info.is_dir:
                 self.log.info(f"File is a directory: {subpath}")
                 self.write(",\n")
-                self.write("\"files\": [\n")
-                for i, file in enumerate(filestore.yield_file_infos(subpath)):
-                    self.log.info(f"Number of files: {i}")
-                    if i > 0:
-                        self.write(",\n")
-                    self.write(json.dumps(file.model_dump(), indent=4))
-                self.write("]\n")
+                try:
+                    files = list(filestore.yield_file_infos(subpath))
+                    # No errors, write files normally
+                    self.write("\"files\": [\n")
+                    for i, file in enumerate(files):
+                        self.log.info(f"Number of files: {i}")
+                        if i > 0:
+                            self.write(",\n")
+                        self.write(json.dumps(file.model_dump(), indent=4))
+                    self.write("]\n")
+                except PermissionError:
+                    self.set_status(403)
+                    self.log.error(f"Permission denied when listing files in directory: {subpath}")
+                    self.write("\"files\": [],\n")
+                    self.write("\"error\": \"Permission denied when listing directory contents\"\n")
+                except FileNotFoundError:
+                    self.set_status(404)
+                    self.log.error(f"Directory not found during listing: {subpath}")
+                    self.write("\"files\": [],\n")
+                    self.write("\"error\": \"Directory contents not found\"\n")
             self.write("}\n")
-
+                
         except FileNotFoundError:
             self.log.error(f"File or directory not found: {subpath}")
             self.set_status(404)
