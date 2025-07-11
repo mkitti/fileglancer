@@ -60,12 +60,12 @@ async function sendFetchRequest(
       body && { body: JSON.stringify(body) })
   };
   const response = await fetch(getFullPath(apiPath), options);
-  if (!response.ok) {
-    throw new HTTPError(
-      `Request failed: ${response.status} - ${response.statusText}`,
-      response.status
-    );
-  }
+  // if (!response.ok) {
+  //   throw new HTTPError(
+  //     `Request failed: ${response.status} - ${response.statusText}`,
+  //     response.status
+  //   );
+  // }
   return response;
 }
 

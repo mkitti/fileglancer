@@ -71,30 +71,24 @@ export const FileBrowserContextProvider = ({
       try {
         const response = await sendFetchRequest(url, 'GET', cookies['_xsrf']);
         log.debug('Fetch response:', response);
-      //   if (!response.ok) {
-      //     if (response.status === 403) {
-      //       setFetchErrorMsg(
-      //         'You do not have permission to view this folder. Contact the owner for access.'
-      //       );
-      //     }
-      //     else if (response.status === 404) {
-      //       showBoundary(new Error('Folder not found'));
-      //   }
-      // }
+        if (!response.ok) {
+          if (response.status === 403) {
+            setFetchErrorMsg(
+              'You do not have permission to view this folder. Contact the owner for access.'
+            );
+          }
+          else if (response.status === 404) {
+            showBoundary(new Error('Folder not found'));
+        }
+      }
         const data = await response.json();
         if (data && data['info']) {
           return data['info'] as FileOrFolder;
         }
       } catch (error) {
-        if (error instanceof UtilsHTTPError && error.responseCode === 404) {
-          showBoundary(error);
-        } else if (error instanceof UtilsHTTPError && error.responseCode === 404){
-          setFetchErrorMsg('You do not have permission to view this folder. Contact the owner for access.')
-        }
-          else {
           log.error(error);
         }
-      }
+      
       return null;
     },
     [cookies, showBoundary]
@@ -113,16 +107,16 @@ export const FileBrowserContextProvider = ({
       try {
         const response = await sendFetchRequest(url, 'GET', cookies['_xsrf']);
         log.debug('Fetch response:', response);
-      //   if (!response.ok) {
-      //     if (response.status === 403) {
-      //       setFetchErrorMsg(
-      //         'You do not have permission to view this folder. Contact the owner for access.'
-      //       );
-      //     }
-      //     else if (response.status === 404) {
-      //       showBoundary(new Error('Folder not found'));
-      //   }
-      // }
+        if (!response.ok) {
+          if (response.status === 403) {
+            setFetchErrorMsg(
+              'You do not have permission to view this folder. Contact the owner for access.'
+            );
+          }
+          else if (response.status === 404) {
+            showBoundary(new Error('Folder not found'));
+        }
+      }
 
         const data = await response.json();
 
