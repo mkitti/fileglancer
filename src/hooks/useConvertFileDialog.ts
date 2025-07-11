@@ -53,6 +53,8 @@ export default function useConvertFileDialog() {
         'POST',
         cookies['_xsrf'],
         {
+          fsp_name: currentFileSharePath.name,
+          path: propertiesTarget.path,
           project_key: 'FT',
           issue_type: 'Task',
           summary: 'Convert file to ZARR',
