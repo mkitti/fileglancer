@@ -4,15 +4,14 @@ import { useErrorBoundary } from 'react-error-boundary';
 
 import type { FileOrFolder, FileSharePath } from '@/shared.types';
 import {
+  HTTPError as UtilsHTTPError,
   getFileBrowsePath,
-  HTTPError,
   makeMapKey,
   removeLastSegmentFromPath,
   sendFetchRequest
 } from '@/utils';
 import { useCookiesContext } from './CookiesContext';
 import { useZoneAndFspMapContext } from './ZonesAndFspMapContext';
-import { set } from 'node_modules/zarrita/dist/src/indexing/set';
 
 type FileBrowserContextProviderProps = {
   children: React.ReactNode;
@@ -71,14 +70,28 @@ export const FileBrowserContextProvider = ({
       const url = getFileBrowsePath(fspName, path);
       try {
         const response = await sendFetchRequest(url, 'GET', cookies['_xsrf']);
+        log.debug('Fetch response:', response);
+      //   if (!response.ok) {
+      //     if (response.status === 403) {
+      //       setFetchErrorMsg(
+      //         'You do not have permission to view this folder. Contact the owner for access.'
+      //       );
+      //     }
+      //     else if (response.status === 404) {
+      //       showBoundary(new Error('Folder not found'));
+      //   }
+      // }
         const data = await response.json();
         if (data && data['info']) {
           return data['info'] as FileOrFolder;
         }
       } catch (error) {
-        if (error instanceof HTTPError && error.responseCode === 404) {
+        if (error instanceof UtilsHTTPError && error.responseCode === 404) {
           showBoundary(error);
-        } else {
+        } else if (error instanceof UtilsHTTPError && error.responseCode === 404){
+          setFetchErrorMsg('You do not have permission to view this folder. Contact the owner for access.')
+        }
+          else {
           log.error(error);
         }
       }
@@ -99,6 +112,18 @@ export const FileBrowserContextProvider = ({
 
       try {
         const response = await sendFetchRequest(url, 'GET', cookies['_xsrf']);
+        log.debug('Fetch response:', response);
+      //   if (!response.ok) {
+      //     if (response.status === 403) {
+      //       setFetchErrorMsg(
+      //         'You do not have permission to view this folder. Contact the owner for access.'
+      //       );
+      //     }
+      //     else if (response.status === 404) {
+      //       showBoundary(new Error('Folder not found'));
+      //   }
+      // }
+
         const data = await response.json();
 
         if (data.files) {
@@ -111,15 +136,8 @@ export const FileBrowserContextProvider = ({
           }) as FileOrFolder[];
         }
       } catch (error) {
-        if (error instanceof HTTPError && error.responseCode === 404) {
-          showBoundary(error);
-        } else if (error instanceof HTTPError && error.responseCode === 403) {
-          setFetchErrorMsg(
-            'You do not have permission to view this folder. Contact the owner for access.'
-          );
-        } else {
-          log.error(error);
-        }
+        log.error(error);
+        showBoundary(error);
       }
       setFiles(files);
     },
