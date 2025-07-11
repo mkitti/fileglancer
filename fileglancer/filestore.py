@@ -97,10 +97,8 @@ class Filestore:
         """
         if path is None or path == "":
             full_path = self.root_path
-            log.info(f"Using root path: {full_path}")
         else:
             full_path = os.path.abspath(os.path.join(self.root_path, path))
-            log.info(f"Full path resolved: {full_path}")
             if not full_path.startswith(self.root_path):
                 raise ValueError(f"Path ({full_path}) attempts to escape root directory ({self.root_path})")
         return full_path
@@ -150,15 +148,12 @@ class Filestore:
             Permission Error: If the path is not accessible due to permissions.
             FileNotFoundError: If the path does not exist.
         """
-        log.info(f"Listing files in path: {path}")
         full_path = self._check_path_in_root(path)
-        log.info(f"Full path: {full_path}")
         try:
             entries = os.listdir(full_path)
             # Sort entries in alphabetical order, with directories listed first
             entries.sort(key=lambda e: (not os.path.isdir(
                                             os.path.join(full_path, e)), e))
-            log.info(f"Listing entries in {full_path}: {entries}")
             for entry in entries:
                 entry_path = os.path.join(full_path, entry)
                 try:
