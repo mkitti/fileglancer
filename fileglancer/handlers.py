@@ -8,6 +8,7 @@ from requests.exceptions import HTTPError
 from tornado import web
 
 from fileglancer.filestore import Filestore
+from fileglancer.tickets import get_tickets_manager
 from fileglancer.paths import get_fsp_manager
 from fileglancer.preferences import get_preference_manager
 from fileglancer.proxiedpath import get_proxiedpath_manager
@@ -551,17 +552,29 @@ class TicketHandler(APIHandler):
     @web.authenticated
     def post(self):
         """Create a new ticket"""
+        username = self.get_current_user()
+        data = self.get_json_body()
+
+        if data is None:
+            self.set_status(400)
+            self.finish(json.dumps({"error": "JSON body with fsp_name, path, project_key, issue_type, summary, and description is required to create a JIRA ticket"}))
+            return
+        
+        fsp_name = data.get("fsp_name", None)
+        path = data.get("path", None)
+        project_key = data.get("project_key", None)
+        issue_type = data.get("issue_type", None)
+        summary = data.get("summary", None)
+        description = data.get("description", None)
+
+        if not all([fsp_name, path, project_key, issue_type, summary, description]):
+                self.set_status(400)
+                self.finish(json.dumps({"error": "fsp_name, path, project_key, issue_type, summary, and description are required to create a JIRA ticket"}))
+                return
+        
         try:
-            data = self.get_json_body()
-            response = requests.post(
-                f"{self.settings['fileglancer'].central_url}/ticket",
-                params={
-                    "project_key": data["project_key"],
-                    "issue_type": data["issue_type"],
-                    "summary": data["summary"],
-                    "description": data["description"]
-                }
-            )
+            tickets_manager = get_tickets_manager(self.settings)
+            response = tickets_manager.create_ticket(username, fsp_name, path, project_key, issue_type, summary, description)
             response.raise_for_status()
             self.set_status(200)
             self.finish(response.text)
