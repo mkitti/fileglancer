@@ -171,12 +171,14 @@ class FileMetadataHandler(FileShareHandler):
             filestore_name, _, subpath = path.partition('/')
         
         filestore = self._get_filestore(filestore_name)
+        self.log.info(f'File store obtained: {filestore}')
+
         if filestore is None:
             return
 
         try:
             file_info = filestore.get_file_info(subpath)
-            self.log.debug(f"File info: {file_info}")
+            self.log.info(f"File info: {file_info}")
 
             # Write JSON response, streaming the files one by one
             self.set_status(200)
@@ -185,9 +187,11 @@ class FileMetadataHandler(FileShareHandler):
             self.write("\"info\":")
             self.write(json.dumps(file_info.model_dump(), indent=4))
             if file_info.is_dir:
+                self.log.info(f"File is a directory: {subpath}")
                 self.write(",\n")
                 self.write("\"files\": [\n")
                 for i, file in enumerate(filestore.yield_file_infos(subpath)):
+                    self.log.info(f"Number of files: {i}")
                     if i > 0:
                         self.write(",\n")
                     self.write(json.dumps(file.model_dump(), indent=4))

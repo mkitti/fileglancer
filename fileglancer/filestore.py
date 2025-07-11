@@ -97,8 +97,10 @@ class Filestore:
         """
         if path is None or path == "":
             full_path = self.root_path
+            log.info(f"Using root path: {full_path}")
         else:
             full_path = os.path.abspath(os.path.join(self.root_path, path))
+            log.info(f"Full path resolved: {full_path}")
             if not full_path.startswith(self.root_path):
                 raise ValueError(f"Path ({full_path}) attempts to escape root directory ({self.root_path})")
         return full_path
@@ -145,22 +147,30 @@ class Filestore:
                 May be None, in which case the root directory is listed.
             
         Raises:
-            ValueError: If path attempts to escape root directory
+            Permission Error: If the path is not accessible due to permissions.
+            FileNotFoundError: If the path does not exist.
         """
+        log.info(f"Listing files in path: {path}")
         full_path = self._check_path_in_root(path)
+        log.info(f"Full path: {full_path}")
         try:
             entries = os.listdir(full_path)
             # Sort entries in alphabetical order, with directories listed first
             entries.sort(key=lambda e: (not os.path.isdir(
                                             os.path.join(full_path, e)), e))
+            log.info(f"Listing entries in {full_path}: {entries}")
             for entry in entries:
                 entry_path = os.path.join(full_path, entry)
                 try:
                     yield self._get_file_info_from_path(entry_path)
                 except (FileNotFoundError, PermissionError):
+                    log.error(f"Error accessing entry: {entry_path}")
                     continue
         except (FileNotFoundError, PermissionError):
-            return
+            if PermissionError:
+                raise PermissionError(f"Permission denied for path: {full_path}")
+            elif FileNotFoundError:
+                raise FileNotFoundError(f"Path not found: {full_path}")
 
 
     def stream_file_contents(self, path: str, buffer_size: int = DEFAULT_BUFFER_SIZE) -> Generator[bytes, None, None]:
