@@ -5,11 +5,8 @@ import {
   Typography,
   BreadcrumbSeparator
 } from '@material-tailwind/react';
-import {
-  ChevronRightIcon,
-  SlashIcon,
-  Squares2X2Icon
-} from '@heroicons/react/24/outline';
+import { HiChevronRight } from 'react-icons/hi';
+import { HiMiniSlash, HiOutlineSquares2X2 } from 'react-icons/hi2';
 import { Link } from 'react-router';
 
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
@@ -27,8 +24,8 @@ export default function Crumbs(): ReactNode {
     <div className="w-full py-2 px-3">
       <Breadcrumb className="bg-transparent p-0">
         <div className="flex items-center gap-1 h-5">
-          <Squares2X2Icon className="icon-default text-primary-light" />
-          <ChevronRightIcon className="icon-default" />
+          <HiOutlineSquares2X2 className="icon-default text-primary-light" />
+          <HiChevronRight className="icon-default" />
         </div>
 
         {/* Path segments */}
@@ -56,7 +53,7 @@ export default function Crumbs(): ReactNode {
                   </BreadcrumbLink>
                   {/* Add separator since is not the last segment */}
                   <BreadcrumbSeparator>
-                    <SlashIcon className="icon-default" />
+                    <HiMiniSlash className="icon-default" />
                   </BreadcrumbSeparator>
                 </React.Fragment>
               );

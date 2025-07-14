@@ -6,13 +6,13 @@ import {
   Typography
 } from '@material-tailwind/react';
 import {
-  ArrowPathIcon,
-  EyeIcon,
-  EyeSlashIcon,
-  FolderPlusIcon
-} from '@heroicons/react/24/solid';
-import { StarIcon as StarOutline } from '@heroicons/react/24/outline';
-import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
+  HiRefresh,
+  HiEye,
+  HiEyeOff,
+  HiFolderAdd,
+  HiOutlineStar,
+  HiStar
+} from 'react-icons/hi';
 import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
 
 import type { FileOrFolder } from '@/shared.types';
@@ -146,7 +146,7 @@ export default function Toolbar({
                 );
               }}
             >
-              <ArrowPathIcon className="icon-default" />
+              <HiRefresh className="icon-default" />
               <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
                 <Typography type="small" className="opacity-90">
                   Refresh file browser
@@ -166,7 +166,7 @@ export default function Toolbar({
                 e.currentTarget.blur();
               }}
             >
-              <FolderPlusIcon className="icon-default" />
+              <HiFolderAdd className="icon-default" />
             </Tooltip.Trigger>
             <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
               <Typography type="small" className="opacity-90">
@@ -187,9 +187,9 @@ export default function Toolbar({
               }}
             >
               {hideDotFiles ? (
-                <EyeSlashIcon className="icon-default" />
+                <HiEyeOff className="icon-default" />
               ) : (
-                <EyeIcon className="icon-default" />
+                <HiEye className="icon-default" />
               )}
               <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
                 <Typography type="small" className="opacity-90">
@@ -213,9 +213,9 @@ export default function Toolbar({
                 }}
               >
                 {isFavorited ? (
-                  <StarFilled className="icon-default" />
+                  <HiStar className="icon-default" />
                 ) : (
-                  <StarOutline className="icon-default" />
+                  <HiOutlineStar className="icon-default" />
                 )}
                 <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
                   <Typography type="small" className="opacity-90">

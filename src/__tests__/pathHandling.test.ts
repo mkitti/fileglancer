@@ -9,7 +9,6 @@ import {
   removeLastSegmentFromPath
 } from '@/utils';
 import type { FileSharePath } from '@/shared.types';
-import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 
 describe('joinPaths', () => {
   test('joins paths in POSIX style', () => {

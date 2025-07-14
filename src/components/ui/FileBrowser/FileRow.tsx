@@ -1,8 +1,11 @@
 import React, { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { IconButton, Tooltip, Typography } from '@material-tailwind/react';
-import { DocumentIcon, FolderIcon } from '@heroicons/react/24/outline';
-import { HiOutlineEllipsisHorizontalCircle } from 'react-icons/hi2';
+import { TbFile } from 'react-icons/tb';
+import {
+  HiOutlineEllipsisHorizontalCircle,
+  HiOutlineFolder
+} from 'react-icons/hi2';
 
 import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
@@ -20,17 +23,11 @@ type FileRowProps = {
   setSelectedFiles: React.Dispatch<React.SetStateAction<FileOrFolder[]>>;
   displayFiles: FileOrFolder[];
   showPropertiesDrawer: boolean;
-  setPropertiesTarget: React.Dispatch<
-    React.SetStateAction<FileOrFolder | null>
-  >;
   handleRightClick: (
     e: React.MouseEvent<HTMLDivElement>,
     file: FileOrFolder,
     selectedFiles: FileOrFolder[],
-    setSelectedFiles: React.Dispatch<React.SetStateAction<FileOrFolder[]>>,
-    setPropertiesTarget: React.Dispatch<
-      React.SetStateAction<FileOrFolder | null>
-    >
+    setSelectedFiles: React.Dispatch<React.SetStateAction<FileOrFolder[]>>
   ) => void;
 };
 
@@ -41,7 +38,6 @@ export default function FileRow({
   setSelectedFiles,
   displayFiles,
   showPropertiesDrawer,
-  setPropertiesTarget,
   handleRightClick
 }: FileRowProps): ReactNode {
   const { currentFileSharePath } = useFileBrowserContext();
@@ -66,18 +62,11 @@ export default function FileRow({
           selectedFiles,
           setSelectedFiles,
           displayFiles,
-          setPropertiesTarget,
           showPropertiesDrawer
         )
       }
       onContextMenu={(e: React.MouseEvent<HTMLDivElement>) =>
-        handleRightClick(
-          e,
-          file,
-          selectedFiles,
-          setSelectedFiles,
-          setPropertiesTarget
-        )
+        handleRightClick(e, file, selectedFiles, setSelectedFiles)
       }
     >
       {/* Name column */}
@@ -105,9 +94,9 @@ export default function FileRow({
       {/* Type column */}
       <div className="flex items-center w-full gap-3 py-1 text-grey-700 overflow-x-auto">
         {file.is_dir ? (
-          <FolderIcon className="text-foreground icon-default" />
+          <HiOutlineFolder className="text-foreground icon-default" />
         ) : (
-          <DocumentIcon className="text-foreground icon-default" />
+          <TbFile className="text-foreground icon-default" />
         )}
         <Typography variant="small" className="font-medium">
           {file.is_dir ? 'Folder' : 'File'}
@@ -132,13 +121,7 @@ export default function FileRow({
       <div
         className="py-1 text-grey-700 flex items-center flex-shrink-0"
         onClick={e => {
-          handleRightClick(
-            e,
-            file,
-            selectedFiles,
-            setSelectedFiles,
-            setPropertiesTarget
-          );
+          handleRightClick(e, file, selectedFiles, setSelectedFiles);
         }}
       >
         <IconButton variant="ghost">

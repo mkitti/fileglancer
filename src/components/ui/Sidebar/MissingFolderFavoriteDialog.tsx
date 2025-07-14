@@ -7,7 +7,7 @@ import {
   IconButton,
   Typography
 } from '@material-tailwind/react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { HiX } from 'react-icons/hi';
 
 import {
   FolderFavorite,
@@ -51,7 +51,7 @@ export default function MissingFolderFavoriteDialog({
               setShowMissingFolderFavoriteDialog(false);
             }}
           >
-            <XMarkIcon className="icon-default" />
+            <HiX className="icon-default" />
           </IconButton>
           <Typography className="my-8 text-large">
             Folder <span className="font-semibold">{displayPath}</span> does not
