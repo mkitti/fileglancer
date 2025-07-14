@@ -229,7 +229,6 @@ function generateNeuroglancerState(
   // Create the scaffold for theNeuroglancer viewer state
   const state: any = {
     dimensions: {},
-    position: [],
     layers: [],
     layout: '4panel'
   };
@@ -255,7 +254,6 @@ function generateNeuroglancerState(
       state.dimensions[name] = [scale[axis.index], unit];
       // Center the image in the viewer
       const extent = arr.shape[axis.index];
-      state.position.push(Math.floor(extent / 2));
       imageDimensions.delete(name);
     } else {
       log.warn('Dimension not found in axes map: ', name);
@@ -263,7 +261,6 @@ function generateNeuroglancerState(
   }
 
   log.debug('Dimensions: ', state.dimensions);
-  log.debug('Positions: ', state.position);
 
   // Remove the channel dimension, which will be handled by layers
   imageDimensions.delete('c');
@@ -271,11 +268,6 @@ function generateNeuroglancerState(
   if (imageDimensions.size > 0) {
     log.warn('Unused dimensions: ', Array.from(imageDimensions));
   }
-
-  // Set up the zoom
-  // TODO: how do we determine the best zoom from the metadata?
-  state.crossSectionScale = 4.5;
-  state.projectionScale = 2048;
 
   let colorIndex = 0;
   const channels = [];
