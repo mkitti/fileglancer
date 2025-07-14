@@ -8,23 +8,24 @@ import {
 import { HiX } from 'react-icons/hi';
 
 import usePermissionsDialog from '@/hooks/usePermissionsDialog';
-import type { FileOrFolder } from '@/shared.types';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
 type ChangePermissionsProps = {
-  targetItem: FileOrFolder | null;
   showPermissionsDialog: boolean;
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function ChangePermissions({
-  targetItem,
   showPermissionsDialog,
   setShowPermissionsDialog
 }: ChangePermissionsProps): JSX.Element {
-  const { handleChangePermissions } = usePermissionsDialog();
+  const { propertiesTarget: targetItem } = useFileBrowserContext();
+
   const [localPermissions, setLocalPermissions] = React.useState(
     targetItem ? targetItem.permissions : null
   );
+
+  const { handleChangePermissions } = usePermissionsDialog();
 
   function handleLocalPermissionChange(
     event: React.ChangeEvent<HTMLInputElement>

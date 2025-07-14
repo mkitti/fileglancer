@@ -27,7 +27,10 @@ type FileBrowserContextType = {
   currentFolder: FileOrFolder | null;
   currentFileSharePath: FileSharePath | null;
   fetchAndSetFiles: (fspName: string, path?: string) => Promise<void>;
-  setCurrentFileSharePath: (fspName: string) => void;
+  propertiesTarget: FileOrFolder | null;
+  setPropertiesTarget: React.Dispatch<
+    React.SetStateAction<FileOrFolder | null>
+  >;
 };
 
 const FileBrowserContext = React.createContext<FileBrowserContextType | null>(
@@ -57,6 +60,8 @@ export const FileBrowserContextProvider = ({
   );
   const [currentFileSharePath, setCurrentFileSharePath] =
     React.useState<FileSharePath | null>(null);
+  const [propertiesTarget, setPropertiesTarget] =
+    React.useState<FileOrFolder | null>(null);
 
   const { showBoundary } = useErrorBoundary();
   const { cookies } = useCookiesContext();
@@ -119,7 +124,7 @@ export const FileBrowserContextProvider = ({
     [cookies, showBoundary]
   );
 
-  // Effect to update currentFolder when currentFileSharePath or filePath URL param changes
+  // Effect to update currentFolder and propertiesTarget when currentFileSharePath or filePath URL param changes
   React.useEffect(() => {
     let cancelled = false;
     const updateCurrentFileSharePathAndFolder = async () => {
@@ -158,6 +163,7 @@ export const FileBrowserContextProvider = ({
       if (!cancelled) {
         setCurrentFileSharePath(urlFsp);
         setCurrentFolder(urlParamFolder);
+        setPropertiesTarget(urlParamFolder);
       }
     };
     updateCurrentFileSharePathAndFolder();
@@ -211,7 +217,9 @@ export const FileBrowserContextProvider = ({
         files,
         currentFolder,
         currentFileSharePath,
-        fetchAndSetFiles
+        fetchAndSetFiles,
+        propertiesTarget,
+        setPropertiesTarget
       }}
     >
       {children}
