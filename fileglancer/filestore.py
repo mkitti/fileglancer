@@ -158,7 +158,7 @@ class Filestore:
             entry_path = os.path.join(full_path, entry)
             try:
                 yield self._get_file_info_from_path(entry_path)
-            except (FileNotFoundError, PermissionError) as e:
+            except (FileNotFoundError, PermissionError, OSError) as e:
                 log.error(f"Error accessing entry: {entry_path}: {e}")
                 continue
 
