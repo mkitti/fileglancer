@@ -81,7 +81,7 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
     <>
       <div
         key={item.sharing_key}
-        className="grid grid-cols-[1.5fr_2.5fr_1.5fr_1fr] gap-4 items-center px-4 py-3 border-b last:border-b-0 border-surface hover:bg-primary-light/20 relative cursor-pointer"
+        className="grid grid-cols-[1.5fr_2.5fr_1.5fr_1fr] gap-4 items-center px-4 py-3 border-b last:border-b-0 border-surface hover:bg-primary-light/20 relative cursor-pointer hover:bg-surface-light"
         onClick={handleRowClick}
       >
         {/* Sharing name */}
