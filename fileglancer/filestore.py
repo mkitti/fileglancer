@@ -145,27 +145,22 @@ class Filestore:
                 May be None, in which case the root directory is listed.
             
         Raises:
-            Permission Error: If the path is not accessible due to permissions.
+            PermissionError: If the path is not accessible due to permissions.
             FileNotFoundError: If the path does not exist.
         """
         full_path = self._check_path_in_root(path)
-        try:
-            entries = os.listdir(full_path)
-            # Sort entries in alphabetical order, with directories listed first
-            entries.sort(key=lambda e: (not os.path.isdir(
-                                            os.path.join(full_path, e)), e))
-            for entry in entries:
-                entry_path = os.path.join(full_path, entry)
-                try:
-                    yield self._get_file_info_from_path(entry_path)
-                except (FileNotFoundError, PermissionError):
-                    log.error(f"Error accessing entry: {entry_path}")
-                    continue
-        except (FileNotFoundError, PermissionError):
-            if PermissionError:
-                raise PermissionError(f"Permission denied for path: {full_path}")
-            elif FileNotFoundError:
-                raise FileNotFoundError(f"Path not found: {full_path}")
+    
+        entries = os.listdir(full_path)
+        # Sort entries in alphabetical order, with directories listed first
+        entries.sort(key=lambda e: (not os.path.isdir(
+                                        os.path.join(full_path, e)), e))
+        for entry in entries:
+            entry_path = os.path.join(full_path, entry)
+            try:
+                yield self._get_file_info_from_path(entry_path)
+            except (FileNotFoundError, PermissionError) as e:
+                log.error(f"Error accessing entry: {entry_path}: {e}")
+                continue
 
 
     def stream_file_contents(self, path: str, buffer_size: int = DEFAULT_BUFFER_SIZE) -> Generator[bytes, None, None]:
