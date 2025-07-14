@@ -35,7 +35,7 @@ function useProfile() {
     };
 
     fetchProfile();
-  }, []);
+  }, [cookies]);
 
   return { profile, loading, error };
 }
