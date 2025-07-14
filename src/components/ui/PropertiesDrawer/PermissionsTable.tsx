@@ -1,5 +1,4 @@
-import React from 'react';
-import { CheckIcon, MinusIcon } from '@heroicons/react/24/outline';
+import { HiCheck, HiMinus } from 'react-icons/hi';
 
 import { FileOrFolder } from '@/shared.types';
 import { parsePermissions } from '@/utils/index';
@@ -13,9 +12,9 @@ export default function PermissionsTable({
 
   const PermissionIcon = ({ hasPermission }: { hasPermission: boolean }) =>
     hasPermission ? (
-      <CheckIcon className="icon-default" />
+      <HiCheck className="icon-default" />
     ) : (
-      <MinusIcon className="icon-default" />
+      <HiMinus className="icon-default" />
     );
 
   return (

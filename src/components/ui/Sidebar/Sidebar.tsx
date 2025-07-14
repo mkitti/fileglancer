@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Input } from '@material-tailwind/react';
-import { FunnelIcon } from '@heroicons/react/24/outline';
+import { HiOutlineFunnel } from 'react-icons/hi2';
 
 import FavoritesBrowser from './FavoritesBrowser';
 import ZonesBrowser from './ZonesBrowser';
@@ -28,7 +28,7 @@ export default function Sidebar() {
           }
         >
           <Input.Icon>
-            <FunnelIcon className="h-full w-full" />
+            <HiOutlineFunnel className="h-full w-full" />
           </Input.Icon>
         </Input>
       </div>

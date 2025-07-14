@@ -7,8 +7,8 @@ import {
   Tooltip,
   Typography
 } from '@material-tailwind/react';
-import { FolderIcon } from '@heroicons/react/24/outline';
-import { StarIcon as StarFilled } from '@heroicons/react/24/solid';
+import { HiOutlineFolder } from 'react-icons/hi2';
+import { HiStar } from 'react-icons/hi';
 
 import {
   makeMapKey,
@@ -97,7 +97,7 @@ export default function Folder({ folderFavorite }: FolderProps) {
           className="w-[calc(100%-2rem)] flex flex-col items-start gap-2 short:gap-1 !text-foreground hover:!text-black focus:!text-black hover:dark:!text-white focus:dark:!text-white"
         >
           <div className="w-full flex gap-1 items-center">
-            <FolderIcon className="icon-small short:icon-xsmall stroke-2" />
+            <HiOutlineFolder className="icon-small short:icon-xsmall stroke-2" />
             <Typography className="w-[calc(100%-2rem)] truncate text-sm leading-4 short:text-xs font-semibold">
               {getLastSegmentFromPath(folderFavorite.folderPath)}
             </Typography>
@@ -126,7 +126,7 @@ export default function Folder({ folderFavorite }: FolderProps) {
               await handleFavoriteChange(folderFavorite, 'folder');
             }}
           >
-            <StarFilled className="icon-small short:icon-xsmall mb-[2px]" />
+            <HiStar className="icon-small short:icon-xsmall mb-[2px]" />
           </IconButton>
         </div>
       </List.Item>

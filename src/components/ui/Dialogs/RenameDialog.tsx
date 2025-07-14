@@ -6,7 +6,7 @@ import {
   IconButton,
   Typography
 } from '@material-tailwind/react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { HiX } from 'react-icons/hi';
 
 import type { FileOrFolder } from '@/shared.types';
 import useRenameDialog from '@/hooks/useRenameDialog';
@@ -47,7 +47,7 @@ export default function RenameDialog({
               setShowAlert(false);
             }}
           >
-            <XMarkIcon className="icon-default" />
+            <HiX className="icon-default" />
           </IconButton>
           <form
             onSubmit={async event => {
@@ -89,7 +89,7 @@ export default function RenameDialog({
             {showAlert === true ? (
               <Alert className="flex items-center gap-6 mt-6 border-none bg-error-light/90">
                 <Alert.Content>{alertContent}</Alert.Content>
-                <XMarkIcon
+                <HiX
                   className="icon-default cursor-pointer"
                   onClick={() => setShowAlert(false)}
                 />
