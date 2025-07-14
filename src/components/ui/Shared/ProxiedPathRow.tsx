@@ -137,6 +137,7 @@ export default function ProxiedPathRow({
           <Tooltip.Content>{formatDateString(item.created_at)}</Tooltip.Content>
         </Tooltip>
         {/* Actions */}
+        <div onClick={(e) => e.stopPropagation()}>
         <Menu>
           <Menu.Trigger
             as={IconButton}
@@ -176,6 +177,7 @@ export default function ProxiedPathRow({
             </Menu.Item>
           </Menu.Content>
         </Menu>
+        </div>
       </div>
       {/* Sharing dialog */}
       {showSharingDialog ? (
