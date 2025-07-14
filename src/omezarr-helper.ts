@@ -368,6 +368,11 @@ function generateNeuroglancerState(
     });
   }
 
+  state.selectedLayer = {
+    visible: true,
+    layer: channels[0].name
+  };
+
   // Convert the state to a URL-friendly format
   const stateJson = JSON.stringify(state);
   return encodeURIComponent(stateJson);
