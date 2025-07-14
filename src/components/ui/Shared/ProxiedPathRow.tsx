@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 import SharingDialog from '@/components/ui/Dialogs/Sharing';
 import type { FileSharePath } from '@/shared.types';
 import {
+  formatDateString,
   getPreferredPathForDisplay,
   makeMapKey,
   makeBrowseLink
@@ -27,16 +28,6 @@ type ProxiedPathRowProps = {
   menuOpenId: string | null;
   setMenuOpenId: (id: string | null) => void;
 };
-
-function formatDateString(dateStr: string) {
-  // If dateStr does not end with 'Z' or contain a timezone offset, treat as UTC
-  let normalized = dateStr;
-  if (!/Z$|[+-]\d{2}:\d{2}$/.test(dateStr)) {
-    normalized = dateStr + 'Z';
-  }
-  const date = new Date(normalized);
-  return date.toLocaleString();
-}
 
 export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
   const { showSharingDialog, setShowSharingDialog } = useSharingDialog();

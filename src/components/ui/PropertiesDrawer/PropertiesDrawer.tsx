@@ -17,6 +17,7 @@ import {
 
 import PermissionsTable from './PermissionsTable';
 import OverviewTable from './OverviewTable';
+import TicketDetails from './TicketDetails';
 import useCopyPath from '@/hooks/useCopyPath';
 import { getPreferredPathForDisplay } from '@/utils';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
@@ -168,17 +169,23 @@ export default function PropertiesDrawer({
           </Tabs.Panel>
 
           <Tabs.Panel value="convert" className="flex flex-col gap-2">
-            <Typography variant="small" className="font-medium">
-              Convert data to OME-Zarr
-            </Typography>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowConvertFileDialog(true);
-              }}
-            >
-              Submit
-            </Button>
+            {ticket ? (
+              <TicketDetails />
+            ) : (
+              <>
+                <Typography variant="small" className="font-medium">
+                  Convert data to OME-Zarr
+                </Typography>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowConvertFileDialog(true);
+                  }}
+                >
+                  Submit
+                </Button>
+              </>
+            )}
           </Tabs.Panel>
         </Tabs>
       ) : null}
