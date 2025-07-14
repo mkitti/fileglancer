@@ -529,19 +529,34 @@ class TicketHandler(APIHandler):
 
     @web.authenticated
     def get(self):
-        """Get ticket details"""
-        ticket_key = self.get_argument("ticket_key")
+        """Get all ticket details or a specific ticket by fsp_name and path for the current user"""
+        username = self.get_current_user()
+        fsp_name = self.get_argument("fsp_name", None)
+        path = self.get_argument("path", None)
         try:
-            response = requests.get(
-                f"{self.settings['fileglancer'].central_url}/ticket/{ticket_key}"
-            )
+            tickets_manager = get_tickets_manager(self.settings)
+            if fsp_name and path:
+                self.log.info(f"GET /api/fileglancer/ticket username={username} fsp_name={fsp_name} path={path}")
+                response = tickets_manager.get_tickets(username, fsp_name, path)
+            else:
+                self.log.info(f"GET /api/fileglancer/ticket username={username}")
+                response = tickets_manager.get_tickets(username)
             if response.status_code == 404:
                 self.set_status(404)
                 self.finish(json.dumps({"error": "Ticket not found"}))
                 return
             response.raise_for_status()
+
+            data = response.json()
+            
+            # Ensure the response is a dictionary, not a list
+            # Required because data is a list of tickets, and Tornado
+            # will not accept lists in self.finish() for security reasons.
+            if isinstance(data, list):
+                data = {"tickets": data}
+
             self.set_status(200)
-            self.finish(response.text)
+            self.finish(data)
 
         except Exception as e:
             self.log.error(f"Error getting ticket: {str(e)}")
@@ -577,7 +592,7 @@ class TicketHandler(APIHandler):
             response = tickets_manager.create_ticket(username, fsp_name, path, project_key, issue_type, summary, description)
             response.raise_for_status()
             self.set_status(200)
-            self.finish(response.text)
+            self.finish(response.json())
 
         except Exception as e:
             self.log.error(f"Error creating ticket: {str(e)}")

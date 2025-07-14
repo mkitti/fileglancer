@@ -12,6 +12,17 @@ class TicketsManager:
         self.central_url = central_url
         self._cached_proxied_paths = {}
 
+    def get_tickets(self, username: str, fsp_name: Optional[str] = None, path: Optional[str] = None) -> requests.Response:
+        """Retrieve tickets created by the user, optionally filtered by fsp_name and path."""
+        log.info(f"Retrieve all tickets for user {username} from {self.central_url}")
+        return requests.get(
+            f"{self.central_url}/ticket/{username}", 
+            params = {
+                "fsp_name": fsp_name,
+                "path": path
+            }
+        )
+
     def create_ticket(self, username: str, fsp_name: str, path: str, project_key: str, issue_type: str, summary:str, description:str) -> requests.Response:
         """Create a JIRA ticket for the given username, project_key, issue_type, summary, and description."""
         return requests.post(
