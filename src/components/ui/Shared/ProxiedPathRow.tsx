@@ -143,6 +143,7 @@ export default function ProxiedPathRow({
             as={IconButton}
             variant="ghost"
             className="p-1 max-w-fit"
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
           >
             <HiOutlineEllipsisHorizontalCircle className="icon-default text-foreground" />
           </Menu.Trigger>
@@ -167,7 +168,7 @@ export default function ProxiedPathRow({
               <Typography
                 className="text-sm p-1 cursor-pointer text-red-600"
                 onClick={() => {
-                  setCurrentFileSharePath(pathFsp);
+                  setCurrentFileSharePath(item.fsp_name);
                   setShowSharingDialog(true);
                 }}
               >
