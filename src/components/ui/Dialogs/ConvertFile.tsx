@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { use } from 'react';
 import { Button, Typography } from '@material-tailwind/react';
 import toast from 'react-hot-toast';
 
@@ -6,6 +6,7 @@ import FgDialog from './FgDialog';
 import useConvertFileDialog from '@/hooks/useConvertFileDialog';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { useTicketContext } from '@/contexts/TicketsContext';
 import { getPreferredPathForDisplay } from '@/utils/pathHandling';
 
 type ItemNamingDialogProps = {
@@ -17,10 +18,10 @@ export default function ConvertFileDialog({
   showConvertFileDialog,
   setShowConvertFileDialog
 }: ItemNamingDialogProps): JSX.Element {
-  const { handleConvertFileSubmit, destinationFolder, setDestinationFolder } =
-    useConvertFileDialog();
+  const { destinationFolder, setDestinationFolder } = useConvertFileDialog();
   const { pathPreference } = usePreferencesContext();
   const { propertiesTarget, currentFileSharePath } = useFileBrowserContext();
+  const { createTicket, fetchAllTickets } = useTicketContext();
 
   const placeholderText =
     pathPreference[0] === 'windows_path'
@@ -45,8 +46,9 @@ export default function ConvertFileDialog({
       <form
         onSubmit={async event => {
           event.preventDefault();
-          const result = await handleConvertFileSubmit();
+          const result = await createTicket(destinationFolder);
           if (result.ok) {
+            await fetchAllTickets();
             setShowConvertFileDialog(false);
             setDestinationFolder('');
             toast.success('Ticket created successfully!');

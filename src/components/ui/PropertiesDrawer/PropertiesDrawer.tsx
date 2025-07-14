@@ -21,7 +21,7 @@ import useCopyPath from '@/hooks/useCopyPath';
 import { getPreferredPathForDisplay } from '@/utils';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import { set } from 'node_modules/zarrita/dist/src/indexing/set';
+import { useTicketContext } from '@/contexts/TicketsContext';
 
 type PropertiesDrawerProps = {
   open: boolean;
@@ -45,6 +45,7 @@ export default function PropertiesDrawer({
   } = useCopyPath();
   const { currentFileSharePath, propertiesTarget } = useFileBrowserContext();
   const { pathPreference } = usePreferencesContext();
+  const { ticket } = useTicketContext();
 
   const fullPath = getPreferredPathForDisplay(
     pathPreference,
