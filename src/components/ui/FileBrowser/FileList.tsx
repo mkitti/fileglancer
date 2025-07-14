@@ -29,7 +29,7 @@ export default function FileList({
   hideDotFiles,
   handleRightClick
 }: FileListProps): React.ReactNode {
-  const { files, isFileBrowserReady } = useFileBrowserContext();
+  const { files, isFileBrowserReady, fetchErrorMsg } = useFileBrowserContext();
   const {
     thumbnailSrc,
     openWithToolUrls,
@@ -101,10 +101,18 @@ export default function FileList({
               />
             );
           })
-        ) : isFileBrowserReady && displayFiles.length === 0 ? (
+        ) : isFileBrowserReady &&
+          displayFiles.length === 0 &&
+          !fetchErrorMsg ? (
           <div className="flex items-center pl-3 py-1">
             <Typography className="text-primary-default">
               No files available for display.
+            </Typography>
+          </div>
+        ) : isFileBrowserReady && displayFiles.length === 0 && fetchErrorMsg ? (
+          <div className="flex items-center pl-3 py-1">
+            <Typography className="text-primary-default">
+              {fetchErrorMsg}
             </Typography>
           </div>
         ) : (

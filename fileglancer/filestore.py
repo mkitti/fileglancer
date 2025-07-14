@@ -145,7 +145,8 @@ class Filestore:
                 May be None, in which case the root directory is listed.
             
         Raises:
-            ValueError: If path attempts to escape root directory
+            Permission Error: If the path is not accessible due to permissions.
+            FileNotFoundError: If the path does not exist.
         """
         full_path = self._check_path_in_root(path)
         try:
@@ -158,9 +159,13 @@ class Filestore:
                 try:
                     yield self._get_file_info_from_path(entry_path)
                 except (FileNotFoundError, PermissionError):
+                    log.error(f"Error accessing entry: {entry_path}")
                     continue
         except (FileNotFoundError, PermissionError):
-            return
+            if PermissionError:
+                raise PermissionError(f"Permission denied for path: {full_path}")
+            elif FileNotFoundError:
+                raise FileNotFoundError(f"Path not found: {full_path}")
 
 
     def stream_file_contents(self, path: str, buffer_size: int = DEFAULT_BUFFER_SIZE) -> Generator[bytes, None, None]:

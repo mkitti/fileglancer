@@ -86,7 +86,8 @@ def test_yield_file_infos(filestore):
     assert subdir_files[0].name == "test2.txt"
     
     # Test nonexistent directory
-    assert list(filestore.yield_file_infos("nonexistent")) == []
+    with pytest.raises((FileNotFoundError, PermissionError)):
+        list(filestore.yield_file_infos("nonexistent"))
 
 
 def test_stream_file_contents(filestore):
