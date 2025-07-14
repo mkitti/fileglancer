@@ -8,12 +8,8 @@ import {
   Typography,
   Tabs
 } from '@material-tailwind/react';
-import {
-  DocumentIcon,
-  FolderIcon,
-  Square2StackIcon,
-  XMarkIcon
-} from '@heroicons/react/24/outline';
+import { HiOutlineDocument, HiOutlineDuplicate, HiX } from 'react-icons/hi';
+import { HiOutlineFolder } from 'react-icons/hi2';
 
 import PermissionsTable from './PermissionsTable';
 import OverviewTable from './OverviewTable';
@@ -70,16 +66,16 @@ export default function PropertiesDrawer({
             setShowPropertiesDrawer((prev: boolean) => !prev);
           }}
         >
-          <XMarkIcon className="icon-default" />
+          <HiX className="icon-default" />
         </IconButton>
       </div>
 
       {propertiesTarget ? (
         <div className="flex items-center gap-2 mt-3 mb-4 max-h-min overflow-hidden">
           {propertiesTarget.is_dir ? (
-            <FolderIcon className="icon-default" />
+            <HiOutlineFolder className="icon-default" />
           ) : (
-            <DocumentIcon className="icon-default" />
+            <HiOutlineDocument className="icon-default" />
           )}{' '}
           <Tooltip>
             <Tooltip.Trigger className="max-w-[calc(100%-2rem)]">
@@ -137,7 +133,7 @@ export default function PropertiesDrawer({
                   }
                 }}
               >
-                <Square2StackIcon className="icon-small" />
+                <HiOutlineDuplicate className="icon-small" />
               </IconButton>
             </div>
 
@@ -146,7 +142,7 @@ export default function PropertiesDrawer({
             showCopyAlert === true ? (
               <Alert className="flex items-center justify-between bg-secondary-light/70 border-none">
                 <Alert.Content>Path copied to clipboard!</Alert.Content>
-                <XMarkIcon
+                <HiX
                   className="icon-default cursor-pointer"
                   onClick={dismissCopyAlert}
                 />

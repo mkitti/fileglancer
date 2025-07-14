@@ -172,12 +172,13 @@ class FileMetadataHandler(FileShareHandler):
             filestore_name, _, subpath = path.partition('/')
         
         filestore = self._get_filestore(filestore_name)
+
         if filestore is None:
             return
 
         try:
             file_info = filestore.get_file_info(subpath)
-            self.log.debug(f"File info: {file_info}")
+            self.log.info(f"File info: {file_info}")
 
             # Write JSON response, streaming the files one by one
             self.set_status(200)
@@ -187,14 +188,26 @@ class FileMetadataHandler(FileShareHandler):
             self.write(json.dumps(file_info.model_dump(), indent=4))
             if file_info.is_dir:
                 self.write(",\n")
-                self.write("\"files\": [\n")
-                for i, file in enumerate(filestore.yield_file_infos(subpath)):
-                    if i > 0:
-                        self.write(",\n")
-                    self.write(json.dumps(file.model_dump(), indent=4))
-                self.write("]\n")
+                try:
+                    files = list(filestore.yield_file_infos(subpath))
+                    self.write("\"files\": [\n")
+                    for i, file in enumerate(files):
+                        if i > 0:
+                            self.write(",\n")
+                        self.write(json.dumps(file.model_dump(), indent=4))
+                    self.write("]\n")
+                except PermissionError:
+                    self.set_status(403)
+                    self.log.error(f"Permission denied when listing files in directory: {subpath}")
+                    self.write("\"files\": [],\n")
+                    self.write("\"error\": \"Permission denied when listing directory contents\"\n")
+                except FileNotFoundError:
+                    self.set_status(404)
+                    self.log.error(f"Directory not found during listing: {subpath}")
+                    self.write("\"files\": [],\n")
+                    self.write("\"error\": \"Directory contents not found\"\n")
             self.write("}\n")
-
+                
         except FileNotFoundError:
             self.log.error(f"File or directory not found: {subpath}")
             self.set_status(404)

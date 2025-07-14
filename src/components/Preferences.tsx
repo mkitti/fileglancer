@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Alert, Button, Card, Typography } from '@material-tailwind/react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { HiX } from 'react-icons/hi';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import useLocalPathPreference from '@/hooks/useLocalPathPreference';
 
@@ -105,7 +105,7 @@ export default function Preferences() {
             {showPathPrefAlert === true ? (
               <Alert className="flex items-center gap-6 mt-6 bg-secondary-light/70 border-none">
                 <Alert.Content>Preference updated!</Alert.Content>
-                <XMarkIcon
+                <HiX
                   className="icon-default cursor-pointer"
                   onClick={() => setShowPathPrefAlert(false)}
                 />

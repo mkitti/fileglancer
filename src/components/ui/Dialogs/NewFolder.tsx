@@ -1,6 +1,7 @@
 import React from 'react';
 import { Alert, Button, Typography } from '@material-tailwind/react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { HiX } from 'react-icons/hi';
+
 import useNewFolderDialog from '@/hooks/useNewFolderDialog';
 import FgDialog from './FgDialog';
 
@@ -63,7 +64,7 @@ export default function NewFolderDialog({
         {alertContent ? (
           <Alert className="flex items-center gap-6 mt-6 border-none bg-error-light/90">
             <Alert.Content>{alertContent}</Alert.Content>
-            <XMarkIcon
+            <HiX
               className="icon-default cursor-pointer"
               onClick={() => setShowAlert(false)}
             />

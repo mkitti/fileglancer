@@ -1,8 +1,11 @@
 import React, { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { IconButton, Tooltip, Typography } from '@material-tailwind/react';
-import { DocumentIcon, FolderIcon } from '@heroicons/react/24/outline';
-import { HiOutlineEllipsisHorizontalCircle } from 'react-icons/hi2';
+import { TbFile } from 'react-icons/tb';
+import {
+  HiOutlineEllipsisHorizontalCircle,
+  HiOutlineFolder
+} from 'react-icons/hi2';
 
 import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
@@ -91,9 +94,9 @@ export default function FileRow({
       {/* Type column */}
       <div className="flex items-center w-full gap-3 py-1 text-grey-700 overflow-x-auto">
         {file.is_dir ? (
-          <FolderIcon className="text-foreground icon-default" />
+          <HiOutlineFolder className="text-foreground icon-default" />
         ) : (
-          <DocumentIcon className="text-foreground icon-default" />
+          <TbFile className="text-foreground icon-default" />
         )}
         <Typography variant="small" className="font-medium">
           {file.is_dir ? 'Folder' : 'File'}

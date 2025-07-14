@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, Typography } from '@material-tailwind/react';
 
-import FgDialog from '@/components/ui/Dialogs/FgDialog';
+import FgDialog from './FgDialog';
 import usePermissionsDialog from '@/hooks/usePermissionsDialog';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 

@@ -2,10 +2,9 @@ import React from 'react';
 import { default as log } from '@/logger';
 import { useErrorBoundary } from 'react-error-boundary';
 
-import { FileOrFolder, FileSharePath } from '@/shared.types';
+import type { FileOrFolder, FileSharePath } from '@/shared.types';
 import {
   getFileBrowsePath,
-  HTTPError,
   makeMapKey,
   removeLastSegmentFromPath,
   sendFetchRequest
@@ -26,6 +25,7 @@ type FileBrowserContextType = {
   files: FileOrFolder[];
   currentFolder: FileOrFolder | null;
   currentFileSharePath: FileSharePath | null;
+  fetchErrorMsg: string | null;
   fetchAndSetFiles: (fspName: string, path?: string) => Promise<void>;
   propertiesTarget: FileOrFolder | null;
   setPropertiesTarget: React.Dispatch<
@@ -62,6 +62,7 @@ export const FileBrowserContextProvider = ({
     React.useState<FileSharePath | null>(null);
   const [propertiesTarget, setPropertiesTarget] =
     React.useState<FileOrFolder | null>(null);
+  const [fetchErrorMsg, setFetchErrorMsg] = React.useState<string | null>(null);
 
   const { showBoundary } = useErrorBoundary();
   const { cookies } = useCookiesContext();
@@ -75,16 +76,30 @@ export const FileBrowserContextProvider = ({
       try {
         const response = await sendFetchRequest(url, 'GET', cookies['_xsrf']);
         const data = await response.json();
+
+        if (!response.ok) {
+          if (response.status === 403) {
+            if (data.info && data.info.owner) {
+              setFetchErrorMsg(
+                `You do not have permission to view this folder. Contact the owner (${data.info.owner}) for access.`
+              );
+            } else {
+              setFetchErrorMsg(
+                'You do not have permission to view this folder. Contact the owner for access.'
+              );
+            }
+          } else if (response.status === 404) {
+            showBoundary(new Error('Folder not found'));
+          }
+        }
+
         if (data && data['info']) {
           return data['info'] as FileOrFolder;
         }
       } catch (error) {
-        if (error instanceof HTTPError && error.responseCode === 404) {
-          showBoundary(error);
-        } else {
-          log.error(error);
-        }
+        log.error(error);
       }
+
       return null;
     },
     [cookies, showBoundary]
@@ -93,6 +108,7 @@ export const FileBrowserContextProvider = ({
   // Function to fetch files for the current FSP and current folder
   const fetchAndSetFiles = React.useCallback(
     async (fspName: string, path?: string): Promise<void> => {
+      setFetchErrorMsg(null);
       const url = path
         ? getFileBrowsePath(fspName, path)
         : getFileBrowsePath(fspName);
@@ -102,6 +118,22 @@ export const FileBrowserContextProvider = ({
       try {
         const response = await sendFetchRequest(url, 'GET', cookies['_xsrf']);
         const data = await response.json();
+
+        if (!response.ok) {
+          if (response.status === 403) {
+            if (data.info && data.info.owner) {
+              setFetchErrorMsg(
+                `You do not have permission to view this folder. Contact the owner (${data.info.owner}) for access.`
+              );
+            } else {
+              setFetchErrorMsg(
+                'You do not have permission to view this folder. Contact the owner for access.'
+              );
+            }
+          } else if (response.status === 404) {
+            showBoundary(new Error('Folder not found'));
+          }
+        }
 
         if (data.files) {
           // Sort: directories first, then files; alphabetically within each type
@@ -113,11 +145,8 @@ export const FileBrowserContextProvider = ({
           }) as FileOrFolder[];
         }
       } catch (error) {
-        if (error instanceof HTTPError && error.responseCode === 404) {
-          showBoundary(error);
-        } else {
-          log.error(error);
-        }
+        log.error(error);
+        showBoundary(error);
       }
       setFiles(files);
     },
@@ -217,6 +246,7 @@ export const FileBrowserContextProvider = ({
         files,
         currentFolder,
         currentFileSharePath,
+        fetchErrorMsg,
         fetchAndSetFiles,
         propertiesTarget,
         setPropertiesTarget

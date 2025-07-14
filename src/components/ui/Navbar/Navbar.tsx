@@ -8,15 +8,14 @@ import {
 } from '@material-tailwind/react';
 import { Link } from 'react-router-dom';
 import {
-  FolderIcon,
-  MoonIcon,
-  InformationCircleIcon,
-  Bars3Icon as MenuIcon,
-  BriefcaseIcon,
-  XMarkIcon,
-  ShareIcon,
-  SunIcon
-} from '@heroicons/react/24/outline';
+  HiOutlineMoon,
+  HiOutlineMenu,
+  HiOutlineX,
+  HiOutlineShare,
+  HiOutlineSun
+} from 'react-icons/hi';
+import { HiOutlineFolder, HiOutlineBriefcase } from 'react-icons/hi2';
+import { TbBrandGithub } from 'react-icons/tb';
 
 import ProfileMenu from './ProfileMenu';
 import useTheme from '@/hooks/useTheme';
@@ -24,17 +23,17 @@ import { BetaSticker } from '@/components/ui/Beta';
 
 const LINKS = [
   {
-    icon: FolderIcon,
+    icon: HiOutlineFolder,
     title: 'Browse',
     href: '/browse'
   },
   {
-    icon: ShareIcon,
+    icon: HiOutlineShare,
     title: 'Shared',
     href: '/shared'
   },
   {
-    icon: BriefcaseIcon,
+    icon: HiOutlineBriefcase,
     title: 'Jobs',
     href: '/jobs'
   }
@@ -61,7 +60,7 @@ function NavList() {
           className="flex items-center dark:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark hover:!text-foreground focus:!text-foreground"
         >
           <List.ItemStart className="flex items-center mr-1.5">
-            <Icon className="icon-default short:icon-xsmall" />
+            <Icon className="stroke-2 icon-default short:icon-xsmall" />
           </List.ItemStart>
           <Typography type="small" className="short:text-xs">
             {title}
@@ -146,16 +145,28 @@ export default function FileglancerNavbar() {
         {/* Theme toggle and profile dropdown menu */}
         <div className="flex items-center gap-1">
           <IconButton
+            as={Link}
+            to="https://github.com/JaneliaSciComp/fileglancer"
+            target="_blank"
+            rel="noopener noreferrer"
             size="sm"
             variant="ghost"
             color="secondary"
-            className="grid ml-auto text-foreground dark:text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark stroke-2"
+            className="text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
+          >
+            <TbBrandGithub className="icon-large short:icon-default" />
+          </IconButton>
+          <IconButton
+            size="sm"
+            variant="ghost"
+            color="secondary"
+            className="text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
             onClick={toggleTheme}
           >
             {isLightTheme ? (
-              <SunIcon className="icon-large short:icon-default" />
+              <HiOutlineSun className="stroke-2 icon-large short:icon-default" />
             ) : (
-              <MoonIcon className="icon-large short:icon-default" />
+              <HiOutlineMoon className="stroke-2 icon-large short:icon-default" />
             )}
           </IconButton>
           <ProfileMenu />
@@ -165,12 +176,12 @@ export default function FileglancerNavbar() {
             variant="ghost"
             color="secondary"
             onClick={() => setOpenNav(!openNav)}
-            className="mr-2 grid ml-auto text-foreground dark:text-foreground hover:!text-foreground focus:!text-foreground lg:hidden hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
+            className="mr-2 text-foreground hover:!text-foreground focus:!text-foreground lg:hidden hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
           >
             {openNav ? (
-              <XMarkIcon className="icon-large short:icon-default" />
+              <HiOutlineX className="stroke-2 icon-large short:icon-default" />
             ) : (
-              <MenuIcon className="icon-large short:icon-default" />
+              <HiOutlineMenu className="stroke-2 icon-large short:icon-default" />
             )}
           </IconButton>
         </div>

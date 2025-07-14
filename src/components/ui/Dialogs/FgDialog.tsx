@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Dialog, IconButton } from '@material-tailwind/react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { HiX } from 'react-icons/hi';
 
 type FgDialogProps = {
   open: boolean;
@@ -28,7 +28,7 @@ export default function FgDialog({
             className="absolute right-4 top-4 text-secondary hover:text-background rounded-full"
             onClick={onClose}
           >
-            <XMarkIcon className="icon-default" />
+            <HiX className="icon-default" />
           </IconButton>
           {children}
         </Dialog.Content>
