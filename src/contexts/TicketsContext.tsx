@@ -33,8 +33,8 @@ type TicketContextType = {
   fetchAllTickets: () => Promise<void>;
 };
 
-function sortTicketsByDate(paths: Ticket[]): Ticket[] {
-  return paths.sort(
+function sortTicketsByDate(tickets: Ticket[]): Ticket[] {
+  return tickets.sort(
     (a, b) => new Date(b.created).getTime() - new Date(a.created).getTime()
   );
 }
@@ -53,8 +53,7 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
   const [allTickets, setAllTickets] = React.useState<Ticket[]>([]);
   const [ticket, setTicket] = React.useState<Ticket | null>(null);
   const { cookies } = useCookiesContext();
-  const { currentFolder, currentFileSharePath, propertiesTarget } =
-    useFileBrowserContext();
+  const { currentFileSharePath, propertiesTarget } = useFileBrowserContext();
 
   const fetchAllTickets = React.useCallback(async (): Promise<void> => {
     const response = await sendFetchRequest(
@@ -76,8 +75,8 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
     }
     const data = await response.json();
     logger.debug('Fetched all tickets:', data);
-    if (data?.paths) {
-      setAllTickets(sortTicketsByDate(data.paths) as Ticket[]);
+    if (data?.tickets) {
+      setAllTickets(sortTicketsByDate(data.tickets) as Ticket[]);
     }
   }, [cookies]);
 
