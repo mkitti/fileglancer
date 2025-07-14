@@ -32,14 +32,15 @@ const LINKS = [
     icon: ShareIcon,
     title: 'Shared',
     href: '/shared'
-  }
-  /**
-   * TODO: Add these back in when they are implemented
+  },
   {
     icon: BriefcaseIcon,
     title: 'Jobs',
     href: '/jobs'
-  },
+  }
+  /**
+   * TODO: Add these back in when they are implemented
+
   {
     icon: InformationCircleIcon,
     title: 'Help',

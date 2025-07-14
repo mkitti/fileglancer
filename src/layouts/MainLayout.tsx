@@ -7,6 +7,8 @@ import { ZonesAndFspMapContextProvider } from '@/contexts/ZonesAndFspMapContext'
 import { FileBrowserContextProvider } from '@/contexts/FileBrowserContext';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
 import { OpenFavoritesProvider } from '@/contexts/OpenFavoritesContext';
+import { TicketProvider } from '@/contexts/TicketsContext';
+import { ProxiedPathProvider } from '@/contexts/ProxiedPathContext';
 import FileglancerNavbar from '@/components/ui/Navbar/Navbar';
 import { BetaBanner } from '@/components/ui/Beta';
 import ErrorFallback from '@/components/ErrorFallback';
@@ -22,20 +24,24 @@ export const MainLayout = () => {
         <OpenFavoritesProvider>
           <PreferencesProvider>
             <FileBrowserContextProvider fspName={fspName} filePath={filePath}>
-              <Toaster
-                position="bottom-center"
-                toastOptions={{
-                  className: 'min-w-fit',
-                  success: { duration: 4000 }
-                }}
-              />
-              <div className="flex flex-col items-center h-full w-full overflow-y-hidden bg-background text-foreground box-border">
-                <FileglancerNavbar />
-                <BetaBanner />
-                <ErrorBoundary FallbackComponent={ErrorFallback}>
-                  <Outlet />
-                </ErrorBoundary>
-              </div>
+              <ProxiedPathProvider>
+                <TicketProvider>
+                  <Toaster
+                    position="bottom-center"
+                    toastOptions={{
+                      className: 'min-w-fit',
+                      success: { duration: 4000 }
+                    }}
+                  />
+                  <div className="flex flex-col items-center h-full w-full overflow-y-hidden bg-background text-foreground box-border">
+                    <FileglancerNavbar />
+                    <BetaBanner />
+                    <ErrorBoundary FallbackComponent={ErrorFallback}>
+                      <Outlet />
+                    </ErrorBoundary>
+                  </div>
+                </TicketProvider>
+              </ProxiedPathProvider>
             </FileBrowserContextProvider>
           </PreferencesProvider>
         </OpenFavoritesProvider>
