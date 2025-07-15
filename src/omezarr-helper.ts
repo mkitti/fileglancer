@@ -230,7 +230,11 @@ function generateNeuroglancerState(
   const state: any = {
     dimensions: {},
     layers: [],
-    layout: '4panel'
+    layout: '4panel',
+    selectedLayer: {
+      visible: true,
+      layer: 'Default'
+    }
   };
 
   const fullres = multiscale.datasets[0];
@@ -256,7 +260,7 @@ function generateNeuroglancerState(
       const extent = arr.shape[axis.index];
       imageDimensions.delete(name);
     } else {
-      log.warn('Dimension not found in axes map: ', name);
+      log.debug('Dimension not found in axes map: ', name);
     }
   }
 
@@ -304,7 +308,7 @@ function generateNeuroglancerState(
   }
 
   if (channels.length === 0) {
-    log.warn('No channels found in metadata, using default shader');
+    log.debug('No channels found in metadata, using default shader');
     const layer: Record<string, any> = {
       type: 'image',
       source: getNeuroglancerSource(dataUrl, zarr_version),
@@ -321,6 +325,7 @@ function generateNeuroglancerState(
       name: 'Default',
       ...layer
     });
+
   } else {
     // If there is only one channel, make it white
     if (channels.length === 1) {
@@ -366,16 +371,20 @@ function generateNeuroglancerState(
         ...layer
       });
     });
-  }
 
-  state.selectedLayer = {
-    visible: true,
-    layer: channels[0].name
-  };
+    // Fix the selected layer name
+    state.selectedLayer.layer = channels[0].name;
+  }
 
   // Convert the state to a URL-friendly format
   const stateJson = JSON.stringify(state);
   return encodeURIComponent(stateJson);
+}
+
+async function getZarrArray(dataUrl: string): Promise<zarr.Array<any>> {
+  const zarr_version = 2;
+  const store = new zarr.FetchStore(dataUrl);
+  return await omezarr.getArray(store, "/", zarr_version);
 }
 
 /**
@@ -428,4 +437,4 @@ async function getOmeZarrMetadata(
   return [metadata, errorMessage];
 }
 
-export { getOmeZarrMetadata, generateNeuroglancerState };
+export { getZarrArray, getOmeZarrMetadata, generateNeuroglancerState };
