@@ -47,22 +47,59 @@ export const useFileBrowserContext = () => {
   return context;
 };
 
+export interface FileState {
+  isFileBrowserReady: boolean;
+  currentFileSharePath: FileSharePath | null;
+  currentFolder: FileOrFolder | null;
+  files: FileOrFolder[];
+  fetchErrorMsg: string | null;
+}
+
 // fspName and filePath come from URL parameters, accessed in MainLayout
 export const FileBrowserContextProvider = ({
   children,
   fspName,
   filePath
 }: FileBrowserContextProviderProps) => {
-  const [isFileBrowserReady, setIsFileBrowserReady] = React.useState(true);
-  const [files, setFiles] = React.useState<FileOrFolder[]>([]);
-  const [currentFolder, setCurrentFolder] = React.useState<FileOrFolder | null>(
-    null
-  );
-  const [currentFileSharePath, setCurrentFileSharePath] =
-    React.useState<FileSharePath | null>(null);
+  const [fileState, setFileState] = React.useState<FileState>({
+    isFileBrowserReady: false,
+    currentFileSharePath: null,
+    currentFolder: null,
+    files: [],
+    fetchErrorMsg: null
+  });
+
   const [propertiesTarget, setPropertiesTarget] =
     React.useState<FileOrFolder | null>(null);
-  const [fetchErrorMsg, setFetchErrorMsg] = React.useState<string | null>(null);
+
+  // Destructure state values and setters
+  const {
+    isFileBrowserReady,
+    currentFileSharePath,
+    currentFolder,
+    files,
+    fetchErrorMsg
+  } = fileState;
+
+  const setIsFileBrowserReady = React.useCallback((ready: boolean) => {
+    setFileState(prev => ({ ...prev, isFileBrowserReady: ready }));
+  }, []);
+
+  const setCurrentFileSharePath = React.useCallback((path: FileSharePath | null) => {
+    setFileState(prev => ({ ...prev, currentFileSharePath: path }));
+  }, []);
+
+  const setCurrentFolder = React.useCallback((folder: FileOrFolder | null) => {
+    setFileState(prev => ({ ...prev, currentFolder: folder }));
+  }, []);
+
+  const setFiles = React.useCallback((newFiles: FileOrFolder[]) => {
+    setFileState(prev => ({ ...prev, files: newFiles }));
+  }, []);
+
+  const setFetchErrorMsg = React.useCallback((errorMsg: string | null) => {
+    setFileState(prev => ({ ...prev, fetchErrorMsg: errorMsg }));
+  }, []);
 
   const { showBoundary } = useErrorBoundary();
   const { cookies } = useCookiesContext();
@@ -80,13 +117,9 @@ export const FileBrowserContextProvider = ({
         if (!response.ok) {
           if (response.status === 403) {
             if (data.info && data.info.owner) {
-              setFetchErrorMsg(
-                `You do not have permission to view this folder. Contact the owner (${data.info.owner}) for access.`
-              );
+              setFetchErrorMsg(`You do not have permission to view this folder. Contact the owner (${data.info.owner}) for access.`);
             } else {
-              setFetchErrorMsg(
-                'You do not have permission to view this folder. Contact the owner for access.'
-              );
+              setFetchErrorMsg('You do not have permission to view this folder. Contact the owner for access.');
             }
           } else if (response.status === 404) {
             showBoundary(new Error('Folder not found'));
@@ -122,13 +155,9 @@ export const FileBrowserContextProvider = ({
         if (!response.ok) {
           if (response.status === 403) {
             if (data.info && data.info.owner) {
-              setFetchErrorMsg(
-                `You do not have permission to view this folder. Contact the owner (${data.info.owner}) for access.`
-              );
+              setFetchErrorMsg(`You do not have permission to list this folder. Contact the owner (${data.info.owner}) for access.`);
             } else {
-              setFetchErrorMsg(
-                'You do not have permission to view this folder. Contact the owner for access.'
-              );
+              setFetchErrorMsg('You do not have permission to list this folder. Contact the owner for access.');
             }
           } else if (response.status === 404) {
             showBoundary(new Error('Folder not found'));
