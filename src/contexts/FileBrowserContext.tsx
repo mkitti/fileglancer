@@ -18,7 +18,18 @@ type FileBrowserContextProviderProps = {
   filePath: string | undefined;
 };
 
+// TODO: In the future we could use this unified state in the clients of this context, instead of the 
+// individual local states. This would ensure future consistency and would be easier to reason about. 
+export interface FileState {
+  isFileBrowserReady: boolean;
+  currentFileSharePath: FileSharePath | null;
+  currentFolder: FileOrFolder | null;
+  files: FileOrFolder[];
+  fetchErrorMsg: string | null;
+}
+
 type FileBrowserContextType = {
+  fileState: FileState;
   isFileBrowserReady: boolean;
   fspName: string | undefined;
   filePath: string | undefined;
@@ -47,13 +58,6 @@ export const useFileBrowserContext = () => {
   return context;
 };
 
-export interface FileState {
-  isFileBrowserReady: boolean;
-  currentFileSharePath: FileSharePath | null;
-  currentFolder: FileOrFolder | null;
-  files: FileOrFolder[];
-  fetchErrorMsg: string | null;
-}
 
 // fspName and filePath come from URL parameters, accessed in MainLayout
 export const FileBrowserContextProvider = ({
@@ -68,7 +72,7 @@ export const FileBrowserContextProvider = ({
   const [files, setFiles] = React.useState<FileOrFolder[]>([]);
   const [fetchErrorMsg, setFetchErrorMsg] = React.useState<string | null>(null);
 
-  // Main fileState that gets updated when everything is ready
+  // Unified state that keeps a consistent view of the file browser
   const [fileState, setFileState] = React.useState<FileState>({
     isFileBrowserReady: false,
     currentFileSharePath: null,
@@ -272,6 +276,7 @@ export const FileBrowserContextProvider = ({
   return (
     <FileBrowserContext.Provider
       value={{
+        fileState,
         isFileBrowserReady,
         fspName,
         filePath,
