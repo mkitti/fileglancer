@@ -13,7 +13,7 @@ import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 export default function usePermissionsDialog() {
   const [showAlert, setShowAlert] = React.useState<boolean>(false);
   const { cookies } = useCookiesContext();
-  const { currentFileSharePath, fetchAndSetFiles } = useFileBrowserContext();
+  const { currentFileSharePath, refreshFiles } = useFileBrowserContext();
 
   async function handleChangePermissions(
     targetItem: FileOrFolder,
@@ -33,10 +33,7 @@ export default function usePermissionsDialog() {
       await sendFetchRequest(fetchPath, 'PATCH', cookies['_xsrf'], {
         permissions: localPermissions
       });
-      await fetchAndSetFiles(
-        currentFileSharePath.name,
-        removeLastSegmentFromPath(targetItem.path)
-      );
+      await refreshFiles();
       toast.success(`Successfully updated permissions for ${fetchPath}`);
     } catch (error) {
       toast.error(
