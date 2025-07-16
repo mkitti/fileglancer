@@ -54,17 +54,3 @@ const customRender = (
 
 export * from '@testing-library/react';
 export { customRender as render };
-
-// const MockApp = ({ children }: { children: React.ReactNode }) => {
-//   const basename = '/';
-//   return (
-//     <MemoryRouter basename={basename} initialEntries={['/']}>
-//       <Routes>
-//         <Route
-//           path="/*"
-//           element={<MockMainLayout>{children}</MockMainLayout>}
-//         />
-//       </Routes>
-//     </MemoryRouter>
-//   );
-// };
