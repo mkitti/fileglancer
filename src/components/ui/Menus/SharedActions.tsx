@@ -11,7 +11,7 @@ type SharedActionsMenuProps<T = unknown> = {
 
 export default function SharedActionsMenu<T>({
   menuItems,
-  actionProps = {} as T
+  actionProps
 }: SharedActionsMenuProps<T>) {
   return (
     <Menu>

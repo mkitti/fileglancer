@@ -2,11 +2,16 @@ import log from 'loglevel';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router';
 
-import useCopyPath from '@/hooks/useCopyPath';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import useCopyPath from '@/hooks/useCopyPath';
 import { makeBrowseLink } from '@/utils';
+import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
+import { FileSharePath } from '@/shared.types';
 
-export default function useProxiedPathRow() {
+export default function useProxiedPathRow({item, setShowSharingDialog}: {
+  item: ProxiedPath;
+  setShowSharingDialog: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
   const { setCurrentFileSharePath } = useFileBrowserContext();
   const { copyToClipboard } = useCopyPath();
   const navigate = useNavigate();
@@ -14,7 +19,7 @@ export default function useProxiedPathRow() {
   // Create navigation link for the file browser
   const browseLink = makeBrowseLink(item.fsp_name, item.path);
 
-  const handleCopyPath = async displayPath => {
+  const handleCopyPath = async (displayPath: string) => {
     try {
       await copyToClipboard(displayPath);
       toast.success('Path copied to clipboard');
@@ -24,7 +29,7 @@ export default function useProxiedPathRow() {
     }
   };
 
-  const handleCopyUrl = async item => {
+  const handleCopyUrl = async (item: ProxiedPath) => {
     try {
       await copyToClipboard(item.url);
       toast.success('URL copied to clipboard');
@@ -34,8 +39,8 @@ export default function useProxiedPathRow() {
     }
   };
 
-  const handleUnshare = item => {
-    setCurrentFileSharePath(item.fsp_name);
+  const handleUnshare = (pathFsp: FileSharePath) => {
+    setCurrentFileSharePath(pathFsp);
     setShowSharingDialog(true);
   };
 

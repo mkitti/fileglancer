@@ -22,23 +22,25 @@ type ProxiedPathRowProps = {
 type ProxiedPathRowActionProps = {
   handleCopyPath: (path: string) => void;
   handleCopyUrl: (item: ProxiedPath) => void;
-  handleUnshare: (item: ProxiedPath) => void;
+  handleUnshare: (pathFsp: FileSharePath) => void;
   item: ProxiedPath;
   displayPath: string;
+  pathFsp: FileSharePath | undefined;
 };
 
 export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
   const { pathPreference } = usePreferencesContext();
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
 
+  const { showSharingDialog, setShowSharingDialog } = useSharingDialog();
   const {
     handleCopyPath,
     handleCopyUrl,
     handleUnshare,
     handleRowClick,
     handleNameClick
-  } = useProxiedPathRow();
-  const { showSharingDialog, setShowSharingDialog } = useSharingDialog();
+  } = useProxiedPathRow({item, setShowSharingDialog});
+
 
   const pathFsp = zonesAndFileSharePathsMap[
     makeMapKey('fsp', item.fsp_name)
@@ -64,7 +66,7 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
     {
       name: 'Unshare',
       action: (props: ProxiedPathRowActionProps) =>
-        props.handleUnshare(props.item),
+        props.handleUnshare(props.pathFsp as FileSharePath),
       color: 'text-red-600'
     }
   ];
@@ -74,7 +76,8 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
     handleCopyUrl,
     handleUnshare,
     item,
-    displayPath
+    displayPath,
+    pathFsp
   };
 
   return (
