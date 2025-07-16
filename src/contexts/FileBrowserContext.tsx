@@ -12,6 +12,11 @@ import {
 import { useCookiesContext } from './CookiesContext';
 import { useZoneAndFspMapContext } from './ZonesAndFspMapContext';
 
+type FileBrowserResponse = {
+  info: FileOrFolder;
+  files: FileOrFolder[];
+};
+
 type FileBrowserContextProviderProps = {
   children: React.ReactNode;
   fspName: string | undefined;
@@ -136,98 +141,81 @@ export const FileBrowserContextProvider = ({
   const { zonesAndFileSharePathsMap, isZonesMapReady } =
     useZoneAndFspMapContext();
 
-  // Function to fetch file/folder information
-  const fetchFileOrFolderInfo = React.useCallback(
-    async (fspName: string, path?: string): Promise<FileOrFolder | null> => {
-      const url = getFileBrowsePath(fspName, path);
-      try {
-        const response = await sendFetchRequest(url, 'GET', cookies['_xsrf']);
-        const data = await response.json();
+  // Function to fetch files for the current FSP and current folder
+  const fetchFileInfo = React.useCallback(
+    async (fspName: string, folderName: string): Promise<FileBrowserResponse> => {
+      const url = getFileBrowsePath(fspName, folderName);
 
-        if (!response.ok) {
-          if (response.status === 403) {
-            // Don't set error state here - let the calling function handle it
-            log.warn('Permission denied for folder:', path);
-          } else if (response.status === 404) {
-            showBoundary(new Error('Folder not found'));
+      const response = await sendFetchRequest(url, 'GET', cookies['_xsrf']);
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          if (data.info && data.info.owner) {
+            throw new Error(`You do not have permission to list this folder. Contact the owner (${data.info.owner}) for access.`);
+          } else {
+            throw new Error('You do not have permission to list this folder. Contact the owner for access.');
           }
+        } else if (response.status === 404) {
+          throw new Error('Folder not found');
         }
-
-        if (data && data['info']) {
-          return data['info'] as FileOrFolder;
-        }
-      } catch (error) {
-        log.error(error);
       }
 
-      return null;
+      return data as FileBrowserResponse;
     },
-    [cookies, showBoundary]
+    [cookies]
   );
 
-  // Function to fetch files for the current FSP and current folder
-  const fetchAndSetFiles = React.useCallback(
+  // Fetch files for the given FSP and folder, and update the fileState
+  const fetchAndUpdateFileState = React.useCallback(
     async (fsp: FileSharePath, folder: FileOrFolder): Promise<void> => {
-      const url = getFileBrowsePath(fsp.name, folder.path);
-
-      let files: FileOrFolder[] = [];
-      let errorMsg: string | null = null;
 
       try {
-        const response = await sendFetchRequest(url, 'GET', cookies['_xsrf']);
-        const data = await response.json();
-
-        if (!response.ok) {
-          if (response.status === 403) {
-            if (data.info && data.info.owner) {
-              errorMsg = `You do not have permission to list this folder. Contact the owner (${data.info.owner}) for access.`;
-            } else {
-              errorMsg = 'You do not have permission to list this folder. Contact the owner for access.';
-            }
-          } else if (response.status === 404) {
-            showBoundary(new Error('Folder not found'));
+        const response = await fetchFileInfo(fsp.name, folder.path);
+        // Sort: directories first, then files; alphabetically within each type
+        const files = response.files.sort((a: FileOrFolder, b: FileOrFolder) => {
+          if (a.is_dir === b.is_dir) {
+            return a.name.localeCompare(b.name);
           }
-        }
+          return a.is_dir ? -1 : 1;
+        }) as FileOrFolder[];
 
-        if (data.files) {
-          // Sort: directories first, then files; alphabetically within each type
-          files = data.files.sort((a: FileOrFolder, b: FileOrFolder) => {
-            if (a.is_dir === b.is_dir) {
-              return a.name.localeCompare(b.name);
-            }
-            return a.is_dir ? -1 : 1;
-          }) as FileOrFolder[];
-        }
+        // Update all states consistently
+        log.info('Files loaded. Updating all states!');
+        updateAllStates(true, fsp, folder, files, null);
+      
       } catch (error) {
         log.error(error);
         showBoundary(error);
+        if (error instanceof Error) {
+          updateAllStates(true, fsp, folder, [], error.message);
+        }
+        else {
+          updateAllStates(true, fsp, folder, [], 'An unknown error occurred');
+        }
       }
-      
-      // Update all states consistently
-      log.info('Files loaded. Updating all states!');
-      updateAllStates(true, fsp, folder, files, errorMsg);
     },
-    [cookies, showBoundary, updateAllStates]
+    [cookies, showBoundary, updateAllStates, fetchFileInfo]
   );
 
-  // Function to fetch files for the current FSP and current folder
+  // Function to refresh files for the current FSP and current folder
   const refreshFiles = React.useCallback(
     async (): Promise<void> => {
       if (!fileState.currentFileSharePath || !fileState.currentFolder) {
         return;
       }
       log.debug('Refreshing file list');
-      await fetchAndSetFiles(fileState.currentFileSharePath, fileState.currentFolder);
+      await fetchAndUpdateFileState(fileState.currentFileSharePath, fileState.currentFolder);
     },
-    [fileState.currentFileSharePath, fileState.currentFolder, fetchAndSetFiles]
+    [fileState.currentFileSharePath, fileState.currentFolder, fetchAndUpdateFileState]
   );
 
-  // Effect to update currentFolder and propertiesTarget when currentFileSharePath or filePath URL param changes
+  // Effect to update currentFolder and propertiesTarget when URL params change
   React.useEffect(() => {
     log.debug('URL likely changed, updating currentFolder and propertiesTarget');
     let cancelled = false;
     const updateCurrentFileSharePathAndFolder = async () => {
-      if (!isZonesMapReady || !zonesAndFileSharePathsMap || !fspName) {
+      if (!isZonesMapReady || !zonesAndFileSharePathsMap || !fspName || !filePath) {
         updateAllStates(false, null, null, [], null);
         return;
       }
@@ -242,25 +230,25 @@ export const FileBrowserContextProvider = ({
       }
 
       // Fetch file/folder info based on URL parameters
-      let urlParamFolder = (await fetchFileOrFolderInfo(
+      let urlParamFolder = (await fetchFileInfo(
         urlFsp.name,
         filePath
-      )) as FileOrFolder;
+      )).info as FileOrFolder;
 
       if (cancelled) return;
 
       // If urlParamFolder is actually a file, remove the last segment from the path
       // until reaching a directory, then fetch that directory's info
       while (urlParamFolder && !urlParamFolder.is_dir) {
-        urlParamFolder = (await fetchFileOrFolderInfo(
+        urlParamFolder = (await fetchFileInfo(
           urlFsp.name,
           removeLastSegmentFromPath(urlParamFolder.path)
-        )) as FileOrFolder;
+        )).info as FileOrFolder;
         if (cancelled) return;
         log.debug('Updated urlParamFolder:', urlParamFolder);
       }
 
-      await fetchAndSetFiles(urlFsp, urlParamFolder);
+      await fetchAndUpdateFileState(urlFsp, urlParamFolder);
       if (cancelled) return;
       setPropertiesTarget(urlParamFolder);
     
@@ -277,32 +265,9 @@ export const FileBrowserContextProvider = ({
     zonesAndFileSharePathsMap,
     fspName,
     filePath,
-    fetchFileOrFolderInfo,
-    updateAllStates
+    updateAllStates,
+    fetchAndUpdateFileState
   ]);
-
-  // Effect to fetch files when currentFolder changes
-  // React.useEffect(() => {
-  //   log.debug('currentFolder or currentFileSharePath changed, fetching and setting files');
-  //   let cancelled = false;
-  //   const updateFiles = async () => {
-  //     if (!currentFileSharePath || !currentFolder) {
-  //       updateAllStates(false, currentFileSharePath, currentFolder, [], null);
-  //       return;
-  //     }
-  //     await fetchAndSetFiles(currentFileSharePath.name, currentFolder.path);
-  //   };
-  //   if (currentFolder && currentFileSharePath) {
-  //     updateFiles();
-  //   } else {
-  //     updateAllStates(true, currentFileSharePath, currentFolder, [], null);
-  //   }
-  //   return () => {
-  //     // Cleanup function to prevent state updates if a dependency changes
-  //     // in an asynchronous operation
-  //     cancelled = true;
-  //   };
-  // }, [currentFolder, currentFileSharePath, fetchAndSetFiles, updateAllStates]);
 
   return (
     <FileBrowserContext.Provider
