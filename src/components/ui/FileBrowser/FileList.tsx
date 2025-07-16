@@ -35,6 +35,7 @@ export default function FileList({
     openWithToolUrls,
     metadata,
     hasMultiscales,
+    hasZarrArray,
     loadingThumbnail,
     thumbnailError
   } = useZarrMetadata();
@@ -49,7 +50,7 @@ export default function FileList({
     <div className="px-2 transition-all duration-300 flex flex-col h-full overflow-hidden">
       <FileListCrumbs />
       <div className="overflow-y-auto">
-        {hasMultiscales ? (
+        {(hasMultiscales || hasZarrArray) && metadata ? (
           <ZarrPreview
             thumbnailSrc={thumbnailSrc}
             loadingThumbnail={loadingThumbnail}

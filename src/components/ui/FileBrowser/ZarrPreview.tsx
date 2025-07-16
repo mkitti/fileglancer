@@ -19,17 +19,17 @@ import ZarrMetadataTable from '@/components/ui/FileBrowser/ZarrMetadataTable';
 import SharingDialog from '@/components/ui/Dialogs/SharingDialog';
 import Loader from '@/components/ui/Loader';
 import useCopyPath from '@/hooks/useCopyPath';
-import type { OpenWithToolUrls } from '@/hooks/useZarrMetadata';
+import type { OpenWithToolUrls, ZarrMetadata } from '@/hooks/useZarrMetadata';
 import useSharingDialog from '@/hooks/useSharingDialog';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import type { Metadata } from '@/omezarr-helper';
+import { Metadata } from '@/omezarr-helper';
 
 type ZarrPreviewProps = {
   thumbnailSrc: string | null;
   loadingThumbnail: boolean;
   openWithToolUrls: OpenWithToolUrls | null;
-  metadata: Metadata | null;
+  metadata: ZarrMetadata;
   thumbnailError: string | null;
 };
 
@@ -268,7 +268,7 @@ export default function ZarrPreview({
             </div>
           ) : null}
         </div>
-        {metadata && <ZarrMetadataTable metadata={metadata} />}
+        {metadata && 'arr' in metadata && <ZarrMetadataTable metadata={metadata as Metadata} />}
       </div>
     </div>
   );

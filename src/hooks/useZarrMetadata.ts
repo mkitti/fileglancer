@@ -20,6 +20,7 @@ export type OpenWithToolUrls = {
 };
 
 export type ZarrArray = zarr.Array<any>;
+export type ZarrMetadata = Metadata | ZarrArray | null;
 
 export default function useZarrMetadata() {
   const [imageUrl, setImageUrl] = React.useState<string | null>(null);
@@ -27,7 +28,7 @@ export default function useZarrMetadata() {
   const [openWithToolUrls, setOpenWithToolUrls] =
     React.useState<OpenWithToolUrls | null>(null);
   
-  const [metadata, setMetadata] = React.useState<Metadata | ZarrArray | null>(null);
+  const [metadata, setMetadata] = React.useState<ZarrMetadata>(null);
   const [hasMultiscales, setHasMultiscales] = React.useState(false);
   const [hasZarrArray, setHasZarrArray] = React.useState(false);
   const [loadingThumbnail, setLoadingThumbnail] = React.useState(false);
@@ -223,6 +224,7 @@ export default function useZarrMetadata() {
     openWithToolUrls,
     metadata,
     hasMultiscales,
+    hasZarrArray,
     loadingThumbnail,
     thumbnailError
   };
