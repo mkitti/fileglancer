@@ -23,9 +23,7 @@ type FileBrowserContextProviderProps = {
   filePath: string | undefined;
 };
 
-// TODO: In the future we could use this unified state in the clients of this context, instead of the 
-// individual local states. This would ensure future consistency and would be easier to reason about. 
-export interface FileState {
+export interface FileBrowserState {
   isFileBrowserReady: boolean;
   currentFileSharePath: FileSharePath | null;
   currentFolder: FileOrFolder | null;
@@ -34,7 +32,7 @@ export interface FileState {
 }
 
 type FileBrowserContextType = {
-  fileState: FileState;
+  fileBrowserState: FileBrowserState;
   isFileBrowserReady: boolean;
   fspName: string | undefined;
   filePath: string | undefined;
@@ -78,7 +76,7 @@ export const FileBrowserContextProvider = ({
   const [fetchErrorMsg, setFetchErrorMsg] = React.useState<string | null>(null);
 
   // Unified state that keeps a consistent view of the file browser
-  const [fileState, setFileState] = React.useState<FileState>({
+  const [fileBrowserState, setFileBrowserState] = React.useState<FileBrowserState>({
     isFileBrowserReady: false,
     currentFileSharePath: null,
     currentFolder: null,
@@ -89,10 +87,10 @@ export const FileBrowserContextProvider = ({
   const [propertiesTarget, setPropertiesTarget] =
     React.useState<FileOrFolder | null>(null);
 
-  // Function to update fileState with complete, consistent data
-  const updateFileState = React.useCallback((newState: Partial<FileState>) => {
-    log.debug('Updating fileState:', newState);
-    setFileState(prev => ({
+  // Function to update fileBrowserState with complete, consistent data
+  const updateFileBrowserState = React.useCallback((newState: Partial<FileBrowserState>) => {
+    log.debug('Updating fileBrowserState:', newState);
+    setFileBrowserState(prev => ({
       ...prev,
       ...newState
     }));
@@ -107,8 +105,8 @@ export const FileBrowserContextProvider = ({
     errorMsg: string | null
   ) => {
 
-    // Update fileState with complete, consistent data
-    updateFileState({
+    // Update fileBrowserState with complete, consistent data
+    updateFileBrowserState({
       isFileBrowserReady: ready,
       currentFileSharePath: sharePath,
       currentFolder: folder,
@@ -134,7 +132,7 @@ export const FileBrowserContextProvider = ({
       setFetchErrorMsg(errorMsg);
     }
 
-  }, [updateFileState]);
+  }, [updateFileBrowserState]);
 
   const { showBoundary } = useErrorBoundary();
   const { cookies } = useCookiesContext();
@@ -166,8 +164,8 @@ export const FileBrowserContextProvider = ({
     [cookies]
   );
 
-  // Fetch files for the given FSP and folder, and update the fileState
-  const fetchAndUpdateFileState = React.useCallback(
+  // Fetch files for the given FSP and folder, and update the fileBrowserState
+  const fetchAndUpdateFileBrowserState = React.useCallback(
     async (fsp: FileSharePath, folder: FileOrFolder): Promise<void> => {
 
       try {
@@ -201,13 +199,13 @@ export const FileBrowserContextProvider = ({
   // Function to refresh files for the current FSP and current folder
   const refreshFiles = React.useCallback(
     async (): Promise<void> => {
-      if (!fileState.currentFileSharePath || !fileState.currentFolder) {
+      if (!fileBrowserState.currentFileSharePath || !fileBrowserState.currentFolder) {
         return;
       }
       log.debug('Refreshing file list');
-      await fetchAndUpdateFileState(fileState.currentFileSharePath, fileState.currentFolder);
+      await fetchAndUpdateFileBrowserState(fileBrowserState.currentFileSharePath, fileBrowserState.currentFolder);
     },
-    [fileState.currentFileSharePath, fileState.currentFolder, fetchAndUpdateFileState]
+    [fileBrowserState.currentFileSharePath, fileBrowserState.currentFolder, fetchAndUpdateFileBrowserState]
   );
 
   // Effect to update currentFolder and propertiesTarget when URL params change
@@ -248,7 +246,7 @@ export const FileBrowserContextProvider = ({
         log.debug('Updated urlParamFolder:', urlParamFolder);
       }
 
-      await fetchAndUpdateFileState(urlFsp, urlParamFolder);
+      await fetchAndUpdateFileBrowserState(urlFsp, urlParamFolder);
       if (cancelled) return;
       setPropertiesTarget(urlParamFolder);
     
@@ -266,13 +264,13 @@ export const FileBrowserContextProvider = ({
     fspName,
     filePath,
     updateAllStates,
-    fetchAndUpdateFileState
+    fetchAndUpdateFileBrowserState
   ]);
 
   return (
     <FileBrowserContext.Provider
       value={{
-        fileState,
+        fileBrowserState,
         isFileBrowserReady,
         fspName,
         filePath,
