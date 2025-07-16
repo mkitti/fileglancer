@@ -9,7 +9,7 @@ export type MenuItem<T = unknown> = {
 
 export default function FgMenuItems<T>({
   menuItems,
-  actionProps = {} as T
+  actionProps
 }: {
   menuItems: MenuItem<T>[];
   actionProps: T;
@@ -19,10 +19,9 @@ export default function FgMenuItems<T>({
       {menuItems
         .filter(item => item.shouldShow !== false)
         .map((item, index) => (
-          <Menu.Item key={index}>
+          <Menu.Item key={index} onClick={() => item.action && item.action(actionProps)}>
             <Typography
               className={`text-sm p-1  ${item.color || 'text-secondary-light'}`}
-              onClick={() => item.action && item.action(actionProps)}
             >
               {item.name}
             </Typography>
