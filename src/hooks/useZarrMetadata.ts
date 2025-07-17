@@ -41,9 +41,10 @@ export default function useZarrMetadata() {
     if (!fileBrowserState.isFileBrowserReady) {
       return;
     }
-    log.debug('[checkZarrMetadata] resetting metadata to null');
     setMetadata(null);
     setThumbnailSrc(null);
+    setThumbnailError(null);
+    setLoadingThumbnail(false);
     setOpenWithToolUrls(null);
 
     if (fileBrowserState.currentFileSharePath && fileBrowserState.currentFolder) {
@@ -51,12 +52,8 @@ export default function useZarrMetadata() {
       const zarrayFile = fileBrowserState.files.find(file => file.name === '.zarray');
       if (zarrayFile) {
         try {
-          log.debug('[checkZarrMetadata] Setting hasZarrArray to true and imageUrl to ', imageUrl);
-          
-          setThumbnailError(null);
           setLoadingThumbnail(true);
           try {
-            log.debug('Fetching Zarr array from ', imageUrl);
             const arr = await getZarrArray(imageUrl);
             if (cancelRef.cancel) return;
             setMetadata(arr);
@@ -70,7 +67,7 @@ export default function useZarrMetadata() {
           }
 
         } catch (error) {
-          log.error('[checkZarrMetadata] Error fetching Zarr array metadata:', error);
+          log.error('Error fetching Zarr array metadata:', error);
         }
       }
       else {
@@ -82,14 +79,10 @@ export default function useZarrMetadata() {
               zattrsFile.path,
               cookies
             )) as any;
-            log.debug('[checkZarrMetadata] Zattrs found in ', imageUrl, zattrsFile.path, zattrs);
             if (zattrs.multiscales) {
-              log.debug('[checkZarrMetadata] Setting hasMultiscales to true and imageUrl to ', imageUrl);
-                       
               setThumbnailError(null);
               setLoadingThumbnail(true);
               try {
-                log.info('Fetching OME-Zarr metadata from ', imageUrl);
                 const [metadata, error] = await getOmeZarrMetadata(imageUrl);
                 if (cancelRef.cancel) return;
                 setMetadata(metadata);
@@ -108,13 +101,14 @@ export default function useZarrMetadata() {
               }
             }
           } catch (error) {
-            log.error('[checkZarrMetadata] Error fetching OME-Zarr metadata:', error);
+            log.error('Error fetching OME-Zarr metadata:', error);
           }
         }
       }
     }
   }, [fileBrowserState, cookies]);
 
+  // When the file browser state changes, check for Zarr metadata
   React.useEffect(() => {
     const cancelRef = { cancel: false };
     checkZarrMetadata(cancelRef);
@@ -123,21 +117,14 @@ export default function useZarrMetadata() {
     };
   }, [checkZarrMetadata]);
 
-
-  // React.useEffect(() => {
-  //   log.debug('!!!! hasZarrArray changed to ', hasZarrArray);
-  // }, [hasZarrArray]);
-
-  // Run tool url generation when data url ormetadata changes
+  // Run tool url generation when the proxied path url or metadata changes
   React.useEffect(() => {
-    log.debug('Metadata or dataUrl changed', metadata, dataUrl);
     setOpenWithToolUrls(null);
     if (metadata && dataUrl) {
       const openWithToolUrls = {
         copy: dataUrl
       } as OpenWithToolUrls;
       if (metadata instanceof zarr.Array) {
-        log.debug('- metadata is a zarr array:', metadata);
         openWithToolUrls.validator = '';
         openWithToolUrls.vole = '';
         openWithToolUrls.neuroglancer =
@@ -145,7 +132,6 @@ export default function useZarrMetadata() {
           generateNeuroglancerStateForZarrArray(dataUrl, 2);
       }
       else {
-        log.debug('- metadata is not a Zarr array');
         openWithToolUrls.validator = validatorBaseUrl + dataUrl;
         openWithToolUrls.vole = voleBaseUrl + dataUrl;
         try {

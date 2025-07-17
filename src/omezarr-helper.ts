@@ -411,6 +411,7 @@ function generateNeuroglancerStateForOmeZarr(
 }
 
 async function getZarrArray(dataUrl: string): Promise<zarr.Array<any>> {
+  log.debug('Getting Zarr array for', dataUrl);
   const zarr_version = 2;
   const store = new zarr.FetchStore(dataUrl);
   return await omezarr.getArray(store, "/", zarr_version);
