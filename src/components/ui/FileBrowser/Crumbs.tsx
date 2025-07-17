@@ -13,18 +13,17 @@ import { HiMiniSlash, HiOutlineSquares2X2 } from 'react-icons/hi2';
 
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import useCopyPath from '@/hooks/useCopyPath';
 import {
   getPreferredPathForDisplay,
   makeBrowseLink,
   makePathSegmentArray,
   joinPaths
 } from '@/utils';
+import { copyToClipboard } from '@/utils/copyText';
 
 export default function Crumbs(): ReactNode {
   const { currentFileSharePath, currentFolder } = useFileBrowserContext();
   const { pathPreference } = usePreferencesContext();
-  const { copyToClipboard } = useCopyPath();
 
   const dirArray = makePathSegmentArray(currentFolder?.path || '');
   // Add the current file share path name as the first segment in the array

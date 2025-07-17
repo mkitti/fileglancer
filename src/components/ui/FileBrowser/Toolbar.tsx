@@ -20,9 +20,8 @@ import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
 import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import useCopyPath from '@/hooks/useCopyPath';
 import { getPreferredPathForDisplay, makeMapKey } from '@/utils';
-import { get } from 'node_modules/zarrita/dist/src/indexing/get';
+import { copyToClipboard } from '@/utils/copyText';
 
 type ToolbarProps = {
   selectedFiles: FileOrFolder[];
@@ -54,8 +53,6 @@ export default function Toolbar({
     pathPreference,
     handleFavoriteChange
   } = usePreferencesContext();
-
-  const { copyToClipboard } = useCopyPath();
 
   const fullPath = getPreferredPathForDisplay(
     pathPreference,

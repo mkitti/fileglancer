@@ -6,8 +6,8 @@ import toast from 'react-hot-toast';
 import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import useCopyPath from '@/hooks/useCopyPath';
 import { getPreferredPathForDisplay } from '@/utils';
+import { copyToClipboard } from '@/utils/copyText';
 
 type ContextMenuProps = {
   x: number;
@@ -34,7 +34,6 @@ export default function ContextMenu({
 }: ContextMenuProps): React.ReactNode {
   const { currentFileSharePath } = useFileBrowserContext();
   const { handleFavoriteChange, pathPreference } = usePreferencesContext();
-  const { copyToClipboard } = useCopyPath();
 
   const fullPath = getPreferredPathForDisplay(
     pathPreference,

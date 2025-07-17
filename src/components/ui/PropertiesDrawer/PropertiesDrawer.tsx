@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  Alert,
   Button,
   Card,
   IconButton,
@@ -8,34 +7,26 @@ import {
   Typography,
   Tabs
 } from '@material-tailwind/react';
+import toast from 'react-hot-toast';
 import { HiOutlineDocument, HiOutlineDuplicate, HiX } from 'react-icons/hi';
 import { HiOutlineFolder } from 'react-icons/hi2';
 
 import PermissionsTable from './PermissionsTable';
 import OverviewTable from './OverviewTable';
-import useCopyPath from '@/hooks/useCopyPath';
 import { getPreferredPathForDisplay } from '@/utils';
+import { copyToClipboard } from '@/utils/copyText';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 
 type PropertiesDrawerProps = {
-  open: boolean;
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function PropertiesDrawer({
-  open,
   setShowPropertiesDrawer,
   setShowPermissionsDialog
 }: PropertiesDrawerProps): JSX.Element {
-  const {
-    copiedText,
-    showCopyAlert,
-    setShowCopyAlert,
-    copyToClipboard,
-    dismissCopyAlert
-  } = useCopyPath();
   const { currentFileSharePath, propertiesTarget } = useFileBrowserContext();
   const { pathPreference } = usePreferencesContext();
 
@@ -55,9 +46,6 @@ export default function PropertiesDrawer({
           color="secondary"
           className="h-8 w-8 rounded-full text-foreground hover:bg-secondary-light/20"
           onClick={() => {
-            if (open === true) {
-              setShowCopyAlert(false);
-            }
             setShowPropertiesDrawer((prev: boolean) => !prev);
           }}
         >
@@ -124,7 +112,12 @@ export default function PropertiesDrawer({
                 className="text-transparent group-hover:text-foreground"
                 onClick={() => {
                   if (propertiesTarget) {
-                    copyToClipboard(fullPath);
+                    try {
+                      copyToClipboard(fullPath);
+                      toast.success('Path copied to clipboard!');
+                    } catch (error) {
+                      toast.error(`Failed to copy path. Error: ${error}`);
+                    }
                   }
                 }}
               >
@@ -132,17 +125,6 @@ export default function PropertiesDrawer({
               </IconButton>
             </div>
 
-            {copiedText.value === fullPath &&
-            copiedText.isCopied === true &&
-            showCopyAlert === true ? (
-              <Alert className="flex items-center justify-between bg-secondary-light/70 border-none">
-                <Alert.Content>Path copied to clipboard!</Alert.Content>
-                <HiX
-                  className="icon-default cursor-pointer"
-                  onClick={dismissCopyAlert}
-                />
-              </Alert>
-            ) : null}
             <OverviewTable file={propertiesTarget} />
           </Tabs.Panel>
 

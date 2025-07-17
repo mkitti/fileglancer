@@ -62,7 +62,6 @@ export const BrowseLayout = () => {
                 maxSize={50}
               >
                 <PropertiesDrawer
-                  open={showPropertiesDrawer}
                   setShowPropertiesDrawer={setShowPropertiesDrawer}
                   setShowPermissionsDialog={setShowPermissionsDialog}
                 />
