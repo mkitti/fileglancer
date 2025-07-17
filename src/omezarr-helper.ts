@@ -82,7 +82,6 @@ export type Metadata = {
   omero: Omero | null | undefined;
   scales: number[][];
   zarr_version: 2 | 3;
-  thumbnail: string | null;
 };
 /* eslint-enable @typescript-eslint/naming-convention */
 
@@ -422,10 +421,7 @@ async function getZarrArray(dataUrl: string): Promise<zarr.Array<any>> {
  */
 async function getOmeZarrMetadata(
   dataUrl: string,
-  thumbnailSize: number = 300,
-  maxThumbnailSize: number = 1024,
-  autoBoost: boolean = true
-): Promise<[Metadata, string | null]> {
+): Promise<Metadata> {
   log.debug('Getting OME-Zarr metadata for', dataUrl);
   const store = new zarr.FetchStore(dataUrl);
   const { arr, shapes, multiscale, omero, scales, zarr_version } =
@@ -435,24 +431,6 @@ async function getOmeZarrMetadata(
   log.debug('Omero: ', omero);
   log.debug('Array: ', arr);
   log.debug('Shapes: ', shapes);
-  let thumbnail = null;
-  let errorMessage: string | null = null;
-
-  try {
-    thumbnail = await omezarr.renderThumbnail(
-      store,
-      thumbnailSize,
-      autoBoost,
-      maxThumbnailSize
-    );
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      errorMessage = err.message;
-    } else {
-      errorMessage = String(err);
-    }
-    thumbnail = null;
-  }
 
   const metadata: Metadata = {
     arr,
@@ -460,11 +438,47 @@ async function getOmeZarrMetadata(
     multiscale,
     omero,
     scales,
-    zarr_version,
-    thumbnail
+    zarr_version
   };
 
-  return [metadata, errorMessage];
+  return metadata;
 }
 
-export { getZarrArray, getOmeZarrMetadata, generateNeuroglancerStateForZarrArray, generateNeuroglancerStateForOmeZarr };
+type ThumbnailResult = [
+  thumbnail: string | null,
+  errorMessage: string | null
+];
+
+async function getOmeZarrThumbnail(
+  dataUrl: string,
+  thumbnailSize: number = 300,
+  maxThumbnailSize: number = 1024,
+  autoBoost: boolean = true
+): Promise<ThumbnailResult> {
+  log.debug('Getting OME-Zarr thumbnail for', dataUrl);
+  const store = new zarr.FetchStore(dataUrl);
+  try {
+    return [await omezarr.renderThumbnail(
+      store,
+      thumbnailSize,
+      autoBoost,
+      maxThumbnailSize
+    ), null];
+  } catch (err: unknown) {
+    let errorMessage: string | null = null;
+    if (err instanceof Error) {
+      errorMessage = err.message;
+    } else {
+      errorMessage = String(err);
+    }
+    return [null, errorMessage];
+  }
+}
+
+export { 
+  getZarrArray, 
+  getOmeZarrMetadata, 
+  getOmeZarrThumbnail, 
+  generateNeuroglancerStateForZarrArray, 
+  generateNeuroglancerStateForOmeZarr 
+};

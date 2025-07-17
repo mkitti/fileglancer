@@ -3,6 +3,7 @@ import { default as log } from '@/logger';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import {
   getOmeZarrMetadata,
+  getOmeZarrThumbnail,
   getZarrArray,
   generateNeuroglancerStateForZarrArray,
   generateNeuroglancerStateForOmeZarr,
@@ -27,6 +28,7 @@ export default function useZarrMetadata() {
   const [thumbnailSrc, setThumbnailSrc] = React.useState<string | null>(null);
   const [openWithToolUrls, setOpenWithToolUrls] = React.useState<OpenWithToolUrls | null>(null);
   const [metadata, setMetadata] = React.useState<ZarrMetadata>(null);
+  const [omeZarrUrl, setOmeZarrUrl] = React.useState<string | null>(null);
   const [loadingThumbnail, setLoadingThumbnail] = React.useState(false);
   const [thumbnailError, setThumbnailError] = React.useState<string | null>(null);
 
@@ -42,6 +44,7 @@ export default function useZarrMetadata() {
       return;
     }
     setMetadata(null);
+    setOmeZarrUrl(null);
     setThumbnailSrc(null);
     setThumbnailError(null);
     setLoadingThumbnail(false);
@@ -52,7 +55,6 @@ export default function useZarrMetadata() {
       const zarrayFile = fileBrowserState.files.find(file => file.name === '.zarray');
       if (zarrayFile) {
         try {
-          setLoadingThumbnail(true);
           try {
             const arr = await getZarrArray(imageUrl);
             if (cancelRef.cancel) return;
@@ -61,9 +63,6 @@ export default function useZarrMetadata() {
             log.error('Error fetching Zarr array:', error);
             if (cancelRef.cancel) return;
             setThumbnailError("Error fetching Zarr array");
-          } finally {
-            if (cancelRef.cancel) return;
-            setLoadingThumbnail(false);
           }
 
         } catch (error) {
@@ -81,23 +80,16 @@ export default function useZarrMetadata() {
             )) as any;
             if (zattrs.multiscales) {
               setThumbnailError(null);
-              setLoadingThumbnail(true);
               try {
-                const [metadata, error] = await getOmeZarrMetadata(imageUrl);
+                setOmeZarrUrl(imageUrl);
+                const metadata = await getOmeZarrMetadata(imageUrl);
                 if (cancelRef.cancel) return;
                 setMetadata(metadata);
-                setThumbnailSrc(metadata.thumbnail);
-                if (error) {
-                  setThumbnailError(error);
-                  log.error('Error fetching OME-Zarr metadata:', imageUrl, error);
-                }
+                setLoadingThumbnail(true);
               } catch (error) {
                 log.error('Exception fetching OME-Zarr metadata:', imageUrl, error);
                 if (cancelRef.cancel) return;
                 setThumbnailError("Error fetching OME-Zarr metadata");
-              } finally {
-                if (cancelRef.cancel) return;
-                setLoadingThumbnail(false);
               }
             }
           } catch (error) {
@@ -116,6 +108,43 @@ export default function useZarrMetadata() {
       cancelRef.cancel = true;
     };
   }, [checkZarrMetadata]);
+
+
+  // When an OME-Zarr URL is set, load the thumbnail
+  React.useEffect(() => {
+
+    if (!omeZarrUrl) return;
+
+    const controller = new AbortController();
+
+    const loadThumbnail = async (signal: AbortSignal) => {
+      try {
+        const [thumbnail, error] = await getOmeZarrThumbnail(omeZarrUrl);
+        if (signal.aborted) return;
+  
+        setLoadingThumbnail(false);
+        if (error) {
+          console.error("Thumbnail load failed:", error);
+          setThumbnailError(error);
+        } else {
+          setThumbnailSrc(thumbnail);
+        }
+
+      } catch (err) {
+        if (!signal.aborted) {
+          console.error("Unexpected error loading thumbnail:", err);
+          setThumbnailError(err instanceof Error ? err.message : String(err));
+        }
+      }
+    };
+
+    loadThumbnail(controller.signal);  
+    
+    return () => {
+      controller.abort();
+    };
+  }, [omeZarrUrl]);
+
 
   // Run tool url generation when the proxied path url or metadata changes
   React.useEffect(() => {
