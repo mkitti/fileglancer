@@ -31,7 +31,7 @@ export const MainLayout = () => {
                     success: { duration: 4000 }
                   }}
                 />
-                <div className="flex flex-col items-center h-full w-full overflow-y-hidden bg-background text-foreground box-border">
+                <div className="flex flex-col items-center h-full max-h-full w-full overflow-y-hidden bg-background text-foreground box-border">
                   <FileglancerNavbar />
                   <BetaBanner />
                   <ErrorBoundary FallbackComponent={ErrorFallback}>
