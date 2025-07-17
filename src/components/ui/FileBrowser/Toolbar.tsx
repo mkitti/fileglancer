@@ -1,4 +1,5 @@
 import * as React from 'react';
+import toast from 'react-hot-toast';
 import {
   ButtonGroup,
   IconButton,
@@ -10,6 +11,7 @@ import {
   HiEye,
   HiEyeOff,
   HiFolderAdd,
+  HiOutlineClipboardCopy,
   HiOutlineStar,
   HiStar
 } from 'react-icons/hi';
@@ -18,7 +20,9 @@ import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
 import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import { makeMapKey } from '@/utils';
+import useCopyPath from '@/hooks/useCopyPath';
+import { getPreferredPathForDisplay, makeMapKey } from '@/utils';
+import { get } from 'node_modules/zarrita/dist/src/indexing/get';
 
 type ToolbarProps = {
   selectedFiles: FileOrFolder[];
@@ -47,8 +51,17 @@ export default function Toolbar({
   const {
     folderPreferenceMap,
     fileSharePathPreferenceMap,
+    pathPreference,
     handleFavoriteChange
   } = usePreferencesContext();
+
+  const { copyToClipboard } = useCopyPath();
+
+  const fullPath = getPreferredPathForDisplay(
+    pathPreference,
+    currentFileSharePath,
+    currentFolder?.path
+  );
 
   const isFavorited = React.useMemo(() => {
     if (!currentFileSharePath) {
@@ -228,6 +241,30 @@ export default function Toolbar({
               </Tooltip.Trigger>
             </Tooltip>
           )}
+
+          {/* Copy path */}
+          <Tooltip placement="top">
+            <Tooltip.Trigger
+              as={IconButton}
+              variant="outline"
+              onClick={() => {
+                try {
+                  copyToClipboard(fullPath);
+                  toast.success('Path copied to clipboard!');
+                } catch (error) {
+                  toast.error(`Failed to copy path. Error: ${error}`);
+                }
+              }}
+            >
+              <HiOutlineClipboardCopy className="icon-default" />
+              <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
+                <Typography type="small" className="opacity-90">
+                  Copy current path
+                </Typography>
+                <Tooltip.Arrow />
+              </Tooltip.Content>
+            </Tooltip.Trigger>
+          </Tooltip>
         </ButtonGroup>
 
         {/* Show/hide properties drawer */}
