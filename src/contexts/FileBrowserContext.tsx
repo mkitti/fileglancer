@@ -120,7 +120,6 @@ export const FileBrowserContextProvider = ({
     
     // Update local states for individual parts
     if (ready) {
-      log.debug('Ready state is true, updating local states');
       setIsFileBrowserReady(true);
       setCurrentFileSharePath(sharePath);
       setCurrentFolder(folder);
@@ -128,7 +127,6 @@ export const FileBrowserContextProvider = ({
       setFetchErrorMsg(errorMsg);
     }
     else {
-      log.debug('Ready state is false, updating local states');
       setIsFileBrowserReady(false);
       setCurrentFileSharePath(null);
       setCurrentFolder(null);
@@ -172,6 +170,7 @@ export const FileBrowserContextProvider = ({
   const fetchAndUpdateFileBrowserState = React.useCallback(
     async (fsp: FileSharePath, folderPath: string): Promise<FileOrFolder | null> => {
 
+      log.debug('Fetching files for FSP:', fsp.name, 'and folder:', folderPath);
       let folder: FileOrFolder | null = null;
       try {
         let response = await fetchFileInfo(fsp.name, folderPath);
@@ -193,7 +192,6 @@ export const FileBrowserContextProvider = ({
         }) as FileOrFolder[];
 
         // Update all states consistently
-        log.info('Files loaded. Updating all states!');
         updateAllStates(true, fsp, folder, files, null);
       
       } catch (error) {
@@ -225,10 +223,12 @@ export const FileBrowserContextProvider = ({
 
   // Effect to update currentFolder and propertiesTarget when URL params change
   React.useEffect(() => {
-    log.debug('URL likely changed, updating currentFolder and propertiesTarget');
+    
+    log.debug('URL changed: fspName=', fspName, 'filePath=', filePath);
     let cancelled = false;
     const updateCurrentFileSharePathAndFolder = async () => {
-      if (!isZonesMapReady || !zonesAndFileSharePathsMap || !fspName || !filePath) {
+      if (!isZonesMapReady || !zonesAndFileSharePathsMap || !fspName) {
+        if (cancelled) return;
         updateAllStates(false, null, null, [], null);
         return;
       }
@@ -237,11 +237,12 @@ export const FileBrowserContextProvider = ({
       const urlFsp = zonesAndFileSharePathsMap[fspKey] as FileSharePath;
       if (!urlFsp) {
         log.error(`File share path not found for fspName: ${fspName}`);
+        if (cancelled) return;
         updateAllStates(false, null, null, [], null);
         return;
       }
 
-      const folder = await fetchAndUpdateFileBrowserState(urlFsp, filePath);
+      const folder = await fetchAndUpdateFileBrowserState(urlFsp, filePath || '.');
       if (cancelled) return;
       setPropertiesTarget(folder);
     
