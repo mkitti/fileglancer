@@ -207,17 +207,46 @@ function getNeuroglancerSource(dataUrl: string, zarr_version: 2 | 3): string {
   return dataUrl + '|zarr' + zarr_version + ':';
 }
 
+
+function generateNeuroglancerStateForZarrArray(
+  dataUrl: string,
+  zarr_version: 2 | 3
+): string | null {
+  log.debug('Generating Neuroglancer state for Zarr array:', dataUrl);
+  
+  const layer: Record<string, any> = {
+    name: 'Default',
+    type: 'image',
+    source: getNeuroglancerSource(dataUrl, zarr_version),
+    tab: 'rendering'
+  };
+
+  // Create the scaffold for theNeuroglancer viewer state
+  const state: any = {
+    layers: [layer],
+    layout: '4panel',
+    selectedLayer: {
+      visible: true,
+      layer: 'Default'
+    }
+  };
+  
+  // Convert the state to a URL-friendly format
+  const stateJson = JSON.stringify(state);
+  return encodeURIComponent(stateJson);
+}
+
 /**
  * Generate a Neuroglancer state for a given Zarr array.
  */
-function generateNeuroglancerState(
+function generateNeuroglancerStateForOmeZarr(
   dataUrl: string,
   zarr_version: 2 | 3,
   multiscale: Multiscale,
   arr: zarr.Array<any>,
   omero?: Omero | null
 ): string | null {
-  log.debug('Generating Neuroglancer state for', dataUrl);
+  log.debug('Generating Neuroglancer state for OME-Zarr:', dataUrl);
 
   // Convert axes array to a map for easier access
   const axesMap = getAxesMap(multiscale);
@@ -437,4 +466,4 @@ async function getOmeZarrMetadata(
   return [metadata, errorMessage];
 }
 
-export { getZarrArray, getOmeZarrMetadata, generateNeuroglancerState };
+export { getZarrArray, getOmeZarrMetadata, generateNeuroglancerStateForZarrArray, generateNeuroglancerStateForOmeZarr };

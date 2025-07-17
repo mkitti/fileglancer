@@ -13,7 +13,6 @@ import neuroglancer_logo from '@/assets/neuroglancer.png';
 import validator_logo from '@/assets/ome-ngff-validator.png';
 import volE_logo from '@/assets/aics_website-3d-cell-viewer.png';
 import copy_logo from '@/assets/copy-link-64.png';
-// import napari_logo from '@/assets/napari.png';
 
 import ZarrMetadataTable from '@/components/ui/FileBrowser/ZarrMetadataTable';
 import SharingDialog from '@/components/ui/Dialogs/SharingDialog';
@@ -239,31 +238,6 @@ export default function ZarrPreview({
                   </Tooltip.Trigger>
                 </Tooltip>
 
-                {/* <div>
-                  <Button
-                    title="Copy link to view in Napari"
-                    variant="ghost"
-                    className="group peer/napari rounded-sm m-0 p-0 relative"
-                    onClick={() => {
-                      copyToClipboard('Napari URL');
-                    }}
-                  >
-                    <img
-                      src={napari_logo}
-                      alt="Napari logo"
-                      className="max-h-8 max-w-8 m-1 rounded-sm"
-                    />
-                    <Square2StackIcon className="w-4 h-4 text-transparent group-hover:text-foreground absolute top-0 right-0 bg-transparent group-hover:bg-background" />
-                  </Button>
-                  <Typography
-                    className={`!hidden text-transparent
-                    ${showCopyAlert !== true && 'peer-hover/napari:text-foreground peer-hover/napari:bg-background peer-hover/napari:!block'}
-                    absolute top-12 left-0 bg-transparent w-fit px-1 rounded-sm`}
-                  >
-                    See <a href="https://napari.org">napari.org</a> for
-                    instructions. Then <code>napari URL</code>
-                  </Typography>
-                </div> */}
               </ButtonGroup>
             </div>
           ) : null}

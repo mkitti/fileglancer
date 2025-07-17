@@ -31,11 +31,9 @@ export default function FileList({
 }: FileListProps): React.ReactNode {
   const { files, isFileBrowserReady, fetchErrorMsg } = useFileBrowserContext();
   const {
+    metadata,
     thumbnailSrc,
     openWithToolUrls,
-    metadata,
-    hasMultiscales,
-    hasZarrArray,
     loadingThumbnail,
     thumbnailError
   } = useZarrMetadata();
@@ -50,12 +48,12 @@ export default function FileList({
     <div className="px-2 transition-all duration-300 flex flex-col h-full overflow-hidden">
       <FileListCrumbs />
       <div className="overflow-y-auto">
-        {(hasMultiscales || hasZarrArray) && metadata ? (
+        {metadata ? (
           <ZarrPreview
+            metadata={metadata}  
             thumbnailSrc={thumbnailSrc}
             loadingThumbnail={loadingThumbnail}
             openWithToolUrls={openWithToolUrls}
-            metadata={metadata}
             thumbnailError={thumbnailError}
           />
         ) : null}
