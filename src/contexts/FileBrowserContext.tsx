@@ -33,15 +33,18 @@ export interface FileBrowserState {
 
 type FileBrowserContextType = {
   fileBrowserState: FileBrowserState;
-  isFileBrowserReady: boolean;
   fspName: string | undefined;
   filePath: string | undefined;
-  files: FileOrFolder[];
-  currentFolder: FileOrFolder | null;
-  currentFileSharePath: FileSharePath | null;
-  fetchErrorMsg: string | null;
-  refreshFiles: () => Promise<void>;
   propertiesTarget: FileOrFolder | null;
+  // The following are duplicates of the FileBrowserState, but are here for convenience until all clients are updated.
+  // TODO: Remove these once all clients are updated.
+  isFileBrowserReady: boolean;
+  currentFileSharePath: FileSharePath | null;
+  currentFolder: FileOrFolder | null;
+  files: FileOrFolder[];
+  fetchErrorMsg: string | null;
+  // END DUPLICATES
+  refreshFiles: () => Promise<void>;
   setPropertiesTarget: React.Dispatch<
     React.SetStateAction<FileOrFolder | null>
   >;
@@ -68,12 +71,6 @@ export const FileBrowserContextProvider = ({
   fspName,
   filePath
 }: FileBrowserContextProviderProps) => {
-  // Local states for individual parts
-  const [isFileBrowserReady, setIsFileBrowserReady] = React.useState(false);
-  const [currentFileSharePath, setCurrentFileSharePath] = React.useState<FileSharePath | null>(null);
-  const [currentFolder, setCurrentFolder] = React.useState<FileOrFolder | null>(null);
-  const [files, setFiles] = React.useState<FileOrFolder[]>([]);
-  const [fetchErrorMsg, setFetchErrorMsg] = React.useState<string | null>(null);
 
   // Unified state that keeps a consistent view of the file browser
   const [fileBrowserState, setFileBrowserState] = React.useState<FileBrowserState>({
@@ -84,8 +81,15 @@ export const FileBrowserContextProvider = ({
     fetchErrorMsg: null
   });
 
-  const [propertiesTarget, setPropertiesTarget] =
-    React.useState<FileOrFolder | null>(null);
+  // Duplicate states for convenience until all clients are updated.
+  // TODO: Remove these once all clients are updated.
+  const [isFileBrowserReady, setIsFileBrowserReady] = React.useState(false);
+  const [currentFileSharePath, setCurrentFileSharePath] = React.useState<FileSharePath | null>(null);
+  const [currentFolder, setCurrentFolder] = React.useState<FileOrFolder | null>(null);
+  const [files, setFiles] = React.useState<FileOrFolder[]>([]);
+  const [fetchErrorMsg, setFetchErrorMsg] = React.useState<string | null>(null);
+
+  const [propertiesTarget, setPropertiesTarget] = React.useState<FileOrFolder | null>(null);
 
   // Function to update fileBrowserState with complete, consistent data
   const updateFileBrowserState = React.useCallback((newState: Partial<FileBrowserState>) => {
@@ -166,10 +170,20 @@ export const FileBrowserContextProvider = ({
 
   // Fetch files for the given FSP and folder, and update the fileBrowserState
   const fetchAndUpdateFileBrowserState = React.useCallback(
-    async (fsp: FileSharePath, folder: FileOrFolder): Promise<void> => {
+    async (fsp: FileSharePath, folderPath: string): Promise<FileOrFolder | null> => {
 
+      let folder: FileOrFolder | null = null;
       try {
-        const response = await fetchFileInfo(fsp.name, folder.path);
+        let response = await fetchFileInfo(fsp.name, folderPath);
+        folder = response.info as FileOrFolder;
+
+        // If folder is a file, remove the last segment from the path
+        // until reaching a directory, then fetch that directory's info
+        while (folder && !folder.is_dir) {
+          response = await fetchFileInfo(fsp.name, removeLastSegmentFromPath(folder.path));
+          folder = response.info as FileOrFolder;
+        }
+
         // Sort: directories first, then files; alphabetically within each type
         const files = response.files.sort((a: FileOrFolder, b: FileOrFolder) => {
           if (a.is_dir === b.is_dir) {
@@ -192,6 +206,7 @@ export const FileBrowserContextProvider = ({
           updateAllStates(true, fsp, folder, [], 'An unknown error occurred');
         }
       }
+      return folder;
     },
     [cookies, showBoundary, updateAllStates, fetchFileInfo]
   );
@@ -203,7 +218,7 @@ export const FileBrowserContextProvider = ({
         return;
       }
       log.debug('Refreshing file list');
-      await fetchAndUpdateFileBrowserState(fileBrowserState.currentFileSharePath, fileBrowserState.currentFolder);
+      await fetchAndUpdateFileBrowserState(fileBrowserState.currentFileSharePath, fileBrowserState.currentFolder.path);
     },
     [fileBrowserState.currentFileSharePath, fileBrowserState.currentFolder, fetchAndUpdateFileBrowserState]
   );
@@ -220,40 +235,19 @@ export const FileBrowserContextProvider = ({
 
       const fspKey = makeMapKey('fsp', fspName);
       const urlFsp = zonesAndFileSharePathsMap[fspKey] as FileSharePath;
-
       if (!urlFsp) {
         log.error(`File share path not found for fspName: ${fspName}`);
         updateAllStates(false, null, null, [], null);
         return;
       }
 
-      // Fetch file/folder info based on URL parameters
-      let urlParamFolder = (await fetchFileInfo(
-        urlFsp.name,
-        filePath
-      )).info as FileOrFolder;
-
+      const folder = await fetchAndUpdateFileBrowserState(urlFsp, filePath);
       if (cancelled) return;
-
-      // If urlParamFolder is actually a file, remove the last segment from the path
-      // until reaching a directory, then fetch that directory's info
-      while (urlParamFolder && !urlParamFolder.is_dir) {
-        urlParamFolder = (await fetchFileInfo(
-          urlFsp.name,
-          removeLastSegmentFromPath(urlParamFolder.path)
-        )).info as FileOrFolder;
-        if (cancelled) return;
-        log.debug('Updated urlParamFolder:', urlParamFolder);
-      }
-
-      await fetchAndUpdateFileBrowserState(urlFsp, urlParamFolder);
-      if (cancelled) return;
-      setPropertiesTarget(urlParamFolder);
+      setPropertiesTarget(folder);
     
     };
     updateCurrentFileSharePathAndFolder();
     return () => {
-      log.debug('Cancelling updateCurrentFileSharePathAndFolder');
       // Cleanup function to prevent state updates if a dependency changes
       // in an asynchronous operation
       cancelled = true;
