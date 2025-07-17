@@ -82,13 +82,13 @@ export default function ZarrPreview({
                 className="max-h-72 max-w-max rounded-md"
               />
             ) : !loadingThumbnail && metadata && !thumbnailSrc ? (
-              <div className="h-[225px] w-[290px] flex flex-col gap-2 items-center bg-background/90 rounded-sm p-2">
+              <div className="p-2">
                 <img
                   src={zarr}
                   alt="Zarr logo"
                   className="max-h-44 rounded-md"
                 />
-                <Typography className="text-error text-xs ">{`Error: ${thumbnailError}`}</Typography>
+                {thumbnailError ? <Typography className="text-error text-xs pt-3">{`${thumbnailError}`}</Typography> : null}
               </div>
             ) : null}
           </div>
@@ -136,6 +136,8 @@ export default function ZarrPreview({
                 Open with:
               </Typography>
               <ButtonGroup className="relative">
+
+                {openWithToolUrls.validator ? (
                 <Tooltip placement="top">
                   <Tooltip.Trigger
                     as={Button}
@@ -161,7 +163,9 @@ export default function ZarrPreview({
                     </Tooltip.Content>
                   </Tooltip.Trigger>
                 </Tooltip>
+                ) : null}
 
+                {openWithToolUrls.neuroglancer ? (
                 <Tooltip placement="top">
                   <Tooltip.Trigger
                     as={Button}
@@ -187,7 +191,9 @@ export default function ZarrPreview({
                     </Tooltip.Content>
                   </Tooltip.Trigger>
                 </Tooltip>
+                ) : null}
 
+                {openWithToolUrls.vole ? (
                 <Tooltip placement="top">
                   <Tooltip.Trigger
                     as={Button}
@@ -213,7 +219,9 @@ export default function ZarrPreview({
                     </Tooltip.Content>
                   </Tooltip.Trigger>
                 </Tooltip>
+                ) : null}
 
+                {openWithToolUrls.copy ? (
                 <Tooltip
                   placement="top"
                   open={showCopiedTooltip ? true : undefined}
@@ -237,7 +245,8 @@ export default function ZarrPreview({
                     </Tooltip.Content>
                   </Tooltip.Trigger>
                 </Tooltip>
-
+                ) : null}
+                
               </ButtonGroup>
             </div>
           ) : null}
