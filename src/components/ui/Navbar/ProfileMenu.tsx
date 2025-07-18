@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
-import useProfile from '@/hooks/useProfile'; // Assuming you have a custom hook for fetching profile
 import { IconButton, Menu } from '@material-tailwind/react';
 import { HiOutlineLogout, HiOutlineUserCircle } from 'react-icons/hi';
 import { HiOutlineAdjustmentsHorizontal } from 'react-icons/hi2';
 import { Link } from 'react-router-dom';
 
+import { useProfileContext } from '@/contexts/ProfileContext';
+
 export default function ProfileMenu() {
   const [origin, setOrigin] = useState('');
-  const { profile } = useProfile();
+  const { profile } = useProfileContext();
 
   useEffect(() => {
     setOrigin(window.location.origin);

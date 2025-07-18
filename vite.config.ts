@@ -26,6 +26,7 @@ export default defineConfig({
     ],
     globals: true,
     environment: 'happy-dom',
+    setupFiles: 'src/__tests__/setup.ts',
     coverage: {
       reporter: ['text', 'html'],
       include: ['src/**/*.{ts,tsx,js,jsx}'],

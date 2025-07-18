@@ -83,9 +83,7 @@ export default function FavoritesBrowser({
 
           {/* File share path favorites */}
           {displayFileSharePaths.map((fsp, index) => {
-            return (
-              <FileSharePathComponent key={fsp.name} fsp={fsp} index={index} />
-            );
+            return <FileSharePathComponent key={fsp.name} fsp={fsp} />;
           })}
 
           {/* Directory favorites */}
