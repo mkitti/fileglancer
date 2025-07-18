@@ -64,6 +64,7 @@ export const ProxiedPathProvider = ({
 
   const updateProxiedPath = React.useCallback(
     (proxiedPath: ProxiedPath | null) => {
+      log.debug('updateProxiedPath', proxiedPath);
       setProxiedPath(proxiedPath);
       if (proxiedPath) {
         setDataUrl(proxiedPath.url);

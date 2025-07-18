@@ -12,6 +12,8 @@ import ErrorFallback from '@/components/ErrorFallback';
 export const BrowseLayout = () => {
   const [showPermissionsDialog, setShowPermissionsDialog] =
     React.useState(false);
+  const [showConvertFileDialog, setShowConvertFileDialog] =
+    React.useState(false);
   const [showSidebar, setShowSidebar] = React.useState(true);
 
   const { showPropertiesDrawer, setShowPropertiesDrawer } =
@@ -21,9 +23,11 @@ export const BrowseLayout = () => {
     setShowPermissionsDialog: setShowPermissionsDialog,
     setShowPropertiesDrawer: setShowPropertiesDrawer,
     setShowSidebar: setShowSidebar,
+    setShowConvertFileDialog: setShowConvertFileDialog,
     showPermissionsDialog: showPermissionsDialog,
     showPropertiesDrawer: showPropertiesDrawer,
-    showSidebar: showSidebar
+    showSidebar: showSidebar,
+    showConvertFileDialog: showConvertFileDialog
   };
 
   return (
@@ -65,6 +69,7 @@ export const BrowseLayout = () => {
                   open={showPropertiesDrawer}
                   setShowPropertiesDrawer={setShowPropertiesDrawer}
                   setShowPermissionsDialog={setShowPermissionsDialog}
+                  setShowConvertFileDialog={setShowConvertFileDialog}
                 />
               </Panel>
             </>

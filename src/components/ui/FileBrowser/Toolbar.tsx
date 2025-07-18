@@ -41,7 +41,7 @@ export default function Toolbar({
   setShowSidebar,
   setShowNewFolderDialog
 }: ToolbarProps): JSX.Element {
-  const { currentFolder, currentFileSharePath, fetchAndSetFiles } =
+  const { currentFolder, currentFileSharePath, refreshFiles } =
     useFileBrowserContext();
 
   const {
@@ -140,10 +140,7 @@ export default function Toolbar({
                 if (!currentFileSharePath) {
                   return;
                 }
-                await fetchAndSetFiles(
-                  currentFileSharePath.name,
-                  currentFolder?.path
-                );
+                await refreshFiles();
               }}
             >
               <HiRefresh className="icon-default" />

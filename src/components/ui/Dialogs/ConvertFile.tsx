@@ -1,0 +1,86 @@
+import React, { use } from 'react';
+import { Button, Typography } from '@material-tailwind/react';
+import toast from 'react-hot-toast';
+
+import FgDialog from './FgDialog';
+import useConvertFileDialog from '@/hooks/useConvertFileDialog';
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { useTicketContext } from '@/contexts/TicketsContext';
+import { getPreferredPathForDisplay } from '@/utils/pathHandling';
+
+type ItemNamingDialogProps = {
+  showConvertFileDialog: boolean;
+  setShowConvertFileDialog: React.Dispatch<React.SetStateAction<boolean>>;
+};
+
+export default function ConvertFileDialog({
+  showConvertFileDialog,
+  setShowConvertFileDialog
+}: ItemNamingDialogProps): JSX.Element {
+  const { destinationFolder, setDestinationFolder } = useConvertFileDialog();
+  const { pathPreference } = usePreferencesContext();
+  const { propertiesTarget, currentFileSharePath } = useFileBrowserContext();
+  const { createTicket, fetchAllTickets } = useTicketContext();
+
+  const placeholderText =
+    pathPreference[0] === 'windows_path'
+      ? '\\path\\to\\destination\\folder\\'
+      : '/path/to/destination/folder/';
+
+  const displayPath = getPreferredPathForDisplay(
+    pathPreference,
+    currentFileSharePath,
+    propertiesTarget?.path
+  );
+
+  return (
+    <FgDialog
+      open={showConvertFileDialog}
+      onClose={() => setShowConvertFileDialog(false)}
+    >
+      <Typography className="my-8 text-large text-foreground">
+        Create a JIRA ticket to convert{' '}
+        <span className="font-semibold">{displayPath}</span> to a ZARR file:
+      </Typography>
+      <form
+        onSubmit={async event => {
+          event.preventDefault();
+          const result = await createTicket(destinationFolder);
+          if (result.ok) {
+            await fetchAllTickets();
+            setShowConvertFileDialog(false);
+            setDestinationFolder('');
+            toast.success('Ticket created successfully!');
+          } else if (!result.ok) {
+            toast.error(result.error.message);
+          }
+        }}
+      >
+        <div className="flex flex-col gap-2">
+          <Typography
+            as="label"
+            htmlFor="destination_folder"
+            className="text-foreground font-semibold"
+          >
+            Destination Folder
+          </Typography>
+          <input
+            type="text"
+            id="destination_folder"
+            autoFocus
+            value={destinationFolder}
+            placeholder={placeholderText}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+              setDestinationFolder(event.target.value);
+            }}
+            className="mb-4 p-2 text-foreground text-lg border border-primary-light rounded-sm focus:outline-none focus:border-primary bg-background"
+          />
+        </div>
+        <Button className="!rounded-md" type="submit">
+          Submit
+        </Button>
+      </form>
+    </FgDialog>
+  );
+}

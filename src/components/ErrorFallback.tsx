@@ -1,11 +1,11 @@
-import { default as log } from 'loglevel';
+import logger from '@/logger';
 import { Typography } from '@material-tailwind/react';
 
 import errorImg from '@/assets/error_icon_gradient.png';
 
 export default function ErrorFallback({ error }: any) {
   if (error instanceof Error) {
-    log.error('ErrorBoundary caught an error:', error);
+    logger.error('ErrorBoundary caught an error:', error);
   }
   return (
     <div className="flex-grow overflow-y-auto w-full">

@@ -14,7 +14,7 @@ import {
   HiOutlineShare,
   HiOutlineSun
 } from 'react-icons/hi';
-import { HiOutlineFolder } from 'react-icons/hi2';
+import { HiOutlineFolder, HiOutlineBriefcase } from 'react-icons/hi2';
 import { TbBrandGithub } from 'react-icons/tb';
 
 import ProfileMenu from './ProfileMenu';
@@ -31,14 +31,15 @@ const LINKS = [
     icon: HiOutlineShare,
     title: 'Shared',
     href: '/shared'
+  },
+  {
+    icon: HiOutlineBriefcase,
+    title: 'Jobs',
+    href: '/jobs'
   }
   /**
    * TODO: Add these back in when they are implemented
-  {
-    icon: BriefcaseIcon,
-    title: 'Jobs',
-    href: '/jobs'
-  },
+
   {
     icon: InformationCircleIcon,
     title: 'Help',

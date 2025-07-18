@@ -16,7 +16,7 @@ import copy_logo from '@/assets/copy-link-64.png';
 // import napari_logo from '@/assets/napari.png';
 
 import ZarrMetadataTable from '@/components/ui/FileBrowser/ZarrMetadataTable';
-import SharingDialog from '@/components/ui/Dialogs/SharingDialog';
+import SharingDialog from '@/components/ui/Dialogs/Sharing';
 import Loader from '@/components/ui/Loader';
 import useCopyPath from '@/hooks/useCopyPath';
 import type { OpenWithToolUrls } from '@/hooks/useZarrMetadata';
