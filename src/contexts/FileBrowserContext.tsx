@@ -6,7 +6,6 @@ import type { FileOrFolder, FileSharePath } from '@/shared.types';
 import {
   getFileBrowsePath,
   makeMapKey,
-  removeLastSegmentFromPath,
   sendFetchRequest
 } from '@/utils';
 import { useCookiesContext } from './CookiesContext';
@@ -142,7 +141,6 @@ export const FileBrowserContextProvider = ({
     [updateFileBrowserState]
   );
 
-  const { showBoundary } = useErrorBoundary();
   const { cookies } = useCookiesContext();
   const { zonesAndFileSharePathsMap, isZonesMapReady } =
     useZoneAndFspMapContext();
@@ -191,16 +189,6 @@ export const FileBrowserContextProvider = ({
         let response = await fetchFileInfo(fsp.name, folderPath);
         folder = response.info as FileOrFolder;
 
-        // If folder is a file, remove the last segment from the path
-        // until reaching a directory, then fetch that directory's info
-        while (folder && !folder.is_dir) {
-          response = await fetchFileInfo(
-            fsp.name,
-            removeLastSegmentFromPath(folder.path)
-          );
-          folder = response.info as FileOrFolder;
-        }
-
         // Sort: directories first, then files; alphabetically within each type
         const files = response.files.sort(
           (a: FileOrFolder, b: FileOrFolder) => {
@@ -215,7 +203,6 @@ export const FileBrowserContextProvider = ({
         updateAllStates(true, fsp, folder, files, null);
       } catch (error) {
         log.error(error);
-        showBoundary(error);
         if (error instanceof Error) {
           updateAllStates(true, fsp, folder, [], error.message);
         } else {
@@ -224,7 +211,7 @@ export const FileBrowserContextProvider = ({
       }
       return folder;
     },
-    [showBoundary, updateAllStates, fetchFileInfo]
+    [updateAllStates, fetchFileInfo]
   );
 
   // Function to refresh files for the current FSP and current folder
