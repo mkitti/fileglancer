@@ -15,9 +15,8 @@ import volE_logo from '@/assets/aics_website-3d-cell-viewer.png';
 import copy_logo from '@/assets/copy-link-64.png';
 
 import ZarrMetadataTable from '@/components/ui/FileBrowser/ZarrMetadataTable';
-import SharingDialog from '@/components/ui/Dialogs/SharingDialog';
+import SharingDialog from '@/components/ui/Dialogs/Sharing';
 import Loader from '@/components/ui/Loader';
-import useCopyPath from '@/hooks/useCopyPath';
 import type { OpenWithToolUrls, ZarrMetadata } from '@/hooks/useZarrMetadata';
 import useSharingDialog from '@/hooks/useSharingDialog';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
@@ -43,7 +42,6 @@ export default function ZarrPreview({
   const [showCopiedTooltip, setShowCopiedTooltip] = React.useState(false);
 
   const { showSharingDialog, setShowSharingDialog } = useSharingDialog();
-  const { copyToClipboard } = useCopyPath();
   const { proxiedPath } = useProxiedPathContext();
   const { currentFolder } = useFileBrowserContext();
 

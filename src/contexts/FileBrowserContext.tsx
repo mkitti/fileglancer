@@ -1,14 +1,8 @@
 import React from 'react';
 import { default as log } from '@/logger';
-import { useErrorBoundary } from 'react-error-boundary';
 
 import type { FileOrFolder, FileSharePath } from '@/shared.types';
-import {
-  getFileBrowsePath,
-  makeMapKey,
-  removeLastSegmentFromPath,
-  sendFetchRequest
-} from '@/utils';
+import { getFileBrowsePath, makeMapKey, sendFetchRequest } from '@/utils';
 import { useCookiesContext } from './CookiesContext';
 import { useZoneAndFspMapContext } from './ZonesAndFspMapContext';
 
@@ -142,7 +136,6 @@ export const FileBrowserContextProvider = ({
     [updateFileBrowserState]
   );
 
-  const { showBoundary } = useErrorBoundary();
   const { cookies } = useCookiesContext();
   const { zonesAndFileSharePathsMap, isZonesMapReady } =
     useZoneAndFspMapContext();
@@ -188,18 +181,8 @@ export const FileBrowserContextProvider = ({
       log.debug('Fetching files for FSP:', fsp.name, 'and folder:', folderPath);
       let folder: FileOrFolder | null = null;
       try {
-        let response = await fetchFileInfo(fsp.name, folderPath);
+        const response = await fetchFileInfo(fsp.name, folderPath);
         folder = response.info as FileOrFolder;
-
-        // If folder is a file, remove the last segment from the path
-        // until reaching a directory, then fetch that directory's info
-        while (folder && !folder.is_dir) {
-          response = await fetchFileInfo(
-            fsp.name,
-            removeLastSegmentFromPath(folder.path)
-          );
-          folder = response.info as FileOrFolder;
-        }
 
         // Sort: directories first, then files; alphabetically within each type
         const files = response.files.sort(
@@ -215,7 +198,6 @@ export const FileBrowserContextProvider = ({
         updateAllStates(true, fsp, folder, files, null);
       } catch (error) {
         log.error(error);
-        showBoundary(error);
         if (error instanceof Error) {
           updateAllStates(true, fsp, folder, [], error.message);
         } else {
@@ -224,7 +206,7 @@ export const FileBrowserContextProvider = ({
       }
       return folder;
     },
-    [showBoundary, updateAllStates, fetchFileInfo]
+    [updateAllStates, fetchFileInfo]
   );
 
   // Function to refresh files for the current FSP and current folder

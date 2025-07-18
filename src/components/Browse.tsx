@@ -1,7 +1,6 @@
 import React from 'react';
 import { useOutletContext } from 'react-router';
 
-import type { FileOrFolder } from '@/shared.types';
 import useContextMenu from '@/hooks/useContextMenu';
 import useHideDotFiles from '@/hooks/useHideDotFiles';
 import useSelectedFiles from '@/hooks/useSelectedFiles';
@@ -10,19 +9,22 @@ import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import FileList from './ui/FileBrowser/FileList';
 import Toolbar from './ui/FileBrowser/Toolbar';
 import ContextMenu from './ui/FileBrowser/ContextMenu';
-import RenameDialog from './ui/Dialogs/RenameDialog';
-import NewFolderDialog from './ui/Dialogs/NewFolderDialog';
+import RenameDialog from './ui/Dialogs/Rename';
+import NewFolderDialog from './ui/Dialogs/NewFolder';
 import Delete from './ui/Dialogs/Delete';
 import ChangePermissions from './ui/Dialogs/ChangePermissions';
 import Dashboard from './ui/FileBrowser/Dashboard';
+import ConvertFileDialog from './ui/Dialogs/ConvertFile';
 
 type OutletContextType = {
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
   setShowSidebar: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowConvertFileDialog: React.Dispatch<React.SetStateAction<boolean>>;
   showPermissionsDialog: boolean;
   showPropertiesDrawer: boolean;
   showSidebar: boolean;
+  showConvertFileDialog: boolean;
 };
 
 export default function Browse() {
@@ -30,9 +32,11 @@ export default function Browse() {
     setShowPermissionsDialog,
     setShowPropertiesDrawer,
     setShowSidebar,
+    setShowConvertFileDialog,
     showPermissionsDialog,
     showPropertiesDrawer,
-    showSidebar
+    showSidebar,
+    showConvertFileDialog
   } = useOutletContext<OutletContextType>();
 
   const {
@@ -54,7 +58,6 @@ export default function Browse() {
   return (
     <div className="flex-1 overflow-auto flex flex-col h-full">
       <Toolbar
-        selectedFiles={selectedFiles}
         hideDotFiles={hideDotFiles}
         setHideDotFiles={setHideDotFiles}
         showPropertiesDrawer={showPropertiesDrawer}
@@ -87,6 +90,7 @@ export default function Browse() {
           setShowRenameDialog={setShowRenameDialog}
           setShowDeleteDialog={setShowDeleteDialog}
           setShowPermissionsDialog={setShowPermissionsDialog}
+          setShowConvertFileDialog={setShowConvertFileDialog}
         />
       ) : null}
       {showRenameDialog ? (
@@ -112,6 +116,12 @@ export default function Browse() {
         <ChangePermissions
           showPermissionsDialog={showPermissionsDialog}
           setShowPermissionsDialog={setShowPermissionsDialog}
+        />
+      ) : null}
+      {showConvertFileDialog ? (
+        <ConvertFileDialog
+          showConvertFileDialog={showConvertFileDialog}
+          setShowConvertFileDialog={setShowConvertFileDialog}
         />
       ) : null}
     </div>

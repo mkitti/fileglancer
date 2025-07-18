@@ -6,22 +6,22 @@ import {
 } from '@material-tailwind/react';
 import { HiOutlineEllipsisHorizontalCircle } from 'react-icons/hi2';
 import { useNavigate } from 'react-router';
-import log from 'loglevel';
+import logger from '@/logger';
 import toast from 'react-hot-toast';
 
-import SharingDialog from '@/components/ui/Dialogs/SharingDialog';
+import SharingDialog from '@/components/ui/Dialogs/Sharing';
 import type { FileSharePath } from '@/shared.types';
 import {
+  formatDateString,
   getPreferredPathForDisplay,
   makeMapKey,
   makeBrowseLink
 } from '@/utils';
+import { copyToClipboard } from '@/utils/copyText';
 import useSharingDialog from '@/hooks/useSharingDialog';
-import useCopyPath from '@/hooks/useCopyPath';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
-import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
 type ProxiedPathRowProps = {
   item: ProxiedPath;
@@ -29,26 +29,10 @@ type ProxiedPathRowProps = {
   setMenuOpenId: (id: string | null) => void;
 };
 
-function formatDateString(dateStr: string) {
-  // If dateStr does not end with 'Z' or contain a timezone offset, treat as UTC
-  let normalized = dateStr;
-  if (!/Z$|[+-]\d{2}:\d{2}$/.test(dateStr)) {
-    normalized = dateStr + 'Z';
-  }
-  const date = new Date(normalized);
-  return date.toLocaleString();
-}
-
-export default function ProxiedPathRow({
-  item,
-  menuOpenId,
-  setMenuOpenId
-}: ProxiedPathRowProps) {
+export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
   const { showSharingDialog, setShowSharingDialog } = useSharingDialog();
-  const { copyToClipboard } = useCopyPath();
   const { pathPreference } = usePreferencesContext();
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
-  const { setCurrentFileSharePath } = useFileBrowserContext();
   const navigate = useNavigate();
 
   const pathFsp = zonesAndFileSharePathsMap[
@@ -68,7 +52,7 @@ export default function ProxiedPathRow({
       await copyToClipboard(displayPath);
       toast.success('Path copied to clipboard');
     } catch (error) {
-      log.error('Failed to copy path:', error);
+      logger.error('Failed to copy path:', error);
       toast.error('Failed to copy path');
     }
   };
@@ -78,7 +62,7 @@ export default function ProxiedPathRow({
       await copyToClipboard(item.url);
       toast.success('URL copied to clipboard');
     } catch (error) {
-      log.error('Failed to copy sharing URL:', error);
+      logger.error('Failed to copy sharing URL:', error);
       toast.error('Failed to copy URL');
     }
   };
@@ -96,7 +80,7 @@ export default function ProxiedPathRow({
     <>
       <div
         key={item.sharing_key}
-        className="grid grid-cols-[1.5fr_2.5fr_1.5fr_1fr] gap-4 items-center px-4 py-3 border-b last:border-b-0 border-surface hover:bg-primary-light/20 relative cursor-pointer"
+        className="grid grid-cols-[1.5fr_2.5fr_1.5fr_1fr] gap-4 items-center px-4 py-3 border-b last:border-b-0 border-surface hover:bg-primary-light/20 relative cursor-pointer hover:bg-surface-light"
         onClick={handleRowClick}
       >
         {/* Sharing name */}
@@ -167,7 +151,6 @@ export default function ProxiedPathRow({
               <Typography
                 className="text-sm p-1 cursor-pointer text-red-600"
                 onClick={() => {
-                  setCurrentFileSharePath(item.fsp_name);
                   setShowSharingDialog(true);
                 }}
               >

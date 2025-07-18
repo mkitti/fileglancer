@@ -14,7 +14,7 @@ import {
   HiOutlineShare,
   HiOutlineSun
 } from 'react-icons/hi';
-import { HiOutlineFolder } from 'react-icons/hi2';
+import { HiOutlineFolder, HiOutlineBriefcase } from 'react-icons/hi2';
 import { TbBrandGithub } from 'react-icons/tb';
 
 import ProfileMenu from './ProfileMenu';
@@ -31,14 +31,15 @@ const LINKS = [
     icon: HiOutlineShare,
     title: 'Shared',
     href: '/shared'
+  },
+  {
+    icon: HiOutlineBriefcase,
+    title: 'Jobs',
+    href: '/jobs'
   }
   /**
    * TODO: Add these back in when they are implemented
-  {
-    icon: BriefcaseIcon,
-    title: 'Jobs',
-    href: '/jobs'
-  },
+
   {
     icon: InformationCircleIcon,
     title: 'Help',
@@ -89,8 +90,8 @@ export default function FileglancerNavbar() {
   }, [setIsLightTheme]);
 
   return (
-    <Navbar className="mx-auto w-full rounded-none bg-background p-4 short:py-1 dark:shadow-surface">
-      <div className="flex items-center justify-between ">
+    <Navbar className="mx-auto w-full rounded-none bg-background p-4 short:py-1 short:px-1 dark:shadow-surface min-h-[45px]">
+      <div className="flex items-center justify-between w-full ">
         {/* Logo */}
         <div className="flex items-center gap-1">
           <Link to="/browse">
