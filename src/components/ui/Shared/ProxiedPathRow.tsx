@@ -17,8 +17,8 @@ import {
   makeMapKey,
   makeBrowseLink
 } from '@/utils';
+import { copyToClipboard } from '@/utils/copyText';
 import useSharingDialog from '@/hooks/useSharingDialog';
-import useCopyPath from '@/hooks/useCopyPath';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
@@ -31,7 +31,6 @@ type ProxiedPathRowProps = {
 
 export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
   const { showSharingDialog, setShowSharingDialog } = useSharingDialog();
-  const { copyToClipboard } = useCopyPath();
   const { pathPreference } = usePreferencesContext();
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
   const navigate = useNavigate();

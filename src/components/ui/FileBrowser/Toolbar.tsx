@@ -1,4 +1,5 @@
 import * as React from 'react';
+import toast from 'react-hot-toast';
 import {
   ButtonGroup,
   IconButton,
@@ -10,18 +11,18 @@ import {
   HiEye,
   HiEyeOff,
   HiFolderAdd,
+  HiOutlineClipboardCopy,
   HiOutlineStar,
   HiStar
 } from 'react-icons/hi';
 import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
 
-import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import { makeMapKey } from '@/utils';
+import { getPreferredPathForDisplay, makeMapKey } from '@/utils';
+import { copyToClipboard } from '@/utils/copyText';
 
 type ToolbarProps = {
-  selectedFiles: FileOrFolder[];
   hideDotFiles: boolean;
   setHideDotFiles: React.Dispatch<React.SetStateAction<boolean>>;
   showPropertiesDrawer: boolean;
@@ -32,7 +33,6 @@ type ToolbarProps = {
 };
 
 export default function Toolbar({
-  selectedFiles,
   hideDotFiles,
   setHideDotFiles,
   showPropertiesDrawer,
@@ -47,8 +47,15 @@ export default function Toolbar({
   const {
     folderPreferenceMap,
     fileSharePathPreferenceMap,
+    pathPreference,
     handleFavoriteChange
   } = usePreferencesContext();
+
+  const fullPath = getPreferredPathForDisplay(
+    pathPreference,
+    currentFileSharePath,
+    currentFolder?.path
+  );
 
   const isFavorited = React.useMemo(() => {
     if (!currentFileSharePath) {
@@ -136,6 +143,7 @@ export default function Toolbar({
             <Tooltip.Trigger
               as={IconButton}
               variant="outline"
+              disabled={!currentFileSharePath}
               onClick={async () => {
                 if (!currentFileSharePath) {
                   return;
@@ -158,6 +166,7 @@ export default function Toolbar({
             <Tooltip.Trigger
               as={IconButton}
               variant="outline"
+              disabled={!currentFileSharePath}
               onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                 setShowNewFolderDialog(true);
                 e.currentTarget.blur();
@@ -178,6 +187,7 @@ export default function Toolbar({
             <Tooltip.Trigger
               as={IconButton}
               variant="outline"
+              disabled={!currentFileSharePath}
               onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                 setHideDotFiles((prev: boolean) => !prev);
                 e.currentTarget.blur();
@@ -203,7 +213,7 @@ export default function Toolbar({
               <Tooltip.Trigger
                 as={IconButton}
                 variant="outline"
-                disabled={!selectedFiles}
+                disabled={!currentFileSharePath}
                 onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                   handleFavoriteClick();
                   e.currentTarget.blur();
@@ -225,6 +235,31 @@ export default function Toolbar({
               </Tooltip.Trigger>
             </Tooltip>
           )}
+
+          {/* Copy path */}
+          <Tooltip placement="top">
+            <Tooltip.Trigger
+              as={IconButton}
+              variant="outline"
+              disabled={!currentFileSharePath}
+              onClick={() => {
+                try {
+                  copyToClipboard(fullPath);
+                  toast.success('Path copied to clipboard!');
+                } catch (error) {
+                  toast.error(`Failed to copy path. Error: ${error}`);
+                }
+              }}
+            >
+              <HiOutlineClipboardCopy className="icon-default" />
+              <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
+                <Typography type="small" className="opacity-90">
+                  Copy current path
+                </Typography>
+                <Tooltip.Arrow />
+              </Tooltip.Content>
+            </Tooltip.Trigger>
+          </Tooltip>
         </ButtonGroup>
 
         {/* Show/hide properties drawer */}

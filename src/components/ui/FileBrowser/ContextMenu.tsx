@@ -1,10 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { Menu, Typography } from '@material-tailwind/react';
+import toast from 'react-hot-toast';
 
 import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import { getPreferredPathForDisplay } from '@/utils';
+import { copyToClipboard } from '@/utils/copyText';
 
 type ContextMenuProps = {
   x: number;
@@ -32,7 +35,13 @@ export default function ContextMenu({
   setShowConvertFileDialog
 }: ContextMenuProps): React.ReactNode {
   const { currentFileSharePath } = useFileBrowserContext();
-  const { handleFavoriteChange } = usePreferencesContext();
+  const { handleFavoriteChange, pathPreference } = usePreferencesContext();
+
+  const fullPath = getPreferredPathForDisplay(
+    pathPreference,
+    currentFileSharePath,
+    selectedFiles[0]?.path
+  );
 
   return ReactDOM.createPortal(
     <div
@@ -43,8 +52,8 @@ export default function ContextMenu({
         top: `${y}px`
       }}
     >
+      {/* Show/hide properties drawer */}
       <Menu.Item>
-        {/* Show/hide properties drawer */}
         <Typography
           className="text-sm p-1 cursor-pointer text-secondary-light"
           onClick={() => {
@@ -55,6 +64,23 @@ export default function ContextMenu({
           View file properties
         </Typography>
       </Menu.Item>
+      {/* Copy path */}
+      <Menu.Item>
+        <Typography
+          className="text-sm p-1 cursor-pointer text-secondary-light"
+          onClick={() => {
+            try {
+              copyToClipboard(fullPath);
+              toast.success('Path copied to clipboard!');
+            } catch (error) {
+              toast.error(`Failed to copy path. Error: ${error}`);
+            }
+          }}
+        >
+          Copy path
+        </Typography>
+      </Menu.Item>
+      {/* Set/unset folders as favorites */}
       {selectedFiles.length === 1 && selectedFiles[0].is_dir ? (
         <>
           {/* Set/unset folders as favorites */}

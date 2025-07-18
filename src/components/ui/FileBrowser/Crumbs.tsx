@@ -1,28 +1,49 @@
 import React, { ReactNode } from 'react';
+import { Link } from 'react-router';
 import {
   BreadcrumbLink,
   Breadcrumb,
   Typography,
-  BreadcrumbSeparator
+  BreadcrumbSeparator,
+  IconButton
 } from '@material-tailwind/react';
-import { HiChevronRight } from 'react-icons/hi';
+import toast from 'react-hot-toast';
+import { HiChevronRight, HiOutlineDuplicate } from 'react-icons/hi';
 import { HiMiniSlash, HiOutlineSquares2X2 } from 'react-icons/hi2';
-import { Link } from 'react-router';
 
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import { makeBrowseLink, makePathSegmentArray, joinPaths } from '@/utils';
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import {
+  getPreferredPathForDisplay,
+  makeBrowseLink,
+  makePathSegmentArray,
+  joinPaths
+} from '@/utils';
+import { copyToClipboard } from '@/utils/copyText';
 
 export default function Crumbs(): ReactNode {
   const { currentFileSharePath, currentFolder } = useFileBrowserContext();
+  const { pathPreference } = usePreferencesContext();
 
   const dirArray = makePathSegmentArray(currentFolder?.path || '');
   // Add the current file share path name as the first segment in the array
-  dirArray.unshift(currentFileSharePath?.name || '');
+  if (currentFileSharePath) {
+    dirArray.unshift(
+      getPreferredPathForDisplay(pathPreference, currentFileSharePath)
+    );
+  }
+
   const dirDepth = dirArray.length;
+
+  const fullPath = getPreferredPathForDisplay(
+    pathPreference,
+    currentFileSharePath,
+    currentFolder?.path
+  );
 
   return (
     <div className="w-full py-2 px-3">
-      <Breadcrumb className="bg-transparent p-0">
+      <Breadcrumb className="bg-transparent p-0 group">
         <div className="flex items-center gap-1 h-5">
           <HiOutlineSquares2X2 className="icon-default text-primary-light" />
           <HiChevronRight className="icon-default" />
@@ -53,7 +74,11 @@ export default function Crumbs(): ReactNode {
                   </BreadcrumbLink>
                   {/* Add separator since is not the last segment */}
                   <BreadcrumbSeparator>
-                    <HiMiniSlash className="icon-default" />
+                    {pathPreference[0] === 'windows_path' ? (
+                      <HiMiniSlash className="icon-default transform scale-x-[-1]" />
+                    ) : (
+                      <HiMiniSlash className="icon-default" />
+                    )}
                   </BreadcrumbSeparator>
                 </React.Fragment>
               );
@@ -69,6 +94,20 @@ export default function Crumbs(): ReactNode {
             }
           }
         })}
+        <IconButton
+          variant="ghost"
+          className="text-transparent group-hover:text-foreground"
+          onClick={() => {
+            try {
+              copyToClipboard(fullPath);
+              toast.success('Path copied to clipboard!');
+            } catch (error) {
+              toast.error(`Failed to copy path. Error: ${error}`);
+            }
+          }}
+        >
+          <HiOutlineDuplicate className="icon-small" />
+        </IconButton>
       </Breadcrumb>
     </div>
   );

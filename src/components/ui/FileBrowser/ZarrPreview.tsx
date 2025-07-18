@@ -18,11 +18,11 @@ import copy_logo from '@/assets/copy-link-64.png';
 import ZarrMetadataTable from '@/components/ui/FileBrowser/ZarrMetadataTable';
 import SharingDialog from '@/components/ui/Dialogs/Sharing';
 import Loader from '@/components/ui/Loader';
-import useCopyPath from '@/hooks/useCopyPath';
 import type { OpenWithToolUrls } from '@/hooks/useZarrMetadata';
 import useSharingDialog from '@/hooks/useSharingDialog';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { copyToClipboard } from '@/utils/copyText';
 import type { Metadata } from '@/omezarr-helper';
 
 type ZarrPreviewProps = {
@@ -44,7 +44,6 @@ export default function ZarrPreview({
   const [showCopiedTooltip, setShowCopiedTooltip] = React.useState(false);
 
   const { showSharingDialog, setShowSharingDialog } = useSharingDialog();
-  const { copyToClipboard } = useCopyPath();
   const { proxiedPath } = useProxiedPathContext();
   const { currentFolder } = useFileBrowserContext();
 
