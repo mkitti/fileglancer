@@ -29,9 +29,7 @@ export default function Jobs() {
           </div>
 
           {allTickets?.map(ticket => (
-            <TicketRow
-              key={ticket.key}
-              ticket={ticket}/>
+            <TicketRow key={ticket.key} ticket={ticket} />
           ))}
 
           {!allTickets || allTickets.length === 0 ? (

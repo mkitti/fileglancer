@@ -9,14 +9,12 @@ type Profile = {
 };
 
 type ProfileContextType = {
-    profile: Profile | null;
-    loading: boolean;
-    error: Error | null;
+  profile: Profile | null;
+  loading: boolean;
+  error: Error | null;
 };
 
-const ProfileContext = React.createContext<ProfileContextType | null>(
-  null
-);
+const ProfileContext = React.createContext<ProfileContextType | null>(null);
 
 export const useProfileContext = () => {
   const context = React.useContext(ProfileContext);
@@ -67,4 +65,4 @@ export const ProfileContextProvider = ({
       {children}
     </ProfileContext.Provider>
   );
-}
+};
