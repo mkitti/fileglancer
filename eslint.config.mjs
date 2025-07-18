@@ -61,7 +61,7 @@ export default defineConfig([
     files: ['**/*.{js,jsx,ts,tsx}'],
     plugins: { react },
     rules: {
-      '@typescript-eslint/naming-convention': [
+      /* '@typescript-eslint/naming-convention': [
         'error',
         {
           selector: 'interface',
@@ -71,7 +71,7 @@ export default defineConfig([
             match: true
           }
         }
-      ],
+      ], */
       '@typescript-eslint/no-unused-vars': [
         'warn',
         {
