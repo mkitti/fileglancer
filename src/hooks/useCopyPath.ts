@@ -1,5 +1,5 @@
 import React from 'react';
-import { default as log } from '@/logger';
+import logger from '@/logger';
 
 // Clipboard when the clipboard API is not available (like when using insecure HTTP)
 // From https://stackoverflow.com/questions/400212/how-do-i-copy-to-the-clipboard-in-javascript/30810322#30810322
@@ -15,7 +15,7 @@ function fallbackCopyTextToClipboard(text: string) {
     textArea.focus();
     textArea.select();
     if (document.execCommand('copy')) {
-      log.debug('Fallback clipboard copy succeeded');
+      logger.debug('Fallback clipboard copy succeeded');
     } else {
       throw new Error('Fallback clipboard copy failed');
     }
@@ -44,9 +44,9 @@ export default function useCopyPath() {
           isCopied: true
         });
         setShowCopyAlert(true);
-        log.debug('Copied to clipboard:', text);
+        logger.debug('Copied to clipboard:', text);
       } catch (error) {
-        log.error('Failed to copy to clipboard:', error);
+        logger.error('Failed to copy to clipboard:', error);
         setCopiedText({
           value: text,
           isCopied: false

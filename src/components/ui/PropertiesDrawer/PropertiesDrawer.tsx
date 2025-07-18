@@ -13,21 +13,25 @@ import { HiOutlineFolder } from 'react-icons/hi2';
 
 import PermissionsTable from './PermissionsTable';
 import OverviewTable from './OverviewTable';
+import TicketDetails from './TicketDetails';
 import useCopyPath from '@/hooks/useCopyPath';
 import { getPreferredPathForDisplay } from '@/utils';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import { useTicketContext } from '@/contexts/TicketsContext';
 
 type PropertiesDrawerProps = {
   open: boolean;
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowConvertFileDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function PropertiesDrawer({
   open,
   setShowPropertiesDrawer,
-  setShowPermissionsDialog
+  setShowPermissionsDialog,
+  setShowConvertFileDialog
 }: PropertiesDrawerProps): JSX.Element {
   const {
     copiedText,
@@ -38,6 +42,7 @@ export default function PropertiesDrawer({
   } = useCopyPath();
   const { currentFileSharePath, propertiesTarget } = useFileBrowserContext();
   const { pathPreference } = usePreferencesContext();
+  const { ticket } = useTicketContext();
 
   const fullPath = getPreferredPathForDisplay(
     pathPreference,
@@ -160,12 +165,23 @@ export default function PropertiesDrawer({
           </Tabs.Panel>
 
           <Tabs.Panel value="convert" className="flex flex-col gap-2">
-            <Typography variant="small" className="font-medium">
-              Convert data to OME-Zarr
-            </Typography>
-            <Button as="a" href="#" variant="outline">
-              Submit
-            </Button>
+            {ticket ? (
+              <TicketDetails />
+            ) : (
+              <>
+                <Typography variant="small" className="font-medium">
+                  Convert data to OME-Zarr
+                </Typography>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowConvertFileDialog(true);
+                  }}
+                >
+                  Submit
+                </Button>
+              </>
+            )}
           </Tabs.Panel>
         </Tabs>
       ) : null}
