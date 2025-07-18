@@ -123,7 +123,7 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
     );
 
     const messagePath = joinPaths(
-      currentFileSharePath.name,
+      currentFileSharePath.mount_path,
       propertiesTarget.path
     );
 
