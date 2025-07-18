@@ -4,7 +4,6 @@ import * as omezarr from 'ome-zarr.js';
 
 // Copied since ome-zarr.js doesn't export the types
 // TODO: use the types from ome-zarr.js when they become available
-/* eslint-disable @typescript-eslint/naming-convention */
 export interface Multiscale {
   axes: Axis[];
   /**
@@ -83,7 +82,6 @@ export type Metadata = {
   scales: number[][];
   zarr_version: 2 | 3;
 };
-/* eslint-enable @typescript-eslint/naming-convention */
 
 const COLORS = ['magenta', 'green', 'cyan', 'white', 'red', 'green', 'blue'];
 
@@ -206,13 +204,12 @@ function getNeuroglancerSource(dataUrl: string, zarr_version: 2 | 3): string {
   return dataUrl + '|zarr' + zarr_version + ':';
 }
 
-
 function generateNeuroglancerStateForZarrArray(
   dataUrl: string,
   zarr_version: 2 | 3
 ): string | null {
   log.debug('Generating Neuroglancer state for Zarr array:', dataUrl);
-  
+
   const layer: Record<string, any> = {
     name: 'Default',
     type: 'image',
@@ -229,7 +226,7 @@ function generateNeuroglancerStateForZarrArray(
       layer: 'Default'
     }
   };
-  
+
   // Convert the state to a URL-friendly format
   const stateJson = JSON.stringify(state);
   return encodeURIComponent(stateJson);
@@ -284,8 +281,6 @@ function generateNeuroglancerStateForOmeZarr(
       const axis = axesMap[name];
       const unit = translateUnitToNeuroglancer(axis.unit);
       state.dimensions[name] = [scale[axis.index], unit];
-      // Center the image in the viewer
-      const extent = arr.shape[axis.index];
       imageDimensions.delete(name);
     } else {
       log.debug('Dimension not found in axes map: ', name);
@@ -353,7 +348,6 @@ function generateNeuroglancerStateForOmeZarr(
       name: 'Default',
       ...layer
     });
-
   } else {
     // If there is only one channel, make it white
     if (channels.length === 1) {
@@ -413,15 +407,13 @@ async function getZarrArray(dataUrl: string): Promise<zarr.Array<any>> {
   log.debug('Getting Zarr array for', dataUrl);
   const zarr_version = 2;
   const store = new zarr.FetchStore(dataUrl);
-  return await omezarr.getArray(store, "/", zarr_version);
+  return await omezarr.getArray(store, '/', zarr_version);
 }
 
 /**
  * Process the given OME-Zarr array and return the metadata, thumbnail, and Neuroglancer link.
  */
-async function getOmeZarrMetadata(
-  dataUrl: string,
-): Promise<Metadata> {
+async function getOmeZarrMetadata(dataUrl: string): Promise<Metadata> {
   log.debug('Getting OME-Zarr metadata for', dataUrl);
   const store = new zarr.FetchStore(dataUrl);
   const { arr, shapes, multiscale, omero, scales, zarr_version } =
@@ -444,10 +436,7 @@ async function getOmeZarrMetadata(
   return metadata;
 }
 
-type ThumbnailResult = [
-  thumbnail: string | null,
-  errorMessage: string | null
-];
+type ThumbnailResult = [thumbnail: string | null, errorMessage: string | null];
 
 async function getOmeZarrThumbnail(
   dataUrl: string,
@@ -458,12 +447,15 @@ async function getOmeZarrThumbnail(
   log.debug('Getting OME-Zarr thumbnail for', dataUrl);
   const store = new zarr.FetchStore(dataUrl);
   try {
-    return [await omezarr.renderThumbnail(
-      store,
-      thumbnailSize,
-      autoBoost,
-      maxThumbnailSize
-    ), null];
+    return [
+      await omezarr.renderThumbnail(
+        store,
+        thumbnailSize,
+        autoBoost,
+        maxThumbnailSize
+      ),
+      null
+    ];
   } catch (err: unknown) {
     let errorMessage: string | null = null;
     if (err instanceof Error) {
@@ -475,10 +467,10 @@ async function getOmeZarrThumbnail(
   }
 }
 
-export { 
-  getZarrArray, 
-  getOmeZarrMetadata, 
-  getOmeZarrThumbnail, 
-  generateNeuroglancerStateForZarrArray, 
-  generateNeuroglancerStateForOmeZarr 
+export {
+  getZarrArray,
+  getOmeZarrMetadata,
+  getOmeZarrThumbnail,
+  generateNeuroglancerStateForZarrArray,
+  generateNeuroglancerStateForOmeZarr
 };

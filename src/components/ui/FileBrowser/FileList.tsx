@@ -50,7 +50,7 @@ export default function FileList({
       <div className="overflow-y-auto">
         {metadata ? (
           <ZarrPreview
-            metadata={metadata}  
+            metadata={metadata}
             thumbnailSrc={thumbnailSrc}
             loadingThumbnail={loadingThumbnail}
             openWithToolUrls={openWithToolUrls}
