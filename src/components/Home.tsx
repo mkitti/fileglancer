@@ -1,9 +1,5 @@
-import React from 'react';
+import { Navigate } from 'react-router';
 
 export default function Home() {
-  return (
-    <div className="p-4">
-      <h2 className="text-foreground text-lg">Home Page</h2>
-    </div>
-  );
+  return <Navigate to="/browse" replace={true} />;
 }
