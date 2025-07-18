@@ -23,7 +23,7 @@ type FileBrowserContextProviderProps = {
   filePath: string | undefined;
 };
 
-export interface FileBrowserState {
+interface FileBrowserState {
   isFileBrowserReady: boolean;
   currentFileSharePath: FileSharePath | null;
   currentFolder: FileOrFolder | null;
@@ -64,77 +64,83 @@ export const useFileBrowserContext = () => {
   return context;
 };
 
-
 // fspName and filePath come from URL parameters, accessed in MainLayout
 export const FileBrowserContextProvider = ({
   children,
   fspName,
   filePath
 }: FileBrowserContextProviderProps) => {
-
   // Unified state that keeps a consistent view of the file browser
-  const [fileBrowserState, setFileBrowserState] = React.useState<FileBrowserState>({
-    isFileBrowserReady: false,
-    currentFileSharePath: null,
-    currentFolder: null,
-    files: [],
-    fetchErrorMsg: null
-  });
+  const [fileBrowserState, setFileBrowserState] =
+    React.useState<FileBrowserState>({
+      isFileBrowserReady: false,
+      currentFileSharePath: null,
+      currentFolder: null,
+      files: [],
+      fetchErrorMsg: null
+    });
 
   // Duplicate states for convenience until all clients are updated.
   // TODO: Remove these once all clients are updated.
   const [isFileBrowserReady, setIsFileBrowserReady] = React.useState(false);
-  const [currentFileSharePath, setCurrentFileSharePath] = React.useState<FileSharePath | null>(null);
-  const [currentFolder, setCurrentFolder] = React.useState<FileOrFolder | null>(null);
+  const [currentFileSharePath, setCurrentFileSharePath] =
+    React.useState<FileSharePath | null>(null);
+  const [currentFolder, setCurrentFolder] = React.useState<FileOrFolder | null>(
+    null
+  );
   const [files, setFiles] = React.useState<FileOrFolder[]>([]);
   const [fetchErrorMsg, setFetchErrorMsg] = React.useState<string | null>(null);
 
-  const [propertiesTarget, setPropertiesTarget] = React.useState<FileOrFolder | null>(null);
+  const [propertiesTarget, setPropertiesTarget] =
+    React.useState<FileOrFolder | null>(null);
 
   // Function to update fileBrowserState with complete, consistent data
-  const updateFileBrowserState = React.useCallback((newState: Partial<FileBrowserState>) => {
-    log.debug('Updating fileBrowserState:', newState);
-    setFileBrowserState(prev => ({
-      ...prev,
-      ...newState
-    }));
-  }, []);
+  const updateFileBrowserState = React.useCallback(
+    (newState: Partial<FileBrowserState>) => {
+      log.debug('Updating fileBrowserState:', newState);
+      setFileBrowserState(prev => ({
+        ...prev,
+        ...newState
+      }));
+    },
+    []
+  );
 
   // Function to update all states consistently
-  const updateAllStates = React.useCallback((
-    ready: boolean,
-    sharePath: FileSharePath | null,
-    folder: FileOrFolder | null,
-    fileList: FileOrFolder[],
-    errorMsg: string | null
-  ) => {
+  const updateAllStates = React.useCallback(
+    (
+      ready: boolean,
+      sharePath: FileSharePath | null,
+      folder: FileOrFolder | null,
+      fileList: FileOrFolder[],
+      errorMsg: string | null
+    ) => {
+      // Update fileBrowserState with complete, consistent data
+      updateFileBrowserState({
+        isFileBrowserReady: ready,
+        currentFileSharePath: sharePath,
+        currentFolder: folder,
+        files: fileList,
+        fetchErrorMsg: errorMsg
+      });
 
-    // Update fileBrowserState with complete, consistent data
-    updateFileBrowserState({
-      isFileBrowserReady: ready,
-      currentFileSharePath: sharePath,
-      currentFolder: folder,
-      files: fileList,
-      fetchErrorMsg: errorMsg
-    });
-    
-    // Update local states for individual parts
-    if (ready) {
-      setIsFileBrowserReady(true);
-      setCurrentFileSharePath(sharePath);
-      setCurrentFolder(folder);
-      setFiles(fileList);
-      setFetchErrorMsg(errorMsg);
-    }
-    else {
-      setIsFileBrowserReady(false);
-      setCurrentFileSharePath(null);
-      setCurrentFolder(null);
-      setFiles([]);
-      setFetchErrorMsg(errorMsg);
-    }
-
-  }, [updateFileBrowserState]);
+      // Update local states for individual parts
+      if (ready) {
+        setIsFileBrowserReady(true);
+        setCurrentFileSharePath(sharePath);
+        setCurrentFolder(folder);
+        setFiles(fileList);
+        setFetchErrorMsg(errorMsg);
+      } else {
+        setIsFileBrowserReady(false);
+        setCurrentFileSharePath(null);
+        setCurrentFolder(null);
+        setFiles([]);
+        setFetchErrorMsg(errorMsg);
+      }
+    },
+    [updateFileBrowserState]
+  );
 
   const { showBoundary } = useErrorBoundary();
   const { cookies } = useCookiesContext();
@@ -143,7 +149,10 @@ export const FileBrowserContextProvider = ({
 
   // Function to fetch files for the current FSP and current folder
   const fetchFileInfo = React.useCallback(
-    async (fspName: string, folderName: string): Promise<FileBrowserResponse> => {
+    async (
+      fspName: string,
+      folderName: string
+    ): Promise<FileBrowserResponse> => {
       const url = getFileBrowsePath(fspName, folderName);
 
       const response = await sendFetchRequest(url, 'GET', cookies['_xsrf']);
@@ -152,9 +161,13 @@ export const FileBrowserContextProvider = ({
       if (!response.ok) {
         if (response.status === 403) {
           if (data.info && data.info.owner) {
-            throw new Error(`You do not have permission to list this folder. Contact the owner (${data.info.owner}) for access.`);
+            throw new Error(
+              `You do not have permission to list this folder. Contact the owner (${data.info.owner}) for access.`
+            );
           } else {
-            throw new Error('You do not have permission to list this folder. Contact the owner for access.');
+            throw new Error(
+              'You do not have permission to list this folder. Contact the owner for access.'
+            );
           }
         } else if (response.status === 404) {
           throw new Error('Folder not found');
@@ -168,8 +181,10 @@ export const FileBrowserContextProvider = ({
 
   // Fetch files for the given FSP and folder, and update the fileBrowserState
   const fetchAndUpdateFileBrowserState = React.useCallback(
-    async (fsp: FileSharePath, folderPath: string): Promise<FileOrFolder | null> => {
-
+    async (
+      fsp: FileSharePath,
+      folderPath: string
+    ): Promise<FileOrFolder | null> => {
       log.debug('Fetching files for FSP:', fsp.name, 'and folder:', folderPath);
       let folder: FileOrFolder | null = null;
       try {
@@ -179,56 +194,67 @@ export const FileBrowserContextProvider = ({
         // If folder is a file, remove the last segment from the path
         // until reaching a directory, then fetch that directory's info
         while (folder && !folder.is_dir) {
-          response = await fetchFileInfo(fsp.name, removeLastSegmentFromPath(folder.path));
+          response = await fetchFileInfo(
+            fsp.name,
+            removeLastSegmentFromPath(folder.path)
+          );
           folder = response.info as FileOrFolder;
         }
 
         // Sort: directories first, then files; alphabetically within each type
-        const files = response.files.sort((a: FileOrFolder, b: FileOrFolder) => {
-          if (a.is_dir === b.is_dir) {
-            return a.name.localeCompare(b.name);
+        const files = response.files.sort(
+          (a: FileOrFolder, b: FileOrFolder) => {
+            if (a.is_dir === b.is_dir) {
+              return a.name.localeCompare(b.name);
+            }
+            return a.is_dir ? -1 : 1;
           }
-          return a.is_dir ? -1 : 1;
-        }) as FileOrFolder[];
+        ) as FileOrFolder[];
 
         // Update all states consistently
         updateAllStates(true, fsp, folder, files, null);
-      
       } catch (error) {
         log.error(error);
         showBoundary(error);
         if (error instanceof Error) {
           updateAllStates(true, fsp, folder, [], error.message);
-        }
-        else {
+        } else {
           updateAllStates(true, fsp, folder, [], 'An unknown error occurred');
         }
       }
       return folder;
     },
-    [cookies, showBoundary, updateAllStates, fetchFileInfo]
+    [showBoundary, updateAllStates, fetchFileInfo]
   );
 
   // Function to refresh files for the current FSP and current folder
-  const refreshFiles = React.useCallback(
-    async (): Promise<void> => {
-      if (!fileBrowserState.currentFileSharePath || !fileBrowserState.currentFolder) {
-        return;
-      }
-      log.debug('Refreshing file list');
-      await fetchAndUpdateFileBrowserState(fileBrowserState.currentFileSharePath, fileBrowserState.currentFolder.path);
-    },
-    [fileBrowserState.currentFileSharePath, fileBrowserState.currentFolder, fetchAndUpdateFileBrowserState]
-  );
+  const refreshFiles = React.useCallback(async (): Promise<void> => {
+    if (
+      !fileBrowserState.currentFileSharePath ||
+      !fileBrowserState.currentFolder
+    ) {
+      return;
+    }
+    log.debug('Refreshing file list');
+    await fetchAndUpdateFileBrowserState(
+      fileBrowserState.currentFileSharePath,
+      fileBrowserState.currentFolder.path
+    );
+  }, [
+    fileBrowserState.currentFileSharePath,
+    fileBrowserState.currentFolder,
+    fetchAndUpdateFileBrowserState
+  ]);
 
   // Effect to update currentFolder and propertiesTarget when URL params change
   React.useEffect(() => {
-    
     log.debug('URL changed: fspName=', fspName, 'filePath=', filePath);
     let cancelled = false;
     const updateCurrentFileSharePathAndFolder = async () => {
       if (!isZonesMapReady || !zonesAndFileSharePathsMap || !fspName) {
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
         updateAllStates(false, null, null, [], null);
         return;
       }
@@ -237,15 +263,21 @@ export const FileBrowserContextProvider = ({
       const urlFsp = zonesAndFileSharePathsMap[fspKey] as FileSharePath;
       if (!urlFsp) {
         log.error(`File share path not found for fspName: ${fspName}`);
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
         updateAllStates(false, null, null, [], null);
         return;
       }
 
-      const folder = await fetchAndUpdateFileBrowserState(urlFsp, filePath || '.');
-      if (cancelled) return;
+      const folder = await fetchAndUpdateFileBrowserState(
+        urlFsp,
+        filePath || '.'
+      );
+      if (cancelled) {
+        return;
+      }
       setPropertiesTarget(folder);
-    
     };
     updateCurrentFileSharePathAndFolder();
     return () => {
