@@ -1,6 +1,5 @@
 import React from 'react';
 import { default as log } from '@/logger';
-import { useErrorBoundary } from 'react-error-boundary';
 
 import type { FileOrFolder, FileSharePath } from '@/shared.types';
 import { getFileBrowsePath, makeMapKey, sendFetchRequest } from '@/utils';
@@ -182,7 +181,7 @@ export const FileBrowserContextProvider = ({
       log.debug('Fetching files for FSP:', fsp.name, 'and folder:', folderPath);
       let folder: FileOrFolder | null = null;
       try {
-        let response = await fetchFileInfo(fsp.name, folderPath);
+        const response = await fetchFileInfo(fsp.name, folderPath);
         folder = response.info as FileOrFolder;
 
         // Sort: directories first, then files; alphabetically within each type
