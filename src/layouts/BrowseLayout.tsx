@@ -9,7 +9,7 @@ import Sidebar from '@/components/ui/Sidebar/Sidebar';
 import PropertiesDrawer from '@/components/ui/PropertiesDrawer/PropertiesDrawer';
 import ErrorFallback from '@/components/ErrorFallback';
 
-export const BrowseLayout = () => {
+export const BrowsePageLayout = () => {
   const [showPermissionsDialog, setShowPermissionsDialog] =
     React.useState(false);
   const [showConvertFileDialog, setShowConvertFileDialog] =
