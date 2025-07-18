@@ -2,6 +2,7 @@ import React from 'react';
 import logger, { default as log } from '@/logger';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { useProfileContext } from './ProfileContext';
 import {
   sendFetchRequest,
   getFileBrowsePath,
@@ -54,6 +55,7 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
   const [ticket, setTicket] = React.useState<Ticket | null>(null);
   const { cookies } = useCookiesContext();
   const { currentFileSharePath, propertiesTarget } = useFileBrowserContext();
+  const { profile } = useProfileContext();
 
   const fetchAllTickets = React.useCallback(async (): Promise<void> => {
     const response = await sendFetchRequest(
@@ -151,7 +153,7 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
           project_key: 'FT',
           issue_type: 'Task',
           summary: 'Convert file to ZARR',
-          description: `Please convert ${messagePath} to a ZARR file.\nDestination folder: ${destinationFolder}`
+          description: `Convert ${messagePath} to a ZARR file.\nDestination folder: ${destinationFolder}\nRequested by: ${profile?.username}`
         }
       );
 

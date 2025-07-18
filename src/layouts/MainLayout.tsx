@@ -9,6 +9,7 @@ import { PreferencesProvider } from '@/contexts/PreferencesContext';
 import { OpenFavoritesProvider } from '@/contexts/OpenFavoritesContext';
 import { TicketProvider } from '@/contexts/TicketsContext';
 import { ProxiedPathProvider } from '@/contexts/ProxiedPathContext';
+import { ProfileContextProvider } from '@/contexts/ProfileContext';
 import FileglancerNavbar from '@/components/ui/Navbar/Navbar';
 import { BetaBanner } from '@/components/ui/Beta';
 import ErrorFallback from '@/components/ErrorFallback';
@@ -25,6 +26,7 @@ export const MainLayout = () => {
           <PreferencesProvider>
             <FileBrowserContextProvider fspName={fspName} filePath={filePath}>
               <ProxiedPathProvider>
+                <ProfileContextProvider>
                 <TicketProvider>
                   <Toaster
                     position="bottom-center"
@@ -41,6 +43,7 @@ export const MainLayout = () => {
                     </ErrorBoundary>
                   </div>
                 </TicketProvider>
+                </ProfileContextProvider>
               </ProxiedPathProvider>
             </FileBrowserContextProvider>
           </PreferencesProvider>
