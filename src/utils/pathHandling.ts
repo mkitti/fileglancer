@@ -147,7 +147,6 @@ function convertPathToMacStyle(pathString: string): string {
   return pathString;
 }
 
-
 /**
  * Converts a POSIX-style path string to a Windows-style path string.
  * Should only be used in getPrefferedPathForDisplay function.

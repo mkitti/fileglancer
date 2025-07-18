@@ -6,7 +6,6 @@ import { Link } from 'react-router-dom';
 
 import { useProfileContext } from '@/contexts/ProfileContext';
 
-
 export default function ProfileMenu() {
   const [origin, setOrigin] = useState('');
   const { profile } = useProfileContext();

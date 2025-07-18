@@ -27,22 +27,22 @@ export const MainLayout = () => {
             <FileBrowserContextProvider fspName={fspName} filePath={filePath}>
               <ProxiedPathProvider>
                 <ProfileContextProvider>
-                <TicketProvider>
-                  <Toaster
-                    position="bottom-center"
-                    toastOptions={{
-                      className: 'min-w-fit',
-                      success: { duration: 4000 }
-                    }}
-                  />
-                  <div className="flex flex-col items-center h-full w-full overflow-y-hidden bg-background text-foreground box-border">
-                    <FileglancerNavbar />
-                    <BetaBanner />
-                    <ErrorBoundary FallbackComponent={ErrorFallback}>
-                      <Outlet />
-                    </ErrorBoundary>
-                  </div>
-                </TicketProvider>
+                  <TicketProvider>
+                    <Toaster
+                      position="bottom-center"
+                      toastOptions={{
+                        className: 'min-w-fit',
+                        success: { duration: 4000 }
+                      }}
+                    />
+                    <div className="flex flex-col items-center h-full w-full overflow-y-hidden bg-background text-foreground box-border">
+                      <FileglancerNavbar />
+                      <BetaBanner />
+                      <ErrorBoundary FallbackComponent={ErrorFallback}>
+                        <Outlet />
+                      </ErrorBoundary>
+                    </div>
+                  </TicketProvider>
                 </ProfileContextProvider>
               </ProxiedPathProvider>
             </FileBrowserContextProvider>

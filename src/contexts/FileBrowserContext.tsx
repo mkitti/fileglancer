@@ -3,11 +3,7 @@ import { default as log } from '@/logger';
 import { useErrorBoundary } from 'react-error-boundary';
 
 import type { FileOrFolder, FileSharePath } from '@/shared.types';
-import {
-  getFileBrowsePath,
-  makeMapKey,
-  sendFetchRequest
-} from '@/utils';
+import { getFileBrowsePath, makeMapKey, sendFetchRequest } from '@/utils';
 import { useCookiesContext } from './CookiesContext';
 import { useZoneAndFspMapContext } from './ZonesAndFspMapContext';
 
