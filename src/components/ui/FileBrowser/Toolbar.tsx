@@ -17,14 +17,12 @@ import {
 } from 'react-icons/hi';
 import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
 
-import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { getPreferredPathForDisplay, makeMapKey } from '@/utils';
 import { copyToClipboard } from '@/utils/copyText';
 
 type ToolbarProps = {
-  selectedFiles: FileOrFolder[];
   hideDotFiles: boolean;
   setHideDotFiles: React.Dispatch<React.SetStateAction<boolean>>;
   showPropertiesDrawer: boolean;
@@ -35,7 +33,6 @@ type ToolbarProps = {
 };
 
 export default function Toolbar({
-  selectedFiles,
   hideDotFiles,
   setHideDotFiles,
   showPropertiesDrawer,
@@ -146,6 +143,7 @@ export default function Toolbar({
             <Tooltip.Trigger
               as={IconButton}
               variant="outline"
+              disabled={!currentFileSharePath}
               onClick={async () => {
                 if (!currentFileSharePath) {
                   return;
@@ -168,6 +166,7 @@ export default function Toolbar({
             <Tooltip.Trigger
               as={IconButton}
               variant="outline"
+              disabled={!currentFileSharePath}
               onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                 setShowNewFolderDialog(true);
                 e.currentTarget.blur();
@@ -188,6 +187,7 @@ export default function Toolbar({
             <Tooltip.Trigger
               as={IconButton}
               variant="outline"
+              disabled={!currentFileSharePath}
               onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                 setHideDotFiles((prev: boolean) => !prev);
                 e.currentTarget.blur();
@@ -213,7 +213,7 @@ export default function Toolbar({
               <Tooltip.Trigger
                 as={IconButton}
                 variant="outline"
-                disabled={!selectedFiles}
+                disabled={!currentFileSharePath}
                 onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                   handleFavoriteClick();
                   e.currentTarget.blur();
@@ -241,6 +241,7 @@ export default function Toolbar({
             <Tooltip.Trigger
               as={IconButton}
               variant="outline"
+              disabled={!currentFileSharePath}
               onClick={() => {
                 try {
                   copyToClipboard(fullPath);
