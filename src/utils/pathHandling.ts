@@ -135,6 +135,20 @@ function removeLastSegmentFromPath(itemPath: string): string {
 }
 
 /**
+ * Converts a POSIX-style path to a Mac-style path for smb mounts
+ * Should only be used in getPrefferedPathForDisplay function.
+ * For example:
+ * convertPathToMacStyle('smb:/path/to/folder'); // Returns 'smb://path/to/folder'
+ */
+function convertPathToMacStyle(pathString: string): string {
+  if (pathString.startsWith('smb:/')) {
+    return pathString.replace('smb:/', 'smb://');
+  }
+  return pathString;
+}
+
+
+/**
  * Converts a POSIX-style path string to a Windows-style path string.
  * Should only be used in getPrefferedPathForDisplay function.
  * For example:
@@ -159,9 +173,11 @@ function getPreferredPathForDisplay(
   const pathKey = pathPreference[0] ?? 'linux_path';
   const basePath = fsp ? (fsp[pathKey] ?? fsp.linux_path) : '';
 
-  let fullPath = subPath ? joinPaths(basePath, subPath) : basePath;
+  let fullPath = subPath ? joinPaths(basePath, subPath) : basePath; //default is POSIX-style path
 
-  if (pathKey === 'windows_path') {
+  if (pathKey === 'mac_path') {
+    fullPath = convertPathToMacStyle(fullPath);
+  } else if (pathKey === 'windows_path') {
     fullPath = convertPathToWindowsStyle(fullPath);
   }
 
