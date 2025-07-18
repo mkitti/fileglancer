@@ -17,8 +17,7 @@ export default function useRenameDialog() {
   const [showAlert, setShowAlert] = useState<boolean>(false);
   const [alertContent, setAlertContent] = useState<string>('');
 
-  const { currentFileSharePath, refreshFiles } =
-    useFileBrowserContext();
+  const { currentFileSharePath, refreshFiles } = useFileBrowserContext();
   const { pathPreference } = usePreferencesContext();
   const { cookies } = useCookiesContext();
 
