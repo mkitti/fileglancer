@@ -32,24 +32,24 @@ export default function ZarrMetadataTable({
             <td className="p-3 font-semibold">OMERO Metadata?</td>
             <td className="p-3">{omero ? 'Yes' : 'No'}</td>
           </tr>
-          {multiscale?.axes && (
+          {multiscale?.axes ? (
             <tr className="border-b border-surface-dark">
               <td className="p-3 font-semibold">Axes</td>
               <td className="p-3">{getAxesString(multiscale)}</td>
             </tr>
-          )}
-          {shapes && (
+          ) : null}
+          {shapes ? (
             <tr className="border-b border-surface-dark">
               <td className="p-3 font-semibold">Shapes</td>
               <td className="p-3">{getSizeString(shapes)}</td>
             </tr>
-          )}
-          {metadata.arr && (
+          ) : null}
+          {metadata.arr ? (
             <tr className="border-b border-surface-dark">
               <td className="p-3 font-semibold">Chunk Size</td>
               <td className="p-3">{getChunkSizeString(metadata)}</td>
             </tr>
-          )}
+          ) : null}
         </tbody>
       </table>
     </div>
