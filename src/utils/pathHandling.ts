@@ -135,18 +135,15 @@ function removeLastSegmentFromPath(itemPath: string): string {
 }
 
 /**
- * Converts a POSIX-style path to a Mac-style path for smb mounts
- * Should only be used in getPrefferedPathForDisplay function.
+ * Removes all leading slashes from a path string.
+ * If there are one than more trailing slashes, removes them, leaving only one.
+ * This is useful for normalizing paths before processing.
  * For example:
- * convertPathToMacStyle('smb:/path/to/folder'); // Returns 'smb://path/to/folder'
+ * removeSlashesFromPath('/path/to/folder/'); // Returns 'path/to/folder'
+ * removeSlashesFromPath('///path/to/folder///'); // Returns 'path/to/folder'
  */
-function convertPathToMacStyle(pathString: string): string {
-  if (pathString.startsWith('smb://')) {
-    return pathString; // Already in Mac style
-  } else if (pathString.startsWith('smb:/')) {
-    return pathString.replace('smb:/', 'smb://');
-  }
-  return pathString;
+function removeSlashesFromPath(pathString: string): string {
+  return pathString.replace(/^\/+|\/+$/g, '').replace(/\/{2,}/g, '/');
 }
 
 /**
@@ -175,9 +172,11 @@ function getPreferredPathForDisplay(
   const basePath = fsp ? (fsp[pathKey] ?? fsp.linux_path) : '';
 
   let fullPath = subPath ? joinPaths(basePath, subPath) : basePath; //default is POSIX-style path
-
+  console.log(fullPath);
   if (pathKey === 'mac_path') {
-    fullPath = convertPathToMacStyle(fullPath);
+    fullPath = subPath
+      ? basePath + PATH_DELIMITER + removeSlashesFromPath(subPath ?? '')
+      : basePath;
   } else if (pathKey === 'windows_path') {
     fullPath = convertPathToWindowsStyle(fullPath);
   }
@@ -214,5 +213,6 @@ export {
   joinPaths,
   makeBrowseLink,
   makePathSegmentArray,
-  removeLastSegmentFromPath
+  removeLastSegmentFromPath,
+  removeSlashesFromPath
 };

@@ -8,11 +8,12 @@ import {
   makePathSegmentArray,
   removeLastSegmentFromPath
 } from '@/utils';
+import { removeSlashesFromPath } from '@/utils/pathHandling';
 import type { FileSharePath } from '@/shared.types';
 
 describe('joinPaths', () => {
   test('joins paths in POSIX style', () => {
-    expect(joinPaths('a', 'b', 'c')).toBe('a/b/c');
+    expect(joinPaths('a//', 'b/', '/c')).toBe('a/b/c');
   });
   test('trims whitespace from segments', () => {
     expect(joinPaths('a ', ' b', 'c ')).toBe('a/b/c');
@@ -82,6 +83,18 @@ describe('removeLastSegmentFromPath', () => {
   });
 });
 
+describe('removeSlashesFromPath', () => {
+  test('removes leading and trailing slashes', () => {
+    expect(removeSlashesFromPath('/a/b/c/')).toBe('a/b/c');
+  });
+  test('handles multiple leading and trailing slashes', () => {
+    expect(removeSlashesFromPath('///a/b/c///')).toBe('a/b/c');
+  });
+  test('returns empty string for just slashes', () => {
+    expect(removeSlashesFromPath('////')).toBe('');
+  });
+});
+
 describe('getPreferredPathForDisplay', () => {
   const mockFsp = {
     zone: 'test_zone',
@@ -90,7 +103,7 @@ describe('getPreferredPathForDisplay', () => {
     storage: 'local',
     linux_path: '/mnt/data',
     windows_path: 'D:\\data',
-    mac_path: '/Volumes/data'
+    mac_path: 'smb://data'
   } as FileSharePath;
 
   test('returns linux_path by default', () => {
@@ -105,7 +118,7 @@ describe('getPreferredPathForDisplay', () => {
 
   test('returns mac_path when preferred', () => {
     expect(getPreferredPathForDisplay(['mac_path'], mockFsp)).toBe(
-      '/Volumes/data'
+      'smb://data'
     );
   });
 
@@ -123,6 +136,12 @@ describe('getPreferredPathForDisplay', () => {
     expect(
       getPreferredPathForDisplay(['windows_path'], mockFsp, 'foo/bar')
     ).toBe('D:\\data\\foo\\bar');
+  });
+
+  test('joins subPath and converts to mac style if needed', () => {
+    expect(getPreferredPathForDisplay(['mac_path'], mockFsp, 'foo/bar')).toBe(
+      'smb://data/foo/bar'
+    );
   });
 
   test('handles missing subPath', () => {
