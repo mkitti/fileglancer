@@ -10,6 +10,7 @@ import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { getPreferredPathForDisplay } from '@/utils';
 import FgDialog from './FgDialog';
+import TextWithFilePath from './TextWithFilePath';
 
 type DataLinkDialogProps = {
   isImageShared: boolean;
@@ -48,12 +49,11 @@ export default function DataLinkDialog({
     >
       {/* TODO: Move Janelia-specific text elsewhere */}
       {isImageShared ? (
-        <div className="my-8 text-large text-foreground">
-          <Typography>
-            Are you sure you want to delete the data link for this path?
-            <br />
-            <span className="font-semibold break-all">{displayPath}</span>
-          </Typography>
+        <div className="my-8 text-foreground">
+          <TextWithFilePath
+            text="Are you sure you want to delete the data link for this path?"
+            path={displayPath}
+          />
           <Typography className="mt-4">
             Warning: The existing data link to this data will be deleted.
             Collaborators who previously received the link will no longer be
@@ -62,12 +62,11 @@ export default function DataLinkDialog({
           </Typography>
         </div>
       ) : (
-        <div className="my-8 text-large text-foreground">
-          <Typography>
-            Are you sure you want to create a data link for this path?
-            <br />
-            <span className="font-semibold break-all">{displayPath}</span>
-          </Typography>
+        <div className="my-8 text-foreground">
+          <TextWithFilePath
+            text="Are you sure you want to create a data link for this path?"
+            path={displayPath}
+          />
           <Typography className="mt-4">
             If you share the data link with internal collaborators, they will be
             able to view this data.

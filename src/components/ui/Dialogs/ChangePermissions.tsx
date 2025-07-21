@@ -2,6 +2,7 @@ import React from 'react';
 import { Button, Typography } from '@material-tailwind/react';
 
 import FgDialog from './FgDialog';
+import TextWithFilePath from './TextWithFilePath';
 import usePermissionsDialog from '@/hooks/usePermissionsDialog';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
@@ -63,10 +64,10 @@ export default function ChangePermissions({
             setShowPermissionsDialog(false);
           }}
         >
-          <Typography className="mt-8 text-foreground font-semibold">
-            Change permisions for file
-            <span className="font-semibold"> {targetItem.name}</span>
-          </Typography>
+          <TextWithFilePath
+            text="Change permissions for file:"
+            path={targetItem.name}
+          />
           <table className="w-full my-4 border border-surface dark:border-surface-light text-foreground">
             <thead className="border-b border-surface dark:border-surface-light bg-surface-dark text-sm font-medium">
               <tr>

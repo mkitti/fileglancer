@@ -3,6 +3,7 @@ import { Button, Typography } from '@material-tailwind/react';
 import toast from 'react-hot-toast';
 
 import FgDialog from './FgDialog';
+import TextWithFilePath from './TextWithFilePath';
 import useConvertFileDialog from '@/hooks/useConvertFileDialog';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
@@ -60,14 +61,7 @@ export default function ConvertFileDialog({
           }
         }}
       >
-        <div className="flex flex-col gap-2 mb-4">
-          <Typography className="text-foreground font-semibold">
-            Source Folder
-          </Typography>
-          <Typography className="text-foreground text-small font-mono break-all">
-            {displayPath}
-          </Typography>
-        </div>
+        <TextWithFilePath text="Source Folder" path={displayPath} />
         <div className="flex flex-col gap-2 mb-4">
           <Typography
             as="label"
