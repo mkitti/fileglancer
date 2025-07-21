@@ -39,9 +39,12 @@ export default function ConvertFileDialog({
       open={showConvertFileDialog}
       onClose={() => setShowConvertFileDialog(false)}
     >
-      <Typography className="my-8 text-large text-foreground">
-        Create a JIRA ticket to convert{' '}
-        <span className="font-semibold">{displayPath}</span> to a ZARR file:
+      <Typography variant="h4" className="mb-4 text-foreground font-bold text-2xl">
+        Convert image to OME-Zarr format
+      </Typography>
+      <Typography className="my-4 text-large text-foreground">
+        This form will create a JIRA ticket to request conversion of the image data to OME-Zarr format, 
+        suitable for viewing in external viewers like Neuroglancer.
       </Typography>
       <form
         onSubmit={async event => {
@@ -57,7 +60,15 @@ export default function ConvertFileDialog({
           }
         }}
       >
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 mb-4">
+          <Typography className="text-foreground font-semibold">
+            Source Folder
+          </Typography>
+          <Typography className="text-foreground text-small font-mono break-all">
+            {displayPath}
+          </Typography>
+        </div>
+        <div className="flex flex-col gap-2 mb-4">
           <Typography
             as="label"
             htmlFor="destination_folder"

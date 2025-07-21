@@ -152,7 +152,7 @@ export default function PropertiesDrawer({
             ) : (
               <>
                 <Typography variant="small" className="font-medium">
-                  Convert data to OME-Zarr
+                  Convert image to OME-Zarr format
                 </Typography>
                 <Button
                   variant="outline"
