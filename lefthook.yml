@@ -2,7 +2,8 @@ pre-push:
   parallel: true
   jobs:
     - name: Enforce Prettier formatting
-      run: npx prettier --write "/src/*.{ts,tsx,js,jsx,json,md}"
+      run: npx prettier --write "**/*.{ts,tsx,js,jsx,json,md}"
+      stage_fixed: true
 
     - name: Run ESLint check
       run: eslint . --cache --ext .ts,.tsx
