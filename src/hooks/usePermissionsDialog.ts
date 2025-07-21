@@ -1,11 +1,7 @@
 import React from 'react';
 import toast from 'react-hot-toast';
 
-import {
-  sendFetchRequest,
-  removeLastSegmentFromPath,
-  getFileBrowsePath
-} from '@/utils';
+import { sendFetchRequest, getFileBrowsePath } from '@/utils';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
