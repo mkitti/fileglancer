@@ -1,79 +1,82 @@
-import {
-  IconButton,
-  Menu,
-  Tooltip,
-  Typography
-} from '@material-tailwind/react';
-import { HiOutlineEllipsisHorizontalCircle } from 'react-icons/hi2';
-import { useNavigate } from 'react-router';
-import logger from '@/logger';
-import toast from 'react-hot-toast';
+import { Tooltip, Typography } from '@material-tailwind/react';
 
 import SharingDialog from '@/components/ui/Dialogs/Sharing';
-import type { FileSharePath } from '@/shared.types';
+import SharedActionsMenu from '@/components/ui/Menus/SharedActions';
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
+import useSharingDialog from '@/hooks/useSharingDialog';
+import useProxiedPathRow from '@/hooks/useProxiedPathRow';
 import {
   formatDateString,
   getPreferredPathForDisplay,
-  makeMapKey,
-  makeBrowseLink
+  makeMapKey
 } from '@/utils';
-import { copyToClipboard } from '@/utils/copyText';
-import useSharingDialog from '@/hooks/useSharingDialog';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
-import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
+import type { FileSharePath } from '@/shared.types';
+import type { MenuItem } from '@/components/ui/Menus/FgMenuItems';
 
 type ProxiedPathRowProps = {
   item: ProxiedPath;
-  menuOpenId: string | null;
-  setMenuOpenId: (id: string | null) => void;
+};
+
+type ProxiedPathRowActionProps = {
+  handleCopyPath: (path: string) => void;
+  handleCopyUrl: (item: ProxiedPath) => void;
+  handleUnshare: (pathFsp: FileSharePath) => void;
+  item: ProxiedPath;
+  displayPath: string;
+  pathFsp: FileSharePath | undefined;
 };
 
 export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
-  const { showSharingDialog, setShowSharingDialog } = useSharingDialog();
   const { pathPreference } = usePreferencesContext();
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
-  const navigate = useNavigate();
+
+  const { showSharingDialog, setShowSharingDialog } = useSharingDialog();
+  const {
+    handleCopyPath,
+    handleCopyUrl,
+    handleUnshare,
+    handleRowClick,
+    handleNameClick
+  } = useProxiedPathRow({ item, setShowSharingDialog });
 
   const pathFsp = zonesAndFileSharePathsMap[
     makeMapKey('fsp', item.fsp_name)
   ] as FileSharePath;
+
   const displayPath = getPreferredPathForDisplay(
     pathPreference,
     pathFsp,
     item.path
   );
 
-  // Create navigation link for the file browser
-  const browseLink = makeBrowseLink(item.fsp_name, item.path);
-
-  const handleCopyPath = async () => {
-    try {
-      await copyToClipboard(displayPath);
-      toast.success('Path copied to clipboard');
-    } catch (error) {
-      logger.error('Failed to copy path:', error);
-      toast.error('Failed to copy path');
+  const menuItems: MenuItem<ProxiedPathRowActionProps>[] = [
+    {
+      name: 'Copy path',
+      action: (props: ProxiedPathRowActionProps) =>
+        props.handleCopyPath(props.displayPath)
+    },
+    {
+      name: 'Copy sharing link (S3-compatible URL)',
+      action: (props: ProxiedPathRowActionProps) =>
+        props.handleCopyUrl(props.item)
+    },
+    {
+      name: 'Unshare',
+      action: (props: ProxiedPathRowActionProps) =>
+        props.handleUnshare(props.pathFsp as FileSharePath),
+      color: 'text-red-600'
     }
-  };
+  ];
 
-  const handleCopyUrl = async () => {
-    try {
-      await copyToClipboard(item.url);
-      toast.success('URL copied to clipboard');
-    } catch (error) {
-      logger.error('Failed to copy sharing URL:', error);
-      toast.error('Failed to copy URL');
-    }
-  };
-
-  const handleRowClick = () => {
-    navigate(browseLink);
-  };
-
-  const handleNameClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    navigate(browseLink);
+  const actionProps = {
+    handleCopyPath,
+    handleCopyUrl,
+    handleUnshare,
+    item,
+    displayPath,
+    pathFsp
   };
 
   return (
@@ -121,44 +124,12 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
           <Tooltip.Content>{formatDateString(item.created_at)}</Tooltip.Content>
         </Tooltip>
         {/* Actions */}
-        <Menu>
-          <Menu.Trigger
-            as={IconButton}
-            variant="ghost"
-            className="p-1 max-w-fit"
-            onClick={(e: React.MouseEvent) => e.stopPropagation()}
-          >
-            <HiOutlineEllipsisHorizontalCircle className="icon-default text-foreground" />
-          </Menu.Trigger>
-          <Menu.Content className="menu-content">
-            <Menu.Item className="menu-item">
-              <Typography
-                className="text-sm p-1 cursor-pointer text-secondary-light"
-                onClick={handleCopyPath}
-              >
-                Copy path
-              </Typography>
-            </Menu.Item>
-            <Menu.Item className="menu-item">
-              <Typography
-                className="text-sm p-1 cursor-pointer text-secondary-light"
-                onClick={handleCopyUrl}
-              >
-                Copy sharing link (S3-compatible URL)
-              </Typography>
-            </Menu.Item>
-            <Menu.Item>
-              <Typography
-                className="text-sm p-1 cursor-pointer text-red-600"
-                onClick={() => {
-                  setShowSharingDialog(true);
-                }}
-              >
-                Unshare
-              </Typography>
-            </Menu.Item>
-          </Menu.Content>
-        </Menu>
+        <div onClick={e => e.stopPropagation()}>
+          <SharedActionsMenu<ProxiedPathRowActionProps>
+            menuItems={menuItems}
+            actionProps={actionProps}
+          />
+        </div>
       </div>
       {/* Sharing dialog */}
       {showSharingDialog ? (

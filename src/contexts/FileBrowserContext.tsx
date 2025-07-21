@@ -42,6 +42,9 @@ type FileBrowserContextType = {
   setPropertiesTarget: React.Dispatch<
     React.SetStateAction<FileOrFolder | null>
   >;
+  setCurrentFileSharePath: React.Dispatch<
+    React.SetStateAction<FileSharePath | null>
+  >;
 };
 
 const FileBrowserContext = React.createContext<FileBrowserContextType | null>(
@@ -289,7 +292,8 @@ export const FileBrowserContextProvider = ({
         fetchErrorMsg,
         refreshFiles,
         propertiesTarget,
-        setPropertiesTarget
+        setPropertiesTarget,
+        setCurrentFileSharePath
       }}
     >
       {children}
