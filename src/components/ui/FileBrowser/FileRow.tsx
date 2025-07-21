@@ -36,7 +36,7 @@ export default function FileRow({
   index,
   selectedFiles,
   setSelectedFiles,
-  displayFiles,
+  // displayFiles,
   showPropertiesDrawer,
   handleContextMenuClick
 }: FileRowProps): ReactNode {

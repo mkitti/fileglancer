@@ -64,6 +64,7 @@ export const ProxiedPathProvider = ({
 
   const updateProxiedPath = React.useCallback(
     (proxiedPath: ProxiedPath | null) => {
+      log.debug('updateProxiedPath', proxiedPath);
       setProxiedPath(proxiedPath);
       if (proxiedPath) {
         setDataUrl(proxiedPath.url);
@@ -88,6 +89,7 @@ export const ProxiedPathProvider = ({
           errorMsg = data.error;
         }
       } catch (e) {
+        log.error('Error fetching proxied paths:', e);
         // response was not JSON, keeping default errorMsg...
       }
       throw new Error(errorMsg);

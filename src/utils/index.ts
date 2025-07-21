@@ -32,7 +32,7 @@ const formatUnixTimestamp = (timestamp: number): string => {
   });
 };
 
-function formatDateString(dateStr: string) {
+const formatDateString = (dateStr: string) => {
   // If dateStr does not end with 'Z' or contain a timezone offset, treat as UTC
   let normalized = dateStr;
   if (!/Z$|[+-]\d{2}:\d{2}$/.test(dateStr)) {
@@ -40,7 +40,7 @@ function formatDateString(dateStr: string) {
   }
   const date = new Date(normalized);
   return date.toLocaleString();
-}
+};
 
 class HTTPError extends Error {
   responseCode: number;

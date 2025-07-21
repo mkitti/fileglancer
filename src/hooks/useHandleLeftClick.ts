@@ -45,22 +45,22 @@ export default function useHandleLeftClick() {
     //   setSelectedFiles(newSelectedFiles);
     //   setPropertiesTarget(file);
     // } else {
-      // If no modifier keys are held down, select the current file
-      const currentIndex = selectedFiles.indexOf(file);
-      const newSelectedFiles =
-        currentIndex === -1 ||
-        selectedFiles.length > 1 ||
-        showFilePropertiesDrawer
-          ? [file]
-          : [];
-      setSelectedFiles(newSelectedFiles);
-      const newPropertiesTarget =
-        currentIndex === -1 ||
-        selectedFiles.length > 1 ||
-        showFilePropertiesDrawer
-          ? file
-          : null;
-      setPropertiesTarget(newPropertiesTarget);
+    // If no modifier keys are held down, select the current file
+    const currentIndex = selectedFiles.indexOf(file);
+    const newSelectedFiles =
+      currentIndex === -1 ||
+      selectedFiles.length > 1 ||
+      showFilePropertiesDrawer
+        ? [file]
+        : [];
+    setSelectedFiles(newSelectedFiles);
+    const newPropertiesTarget =
+      currentIndex === -1 ||
+      selectedFiles.length > 1 ||
+      showFilePropertiesDrawer
+        ? file
+        : null;
+    setPropertiesTarget(newPropertiesTarget);
     // }
   };
 
