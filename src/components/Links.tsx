@@ -35,6 +35,7 @@ export default function Links() {
           </div>
           {allProxiedPaths?.map(item => (
             <ProxiedPathRow
+              key={item.sharing_key}
               item={item}
               menuOpenId={menuOpenId}
               setMenuOpenId={setMenuOpenId}

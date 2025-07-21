@@ -89,7 +89,7 @@ export default function FileList({
           displayFiles.map((file, index) => {
             return (
               <FileRow
-                key={file.name}
+                key={`${file.name}-${index}`}
                 file={file}
                 index={index}
                 selectedFiles={selectedFiles}
