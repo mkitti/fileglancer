@@ -3,7 +3,7 @@ import { Typography } from '@material-tailwind/react';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import ProxiedPathRow from './ui/Shared/ProxiedPathRow';
 
-export default function Shared() {
+export default function Links() {
   const [menuOpenId, setMenuOpenId] = React.useState<string | null>(null);
   const { allProxiedPaths } = useProxiedPathContext();
 
@@ -15,8 +15,8 @@ export default function Shared() {
         </Typography>
         <Typography variant="small" className="mb-6 text-foreground">
           Data links can be created for any Zarr folder in the file browser.
-          They are used to open files in external viewers like Neuroglancer.
-          You can share data links with internal collaborators.
+          They are used to open files in external viewers like Neuroglancer. You
+          can share data links with internal collaborators.
         </Typography>
         <div className="rounded-lg shadow bg-background">
           <div className="grid grid-cols-[1.5fr_2.5fr_1.5fr_1fr] gap-4 px-4 py-2 border-b border-surface">

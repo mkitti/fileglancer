@@ -15,10 +15,10 @@ import volE_logo from '@/assets/aics_website-3d-cell-viewer.png';
 import copy_logo from '@/assets/copy-link-64.png';
 
 import ZarrMetadataTable from '@/components/ui/FileBrowser/ZarrMetadataTable';
-import SharingDialog from '@/components/ui/Dialogs/Sharing';
+import DataLinkDialog from '@/components/ui/Dialogs/DataLink';
 import Loader from '@/components/ui/Loader';
 import type { OpenWithToolUrls, ZarrMetadata } from '@/hooks/useZarrMetadata';
-import useSharingDialog from '@/hooks/useSharingDialog';
+import useDataLinkDialog from '@/hooks/useDataLinkDialog';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { Metadata } from '@/omezarr-helper';
@@ -42,7 +42,7 @@ export default function ZarrPreview({
   const [isImageShared, setIsImageShared] = React.useState(false);
   const [showCopiedTooltip, setShowCopiedTooltip] = React.useState(false);
 
-  const { showSharingDialog, setShowSharingDialog } = useSharingDialog();
+  const { showDataLinkDialog, setShowDataLinkDialog } = useDataLinkDialog();
   const { proxiedPath } = useProxiedPathContext();
   const { currentFolder } = useFileBrowserContext();
 
@@ -99,7 +99,7 @@ export default function ZarrPreview({
               id="share-switch"
               className="mt-2 bg-secondary-light border-secondary-light hover:!bg-secondary-light/80 hover:!border-secondary-light/80"
               onChange={() => {
-                setShowSharingDialog(true);
+                setShowDataLinkDialog(true);
               }}
               checked={isImageShared}
             />
@@ -121,13 +121,13 @@ export default function ZarrPreview({
             </label>
           </div>
 
-          {showSharingDialog ? (
-            <SharingDialog
+          {showDataLinkDialog ? (
+            <DataLinkDialog
               isImageShared={isImageShared}
               setIsImageShared={setIsImageShared}
               filePathWithoutFsp={currentFolder?.path || ''}
-              showSharingDialog={showSharingDialog}
-              setShowSharingDialog={setShowSharingDialog}
+              showDataLinkDialog={showDataLinkDialog}
+              setShowDataLinkDialog={setShowDataLinkDialog}
               proxiedPath={proxiedPath}
             />
           ) : null}

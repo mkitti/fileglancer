@@ -10,7 +10,7 @@ import Browse from '@/components/Browse';
 import Help from '@/components/Help';
 import Jobs from '@/components/Jobs';
 import Preferences from '@/components/Preferences';
-import Shared from '@/components/Shared';
+import Links from '@/components/Links';
 import ErrorFallback from '@/components/ErrorFallback';
 
 function Login() {
@@ -50,7 +50,7 @@ const AppComponent = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/*" element={<MainLayout />}>
           <Route element={<OtherPagesLayout />}>
-            <Route path="links" element={<Shared />} />
+            <Route path="links" element={<Links />} />
             <Route path="jobs" element={<Jobs />} />
             <Route path="help" element={<Help />} />
             <Route path="preferences" element={<Preferences />} />

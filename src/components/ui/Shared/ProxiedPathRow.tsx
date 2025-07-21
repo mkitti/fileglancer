@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router';
 import logger from '@/logger';
 import toast from 'react-hot-toast';
 
-import SharingDialog from '@/components/ui/Dialogs/Sharing';
+import DataLinkDialog from '@/components/ui/Dialogs/DataLink';
 import type { FileSharePath } from '@/shared.types';
 import {
   formatDateString,
@@ -18,7 +18,7 @@ import {
   makeBrowseLink
 } from '@/utils';
 import { copyToClipboard } from '@/utils/copyText';
-import useSharingDialog from '@/hooks/useSharingDialog';
+import useDataLinkDialog from '@/hooks/useDataLinkDialog';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
@@ -30,7 +30,7 @@ type ProxiedPathRowProps = {
 };
 
 export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
-  const { showSharingDialog, setShowSharingDialog } = useSharingDialog();
+  const { showDataLinkDialog, setShowDataLinkDialog } = useDataLinkDialog();
   const { pathPreference } = usePreferencesContext();
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
   const navigate = useNavigate();
@@ -151,7 +151,7 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
               <Typography
                 className="text-sm p-1 cursor-pointer text-red-600"
                 onClick={() => {
-                  setShowSharingDialog(true);
+                  setShowDataLinkDialog(true);
                 }}
               >
                 Unshare
@@ -161,12 +161,12 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
         </Menu>
       </div>
       {/* Sharing dialog */}
-      {showSharingDialog ? (
-        <SharingDialog
+      {showDataLinkDialog ? (
+        <DataLinkDialog
           isImageShared={true}
           filePathWithoutFsp={item.path}
-          showSharingDialog={showSharingDialog}
-          setShowSharingDialog={setShowSharingDialog}
+          showDataLinkDialog={showDataLinkDialog}
+          setShowDataLinkDialog={setShowDataLinkDialog}
           proxiedPath={item}
         />
       ) : null}
