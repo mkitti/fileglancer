@@ -29,8 +29,8 @@ const LINKS = [
   },
   {
     icon: HiOutlineShare,
-    title: 'Shared',
-    href: '/shared'
+    title: 'Data Links',
+    href: '/links'
   },
   {
     icon: HiOutlineBriefcase,

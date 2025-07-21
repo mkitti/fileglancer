@@ -50,7 +50,7 @@ const AppComponent = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/*" element={<MainLayout />}>
           <Route element={<OtherPagesLayout />}>
-            <Route path="shared" element={<Shared />} />
+            <Route path="links" element={<Shared />} />
             <Route path="jobs" element={<Jobs />} />
             <Route path="help" element={<Help />} />
             <Route path="preferences" element={<Preferences />} />

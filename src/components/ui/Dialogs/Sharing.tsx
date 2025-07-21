@@ -50,24 +50,24 @@ export default function SharingDialog({
       {isImageShared ? (
         <div className="my-8 text-large text-foreground">
           <Typography>
-            Are you sure you want to unshare{' '}
-            <span className="font-semibold break-all">{displayPath}</span>?
+            Are you sure you want to delete the data link for this path?<br/>
+            <span className="font-semibold break-all">{displayPath}</span>
           </Typography>
           <Typography className="mt-4">
-            Warning: The existing sharing link to this data will be disabled.
-            Collaborators who previously received the link will no longer be
-            able to access it. You can create a new sharing link at any time if
-            needed.
+            Warning: The existing data link to this data will be deleted.
+            Collaborators who previously received the link will no longer be able
+            to access it. You can create a new data link at any time if needed.
           </Typography>
         </div>
       ) : (
         <div className="my-8 text-large text-foreground">
           <Typography>
-            Are you sure you want to share{' '}
-            <span className="font-semibold break-all">{displayPath}</span>?
+            Are you sure you want to create a data link for this path?<br/>
+            <span className="font-semibold break-all">{displayPath}</span>
           </Typography>
           <Typography className="mt-4">
-            This will allow anyone at Janelia to view this data.
+            If you share the data link with internal collaborators, they will be able to
+            view this data. 
           </Typography>
         </div>
       )}
@@ -85,9 +85,9 @@ export default function SharingDialog({
                   filePathWithoutFsp
                 );
                 if (newProxiedPath) {
-                  toast.success(`Successfully shared ${displayPath}`);
+                  toast.success(`Successfully created data link for ${displayPath}`);
                 } else {
-                  toast.error(`Error sharing ${displayPath}`);
+                  toast.error(`Error creating data link for ${displayPath}`);
                 }
                 setShowSharingDialog(false);
                 if (setIsImageShared) {
@@ -95,14 +95,14 @@ export default function SharingDialog({
                 }
               } catch (error) {
                 toast.error(
-                  `Error sharing ${displayPath}: ${
+                  `Error creating data link for ${displayPath}: ${
                     error instanceof Error ? error.message : 'Unknown error'
                   }`
                 );
               }
             }}
           >
-            Share path
+            Create Data Link
           </Button>
         ) : null}
         {isImageShared ? (
@@ -117,21 +117,21 @@ export default function SharingDialog({
                 } else {
                   toast.error('Proxied path not found');
                 }
-                toast.success(`Successfully unshared ${displayPath}`);
+                toast.success(`Successfully deleted data link for ${displayPath}`);
                 setShowSharingDialog(false);
                 if (setIsImageShared) {
                   setIsImageShared(false);
                 }
               } catch (error) {
                 toast.error(
-                  `Error unsharing ${displayPath}: ${
+                  `Error deleting data link for ${displayPath}: ${
                     error instanceof Error ? error.message : 'Unknown error'
                   }`
                 );
               }
             }}
           >
-            Unshare path
+            Delete Data Link
           </Button>
         ) : null}
         <Button

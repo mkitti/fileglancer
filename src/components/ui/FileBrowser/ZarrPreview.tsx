@@ -22,6 +22,7 @@ import useSharingDialog from '@/hooks/useSharingDialog';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { Metadata } from '@/omezarr-helper';
+import { copyToClipboard } from '@/utils/copyText';
 
 type ZarrPreviewProps = {
   thumbnailSrc: string | null;
@@ -111,10 +112,11 @@ export default function ZarrPreview({
                 htmlFor="share-switch"
                 className="cursor-pointer text-foreground font-semibold"
               >
-                Share Image
+                Data Link
               </Typography>
               <Typography type="small" className="text-foreground">
-                Share to view images in external viewers like Neuroglancer.
+                Creating a data link for this image allows you <br />
+                to open it in external viewers like Neuroglancer.
               </Typography>
             </label>
           </div>
