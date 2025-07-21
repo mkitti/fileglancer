@@ -1,7 +1,7 @@
 import React from 'react';
 import { Typography } from '@material-tailwind/react';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
-import ProxiedPathRow from './ui/Shared/ProxiedPathRow';
+import ProxiedPathRow from './ui/LinksPage/ProxiedPathRow';
 
 export default function Links() {
   const [menuOpenId, setMenuOpenId] = React.useState<string | null>(null);
