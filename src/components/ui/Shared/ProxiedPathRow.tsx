@@ -39,8 +39,7 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
     handleUnshare,
     handleRowClick,
     handleNameClick
-  } = useProxiedPathRow({item, setShowSharingDialog});
-
+  } = useProxiedPathRow({ item, setShowSharingDialog });
 
   const pathFsp = zonesAndFileSharePathsMap[
     makeMapKey('fsp', item.fsp_name)

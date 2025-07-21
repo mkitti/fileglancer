@@ -19,7 +19,10 @@ export default function FgMenuItems<T>({
       {menuItems
         .filter(item => item.shouldShow !== false)
         .map((item, index) => (
-          <Menu.Item key={index} onClick={() => item.action && item.action(actionProps)}>
+          <Menu.Item
+            key={index}
+            onClick={() => item.action && item.action(actionProps)}
+          >
             <Typography
               className={`text-sm p-1  ${item.color || 'text-secondary-light'}`}
             >

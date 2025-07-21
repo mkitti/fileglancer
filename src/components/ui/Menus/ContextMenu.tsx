@@ -9,26 +9,26 @@ type ContextMenuProps = {
   y: number;
   menuRef: React.RefObject<HTMLDivElement | null>;
   selectedFiles: FileOrFolder[];
-  handleFavoriteToggleMenuItemClick: (props: {
-    selectedFiles: FileOrFolder[];
-  }) => void;
+  handleFavoriteToggleMenuItemClick: (
+    selectedFiles: FileOrFolder[]
+  ) => Promise<void>;
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
   setShowContextMenu: React.Dispatch<React.SetStateAction<boolean>>;
   setShowRenameDialog: React.Dispatch<React.SetStateAction<boolean>>;
   setShowDeleteDialog: React.Dispatch<React.SetStateAction<boolean>>;
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowConvertFileDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 type ContextMenuActionProps = {
   selectedFiles: FileOrFolder[];
-  handleFavoriteToggleMenuItemClick: (props: {
-    selectedFiles: FileOrFolder[];
-  }) => void;
+  handleFavoriteToggleMenuItemClick: (selectedFiles: FileOrFolder[]) => void;
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
   setShowContextMenu: React.Dispatch<React.SetStateAction<boolean>>;
   setShowRenameDialog: React.Dispatch<React.SetStateAction<boolean>>;
   setShowDeleteDialog: React.Dispatch<React.SetStateAction<boolean>>;
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowConvertFileDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function ContextMenu({
@@ -41,7 +41,8 @@ export default function ContextMenu({
   setShowContextMenu,
   setShowRenameDialog,
   setShowDeleteDialog,
-  setShowPermissionsDialog
+  setShowPermissionsDialog,
+  setShowConvertFileDialog
 }: ContextMenuProps): React.ReactNode {
   const menuItems: MenuItem<ContextMenuActionProps>[] = [
     {
@@ -55,11 +56,16 @@ export default function ContextMenu({
     {
       name: 'Set/unset as favorite',
       action: (props: ContextMenuActionProps) => {
-        props.handleFavoriteToggleMenuItemClick({
-          selectedFiles: props.selectedFiles
-        });
+        props.handleFavoriteToggleMenuItemClick(selectedFiles);
       },
       shouldShow: selectedFiles[0].is_dir
+    },
+    {
+      name: 'Convert to ZARR',
+      action(props: ContextMenuActionProps) {
+        setShowConvertFileDialog(true);
+        props.setShowContextMenu(false);
+      }
     },
     {
       name: 'Rename',
@@ -95,7 +101,8 @@ export default function ContextMenu({
     setShowContextMenu,
     setShowRenameDialog,
     setShowDeleteDialog,
-    setShowPermissionsDialog
+    setShowPermissionsDialog,
+    setShowConvertFileDialog
   };
 
   return ReactDOM.createPortal(

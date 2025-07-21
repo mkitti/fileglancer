@@ -3,17 +3,19 @@ import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router';
 
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import useCopyPath from '@/hooks/useCopyPath';
-import { makeBrowseLink } from '@/utils';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
+import { makeBrowseLink } from '@/utils';
+import { copyToClipboard } from '@/utils/copyText';
 import { FileSharePath } from '@/shared.types';
 
-export default function useProxiedPathRow({item, setShowSharingDialog}: {
+export default function useProxiedPathRow({
+  item,
+  setShowSharingDialog
+}: {
   item: ProxiedPath;
   setShowSharingDialog: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const { setCurrentFileSharePath } = useFileBrowserContext();
-  const { copyToClipboard } = useCopyPath();
   const navigate = useNavigate();
 
   // Create navigation link for the file browser

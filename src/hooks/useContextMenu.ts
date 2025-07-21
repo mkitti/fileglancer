@@ -71,7 +71,9 @@ export default function useContextMenu() {
     setSelectedFiles(newSelectedFiles);
   }
 
-  const handleFavoriteToggleMenuItemClick = async (selectedFiles: FileOrFolder[]) => {
+  const handleFavoriteToggleMenuItemClick = async (
+    selectedFiles: FileOrFolder[]
+  ): Promise<void> => {
     if (currentFileSharePath) {
       await handleFavoriteChange(
         {
