@@ -6,4 +6,4 @@ pre-push:
       stage_fixed: true
 
     - name: Run ESLint check
-      run: eslint . --cache --ext .ts,.tsx
+      run: npx eslint . --cache --ext .ts,.tsx

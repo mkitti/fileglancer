@@ -17,7 +17,6 @@ export default function useContextMenu() {
   const { handleFavoriteChange } = usePreferencesContext();
 
   function onClose() {
-    dsa;
     setShowContextMenu(false);
   }
 
