@@ -141,7 +141,9 @@ function removeLastSegmentFromPath(itemPath: string): string {
  * convertPathToMacStyle('smb:/path/to/folder'); // Returns 'smb://path/to/folder'
  */
 function convertPathToMacStyle(pathString: string): string {
-  if (pathString.startsWith('smb:/')) {
+  if (pathString.startsWith('smb://')) {
+    return pathString; // Already in Mac style
+  } else if (pathString.startsWith('smb:/')) {
     return pathString.replace('smb:/', 'smb://');
   }
   return pathString;
