@@ -5,21 +5,22 @@ import type { FileOrFolder } from '@/shared.types';
 import FileListCrumbs from './Crumbs';
 import FileRow from './FileRow';
 import ZarrPreview from './ZarrPreview';
+import ContextMenu from '@/components/ui/Menus/ContextMenu';
+import Loader from '@/components/ui/Loader';
+import useContextMenu from '@/hooks/useContextMenu';
 import useZarrMetadata from '@/hooks/useZarrMetadata';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import Loader from '../Loader';
 
 type FileListProps = {
   selectedFiles: FileOrFolder[];
   setSelectedFiles: React.Dispatch<React.SetStateAction<FileOrFolder[]>>;
   showPropertiesDrawer: boolean;
   hideDotFiles: boolean;
-  handleContextMenuClick: (
-    e: React.MouseEvent<HTMLDivElement>,
-    file: FileOrFolder,
-    selectedFiles: FileOrFolder[],
-    setSelectedFiles: React.Dispatch<React.SetStateAction<FileOrFolder[]>>
-  ) => void;
+  setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowRenameDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowDeleteDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowConvertFileDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function FileList({
@@ -27,9 +28,23 @@ export default function FileList({
   setSelectedFiles,
   showPropertiesDrawer,
   hideDotFiles,
-  handleContextMenuClick
+  setShowPropertiesDrawer,
+  setShowRenameDialog,
+  setShowDeleteDialog,
+  setShowPermissionsDialog,
+  setShowConvertFileDialog
 }: FileListProps): React.ReactNode {
   const { files, isFileBrowserReady, fetchErrorMsg } = useFileBrowserContext();
+
+  const {
+    contextMenuCoords,
+    showContextMenu,
+    setShowContextMenu,
+    menuRef,
+    handleContextMenuClick,
+    handleFavoriteToggleMenuItemClick
+  } = useContextMenu();
+
   const {
     metadata,
     thumbnailSrc,
@@ -120,6 +135,21 @@ export default function FileList({
           </div>
         )}
       </div>
+      {showContextMenu ? (
+        <ContextMenu
+          x={contextMenuCoords.x}
+          y={contextMenuCoords.y}
+          menuRef={menuRef}
+          selectedFiles={selectedFiles}
+          handleFavoriteToggleMenuItemClick={handleFavoriteToggleMenuItemClick}
+          setShowPropertiesDrawer={setShowPropertiesDrawer}
+          setShowContextMenu={setShowContextMenu}
+          setShowRenameDialog={setShowRenameDialog}
+          setShowDeleteDialog={setShowDeleteDialog}
+          setShowPermissionsDialog={setShowPermissionsDialog}
+          setShowConvertFileDialog={setShowConvertFileDialog}
+        />
+      ) : null}
     </div>
   );
 }

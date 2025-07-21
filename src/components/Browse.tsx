@@ -1,14 +1,12 @@
 import React from 'react';
 import { useOutletContext } from 'react-router';
 
-import useContextMenu from '@/hooks/useContextMenu';
 import useHideDotFiles from '@/hooks/useHideDotFiles';
 import useSelectedFiles from '@/hooks/useSelectedFiles';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
 import FileList from './ui/FileBrowser/FileList';
 import Toolbar from './ui/FileBrowser/Toolbar';
-import ContextMenu from './ui/Menus/ContextMenu';
 import RenameDialog from './ui/Dialogs/Rename';
 import NewFolderDialog from './ui/Dialogs/NewFolder';
 import Delete from './ui/Dialogs/Delete';
@@ -39,15 +37,6 @@ export default function Browse() {
     showConvertFileDialog
   } = useOutletContext<OutletContextType>();
 
-  const {
-    contextMenuCoords,
-    showContextMenu,
-    setShowContextMenu,
-    menuRef,
-    handleContextMenuClick,
-    handleFavoriteToggleMenuItemClick
-  } = useContextMenu();
-
   const { hideDotFiles, setHideDotFiles } = useHideDotFiles();
   const { selectedFiles, setSelectedFiles } = useSelectedFiles();
   const { currentFileSharePath } = useFileBrowserContext();
@@ -76,25 +65,14 @@ export default function Browse() {
             setSelectedFiles={setSelectedFiles}
             showPropertiesDrawer={showPropertiesDrawer}
             hideDotFiles={hideDotFiles}
-            handleContextMenuClick={handleContextMenuClick}
+            setShowPropertiesDrawer={setShowPropertiesDrawer}
+            setShowRenameDialog={setShowRenameDialog}
+            setShowDeleteDialog={setShowDeleteDialog}
+            setShowPermissionsDialog={setShowPermissionsDialog}
+            setShowConvertFileDialog={setShowConvertFileDialog}
           />
         )}
       </div>
-      {showContextMenu ? (
-        <ContextMenu
-          x={contextMenuCoords.x}
-          y={contextMenuCoords.y}
-          menuRef={menuRef}
-          selectedFiles={selectedFiles}
-          handleFavoriteToggleMenuItemClick={handleFavoriteToggleMenuItemClick}
-          setShowPropertiesDrawer={setShowPropertiesDrawer}
-          setShowContextMenu={setShowContextMenu}
-          setShowRenameDialog={setShowRenameDialog}
-          setShowDeleteDialog={setShowDeleteDialog}
-          setShowPermissionsDialog={setShowPermissionsDialog}
-          setShowConvertFileDialog={setShowConvertFileDialog}
-        />
-      ) : null}
       {showRenameDialog ? (
         <RenameDialog
           showRenameDialog={showRenameDialog}
