@@ -186,17 +186,20 @@ function getPreferredPathForDisplay(
   const pathKey = pathPreference[0] ?? 'linux_path';
   const basePath = fsp[pathKey] ?? fsp.linux_path;
 
-  let fullPath = subPath ? joinPaths(basePath, subPath) : basePath; //default is POSIX-style path
+  if (!subPath){
+    return basePath;
+  } else {
+    let fullPath = joinPaths(basePath, subPath) // Linux = POSIX style
 
-  if (pathKey === 'mac_path') {
-    fullPath = subPath
-      ? basePath + PATH_DELIMITER + subPath
-      : basePath;
-  } else if (pathKey === 'windows_path') {
-    fullPath = subPath ? basePath + '\\' + convertPathToWindowsStyle(subPath): basePath;
+    if (pathKey === 'mac_path') {
+      fullPath = basePath + PATH_DELIMITER + subPath
+      
+    } else if (pathKey === 'windows_path') {
+      fullPath = basePath + '\\' + convertPathToWindowsStyle(subPath);
+    }
+
+    return fullPath;
   }
-
-  return fullPath;
 }
 
 /**
