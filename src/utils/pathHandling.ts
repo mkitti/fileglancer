@@ -180,10 +180,14 @@ function convertPathToWindowsStyle(pathString: string): string {
  */
 function getPreferredPathForDisplay(
   pathPreference: ['linux_path' | 'windows_path' | 'mac_path'] = ['linux_path'],
-  fsp: FileSharePath,
+  fsp?: FileSharePath,
   subPath?: string
 ): string {
   const pathKey = pathPreference[0] ?? 'linux_path';
+  if (!fsp){
+    return '';
+  }
+  
   const basePath = fsp[pathKey] ?? fsp.linux_path;
 
   if (!subPath){
