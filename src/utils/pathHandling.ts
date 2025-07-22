@@ -26,7 +26,7 @@ function removeTrailingSlashes(mountPath: string): string {
  * normalizePosixStylePath('path/to/folder'); // Returns 'path/to/folder'
  */
 function normalizePosixStylePath(pathString: string): string {
-  let pathWithoutLeadingSlashes = pathString.replace(/^\//, ''); // Remove leading slashes
+  const pathWithoutLeadingSlashes = pathString.replace(/^\//, ''); // Remove leading slashes
   return path.posix.normalize(pathWithoutLeadingSlashes);
 }
 
