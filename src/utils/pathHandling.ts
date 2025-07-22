@@ -5,6 +5,32 @@ import type { FileSharePath } from '@/shared.types';
 const PATH_DELIMITER = '/';
 
 /**
+ * Remove any trailing slashes from a path
+ * Only for use in normalzing all styles of mount path on initial data load
+ * E.g.:
+ * removeTrailingSlashes('/path/to/folder/'); // Returns '/path/to/folder
+ * removeTrailingSlashes('smb://path/to/folder/'); // Returns 'smb://path/to/folder'
+ * removeTrailingSlashes('\\prfs.hhmi.org\\path\\to\\folder\\'); // Returns '\\prfs.hhmi.org\path\to\folder'
+ */
+function removeTrailingSlashes(mountPath: string): string {
+  return mountPath.replace(/\/+$/, '').replace(/\\+$/, '');
+}
+
+/**
+ * Normalize to POSIX style path
+ * For use in normalizing file or folder paths in initial data load
+ * Assumes the path is already in POSIX style
+ * Removes any leading slashes
+ * E.g.:
+ * normalizePosixStylePath('/path/to/folder/'); // Returns 'path/to/folder/'
+ * normalizePosixStylePath('path/to/folder'); // Returns 'path/to/folder'
+ */
+function normalizePosixStylePath(pathString: string): string {
+  let pathWithoutLeadingSlashes = pathString.replace(/^\//, ''); // Remove leading slashes
+  return path.posix.normalize(pathWithoutLeadingSlashes);
+}
+
+/**
  * Joins multiple path segments into a single POSIX-style path, trimming any whitespace first.
  * This is useful for constructing API endpoints or file paths.
  * Example:
@@ -135,50 +161,39 @@ function removeLastSegmentFromPath(itemPath: string): string {
 }
 
 /**
- * Removes all leading slashes from a path string.
- * If there are one than more trailing slashes, removes them, leaving only one.
- * This is useful for normalizing paths before processing.
- * For example:
- * removeSlashesFromPath('/path/to/folder/'); // Returns 'path/to/folder'
- * removeSlashesFromPath('///path/to/folder///'); // Returns 'path/to/folder'
- */
-function removeSlashesFromPath(pathString: string): string {
-  return pathString.replace(/^\/+|\/+$/g, '').replace(/\/{2,}/g, '/');
-}
-
-/**
  * Converts a POSIX-style path string to a Windows-style path string.
  * Should only be used in getPrefferedPathForDisplay function.
  * For example:
- * convertPathToWindowsStyle('/path/to/folder'); // Returns '\path\to\folder'
+ * convertPathToWindowsStyle('path/to/folder'); // Returns 'path\to\folder'
  */
 function convertPathToWindowsStyle(pathString: string): string {
   return pathString.replace(/\//g, '\\');
 }
 
 /**
- * Returns the preferred path for display (POSIX or Windows) based on the provided path preference.
+ * Returns the preferred path for display (Linux, Mac or Windows) based on the provided path preference.
+ * Assumes the mount paths in FileSharePath are already normalized (i.e., no trailing slashes, done in ZonesAndFspMapContext.tsx).
+ * If provided, assumes the subPath is already in POSIX style (i.e., using forward slashes, done in FileBrowserContext.tsx).
  * If no preference is provided, defaults to 'linux_path'.
- * If fsp is null, returns an empty string.
  * If subPath is provided, appends it to the base path.
  * Converts the path to Windows style if 'windows_path' is selected.
  */
 function getPreferredPathForDisplay(
   pathPreference: ['linux_path' | 'windows_path' | 'mac_path'] = ['linux_path'],
-  fsp: FileSharePath | null = null,
+  fsp: FileSharePath,
   subPath?: string
 ): string {
   const pathKey = pathPreference[0] ?? 'linux_path';
-  const basePath = fsp ? (fsp[pathKey] ?? fsp.linux_path) : '';
+  const basePath = fsp[pathKey] ?? fsp.linux_path;
 
   let fullPath = subPath ? joinPaths(basePath, subPath) : basePath; //default is POSIX-style path
-  console.log(fullPath);
+
   if (pathKey === 'mac_path') {
     fullPath = subPath
-      ? basePath + PATH_DELIMITER + removeSlashesFromPath(subPath ?? '')
+      ? basePath + PATH_DELIMITER + subPath
       : basePath;
   } else if (pathKey === 'windows_path') {
-    fullPath = convertPathToWindowsStyle(fullPath);
+    fullPath = subPath ? basePath + '\\' + convertPathToWindowsStyle(subPath): basePath;
   }
 
   return fullPath;
@@ -213,6 +228,7 @@ export {
   joinPaths,
   makeBrowseLink,
   makePathSegmentArray,
+  normalizePosixStylePath,
   removeLastSegmentFromPath,
-  removeSlashesFromPath
+  removeTrailingSlashes
 };

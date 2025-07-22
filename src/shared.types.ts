@@ -16,8 +16,8 @@ type FileSharePath = {
   storage: string;
   mount_path: string;
   linux_path: string;
-  mac_path: string | null;
-  windows_path: string | null;
+  mac_path: string;
+  windows_path: string;
 };
 
 type Zone = { name: string; fileSharePaths: FileSharePath[] };

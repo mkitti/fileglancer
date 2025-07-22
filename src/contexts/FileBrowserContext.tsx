@@ -5,6 +5,7 @@ import type { FileOrFolder, FileSharePath } from '@/shared.types';
 import { getFileBrowsePath, makeMapKey, sendFetchRequest } from '@/utils';
 import { useCookiesContext } from './CookiesContext';
 import { useZoneAndFspMapContext } from './ZonesAndFspMapContext';
+import { normalizePosixStylePath } from '@/utils/pathHandling';
 
 type FileBrowserResponse = {
   info: FileOrFolder;
@@ -186,16 +187,25 @@ export const FileBrowserContextProvider = ({
       try {
         const response = await fetchFileInfo(fsp.name, folderPath);
         folder = response.info as FileOrFolder;
-
+        if (folder){
+          folder = {
+                    ...folder, path: normalizePosixStylePath(folder.path)
+                  };
+        }
+        
+        // Normalize the file paths in POSIX style, assuming POSIX-style paths
+        let files = response.files.map(file => ({
+          ...file,
+          path: normalizePosixStylePath(file.path)})) as FileOrFolder[];
         // Sort: directories first, then files; alphabetically within each type
-        const files = response.files.sort(
+        files = files.sort(
           (a: FileOrFolder, b: FileOrFolder) => {
             if (a.is_dir === b.is_dir) {
               return a.name.localeCompare(b.name);
             }
             return a.is_dir ? -1 : 1;
           }
-        ) as FileOrFolder[];
+        )
 
         // Update all states consistently
         updateAllStates(true, fsp, folder, files, null);
