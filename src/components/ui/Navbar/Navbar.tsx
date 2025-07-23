@@ -24,13 +24,13 @@ import { BetaSticker } from '@/components/ui/Beta';
 const LINKS = [
   {
     icon: HiOutlineFolder,
-    title: 'Browse',
+    title: 'Browse Files',
     href: '/browse'
   },
   {
     icon: HiOutlineShare,
-    title: 'Shared',
-    href: '/shared'
+    title: 'Data Links',
+    href: '/links'
   },
   {
     icon: HiOutlineBriefcase,

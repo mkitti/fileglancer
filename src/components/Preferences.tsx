@@ -17,8 +17,8 @@ export default function Preferences() {
   }, [setShowPathPrefAlert]);
 
   return (
-    <div className="pt-12 w-4/5">
-      <Typography type="h5" className="text-foreground text-lg pb-6">
+    <>
+      <Typography type="h5" className="text-foreground pb-6">
         Preferences
       </Typography>
 
@@ -114,6 +114,6 @@ export default function Preferences() {
           </Card.Footer>
         </Card>
       </form>
-    </div>
+    </>
   );
 }
