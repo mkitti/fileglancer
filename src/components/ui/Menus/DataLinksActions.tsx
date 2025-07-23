@@ -9,7 +9,7 @@ type SharedActionsMenuProps<T = unknown> = {
   actionProps: T;
 };
 
-export default function SharedActionsMenu<T>({
+export default function DataLinksActionsMenu<T>({
   menuItems,
   actionProps
 }: SharedActionsMenuProps<T>) {

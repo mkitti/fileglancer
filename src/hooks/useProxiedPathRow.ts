@@ -10,10 +10,10 @@ import { FileSharePath } from '@/shared.types';
 
 export default function useProxiedPathRow({
   item,
-  setShowSharingDialog
+  setShowDataLinkDialog
 }: {
   item: ProxiedPath;
-  setShowSharingDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const { setCurrentFileSharePath } = useFileBrowserContext();
   const navigate = useNavigate();
@@ -43,7 +43,7 @@ export default function useProxiedPathRow({
 
   const handleUnshare = (pathFsp: FileSharePath) => {
     setCurrentFileSharePath(pathFsp);
-    setShowSharingDialog(true);
+    setShowDataLinkDialog(true);
   };
 
   const handleRowClick = () => {

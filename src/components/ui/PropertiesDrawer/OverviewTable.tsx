@@ -10,6 +10,14 @@ export default function OverviewTable({ file }: { file: FileOrFolder | null }) {
         <tbody className="text-sm">
           <tr className="border-b border-surface">
             <td className="p-3 border-b border-surface bg-surface-light text-sm text-foreground dark:bg-surface-dark font-medium">
+              Type
+            </td>
+            <td className="p-3">
+              {file ? (file.is_dir ? 'Folder' : 'File') : null}
+            </td>
+          </tr>
+          <tr className="border-b border-surface">
+            <td className="p-3 border-b border-surface bg-surface-light text-sm text-foreground dark:bg-surface-dark font-medium">
               Last modified
             </td>
             <td className="p-3">
@@ -23,12 +31,6 @@ export default function OverviewTable({ file }: { file: FileOrFolder | null }) {
             <td className="p-3">
               {file ? (file.is_dir ? '—' : formatFileSize(file.size)) : null}
             </td>
-          </tr>
-          <tr className="border-b border-surface">
-            <td className="p-3 border-b border-surface bg-surface-light text-sm text-foreground dark:bg-surface-dark font-medium">
-              Metadata
-            </td>
-            <td className="p-3 ">Pull from file...</td>
           </tr>
         </tbody>
       </table>

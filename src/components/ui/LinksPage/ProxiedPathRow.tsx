@@ -1,16 +1,16 @@
 import { Tooltip, Typography } from '@material-tailwind/react';
 
-import SharingDialog from '@/components/ui/Dialogs/Sharing';
-import SharedActionsMenu from '@/components/ui/Menus/SharedActions';
+import DataLinkDialog from '@/components/ui/Dialogs/DataLink';
+import DataLinksActionsMenu from '@/components/ui/Menus/DataLinksActions';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
-import useSharingDialog from '@/hooks/useSharingDialog';
 import useProxiedPathRow from '@/hooks/useProxiedPathRow';
 import {
   formatDateString,
   getPreferredPathForDisplay,
   makeMapKey
 } from '@/utils';
+import useDataLinkDialog from '@/hooks/useDataLinkDialog';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 import type { FileSharePath } from '@/shared.types';
 import type { MenuItem } from '@/components/ui/Menus/FgMenuItems';
@@ -29,17 +29,17 @@ type ProxiedPathRowActionProps = {
 };
 
 export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
+  const { showDataLinkDialog, setShowDataLinkDialog } = useDataLinkDialog();
   const { pathPreference } = usePreferencesContext();
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
 
-  const { showSharingDialog, setShowSharingDialog } = useSharingDialog();
   const {
     handleCopyPath,
     handleCopyUrl,
     handleUnshare,
     handleRowClick,
     handleNameClick
-  } = useProxiedPathRow({ item, setShowSharingDialog });
+  } = useProxiedPathRow({ item, setShowDataLinkDialog });
 
   const pathFsp = zonesAndFileSharePathsMap[
     makeMapKey('fsp', item.fsp_name)
@@ -125,19 +125,19 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
         </Tooltip>
         {/* Actions */}
         <div onClick={e => e.stopPropagation()}>
-          <SharedActionsMenu<ProxiedPathRowActionProps>
+          <DataLinksActionsMenu<ProxiedPathRowActionProps>
             menuItems={menuItems}
             actionProps={actionProps}
           />
         </div>
       </div>
       {/* Sharing dialog */}
-      {showSharingDialog ? (
-        <SharingDialog
+      {showDataLinkDialog ? (
+        <DataLinkDialog
           isImageShared={true}
           filePathWithoutFsp={item.path}
-          showSharingDialog={showSharingDialog}
-          setShowSharingDialog={setShowSharingDialog}
+          showDataLinkDialog={showDataLinkDialog}
+          setShowDataLinkDialog={setShowDataLinkDialog}
           proxiedPath={item}
         />
       ) : null}
