@@ -152,7 +152,7 @@ export default function PropertiesDrawer({
             ) : (
               <>
                 <Typography variant="small" className="font-medium">
-                  Convert data to OME-Zarr
+                  Create a job in JIRA to convert this file to OME-Zarr format
                 </Typography>
                 <Button
                   variant="outline"
@@ -160,7 +160,7 @@ export default function PropertiesDrawer({
                     setShowConvertFileDialog(true);
                   }}
                 >
-                  Submit
+                  Open conversion request
                 </Button>
               </>
             )}

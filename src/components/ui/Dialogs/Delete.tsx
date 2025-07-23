@@ -3,6 +3,7 @@ import { Button, Typography } from '@material-tailwind/react';
 import toast from 'react-hot-toast';
 
 import FgDialog from '@/components/ui/Dialogs/FgDialog';
+import TextWithFilePath from '@/components/ui/Dialogs/TextWithFilePath';
 import useDeleteDialog from '@/hooks/useDeleteDialog';
 import type { FileOrFolder } from '@/shared.types';
 import { getPreferredPathForDisplay } from '@/utils';
@@ -39,10 +40,10 @@ export default function DeleteDialog({
       open={showDeleteDialog}
       onClose={() => setShowDeleteDialog(false)}
     >
-      <Typography className="my-8 text-large text-foreground">
-        Are you sure you want to delete{' '}
-        <span className="font-semibold">{displayPath}</span>?
-      </Typography>
+      <TextWithFilePath
+        text="Are you sure you want to delete this item?"
+        path={displayPath}
+      />
       <Button
         color="error"
         className="!rounded-md"

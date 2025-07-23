@@ -10,24 +10,25 @@ import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { getPreferredPathForDisplay } from '@/utils';
 import FgDialog from './FgDialog';
+import TextWithFilePath from './TextWithFilePath';
 
-type SharingDialogProps = {
+type DataLinkDialogProps = {
   isImageShared: boolean;
   setIsImageShared?: React.Dispatch<React.SetStateAction<boolean>>;
   filePathWithoutFsp: string;
-  showSharingDialog: boolean;
-  setShowSharingDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  showDataLinkDialog: boolean;
+  setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
   proxiedPath: ProxiedPath | null;
 };
 
-export default function SharingDialog({
+export default function DataLinkDialog({
   isImageShared,
   setIsImageShared,
   filePathWithoutFsp,
-  showSharingDialog,
-  setShowSharingDialog,
+  showDataLinkDialog,
+  setShowDataLinkDialog,
   proxiedPath
-}: SharingDialogProps): JSX.Element {
+}: DataLinkDialogProps): JSX.Element {
   const { createProxiedPath, deleteProxiedPath } = useProxiedPathContext();
   const { currentFileSharePath } = useFileBrowserContext();
   const { pathPreference } = usePreferencesContext();
@@ -43,31 +44,32 @@ export default function SharingDialog({
 
   return (
     <FgDialog
-      open={showSharingDialog}
-      onClose={() => setShowSharingDialog(false)}
+      open={showDataLinkDialog}
+      onClose={() => setShowDataLinkDialog(false)}
     >
       {/* TODO: Move Janelia-specific text elsewhere */}
       {isImageShared ? (
-        <div className="my-8 text-large text-foreground">
-          <Typography>
-            Are you sure you want to unshare{' '}
-            <span className="font-semibold break-all">{displayPath}</span>?
-          </Typography>
+        <div className="my-8 text-foreground">
+          <TextWithFilePath
+            text="Are you sure you want to delete the data link for this path?"
+            path={displayPath}
+          />
           <Typography className="mt-4">
-            Warning: The existing sharing link to this data will be disabled.
+            Warning: The existing data link to this data will be deleted.
             Collaborators who previously received the link will no longer be
-            able to access it. You can create a new sharing link at any time if
+            able to access it. You can create a new data link at any time if
             needed.
           </Typography>
         </div>
       ) : (
-        <div className="my-8 text-large text-foreground">
-          <Typography>
-            Are you sure you want to share{' '}
-            <span className="font-semibold break-all">{displayPath}</span>?
-          </Typography>
+        <div className="my-8 text-foreground">
+          <TextWithFilePath
+            text="Are you sure you want to create a data link for this path?"
+            path={displayPath}
+          />
           <Typography className="mt-4">
-            This will allow anyone at Janelia to view this data.
+            If you share the data link with internal collaborators, they will be
+            able to view this data.
           </Typography>
         </div>
       )}
@@ -85,24 +87,26 @@ export default function SharingDialog({
                   filePathWithoutFsp
                 );
                 if (newProxiedPath) {
-                  toast.success(`Successfully shared ${displayPath}`);
+                  toast.success(
+                    `Successfully created data link for ${displayPath}`
+                  );
                 } else {
-                  toast.error(`Error sharing ${displayPath}`);
+                  toast.error(`Error creating data link for ${displayPath}`);
                 }
-                setShowSharingDialog(false);
+                setShowDataLinkDialog(false);
                 if (setIsImageShared) {
                   setIsImageShared(true);
                 }
               } catch (error) {
                 toast.error(
-                  `Error sharing ${displayPath}: ${
+                  `Error creating data link for ${displayPath}: ${
                     error instanceof Error ? error.message : 'Unknown error'
                   }`
                 );
               }
             }}
           >
-            Share path
+            Create Data Link
           </Button>
         ) : null}
         {isImageShared ? (
@@ -117,28 +121,30 @@ export default function SharingDialog({
                 } else {
                   toast.error('Proxied path not found');
                 }
-                toast.success(`Successfully unshared ${displayPath}`);
-                setShowSharingDialog(false);
+                toast.success(
+                  `Successfully deleted data link for ${displayPath}`
+                );
+                setShowDataLinkDialog(false);
                 if (setIsImageShared) {
                   setIsImageShared(false);
                 }
               } catch (error) {
                 toast.error(
-                  `Error unsharing ${displayPath}: ${
+                  `Error deleting data link for ${displayPath}: ${
                     error instanceof Error ? error.message : 'Unknown error'
                   }`
                 );
               }
             }}
           >
-            Unshare path
+            Delete Data Link
           </Button>
         ) : null}
         <Button
           variant="outline"
           className="!rounded-md flex items-center gap-2"
           onClick={() => {
-            setShowSharingDialog(false);
+            setShowDataLinkDialog(false);
           }}
         >
           Cancel
