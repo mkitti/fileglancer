@@ -15,10 +15,11 @@ type FileSharePath = {
   group: string;
   storage: string;
   mount_path: string;
-  linux_path: string;
-  mac_path: string;
-  windows_path: string;
+  linux_path: string | null;
+  mac_path: string | null;
+  windows_path: string | null;
 };
+// Note: linux_path, mac_path, and windows_path are null when running in local env with no fileglancer_central url set in the jupyter server config
 
 type Zone = { name: string; fileSharePaths: FileSharePath[] };
 

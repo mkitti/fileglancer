@@ -8,7 +8,10 @@ import {
   makePathSegmentArray,
   removeLastSegmentFromPath
 } from '@/utils';
-import { normalizePosixStylePath, removeTrailingSlashes } from '@/utils/pathHandling';
+import {
+  normalizePosixStylePath,
+  removeTrailingSlashes
+} from '@/utils/pathHandling';
 import type { FileSharePath } from '@/shared.types';
 
 describe('removeTrailingSlashes', () => {
@@ -19,6 +22,9 @@ describe('removeTrailingSlashes', () => {
     expect(removeTrailingSlashes('\\\\prfs.hhmi.org\\path\\to\\folder\\')).toBe(
       '\\\\prfs.hhmi.org\\path\\to\\folder'
     );
+  });
+  test('returns empty string for null input', () => {
+    expect(removeTrailingSlashes(null)).toBe('');
   });
 });
 
@@ -111,11 +117,13 @@ describe('getPreferredPathForDisplay', () => {
     storage: 'local',
     linux_path: '/groups/group',
     windows_path: '\\prfs.hhmi.org\\group',
-    mac_path: 'smb://prfs.hhmi.org/group',
+    mac_path: 'smb://prfs.hhmi.org/group'
   } as FileSharePath;
 
   test('returns linux_path by default', () => {
-    expect(getPreferredPathForDisplay(undefined, mockFsp)).toBe('/groups/group');
+    expect(getPreferredPathForDisplay(undefined, mockFsp)).toBe(
+      '/groups/group'
+    );
   });
 
   test('returns windows_path when preferred', () => {
@@ -146,5 +154,9 @@ describe('getPreferredPathForDisplay', () => {
     expect(getPreferredPathForDisplay(['mac_path'], mockFsp, 'foo/bar')).toBe(
       'smb://prfs.hhmi.org/group/foo/bar'
     );
+  });
+
+  test('returns empty string if fsp is null', () => {
+    expect(getPreferredPathForDisplay(['linux_path'], null)).toBe('');
   });
 });

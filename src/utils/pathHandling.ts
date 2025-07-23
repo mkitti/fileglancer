@@ -12,7 +12,11 @@ const PATH_DELIMITER = '/';
  * removeTrailingSlashes('smb://path/to/folder/'); // Returns 'smb://path/to/folder'
  * removeTrailingSlashes('\\prfs.hhmi.org\\path\\to\\folder\\'); // Returns '\\prfs.hhmi.org\path\to\folder'
  */
-function removeTrailingSlashes(mountPath: string): string {
+function removeTrailingSlashes(mountPath: string | null): string {
+  // mountPath can be null if running in local env with no fileglancer_central url set in the jupter server config
+  if (!mountPath) {
+    return '';
+  }
   return mountPath.replace(/\/+$/, '').replace(/\\+$/, '');
 }
 
@@ -180,24 +184,25 @@ function convertPathToWindowsStyle(pathString: string): string {
  */
 function getPreferredPathForDisplay(
   pathPreference: ['linux_path' | 'windows_path' | 'mac_path'] = ['linux_path'],
-  fsp?: FileSharePath,
+  fsp?: FileSharePath | null,
   subPath?: string
 ): string {
   const pathKey = pathPreference[0] ?? 'linux_path';
-  if (!fsp){
+  if (!fsp) {
     return '';
   }
-  
+
   const basePath = fsp[pathKey] ?? fsp.linux_path;
 
-  if (!subPath){
+  if (!basePath) {
+    return '';
+  } else if (!subPath) {
     return basePath;
   } else {
-    let fullPath = joinPaths(basePath, subPath) // Linux = POSIX style
+    let fullPath = joinPaths(basePath, subPath); // Linux = POSIX style
 
     if (pathKey === 'mac_path') {
-      fullPath = basePath + PATH_DELIMITER + subPath
-      
+      fullPath = basePath + PATH_DELIMITER + subPath;
     } else if (pathKey === 'windows_path') {
       fullPath = basePath + '\\' + convertPathToWindowsStyle(subPath);
     }
