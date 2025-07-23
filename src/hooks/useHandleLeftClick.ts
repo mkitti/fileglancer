@@ -6,6 +6,7 @@ import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 export default function useHandleLeftClick() {
   const { setPropertiesTarget } = useFileBrowserContext();
 
+  // Disabled ability to select multiple files
   const handleLeftClick = (
     // e: React.MouseEvent<HTMLDivElement>,
     file: FileOrFolder,

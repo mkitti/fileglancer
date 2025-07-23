@@ -1,10 +1,8 @@
-import React from 'react';
 import { Typography } from '@material-tailwind/react';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import ProxiedPathRow from './ui/LinksPage/ProxiedPathRow';
 
 export default function Links() {
-  const [menuOpenId, setMenuOpenId] = React.useState<string | null>(null);
   const { allProxiedPaths } = useProxiedPathContext();
 
   return (
@@ -34,12 +32,7 @@ export default function Links() {
             </Typography>
           </div>
           {allProxiedPaths?.map(item => (
-            <ProxiedPathRow
-              key={item.sharing_key}
-              item={item}
-              menuOpenId={menuOpenId}
-              setMenuOpenId={setMenuOpenId}
-            />
+            <ProxiedPathRow key={item.sharing_key} item={item} />
           ))}
           {!allProxiedPaths || allProxiedPaths?.length === 0 ? (
             <div className="px-4 py-8 text-center text-gray-500">
