@@ -2,6 +2,7 @@ import React from 'react';
 import { default as log } from '@/logger';
 import { Zone, FileSharePath, ZonesAndFileSharePathsMap } from '@/shared.types';
 import { sendFetchRequest, makeMapKey } from '@/utils';
+import { removeTrailingSlashes } from '@/utils/pathHandling';
 import { useCookiesContext } from './CookiesContext';
 
 type ZonesAndFspMapContextType = {
@@ -73,9 +74,17 @@ export const ZonesAndFspMapContextProvider = ({
       existingZone.fileSharePaths.push(item);
 
       // Then add file share paths to the map
+      // Normalize mount_path to ensure no trailing slashes snuck into wiki db
       const fspKey = makeMapKey('fsp', item.name);
       if (!newZonesAndFileSharePathsMap[fspKey]) {
-        newZonesAndFileSharePathsMap[fspKey] = item;
+        const fspWithNormalizedMountPaths = {
+          ...item,
+          linux_path: removeTrailingSlashes(item.linux_path),
+          mac_path: removeTrailingSlashes(item.mac_path),
+          mount_path: removeTrailingSlashes(item.mount_path),
+          windows_path: removeTrailingSlashes(item.windows_path)
+        };
+        newZonesAndFileSharePathsMap[fspKey] = fspWithNormalizedMountPaths;
       }
     });
     return newZonesAndFileSharePathsMap;

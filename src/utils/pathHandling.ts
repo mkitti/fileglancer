@@ -5,6 +5,36 @@ import type { FileSharePath } from '@/shared.types';
 const PATH_DELIMITER = '/';
 
 /**
+ * Remove any trailing slashes from a path
+ * Only for use in normalzing all styles of mount path on initial data load
+ * E.g.:
+ * removeTrailingSlashes('/path/to/folder/'); // Returns '/path/to/folder
+ * removeTrailingSlashes('smb://path/to/folder/'); // Returns 'smb://path/to/folder'
+ * removeTrailingSlashes('\\prfs.hhmi.org\\path\\to\\folder\\'); // Returns '\\prfs.hhmi.org\path\to\folder'
+ */
+function removeTrailingSlashes(mountPath: string | null): string {
+  // mountPath can be null if running in local env with no fileglancer_central url set in the jupter server config
+  if (!mountPath) {
+    return '';
+  }
+  return mountPath.replace(/\/+$/, '').replace(/\\+$/, '');
+}
+
+/**
+ * Normalize to POSIX style path
+ * For use in normalizing file or folder paths in initial data load
+ * Assumes the path is already in POSIX style
+ * Removes any leading slashes
+ * E.g.:
+ * normalizePosixStylePath('/path/to/folder/'); // Returns 'path/to/folder/'
+ * normalizePosixStylePath('path/to/folder'); // Returns 'path/to/folder'
+ */
+function normalizePosixStylePath(pathString: string): string {
+  const pathWithoutLeadingSlashes = pathString.replace(/^\//, ''); // Remove leading slashes
+  return path.posix.normalize(pathWithoutLeadingSlashes);
+}
+
+/**
  * Joins multiple path segments into a single POSIX-style path, trimming any whitespace first.
  * This is useful for constructing API endpoints or file paths.
  * Example:
@@ -135,52 +165,50 @@ function removeLastSegmentFromPath(itemPath: string): string {
 }
 
 /**
- * Converts a POSIX-style path to a Mac-style path for smb mounts
- * Should only be used in getPrefferedPathForDisplay function.
- * For example:
- * convertPathToMacStyle('smb:/path/to/folder'); // Returns 'smb://path/to/folder'
- */
-function convertPathToMacStyle(pathString: string): string {
-  if (pathString.startsWith('smb:/')) {
-    return pathString.replace('smb:/', 'smb://');
-  }
-  return pathString;
-}
-
-/**
  * Converts a POSIX-style path string to a Windows-style path string.
  * Should only be used in getPrefferedPathForDisplay function.
  * For example:
- * convertPathToWindowsStyle('/path/to/folder'); // Returns '\path\to\folder'
+ * convertPathToWindowsStyle('path/to/folder'); // Returns 'path\to\folder'
  */
 function convertPathToWindowsStyle(pathString: string): string {
   return pathString.replace(/\//g, '\\');
 }
 
 /**
- * Returns the preferred path for display (POSIX or Windows) based on the provided path preference.
+ * Returns the preferred path for display (Linux, Mac or Windows) based on the provided path preference.
+ * Assumes the mount paths in FileSharePath are already normalized (i.e., no trailing slashes, done in ZonesAndFspMapContext.tsx).
+ * If provided, assumes the subPath is already in POSIX style (i.e., using forward slashes, done in FileBrowserContext.tsx).
  * If no preference is provided, defaults to 'linux_path'.
- * If fsp is null, returns an empty string.
  * If subPath is provided, appends it to the base path.
  * Converts the path to Windows style if 'windows_path' is selected.
  */
 function getPreferredPathForDisplay(
   pathPreference: ['linux_path' | 'windows_path' | 'mac_path'] = ['linux_path'],
-  fsp: FileSharePath | null = null,
+  fsp?: FileSharePath | null,
   subPath?: string
 ): string {
   const pathKey = pathPreference[0] ?? 'linux_path';
-  const basePath = fsp ? (fsp[pathKey] ?? fsp.linux_path) : '';
-
-  let fullPath = subPath ? joinPaths(basePath, subPath) : basePath; //default is POSIX-style path
-
-  if (pathKey === 'mac_path') {
-    fullPath = convertPathToMacStyle(fullPath);
-  } else if (pathKey === 'windows_path') {
-    fullPath = convertPathToWindowsStyle(fullPath);
+  if (!fsp) {
+    return '';
   }
 
-  return fullPath;
+  const basePath = fsp[pathKey] ?? fsp.linux_path;
+
+  if (!basePath) {
+    return '';
+  } else if (!subPath) {
+    return basePath;
+  } else {
+    let fullPath = joinPaths(basePath, subPath); // Linux = POSIX style
+
+    if (pathKey === 'mac_path') {
+      fullPath = basePath + PATH_DELIMITER + subPath;
+    } else if (pathKey === 'windows_path') {
+      fullPath = basePath + '\\' + convertPathToWindowsStyle(subPath);
+    }
+
+    return fullPath;
+  }
 }
 
 /**
@@ -212,5 +240,7 @@ export {
   joinPaths,
   makeBrowseLink,
   makePathSegmentArray,
-  removeLastSegmentFromPath
+  normalizePosixStylePath,
+  removeLastSegmentFromPath,
+  removeTrailingSlashes
 };

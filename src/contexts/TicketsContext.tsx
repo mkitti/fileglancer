@@ -64,16 +64,16 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
       cookies['_xsrf']
     );
     if (!response.ok) {
-      let errorMsg = `HTTP error: ${response.status}`;
-      try {
-        const data = await response.json();
-        if (data && data.error) {
-          errorMsg = data.error;
-        }
-      } catch (e) {
-        // response was not JSON, keeping default errorMsg...
+      if (response.status === 404) {
+        logger.warn('No tickets found');
+        setAllTickets([]);
+        return;
+      } else {
+        logger.error(
+          `Failed to fetch tickets: ${response.status} ${response.statusText}`
+        );
+        return;
       }
-      throw new Error(errorMsg);
     }
     const data = await response.json();
     logger.debug('Fetched all tickets:', data);
@@ -84,7 +84,7 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchTicket = React.useCallback(async () => {
     if (!currentFileSharePath || !propertiesTarget) {
-      log.error('No current file share path or file/folder selected');
+      log.warn('Cannot fetch ticket; no current file share path or file/folder selected');
       return null;
     }
     try {
@@ -193,6 +193,9 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
 
   React.useEffect(() => {
     (async function () {
+      if (!currentFileSharePath || !propertiesTarget) {
+        return 
+      }
       try {
         const ticket = await fetchTicket();
         if (ticket) {
