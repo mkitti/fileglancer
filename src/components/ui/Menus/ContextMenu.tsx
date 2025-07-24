@@ -85,7 +85,7 @@ export default function ContextMenu({
     },
     {
       name: 'Convert to ZARR',
-      action(props: ContextMenuActionProps) {
+      action: (props: ContextMenuActionProps) => {
         setShowConvertFileDialog(true);
         props.setShowContextMenu(false);
       }
