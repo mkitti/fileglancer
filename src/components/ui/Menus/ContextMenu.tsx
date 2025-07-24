@@ -51,6 +51,18 @@ export default function ContextMenu({
   setShowPermissionsDialog,
   setShowConvertFileDialog
 }: ContextMenuProps): React.ReactNode {
+  const { fileBrowserState } = useFileBrowserContext();
+  const { folderPreferenceMap } = usePreferencesContext();
+
+  const isFavorite: boolean = folderPreferenceMap[
+    makeMapKey(
+      'folder',
+      `${fileBrowserState.currentFileSharePath?.name}_${selectedFiles[0].path}`
+    )
+  ]
+    ? true
+    : false;
+
   const menuItems: MenuItem<ContextMenuActionProps>[] = [
     {
       name: 'View file properties',
