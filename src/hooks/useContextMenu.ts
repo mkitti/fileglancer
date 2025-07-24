@@ -1,8 +1,14 @@
 import * as React from 'react';
+import logger from '@/logger';
 
-import { FileOrFolder } from '@/shared.types';
+import type { FileOrFolder, Result } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import {
+  createSuccessResult,
+  createFailureResult,
+  parseError
+} from '@/utils/errorHandling';
 
 export default function useContextMenu() {
   const [contextMenuCoords, setContextMenuCoords] = React.useState({
@@ -73,18 +79,24 @@ export default function useContextMenu() {
 
   const handleFavoriteToggleMenuItemClick = async (
     selectedFiles: FileOrFolder[]
-  ): Promise<void> => {
-    if (currentFileSharePath) {
-      await handleFavoriteChange(
-        {
-          type: 'folder',
-          folderPath: selectedFiles[0].path,
-          fsp: currentFileSharePath
-        },
-        'folder'
-      );
+  ): Promise<Result<null>> => {
+    try {
+      if (currentFileSharePath) {
+        await handleFavoriteChange(
+          {
+            type: 'folder',
+            folderPath: selectedFiles[0].path,
+            fsp: currentFileSharePath
+          },
+          'folder'
+        );
+        setShowContextMenu(false);
+      }
+    } catch (error) {
+      logger.error(error);
+      return createFailureResult(parseError(error));
     }
-    setShowContextMenu(false);
+    return createSuccessResult();
   };
 
   return {
