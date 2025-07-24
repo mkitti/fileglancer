@@ -27,9 +27,17 @@ type ZonesAndFileSharePathsMap = Record<string, FileSharePath | Zone>;
 
 type Cookies = { [key: string]: string };
 
-type Result<T, E extends Error> =
-  | { ok: true; value: T }
-  | { ok: false; error: E };
+type Result<T> = Success<T> | Failure;
+
+type Success<T> = {
+  success: true;
+  data?: T;
+};
+
+type Failure = {
+  success: false;
+  error: string;
+};
 
 export type {
   FileOrFolder,
@@ -37,5 +45,7 @@ export type {
   Zone,
   ZonesAndFileSharePathsMap,
   Cookies,
-  Result
+  Result,
+  Success,
+  Failure
 };
