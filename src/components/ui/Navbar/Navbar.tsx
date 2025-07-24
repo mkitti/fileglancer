@@ -20,6 +20,9 @@ import { TbBrandGithub } from 'react-icons/tb';
 import ProfileMenu from './ProfileMenu';
 import useTheme from '@/hooks/useTheme';
 import { BetaSticker } from '@/components/ui/Beta';
+import Tag from '@/components/ui/Tag';
+import useTheme from '@/hooks/useTheme';
+import useVersionNo from '@/hooks/useVersionState';
 
 const LINKS = [
   {
@@ -69,6 +72,13 @@ function NavList() {
       ))}
     </>
   );
+}
+
+function VersionTag() {
+  const { versionNo } = useVersionNo();
+  return versionNo ? (
+    <Tag classProps="text-secondary dark:text-secondary-light bg-background">{`v${versionNo}`}</Tag>
+  ) : null;
 }
 
 // Composed navbar
@@ -131,8 +141,10 @@ export default function FileglancerNavbar() {
               </Typography>
             </div>
           </Link>
-          {/* Beta sticker */}
-          <BetaSticker />
+          <div className="flex gap-1">
+            <VersionTag />
+            <BetaSticker />
+          </div>
         </div>
 
         {/* Desktop menu links */}
