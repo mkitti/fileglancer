@@ -5,13 +5,13 @@ import useHideDotFiles from '@/hooks/useHideDotFiles';
 import useSelectedFiles from '@/hooks/useSelectedFiles';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
-import FileList from './ui/FileBrowser/FileList';
-import Toolbar from './ui/FileBrowser/Toolbar';
+import FileList from './ui/BrowsePage/FileList';
+import Toolbar from './ui/BrowsePage/Toolbar';
 import RenameDialog from './ui/Dialogs/Rename';
 import NewFolderDialog from './ui/Dialogs/NewFolder';
 import Delete from './ui/Dialogs/Delete';
 import ChangePermissions from './ui/Dialogs/ChangePermissions';
-import Dashboard from './ui/FileBrowser/Dashboard';
+import Dashboard from './ui/BrowsePage/DashboardCard';
 import ConvertFileDialog from './ui/Dialogs/ConvertFile';
 
 type OutletContextType = {
