@@ -58,7 +58,15 @@ export default function Browse() {
       />
       <div className="relative grow h-full flex flex-col overflow-y-auto mb-3">
         {!currentFileSharePath ? (
-          <Dashboard />
+          <div className="grid grid-cols-2">
+            <div className="flex flex-col items-center p-6 gap-12">
+              <Dashboard />
+              <Dashboard />
+            </div>
+            <div className="items-center p-6">
+              <Dashboard />
+            </div>
+          </div>
         ) : (
           <FileList
             selectedFiles={selectedFiles}
