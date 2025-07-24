@@ -1,8 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import toast from 'react-hot-toast';
 
 import FgMenuItems, { MenuItem } from './FgMenuItems';
-import type { FileOrFolder } from '@/shared.types';
+import type { FileOrFolder, Result } from '@/shared.types';
+import { checkIfSuccessful } from '@/utils/errorHandling';
+import { makeMapKey } from '@/utils';
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
 type ContextMenuProps = {
   x: number;
@@ -11,7 +16,7 @@ type ContextMenuProps = {
   selectedFiles: FileOrFolder[];
   handleFavoriteToggleMenuItemClick: (
     selectedFiles: FileOrFolder[]
-  ) => Promise<void>;
+  ) => Promise<Result<null>>;
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
   setShowContextMenu: React.Dispatch<React.SetStateAction<boolean>>;
   setShowRenameDialog: React.Dispatch<React.SetStateAction<boolean>>;
@@ -22,7 +27,9 @@ type ContextMenuProps = {
 
 type ContextMenuActionProps = {
   selectedFiles: FileOrFolder[];
-  handleFavoriteToggleMenuItemClick: (selectedFiles: FileOrFolder[]) => void;
+  handleFavoriteToggleMenuItemClick: (
+    selectedFiles: FileOrFolder[]
+  ) => Promise<Result<null>>;
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
   setShowContextMenu: React.Dispatch<React.SetStateAction<boolean>>;
   setShowRenameDialog: React.Dispatch<React.SetStateAction<boolean>>;
@@ -54,9 +61,13 @@ export default function ContextMenu({
       shouldShow: true
     },
     {
-      name: 'Set/unset as favorite',
-      action: (props: ContextMenuActionProps) => {
-        props.handleFavoriteToggleMenuItemClick(selectedFiles);
+      name: isFavorite ? 'Unset favorite' : 'Set favorite',
+      action: async (props: ContextMenuActionProps) => {
+        const result =
+          await props.handleFavoriteToggleMenuItemClick(selectedFiles);
+        if (!checkIfSuccessful(result)) {
+          toast.error(`Error toggling favorite: ${result.error}`);
+        }
       },
       shouldShow: selectedFiles[0].is_dir
     },
