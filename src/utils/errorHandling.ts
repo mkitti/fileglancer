@@ -8,7 +8,7 @@ function createFailure(error: string): Failure {
   return { success: false, error };
 }
 
-function parseError(error: unknown): string {
+function getErrorString(error: unknown): string {
   if (typeof error === 'string') {
     return error;
   }
@@ -17,7 +17,7 @@ function parseError(error: unknown): string {
     return error.message;
   }
 
-  return 'An error occurred';
+  return 'An unknown error occurred';
 }
 
 function handleError(error: unknown): Failure {
