@@ -20,8 +20,9 @@ function parseError(error: unknown): string {
   return 'An error occurred';
 }
 
-function checkIfSuccessful<T>(result: Result<T>) {
-  return result.success;
+function handleError(error: unknown): Failure {
+  logger.error(error);
+  return createFailure(getErrorString(error));
 }
 
 export {

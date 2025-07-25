@@ -4,11 +4,7 @@ import logger from '@/logger';
 import type { FileOrFolder, Result } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import {
-  createSuccessResult,
-  createFailureResult,
-  parseError
-} from '@/utils/errorHandling';
+import { createSuccess, handleError } from '@/utils/errorHandling';
 
 export default function useContextMenu() {
   const [contextMenuCoords, setContextMenuCoords] = React.useState({
@@ -93,8 +89,7 @@ export default function useContextMenu() {
         setShowContextMenu(false);
       }
     } catch (error) {
-      logger.error(error);
-      return createFailureResult(parseError(error));
+      return handleError(error);
     }
     return createSuccess();
   };

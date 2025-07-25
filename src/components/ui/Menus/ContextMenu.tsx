@@ -4,7 +4,6 @@ import toast from 'react-hot-toast';
 
 import FgMenuItems, { MenuItem } from './FgMenuItems';
 import type { FileOrFolder, Result } from '@/shared.types';
-import { checkIfSuccessful } from '@/utils/errorHandling';
 import { makeMapKey } from '@/utils';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
@@ -77,7 +76,7 @@ export default function ContextMenu({
       action: async (props: ContextMenuActionProps) => {
         const result =
           await props.handleFavoriteToggleMenuItemClick(selectedFiles);
-        if (!checkIfSuccessful(result)) {
+        if (!result.success) {
           toast.error(`Error toggling favorite: ${result.error}`);
         }
       },
