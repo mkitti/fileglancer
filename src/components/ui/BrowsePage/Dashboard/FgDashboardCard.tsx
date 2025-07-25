@@ -8,13 +8,13 @@ export default function DashboardCard({
   children: React.ReactNode;
 }) {
   return (
-    <Card className="p-6">
-      <Card.Header>
+    <Card>
+      <Card.Header className="pt-4 pl-4">
         <Typography className="font-semibold text-surface-foreground">
           {title}
         </Typography>
       </Card.Header>
-      <Card.Body className="flex flex-col gap-4 pb-4">{children}</Card.Body>
+      <Card.Body className="pt-0">{children}</Card.Body>
     </Card>
   );
 }
