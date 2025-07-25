@@ -6,13 +6,13 @@ function createSuccess<T>(data?: T): Success<T> {
 }
 
 async function createApiFailure(response: Response): Promise<ApiFailure> {
-  const body = await response.json()
-  const error = body.error ? body.error : "Unknown error"
+  const body = await response.json();
+  const error = body.error ? body.error : 'Unknown error';
   return { success: false, code: response.status, error: error };
 }
 
 function createErrFailure(error: string): Failure {
-  return {success: false, error}
+  return { success: false, error };
 }
 
 function getErrorString(error: unknown): string {
@@ -34,7 +34,7 @@ function handleError(error: unknown): Failure {
 
 async function handleBadResponse(response: Response): Promise<ApiFailure> {
   logger.error(response);
-  return await createApiFailure(response)
+  return await createApiFailure(response);
 }
 
 export { createSuccess, handleError, handleBadResponse };

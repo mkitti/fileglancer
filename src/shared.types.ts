@@ -35,7 +35,7 @@ type Success<T> = {
 interface Failure {
   success: false;
   error: string;
-};
+}
 
 interface ApiFailure extends Failure {
   code: number;
