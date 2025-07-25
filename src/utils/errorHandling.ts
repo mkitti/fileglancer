@@ -1,4 +1,5 @@
-import type { Success, Failure, Result } from '@/shared.types';
+import logger from '@/logger';
+import type { Success, Failure } from '@/shared.types';
 
 function createSuccess<T>(data?: T): Success<T> {
   return { success: true, data };
@@ -25,9 +26,4 @@ function handleError(error: unknown): Failure {
   return createFailure(getErrorString(error));
 }
 
-export {
-  createSuccessResult,
-  createFailureResult,
-  parseError,
-  checkIfSuccessful
-};
+export { createSuccess, handleError };

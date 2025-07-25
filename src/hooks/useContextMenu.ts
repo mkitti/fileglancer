@@ -1,5 +1,4 @@
 import * as React from 'react';
-import logger from '@/logger';
 
 import type { FileOrFolder, Result } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
