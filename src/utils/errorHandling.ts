@@ -1,12 +1,18 @@
 import logger from '@/logger';
-import type { Success, Failure } from '@/shared.types';
+import type { Success, Failure, ApiFailure } from '@/shared.types';
 
 function createSuccess<T>(data?: T): Success<T> {
   return { success: true, data };
 }
 
-function createFailure(error: string): Failure {
-  return { success: false, error };
+async function createApiFailure(response: Response): Promise<ApiFailure> {
+  const body = await response.json()
+  const error = body.error ? body.error : "Unknown error"
+  return { success: false, code: response.status, error: error };
+}
+
+function createErrFailure(error: string): Failure {
+  return {success: false, error}
 }
 
 function getErrorString(error: unknown): string {
@@ -23,7 +29,12 @@ function getErrorString(error: unknown): string {
 
 function handleError(error: unknown): Failure {
   logger.error(error);
-  return createFailure(getErrorString(error));
+  return createErrFailure(getErrorString(error));
 }
 
-export { createSuccess, handleError };
+async function handleBadResponse(response: Response): Promise<ApiFailure> {
+  logger.error(response);
+  return await createApiFailure(response)
+}
+
+export { createSuccess, handleError, handleBadResponse };
