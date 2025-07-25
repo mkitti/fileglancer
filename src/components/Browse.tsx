@@ -11,8 +11,10 @@ import RenameDialog from './ui/Dialogs/Rename';
 import NewFolderDialog from './ui/Dialogs/NewFolder';
 import Delete from './ui/Dialogs/Delete';
 import ChangePermissions from './ui/Dialogs/ChangePermissions';
-import Dashboard from './ui/BrowsePage/DashboardCard';
 import ConvertFileDialog from './ui/Dialogs/ConvertFile';
+import HomeCard from './ui/BrowsePage/Dashboard/HomeCard';
+import RecentDataLinksCard from './ui/BrowsePage/Dashboard/RecentDataLinksCard';
+import RecentlyViewedCard from './ui/BrowsePage/Dashboard/RecentlyViewedCard';
 
 type OutletContextType = {
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
@@ -58,13 +60,19 @@ export default function Browse() {
       />
       <div className="relative grow h-full flex flex-col overflow-y-auto mb-3">
         {!currentFileSharePath ? (
-          <div className="grid grid-cols-2">
-            <div className="flex flex-col items-center p-6 gap-12">
-              <Dashboard />
-              <Dashboard />
+          <div className="grid grid-cols-2 w-full bg-surface-light gap-6 p-6">
+            {/* Left column - Home card and Recently Viewed */}
+            <div className="flex flex-col gap-6">
+              <div className="flex-shrink-0">
+                <HomeCard />
+              </div>
+              <div className="flex-1">
+                <RecentlyViewedCard />
+              </div>
             </div>
-            <div className="items-center p-6">
-              <Dashboard />
+            {/* Right column - Recent data links */}
+            <div className="flex flex-col items-center">
+              <RecentDataLinksCard />
             </div>
           </div>
         ) : (
