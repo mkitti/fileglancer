@@ -1,10 +1,10 @@
 import type { Success, Failure, Result } from '@/shared.types';
 
-function createSuccessResult<T>(data?: T): Success<T> {
+function createSuccess<T>(data?: T): Success<T> {
   return { success: true, data };
 }
 
-function createFailureResult(error: string): Failure {
+function createFailure(error: string): Failure {
   return { success: false, error };
 }
 

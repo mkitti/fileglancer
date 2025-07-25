@@ -96,7 +96,7 @@ export default function useContextMenu() {
       logger.error(error);
       return createFailureResult(parseError(error));
     }
-    return createSuccessResult();
+    return createSuccess();
   };
 
   return {
