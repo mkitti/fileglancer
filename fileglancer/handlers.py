@@ -535,7 +535,7 @@ class ProxiedPathHandler(BaseHandler):
             self.finish(json.dumps({"error": str(e)}))
 
 
-class TicketHandler(APIHandler):
+class TicketHandler(BaseHandler):
     """
     API handler for ticket operations
     """
