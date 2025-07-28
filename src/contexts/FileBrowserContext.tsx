@@ -223,7 +223,7 @@ export const FileBrowserContextProvider = ({
   );
 
   // Function to refresh files for the current FSP and current folder
-  const refreshFiles = React.useCallback(async (): Promise<void> => {
+  const refreshFiles = async (): Promise<void> => {
     if (
       !fileBrowserState.currentFileSharePath ||
       !fileBrowserState.currentFolder
@@ -235,11 +235,7 @@ export const FileBrowserContextProvider = ({
       fileBrowserState.currentFileSharePath,
       fileBrowserState.currentFolder.path
     );
-  }, [
-    fileBrowserState.currentFileSharePath,
-    fileBrowserState.currentFolder,
-    fetchAndUpdateFileBrowserState
-  ]);
+  }
 
   // Effect to update currentFolder and propertiesTarget when URL params change
   React.useEffect(() => {
