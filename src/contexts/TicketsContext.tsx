@@ -146,7 +146,7 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       const createTicketResponse = await sendFetchRequest(
-        getFullPath('api/fileglancer/ticket'),
+        '/api/fileglancer/ticket',
         'POST',
         cookies['_xsrf'],
         {
