@@ -23,7 +23,6 @@ interface FileBrowserState {
   currentFileSharePath: FileSharePath | null;
   currentFolder: FileOrFolder | null;
   files: FileOrFolder[];
-  fetchErrorMsg: string | null;
 }
 
 type FileBrowserContextType = {
@@ -37,7 +36,6 @@ type FileBrowserContextType = {
   currentFileSharePath: FileSharePath | null;
   currentFolder: FileOrFolder | null;
   files: FileOrFolder[];
-  fetchErrorMsg: string | null;
   // END DUPLICATES
   refreshFiles: () => Promise<void>;
   setPropertiesTarget: React.Dispatch<
@@ -75,7 +73,6 @@ export const FileBrowserContextProvider = ({
       currentFileSharePath: null,
       currentFolder: null,
       files: [],
-      fetchErrorMsg: null
     });
 
   // Duplicate states for convenience until all clients are updated.
@@ -87,7 +84,6 @@ export const FileBrowserContextProvider = ({
     null
   );
   const [files, setFiles] = React.useState<FileOrFolder[]>([]);
-  const [fetchErrorMsg, setFetchErrorMsg] = React.useState<string | null>(null);
 
   const [propertiesTarget, setPropertiesTarget] =
     React.useState<FileOrFolder | null>(null);
@@ -111,7 +107,6 @@ export const FileBrowserContextProvider = ({
       sharePath: FileSharePath | null,
       folder: FileOrFolder | null,
       fileList: FileOrFolder[],
-      errorMsg: string | null
     ) => {
       // Update fileBrowserState with complete, consistent data
       updateFileBrowserState({
@@ -119,7 +114,6 @@ export const FileBrowserContextProvider = ({
         currentFileSharePath: sharePath,
         currentFolder: folder,
         files: fileList,
-        fetchErrorMsg: errorMsg
       });
 
       // Update local states for individual parts
@@ -128,13 +122,11 @@ export const FileBrowserContextProvider = ({
         setCurrentFileSharePath(sharePath);
         setCurrentFolder(folder);
         setFiles(fileList);
-        setFetchErrorMsg(errorMsg);
       } else {
         setIsFileBrowserReady(false);
         setCurrentFileSharePath(null);
         setCurrentFolder(null);
         setFiles([]);
-        setFetchErrorMsg(errorMsg);
       }
     },
     [updateFileBrowserState]
@@ -237,7 +229,7 @@ export const FileBrowserContextProvider = ({
         if (cancelled) {
           return;
         }
-        updateAllStates(false, null, null, [], null);
+        updateAllStates(false, null, null, []);
         return;
       }
 
@@ -248,7 +240,7 @@ export const FileBrowserContextProvider = ({
         if (cancelled) {
           return;
         }
-        updateAllStates(false, null, null, [], null);
+        updateAllStates(false, null, null, []);
         return;
       }
 
@@ -286,7 +278,6 @@ export const FileBrowserContextProvider = ({
         files,
         currentFolder,
         currentFileSharePath,
-        fetchErrorMsg,
         refreshFiles,
         propertiesTarget,
         setPropertiesTarget,
