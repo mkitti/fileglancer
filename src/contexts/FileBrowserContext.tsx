@@ -181,10 +181,10 @@ export const FileBrowserContextProvider = ({
     async (
       fsp: FileSharePath,
       folderPath: string
-    ): Promise<FileOrFolder | null> => {
+    ): Promise<void> => {
       log.debug('Fetching files for FSP:', fsp.name, 'and folder:', folderPath);
       let folder: FileOrFolder | null = null;
-      try {
+
         const response = await fetchFileInfo(fsp.name, folderPath);
         folder = response.info as FileOrFolder;
         if (folder) {
@@ -208,16 +208,7 @@ export const FileBrowserContextProvider = ({
         });
 
         // Update all states consistently
-        updateAllStates(true, fsp, folder, files, null);
-      } catch (error) {
-        log.error(error);
-        if (error instanceof Error) {
-          updateAllStates(true, fsp, folder, [], error.message);
-        } else {
-          updateAllStates(true, fsp, folder, [], 'An unknown error occurred');
-        }
-      }
-      return folder;
+        updateAllStates(true, fsp, folder, files);
     },
     [updateAllStates, fetchFileInfo]
   );
