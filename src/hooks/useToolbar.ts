@@ -1,7 +1,7 @@
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import type { Result } from '@/shared.types';
-import { handleError } from '@/utils/errorHandling';
+import { createSuccess, handleError } from '@/utils/errorHandling';
 
 export default function useToolbar() {
   const { fileBrowserState } = useFileBrowserContext();
@@ -21,12 +21,13 @@ export default function useToolbar() {
         !fileBrowserState.currentFolder ||
         fileBrowserState.currentFolder.path === '.'
       ) {
-        return await handleFavoriteChange(
+        const isFavoriteAdded = await handleFavoriteChange(
           fileBrowserState.currentFileSharePath,
           'fileSharePath'
         );
+        return createSuccess(isFavoriteAdded)
       } else {
-        return await handleFavoriteChange(
+        const isFavoriteAdded = await handleFavoriteChange(
           {
             type: 'folder',
             folderPath: fileBrowserState.currentFolder.path,
@@ -34,6 +35,7 @@ export default function useToolbar() {
           },
           'folder'
         );
+      return createSuccess(isFavoriteAdded)
       }
     } catch (error) {
       return handleError(error);
