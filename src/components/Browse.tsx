@@ -58,9 +58,9 @@ export default function Browse() {
         setShowSidebar={setShowSidebar}
         setShowNewFolderDialog={setShowNewFolderDialog}
       />
-      <div className="relative grow h-full flex flex-col overflow-y-auto mb-3">
+      <div className="relative grow h-full flex flex-col overflow-y-auto">
         {!currentFileSharePath ? (
-          <div className="grid grid-cols-[minmax(100px,1fr)_minmax(200px,2fr)] w-full bg-surface-light gap-6 p-6">
+          <div className="grid grid-cols-[minmax(100px,1fr)_minmax(200px,2fr)] w-full min-h-full bg-surface-light gap-6 p-6">
             {/* Left column - Home card and Recently Viewed */}
             <div className="flex flex-col gap-6">
               <div className="flex-shrink-0">
