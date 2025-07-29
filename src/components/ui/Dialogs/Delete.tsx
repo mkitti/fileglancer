@@ -49,10 +49,10 @@ export default function DeleteDialog({
         className="!rounded-md"
         onClick={async () => {
           const result = await handleDelete(targetItem);
-          if ("error" in result) {
-            toast.error(`Error deleting item: ${result.error}`)
+          if ('error' in result) {
+            toast.error(`Error deleting item: ${result.error}`);
           } else {
-            toast.success(`Item deleted!`)
+            toast.success(`Item deleted!`);
             setShowDeleteDialog(false);
           }
         }}
