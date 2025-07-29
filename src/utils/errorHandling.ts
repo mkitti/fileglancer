@@ -5,9 +5,18 @@ function createSuccess<T>(data?: T): Success<T> {
   return { success: true, data };
 }
 
-async function createApiFailure(response: Response): Promise<ApiFailure> {
+async function getResponseError(response: Response): Promise<string> {
   const body = await response.json();
-  const error = body.error ? body.error : 'Unknown error';
+  return body.error ? body.error : 'Unknown error';
+}
+
+// Adding the option to return a ApiFailure Result type rather than
+// throwing an error because different functions might want to
+// handle response status codes differently. E.g., 404 might be an
+// error sometimes, but for preferences, it just means that preference
+// key hasn't been set yet.
+async function createApiFailure(response: Response): Promise<ApiFailure> {
+  const error = await getResponseError(response);
   return { success: false, code: response.status, error: error };
 }
 
@@ -37,4 +46,4 @@ async function handleBadResponse(response: Response): Promise<ApiFailure> {
   return await createApiFailure(response);
 }
 
-export { createSuccess, handleError, handleBadResponse };
+export { createSuccess, handleError, handleBadResponse, getResponseError };
