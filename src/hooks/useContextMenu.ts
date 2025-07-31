@@ -75,19 +75,17 @@ export default function useContextMenu() {
   const handleContextMenuFavorite = async (
     selectedFiles: FileOrFolder[]
   ): Promise<Result<boolean>> => {
-      if (currentFileSharePath) {
-        return await handleFavoriteChange(
-          {
-            type: 'folder',
-            folderPath: selectedFiles[0].path,
-            fsp: currentFileSharePath
-          },
-          'folder'
-        );
-        
-      }
-      else {
-      return handleError(new Error('No file share path selected'))
+    if (currentFileSharePath) {
+      return await handleFavoriteChange(
+        {
+          type: 'folder',
+          folderPath: selectedFiles[0].path,
+          fsp: currentFileSharePath
+        },
+        'folder'
+      );
+    } else {
+      return handleError(new Error('No file share path selected'));
     }
   };
 

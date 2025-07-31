@@ -61,7 +61,9 @@ export default function FileSharePathComponent({
             e.stopPropagation();
             const result = await handleFavoriteChange(fsp, 'fileSharePath');
             if (result.success) {
-              toast.success(`Favorite ${result.data === true ? "added!": "removed!"}`);
+              toast.success(
+                `Favorite ${result.data === true ? 'added!' : 'removed!'}`
+              );
             } else {
               toast.error(`Error adding favorite: ${result.error}`);
             }

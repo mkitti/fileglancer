@@ -1,7 +1,7 @@
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import type { Result } from '@/shared.types';
-import { createSuccess, handleError } from '@/utils/errorHandling';
+import { handleError } from '@/utils/errorHandling';
 
 export default function useFavoriteToggle() {
   const { fileBrowserState } = useFileBrowserContext();

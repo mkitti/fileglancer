@@ -129,7 +129,9 @@ export default function Folder({ folderFavorite }: FolderProps) {
                 'folder'
               );
               if (result.success) {
-                toast.success(`Favorite ${result.data === true ? "added!": "removed!"}`);
+                toast.success(
+                  `Favorite ${result.data === true ? 'added!' : 'removed!'}`
+                );
               } else {
                 toast.error(`Error adding favorite: ${result.error}`);
               }

@@ -27,7 +27,7 @@ type ContextMenuProps = {
 type ContextMenuActionProps = {
   selectedFiles: FileOrFolder[];
   handleContextMenuFavorite: (
-   selectedFiles: FileOrFolder[]
+    selectedFiles: FileOrFolder[]
   ) => Promise<Result<boolean>>;
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
   setShowContextMenu: React.Dispatch<React.SetStateAction<boolean>>;
@@ -74,14 +74,13 @@ export default function ContextMenu({
     {
       name: isFavorite ? 'Unset favorite' : 'Set favorite',
       action: async (props: ContextMenuActionProps) => {
-        const result =
-          await props.handleContextMenuFavorite(selectedFiles);
+        const result = await props.handleContextMenuFavorite(selectedFiles);
         if (!result.success) {
           toast.error(`Error toggling favorite: ${result.error}`);
         } else {
           toast.success(`Favorite ${isFavorite ? 'removed!' : 'added!'}`);
         }
-        setShowContextMenu(false)
+        setShowContextMenu(false);
       },
       shouldShow: selectedFiles[0].is_dir
     },

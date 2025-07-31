@@ -49,7 +49,9 @@ export default function Zone({
               onClick={async () => {
                 const result = await handleFavoriteChange(zone, 'zone');
                 if (result.success) {
-                  toast.success(`Favorite ${result.data === true ? "added!": "removed!"}`);
+                  toast.success(
+                    `Favorite ${result.data === true ? 'added!' : 'removed!'}`
+                  );
                 } else {
                   toast.error(`Error adding favorite: ${result.error}`);
                 }
