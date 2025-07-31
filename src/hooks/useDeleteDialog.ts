@@ -2,11 +2,7 @@ import type { ApiFailure, FileOrFolder, Result } from '@/shared.types';
 import { getFileBrowsePath, sendFetchRequest } from '@/utils';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import {
-  handleError,
-  createSuccess,
-  handleBadResponse
-} from '@/utils/errorHandling';
+import { handleError, handleBadResponse } from '@/utils/errorHandling';
 
 export default function useDeleteDialog() {
   const { cookies } = useCookiesContext();
@@ -32,12 +28,12 @@ export default function useDeleteDialog() {
       );
       if (!response.ok) {
         return handleBadResponse(response);
+      } else {
+        return await refreshFiles();
       }
-      await refreshFiles();
     } catch (error) {
       return handleError(error);
     }
-    return createSuccess();
   }
 
   return { handleDelete };

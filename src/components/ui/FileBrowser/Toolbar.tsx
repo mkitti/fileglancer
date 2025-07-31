@@ -128,9 +128,16 @@ export default function Toolbar({
               disabled={!currentFileSharePath}
               onClick={async () => {
                 if (!currentFileSharePath) {
-                  return;
+                  toast.error(
+                    'Cannot refresh files - no file share path selected.'
+                  );
                 }
-                await refreshFiles();
+                const result = await refreshFiles();
+                if (result.success) {
+                  toast.success('File browser refreshed!');
+                } else {
+                  toast.error(`Error refreshing file browser: ${result.error}`);
+                }
               }}
             >
               <HiRefresh className="icon-default" />

@@ -6,11 +6,7 @@ import {
   sendFetchRequest,
   removeLastSegmentFromPath
 } from '@/utils';
-import {
-  createSuccess,
-  handleBadResponse,
-  handleError
-} from '@/utils/errorHandling';
+import { handleBadResponse, handleError } from '@/utils/errorHandling';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { Result } from '@/shared.types';
@@ -39,14 +35,13 @@ export default function useRenameDialog() {
       );
 
       if (response.ok) {
-        await refreshFiles();
+        return await refreshFiles();
       } else {
         return handleBadResponse(response);
       }
     } catch (error) {
       return handleError(error);
     }
-    return createSuccess();
   }
 
   return {

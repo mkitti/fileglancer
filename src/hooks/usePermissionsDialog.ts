@@ -4,11 +4,7 @@ import { sendFetchRequest, getFileBrowsePath } from '@/utils';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import type { FileOrFolder, Result } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import {
-  createSuccess,
-  handleBadResponse,
-  handleError
-} from '@/utils/errorHandling';
+import { handleBadResponse, handleError } from '@/utils/errorHandling';
 
 export default function usePermissionsDialog() {
   const { cookies } = useCookiesContext();
@@ -71,15 +67,13 @@ export default function usePermissionsDialog() {
       );
 
       if (response.ok) {
-        await refreshFiles();
+        return await refreshFiles();
       } else {
         return handleBadResponse(response);
       }
     } catch (error) {
       return handleError(error);
     }
-
-    return createSuccess();
   }
 
   return {
