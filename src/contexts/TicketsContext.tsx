@@ -5,7 +5,11 @@ import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { useProfileContext } from './ProfileContext';
 import { sendFetchRequest, getFileBrowsePath, joinPaths } from '@/utils';
 import type { Result } from '@/shared.types';
-import { createSuccess, handleError } from '@/utils/errorHandling';
+import {
+  createSuccess,
+  getResponseError,
+  handleError
+} from '@/utils/errorHandling';
 
 export type Ticket = {
   username: string;
@@ -24,7 +28,7 @@ export type Ticket = {
 type TicketContextType = {
   ticket: Ticket | null;
   allTickets?: Ticket[];
-  createTicket: (destination: string) => Promise<Result<Ticket[] | null>>;
+  createTicket: (destination: string) => Promise<void>;
   fetchAllTickets: () => Promise<Result<null>>;
 };
 
@@ -103,13 +107,11 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
     return null;
   }, [currentFileSharePath, propertiesTarget, cookies]);
 
-  async function createTicket(
-    destinationFolder: string
-  ): Promise<Result<Ticket[] | null, Error>> {
+  async function createTicket(destinationFolder: string): Promise<void> {
     if (!currentFileSharePath) {
-      return { ok: false, error: new Error('No file share path selected') };
+      throw new Error('No file share path selected');
     } else if (!propertiesTarget) {
-      return { ok: false, error: new Error('No properties target selected') };
+      throw new Error('No properties target selected');
     }
 
     const fetchPath = getFileBrowsePath(
@@ -122,60 +124,41 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
       propertiesTarget.path
     );
 
-    try {
-      const checkPathResponse = await sendFetchRequest(
-        fetchPath,
-        'GET',
-        cookies['_xsrf']
-      );
+    const checkPathResponse = await sendFetchRequest(
+      fetchPath,
+      'GET',
+      cookies['_xsrf']
+    );
 
-      if (!checkPathResponse.ok && checkPathResponse.status === 404) {
-        return {
-          ok: false,
-          error: new Error('File not found')
-        };
-      }
-
-      const createTicketResponse = await sendFetchRequest(
-        '/api/fileglancer/ticket',
-        'POST',
-        cookies['_xsrf'],
-        {
-          fsp_name: currentFileSharePath.name,
-          path: propertiesTarget.path,
-          project_key: 'FT',
-          issue_type: 'Task',
-          summary: 'Convert file to ZARR',
-          description: `Convert ${messagePath} to a ZARR file.\nDestination folder: ${destinationFolder}\nRequested by: ${profile?.username}`
-        }
-      );
-
-      const ticketData = await createTicketResponse.json();
-      logger.debug('Ticket creation response:', ticketData);
-
-      if (createTicketResponse.ok && createTicketResponse.status === 200) {
-        logger.info('Ticket created successfully:', ticketData);
-        setTicket(ticketData);
-        return {
-          ok: true,
-          value: ticketData
-        };
-      } else if (!createTicketResponse.ok) {
-        logger.error('Error creating ticket:', ticketData.error);
-        return {
-          ok: false,
-          error: new Error(`Error creating ticket: ${ticketData.error}`)
-        };
-      }
-    } catch (error) {
-      return {
-        ok: false,
-        error: new Error(
-          `Unknown error creating ticket${error instanceof Error ? `: ${error.message}` : ''}`
-        )
-      };
+    if (!checkPathResponse.ok) {
+      const error = await getResponseError(checkPathResponse);
+      throw new Error(error);
     }
-    return { ok: true, value: null };
+
+    const createTicketResponse = await sendFetchRequest(
+      '/api/fileglancer/ticket',
+      'POST',
+      cookies['_xsrf'],
+      {
+        fsp_name: currentFileSharePath.name,
+        path: propertiesTarget.path,
+        project_key: 'FT',
+        issue_type: 'Task',
+        summary: 'Convert file to ZARR',
+        description: `Convert ${messagePath} to a ZARR file.\nDestination folder: ${destinationFolder}\nRequested by: ${profile?.username}`
+      }
+    );
+
+    if (!createTicketResponse.ok) {
+      const error = await getResponseError(checkPathResponse);
+      throw new Error(error);
+    }
+
+    const ticketData = await createTicketResponse.json();
+    logger.debug('Ticket creation response:', ticketData);
+
+    logger.info('Ticket created successfully:', ticketData);
+    setTicket(ticketData);
   }
 
   React.useEffect(() => {
