@@ -45,7 +45,7 @@ type PreferencesContextType = {
   handleFavoriteChange: (
     item: Zone | FileSharePath | FolderFavorite,
     type: 'zone' | 'fileSharePath' | 'folder'
-  ) => Promise<boolean>;
+  ) => Promise<Result<boolean>>;
 };
 
 const PreferencesContext = React.createContext<PreferencesContextType | null>(
@@ -313,17 +313,30 @@ export const PreferencesProvider = ({
     async (
       item: Zone | FileSharePath | FolderFavorite,
       type: 'zone' | 'fileSharePath' | 'folder'
-    ): Promise<boolean> => {
-      switch (type) {
-        case 'zone':
-          return await handleZoneFavoriteChange(item as Zone);
-        case 'fileSharePath':
-          return await handleFileSharePathFavoriteChange(item as FileSharePath);
-        case 'folder':
-          return await handleFolderFavoriteChange(item as FolderFavorite);
-        default:
-          throw new Error(`Invalid favorite type: ${type}`);
+    ): Promise<Result<boolean>> => {
+      let favoriteAdded = false;
+      try {
+        switch (type) {
+          case 'zone':
+            favoriteAdded = await handleZoneFavoriteChange(item as Zone);
+            break;
+          case 'fileSharePath':
+            favoriteAdded = await handleFileSharePathFavoriteChange(
+              item as FileSharePath
+            );
+            break;
+          case 'folder':
+            favoriteAdded = await handleFolderFavoriteChange(
+              item as FolderFavorite
+            );
+            break;
+          default:
+            return handleError(new Error(`Invalid favorite type: ${type}`));
+        }
+      } catch (error) {
+        return handleError(error);
       }
+      return createSuccess(favoriteAdded);
     },
     [
       handleZoneFavoriteChange,

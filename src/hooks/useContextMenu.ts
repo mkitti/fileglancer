@@ -74,10 +74,9 @@ export default function useContextMenu() {
 
   const handleFavoriteToggleMenuItemClick = async (
     selectedFiles: FileOrFolder[]
-  ): Promise<Result<null>> => {
-    try {
+  ): Promise<Result<boolean>> => {
       if (currentFileSharePath) {
-        await handleFavoriteChange(
+        return await handleFavoriteChange(
           {
             type: 'folder',
             folderPath: selectedFiles[0].path,
@@ -85,10 +84,10 @@ export default function useContextMenu() {
           },
           'folder'
         );
-        setShowContextMenu(false);
+        
       }
-    } catch (error) {
-      return handleError(error);
+      else {
+      return handleError(new Error('No file share path selected'))
     }
     return createSuccess();
   };
