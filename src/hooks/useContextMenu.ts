@@ -3,7 +3,7 @@ import * as React from 'react';
 import type { FileOrFolder, Result } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import { createSuccess, handleError } from '@/utils/errorHandling';
+import { handleError } from '@/utils/errorHandling';
 
 export default function useContextMenu() {
   const [contextMenuCoords, setContextMenuCoords] = React.useState({
@@ -72,7 +72,7 @@ export default function useContextMenu() {
     setSelectedFiles(newSelectedFiles);
   }
 
-  const handleFavoriteToggleMenuItemClick = async (
+  const handleContextMenuFavorite = async (
     selectedFiles: FileOrFolder[]
   ): Promise<Result<boolean>> => {
       if (currentFileSharePath) {
@@ -89,7 +89,6 @@ export default function useContextMenu() {
       else {
       return handleError(new Error('No file share path selected'))
     }
-    return createSuccess();
   };
 
   return {
@@ -98,6 +97,6 @@ export default function useContextMenu() {
     setShowContextMenu,
     menuRef,
     handleContextMenuClick,
-    handleFavoriteToggleMenuItemClick
+    handleContextMenuFavorite
   };
 }

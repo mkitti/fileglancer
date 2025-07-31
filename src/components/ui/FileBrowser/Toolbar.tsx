@@ -22,7 +22,7 @@ import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useOpenFavoritesContext } from '@/contexts/OpenFavoritesContext';
 import { getPreferredPathForDisplay, makeMapKey } from '@/utils';
 import { copyToClipboard } from '@/utils/copyText';
-import useToolbar from '@/hooks/useToolbar';
+import useFavoriteToggle from '@/hooks/useFavoriteToggle';
 
 type ToolbarProps = {
   hideDotFiles: boolean;
@@ -49,7 +49,7 @@ export default function Toolbar({
   const { folderPreferenceMap, fileSharePathPreferenceMap, pathPreference } =
     usePreferencesContext();
 
-  const { handleFavoriteClick } = useToolbar();
+  const { handleFavoriteToggle } = useFavoriteToggle();
   const { openFavoritesSection } = useOpenFavoritesContext();
 
   const fullPath = getPreferredPathForDisplay(
@@ -204,7 +204,7 @@ export default function Toolbar({
                 variant="outline"
                 disabled={!currentFileSharePath}
                 onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
-                  const result = await handleFavoriteClick();
+                  const result = await handleFavoriteToggle(false);
                   if (!result.success) {
                     toast.error(`Error updating favorites: ${result.error}`);
                   } else if (result.data === true) {

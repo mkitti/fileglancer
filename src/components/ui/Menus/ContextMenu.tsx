@@ -13,9 +13,9 @@ type ContextMenuProps = {
   y: number;
   menuRef: React.RefObject<HTMLDivElement | null>;
   selectedFiles: FileOrFolder[];
-  handleFavoriteToggleMenuItemClick: (
+  handleContextMenuFavorite: (
     selectedFiles: FileOrFolder[]
-  ) => Promise<Result<null>>;
+  ) => Promise<Result<boolean>>;
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
   setShowContextMenu: React.Dispatch<React.SetStateAction<boolean>>;
   setShowRenameDialog: React.Dispatch<React.SetStateAction<boolean>>;
@@ -26,9 +26,9 @@ type ContextMenuProps = {
 
 type ContextMenuActionProps = {
   selectedFiles: FileOrFolder[];
-  handleFavoriteToggleMenuItemClick: (
-    selectedFiles: FileOrFolder[]
-  ) => Promise<Result<null>>;
+  handleContextMenuFavorite: (
+   selectedFiles: FileOrFolder[]
+  ) => Promise<Result<boolean>>;
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
   setShowContextMenu: React.Dispatch<React.SetStateAction<boolean>>;
   setShowRenameDialog: React.Dispatch<React.SetStateAction<boolean>>;
@@ -42,7 +42,7 @@ export default function ContextMenu({
   y,
   menuRef,
   selectedFiles,
-  handleFavoriteToggleMenuItemClick,
+  handleContextMenuFavorite,
   setShowPropertiesDrawer,
   setShowContextMenu,
   setShowRenameDialog,
@@ -75,10 +75,13 @@ export default function ContextMenu({
       name: isFavorite ? 'Unset favorite' : 'Set favorite',
       action: async (props: ContextMenuActionProps) => {
         const result =
-          await props.handleFavoriteToggleMenuItemClick(selectedFiles);
+          await props.handleContextMenuFavorite(selectedFiles);
         if (!result.success) {
           toast.error(`Error toggling favorite: ${result.error}`);
+        } else {
+          toast.success(`Favorite ${isFavorite ? 'removed!' : 'added!'}`);
         }
+        setShowContextMenu(false)
       },
       shouldShow: selectedFiles[0].is_dir
     },
@@ -118,7 +121,7 @@ export default function ContextMenu({
 
   const actionProps = {
     selectedFiles,
-    handleFavoriteToggleMenuItemClick,
+    handleContextMenuFavorite,
     setShowPropertiesDrawer,
     setShowContextMenu,
     setShowRenameDialog,

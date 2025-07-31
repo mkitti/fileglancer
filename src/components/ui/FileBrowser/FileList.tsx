@@ -42,7 +42,7 @@ export default function FileList({
     setShowContextMenu,
     menuRef,
     handleContextMenuClick,
-    handleFavoriteToggleMenuItemClick
+    handleContextMenuFavorite
   } = useContextMenu();
 
   const {
@@ -143,7 +143,7 @@ export default function FileList({
           y={contextMenuCoords.y}
           menuRef={menuRef}
           selectedFiles={selectedFiles}
-          handleFavoriteToggleMenuItemClick={handleFavoriteToggleMenuItemClick}
+          handleContextMenuFavorite={handleContextMenuFavorite}
           setShowPropertiesDrawer={setShowPropertiesDrawer}
           setShowContextMenu={setShowContextMenu}
           setShowRenameDialog={setShowRenameDialog}

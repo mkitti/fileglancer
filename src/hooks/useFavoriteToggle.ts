@@ -3,11 +3,13 @@ import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import type { Result } from '@/shared.types';
 import { createSuccess, handleError } from '@/utils/errorHandling';
 
-export default function useToolbar() {
+export default function useFavoriteToggle() {
   const { fileBrowserState } = useFileBrowserContext();
   const { handleFavoriteChange } = usePreferencesContext();
 
-  async function handleFavoriteClick(): Promise<Result<boolean>> {
+  async function handleFavoriteToggle(
+    inContextMenu: boolean
+  ): Promise<Result<boolean>> {
     if (
       !fileBrowserState.currentFileSharePath ||
       !fileBrowserState.currentFolder
@@ -17,17 +19,27 @@ export default function useToolbar() {
       );
     }
     try {
-      if (
+      if (inContextMenu && fileBrowserState.propertiesTarget) {
+        return await handleFavoriteChange(
+          {
+            type: 'folder',
+            folderPath: fileBrowserState.propertiesTarget.path,
+            fsp: fileBrowserState.currentFileSharePath
+          },
+          'folder'
+        );
+      } else if (inContextMenu && !fileBrowserState.propertiesTarget) {
+        throw new Error('Cannot add favorite - target folder not set');
+      } else if (
         !fileBrowserState.currentFolder ||
         fileBrowserState.currentFolder.path === '.'
       ) {
-        const isFavoriteAdded = await handleFavoriteChange(
+        return await handleFavoriteChange(
           fileBrowserState.currentFileSharePath,
           'fileSharePath'
         );
-        return createSuccess(isFavoriteAdded);
       } else {
-        const isFavoriteAdded = await handleFavoriteChange(
+        return await handleFavoriteChange(
           {
             type: 'folder',
             folderPath: fileBrowserState.currentFolder.path,
@@ -35,12 +47,11 @@ export default function useToolbar() {
           },
           'folder'
         );
-        return createSuccess(isFavoriteAdded);
       }
     } catch (error) {
       return handleError(error);
     }
   }
 
-  return { handleFavoriteClick };
+  return { handleFavoriteToggle };
 }
