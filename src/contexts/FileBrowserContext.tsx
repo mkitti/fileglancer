@@ -1,11 +1,16 @@
 import React from 'react';
 import { default as log } from '@/logger';
 
-import type { FileOrFolder, FileSharePath } from '@/shared.types';
+import type { FileOrFolder, FileSharePath, Result } from '@/shared.types';
 import { getFileBrowsePath, makeMapKey, sendFetchRequest } from '@/utils';
 import { useCookiesContext } from './CookiesContext';
 import { useZoneAndFspMapContext } from './ZonesAndFspMapContext';
 import { normalizePosixStylePath } from '@/utils/pathHandling';
+import {
+  createSuccess,
+  getResponseError,
+  handleError
+} from '@/utils/errorHandling';
 
 type FileBrowserResponse = {
   info: FileOrFolder;
@@ -23,6 +28,7 @@ interface FileBrowserState {
   currentFileSharePath: FileSharePath | null;
   currentFolder: FileOrFolder | null;
   files: FileOrFolder[];
+  uiErrorMsg: string | null;
 }
 
 type FileBrowserContextType = {
@@ -37,7 +43,7 @@ type FileBrowserContextType = {
   currentFolder: FileOrFolder | null;
   files: FileOrFolder[];
   // END DUPLICATES
-  refreshFiles: () => Promise<void>;
+  refreshFiles: () => Promise<Result<void>>;
   setPropertiesTarget: React.Dispatch<
     React.SetStateAction<FileOrFolder | null>
   >;
@@ -72,7 +78,8 @@ export const FileBrowserContextProvider = ({
       isFileBrowserReady: false,
       currentFileSharePath: null,
       currentFolder: null,
-      files: []
+      files: [],
+      uiErrorMsg: null
     });
 
   // Duplicate states for convenience until all clients are updated.
@@ -106,14 +113,16 @@ export const FileBrowserContextProvider = ({
       ready: boolean,
       sharePath: FileSharePath | null,
       folder: FileOrFolder | null,
-      fileList: FileOrFolder[]
+      fileList: FileOrFolder[],
+      msg: string | null
     ) => {
       // Update fileBrowserState with complete, consistent data
       updateFileBrowserState({
         isFileBrowserReady: ready,
         currentFileSharePath: sharePath,
         currentFolder: folder,
-        files: fileList
+        files: fileList,
+        uiErrorMsg: msg
       });
 
       // Update local states for individual parts
@@ -160,6 +169,9 @@ export const FileBrowserContextProvider = ({
           }
         } else if (response.status === 404) {
           throw new Error('Folder not found');
+        } else {
+          const error = await getResponseError(response);
+          throw new Error(error);
         }
       }
 
@@ -173,48 +185,63 @@ export const FileBrowserContextProvider = ({
     async (fsp: FileSharePath, folderPath: string): Promise<void> => {
       log.debug('Fetching files for FSP:', fsp.name, 'and folder:', folderPath);
       let folder: FileOrFolder | null = null;
-
-      const response = await fetchFileInfo(fsp.name, folderPath);
-      folder = response.info as FileOrFolder;
-      if (folder) {
-        folder = {
-          ...folder,
-          path: normalizePosixStylePath(folder.path)
-        };
-      }
-
-      // Normalize the file paths in POSIX style, assuming POSIX-style paths
-      let files = response.files.map(file => ({
-        ...file,
-        path: normalizePosixStylePath(file.path)
-      })) as FileOrFolder[];
-      // Sort: directories first, then files; alphabetically within each type
-      files = files.sort((a: FileOrFolder, b: FileOrFolder) => {
-        if (a.is_dir === b.is_dir) {
-          return a.name.localeCompare(b.name);
+      try {
+        const response = await fetchFileInfo(fsp.name, folderPath);
+        folder = response.info as FileOrFolder;
+        if (folder) {
+          folder = {
+            ...folder,
+            path: normalizePosixStylePath(folder.path)
+          };
         }
-        return a.is_dir ? -1 : 1;
-      });
 
-      // Update all states consistently
-      updateAllStates(true, fsp, folder, files);
+        // Normalize the file paths in POSIX style, assuming POSIX-style paths
+        let files = response.files.map(file => ({
+          ...file,
+          path: normalizePosixStylePath(file.path)
+        })) as FileOrFolder[];
+        // Sort: directories first, then files; alphabetically within each type
+        files = files.sort((a: FileOrFolder, b: FileOrFolder) => {
+          if (a.is_dir === b.is_dir) {
+            return a.name.localeCompare(b.name);
+          }
+          return a.is_dir ? -1 : 1;
+        });
+
+        // Update all states consistently
+        updateAllStates(true, fsp, folder, files, null);
+      } catch (error) {
+        log.error(error);
+        if (error instanceof Error) {
+          updateAllStates(true, fsp, folder, [], error.message);
+        } else {
+          updateAllStates(true, fsp, folder, [], 'An unknown error occurred');
+        }
+      }
     },
     [updateAllStates, fetchFileInfo]
   );
 
   // Function to refresh files for the current FSP and current folder
-  const refreshFiles = async (): Promise<void> => {
+  const refreshFiles = async (): Promise<Result<void>> => {
     if (
       !fileBrowserState.currentFileSharePath ||
       !fileBrowserState.currentFolder
     ) {
-      return;
+      return handleError(
+        new Error('File share path and folder required to refresh files')
+      );
     }
     log.debug('Refreshing file list');
-    await fetchAndUpdateFileBrowserState(
-      fileBrowserState.currentFileSharePath,
-      fileBrowserState.currentFolder.path
-    );
+    try {
+      await fetchAndUpdateFileBrowserState(
+        fileBrowserState.currentFileSharePath,
+        fileBrowserState.currentFolder.path
+      );
+      return createSuccess();
+    } catch (error) {
+      return handleError(error);
+    }
   };
 
   // Effect to update currentFolder and propertiesTarget when URL params change
@@ -226,7 +253,7 @@ export const FileBrowserContextProvider = ({
         if (cancelled) {
           return;
         }
-        updateAllStates(false, null, null, []);
+        updateAllStates(false, null, null, [], '');
         return;
       }
 
@@ -237,10 +264,9 @@ export const FileBrowserContextProvider = ({
         if (cancelled) {
           return;
         }
-        updateAllStates(false, null, null, []);
+        updateAllStates(false, null, null, [], 'Invalid file share path name');
         return;
       }
-
       const folder = await fetchAndUpdateFileBrowserState(
         urlFsp,
         filePath || '.'
@@ -248,7 +274,9 @@ export const FileBrowserContextProvider = ({
       if (cancelled) {
         return;
       }
-      setPropertiesTarget(folder);
+      if (folder) {
+        setPropertiesTarget(folder);
+      }
     };
     updateCurrentFileSharePathAndFolder();
     return () => {
