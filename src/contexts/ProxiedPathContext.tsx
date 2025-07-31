@@ -177,7 +177,7 @@ export const ProxiedPathProvider = ({
       try {
         await fetchAllProxiedPaths();
       } catch (error) {
-        const errorResult = handleError(error);
+        log.error(error);
       }
     })();
   }, [fetchAllProxiedPaths]);

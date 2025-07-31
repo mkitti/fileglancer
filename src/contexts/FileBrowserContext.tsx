@@ -29,7 +29,7 @@ interface FileBrowserState {
   currentFolder: FileOrFolder | null;
   files: FileOrFolder[];
   propertiesTarget: FileOrFolder | null;
-  uiErrorMsg: string | null
+  uiErrorMsg: string | null;
 }
 
 type FileBrowserContextType = {
@@ -126,7 +126,7 @@ export const FileBrowserContextProvider = ({
         currentFolder: folder,
         files: fileList,
         propertiesTarget: targetItem,
-        uiErrorMsg: msg,
+        uiErrorMsg: msg
       });
 
       // Update local states for individual parts
@@ -277,7 +277,14 @@ export const FileBrowserContextProvider = ({
         if (cancelled) {
           return;
         }
-        updateAllStates(false, null, null, [], null, 'Invalid file share path name');
+        updateAllStates(
+          false,
+          null,
+          null,
+          [],
+          null,
+          'Invalid file share path name'
+        );
         return;
       }
 

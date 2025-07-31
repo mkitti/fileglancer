@@ -1,4 +1,4 @@
-import type { ApiFailure, FileOrFolder, Result } from '@/shared.types';
+import type { FileOrFolder, Result } from '@/shared.types';
 import { getFileBrowsePath, sendFetchRequest } from '@/utils';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';

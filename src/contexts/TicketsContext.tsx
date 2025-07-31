@@ -3,12 +3,7 @@ import logger, { default as log } from '@/logger';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { useProfileContext } from './ProfileContext';
-import {
-  sendFetchRequest,
-  getFileBrowsePath,
-  getFullPath,
-  joinPaths
-} from '@/utils';
+import { sendFetchRequest, getFileBrowsePath, joinPaths } from '@/utils';
 import type { Result } from '@/shared.types';
 import { createSuccess, handleError } from '@/utils/errorHandling';
 
@@ -205,7 +200,7 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
         log.error('Error in useEffect:', error);
       }
     })();
-  }, [fetchTicket, propertiesTarget]);
+  }, [fetchTicket, propertiesTarget, currentFileSharePath]);
 
   return (
     <TicketContext.Provider

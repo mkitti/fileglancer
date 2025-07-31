@@ -1,5 +1,3 @@
-import log from 'loglevel';
-import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router';
 
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
