@@ -3,7 +3,10 @@ import * as React from 'react';
 import type { FileOrFolder, Result } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import { createSuccess, handleError } from '@/utils/errorHandling';
+import {
+  createSuccess,
+  handleError
+} from '@/utils/errorHandling';
 
 export default function useContextMenu() {
   const [contextMenuCoords, setContextMenuCoords] = React.useState({

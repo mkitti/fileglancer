@@ -72,7 +72,7 @@ export const FileBrowserContextProvider = ({
       isFileBrowserReady: false,
       currentFileSharePath: null,
       currentFolder: null,
-      files: [],
+      files: []
     });
 
   // Duplicate states for convenience until all clients are updated.
@@ -106,14 +106,14 @@ export const FileBrowserContextProvider = ({
       ready: boolean,
       sharePath: FileSharePath | null,
       folder: FileOrFolder | null,
-      fileList: FileOrFolder[],
+      fileList: FileOrFolder[]
     ) => {
       // Update fileBrowserState with complete, consistent data
       updateFileBrowserState({
         isFileBrowserReady: ready,
         currentFileSharePath: sharePath,
         currentFolder: folder,
-        files: fileList,
+        files: fileList
       });
 
       // Update local states for individual parts
@@ -170,37 +170,34 @@ export const FileBrowserContextProvider = ({
 
   // Fetch files for the given FSP and folder, and update the fileBrowserState
   const fetchAndUpdateFileBrowserState = React.useCallback(
-    async (
-      fsp: FileSharePath,
-      folderPath: string
-    ): Promise<void> => {
+    async (fsp: FileSharePath, folderPath: string): Promise<void> => {
       log.debug('Fetching files for FSP:', fsp.name, 'and folder:', folderPath);
       let folder: FileOrFolder | null = null;
 
-        const response = await fetchFileInfo(fsp.name, folderPath);
-        folder = response.info as FileOrFolder;
-        if (folder) {
-          folder = {
-            ...folder,
-            path: normalizePosixStylePath(folder.path)
-          };
+      const response = await fetchFileInfo(fsp.name, folderPath);
+      folder = response.info as FileOrFolder;
+      if (folder) {
+        folder = {
+          ...folder,
+          path: normalizePosixStylePath(folder.path)
+        };
+      }
+
+      // Normalize the file paths in POSIX style, assuming POSIX-style paths
+      let files = response.files.map(file => ({
+        ...file,
+        path: normalizePosixStylePath(file.path)
+      })) as FileOrFolder[];
+      // Sort: directories first, then files; alphabetically within each type
+      files = files.sort((a: FileOrFolder, b: FileOrFolder) => {
+        if (a.is_dir === b.is_dir) {
+          return a.name.localeCompare(b.name);
         }
+        return a.is_dir ? -1 : 1;
+      });
 
-        // Normalize the file paths in POSIX style, assuming POSIX-style paths
-        let files = response.files.map(file => ({
-          ...file,
-          path: normalizePosixStylePath(file.path)
-        })) as FileOrFolder[];
-        // Sort: directories first, then files; alphabetically within each type
-        files = files.sort((a: FileOrFolder, b: FileOrFolder) => {
-          if (a.is_dir === b.is_dir) {
-            return a.name.localeCompare(b.name);
-          }
-          return a.is_dir ? -1 : 1;
-        });
-
-        // Update all states consistently
-        updateAllStates(true, fsp, folder, files);
+      // Update all states consistently
+      updateAllStates(true, fsp, folder, files);
     },
     [updateAllStates, fetchFileInfo]
   );
@@ -218,7 +215,7 @@ export const FileBrowserContextProvider = ({
       fileBrowserState.currentFileSharePath,
       fileBrowserState.currentFolder.path
     );
-  }
+  };
 
   // Effect to update currentFolder and propertiesTarget when URL params change
   React.useEffect(() => {

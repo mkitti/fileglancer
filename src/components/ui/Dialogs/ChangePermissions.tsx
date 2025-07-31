@@ -7,7 +7,6 @@ import TextWithFilePath from './TextWithFilePath';
 import usePermissionsDialog from '@/hooks/usePermissionsDialog';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
-
 type ChangePermissionsProps = {
   showPermissionsDialog: boolean;
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;

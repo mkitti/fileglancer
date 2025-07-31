@@ -184,8 +184,10 @@ export const PreferencesProvider = ({
         { value: value }
       );
       if (!response.ok) {
-        const error = await getResponseError(response)
-        throw new Error(`Error saving preferences to database: ${response.status}: ${error}`)
+        const error = await getResponseError(response);
+        throw new Error(
+          `Error saving preferences to database: ${response.status}: ${error}`
+        );
       }
       return response;
     },

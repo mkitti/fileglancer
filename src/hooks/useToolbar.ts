@@ -25,7 +25,7 @@ export default function useToolbar() {
           fileBrowserState.currentFileSharePath,
           'fileSharePath'
         );
-        return createSuccess(isFavoriteAdded)
+        return createSuccess(isFavoriteAdded);
       } else {
         const isFavoriteAdded = await handleFavoriteChange(
           {
@@ -35,7 +35,7 @@ export default function useToolbar() {
           },
           'folder'
         );
-      return createSuccess(isFavoriteAdded)
+        return createSuccess(isFavoriteAdded);
       }
     } catch (error) {
       return handleError(error);
