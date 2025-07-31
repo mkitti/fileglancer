@@ -114,9 +114,12 @@ export default function ZarrPreview({
               >
                 Data Link
               </Typography>
-              <Typography type="small" className="text-foreground">
-                Creating a data link for this image allows you <br />
-                to open it in external viewers like Neuroglancer.
+              <Typography
+                type="small"
+                className="text-foreground whitespace-normal max-w-[300px]"
+              >
+                Creating a data link for this image allows you to open it in
+                external viewers like Neuroglancer.
               </Typography>
             </label>
           </div>

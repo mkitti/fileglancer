@@ -28,16 +28,17 @@ interface FileBrowserState {
   currentFileSharePath: FileSharePath | null;
   currentFolder: FileOrFolder | null;
   files: FileOrFolder[];
-  uiErrorMsg: string | null;
+  propertiesTarget: FileOrFolder | null;
+  uiErrorMsg: string | null
 }
 
 type FileBrowserContextType = {
   fileBrowserState: FileBrowserState;
   fspName: string | undefined;
   filePath: string | undefined;
-  propertiesTarget: FileOrFolder | null;
   // The following are duplicates of the FileBrowserState, but are here for convenience until all clients are updated.
   // TODO: Remove these once all clients are updated.
+  propertiesTarget: FileOrFolder | null;
   isFileBrowserReady: boolean;
   currentFileSharePath: FileSharePath | null;
   currentFolder: FileOrFolder | null;
@@ -79,6 +80,7 @@ export const FileBrowserContextProvider = ({
       currentFileSharePath: null,
       currentFolder: null,
       files: [],
+      propertiesTarget: null,
       uiErrorMsg: null
     });
 
@@ -114,6 +116,7 @@ export const FileBrowserContextProvider = ({
       sharePath: FileSharePath | null,
       folder: FileOrFolder | null,
       fileList: FileOrFolder[],
+      targetItem: FileOrFolder | null,
       msg: string | null
     ) => {
       // Update fileBrowserState with complete, consistent data
@@ -122,7 +125,8 @@ export const FileBrowserContextProvider = ({
         currentFileSharePath: sharePath,
         currentFolder: folder,
         files: fileList,
-        uiErrorMsg: msg
+        propertiesTarget: targetItem,
+        uiErrorMsg: msg,
       });
 
       // Update local states for individual parts
@@ -131,11 +135,13 @@ export const FileBrowserContextProvider = ({
         setCurrentFileSharePath(sharePath);
         setCurrentFolder(folder);
         setFiles(fileList);
+        setPropertiesTarget(targetItem);
       } else {
         setIsFileBrowserReady(false);
         setCurrentFileSharePath(null);
         setCurrentFolder(null);
         setFiles([]);
+        setPropertiesTarget(null);
       }
     },
     [updateFileBrowserState]
@@ -209,13 +215,20 @@ export const FileBrowserContextProvider = ({
         });
 
         // Update all states consistently
-        updateAllStates(true, fsp, folder, files, null);
+        updateAllStates(true, fsp, folder, files, folder, null);
       } catch (error) {
         log.error(error);
         if (error instanceof Error) {
-          updateAllStates(true, fsp, folder, [], error.message);
+          updateAllStates(true, fsp, folder, [], folder, error.message);
         } else {
-          updateAllStates(true, fsp, folder, [], 'An unknown error occurred');
+          updateAllStates(
+            true,
+            fsp,
+            folder,
+            [],
+            folder,
+            'An unknown error occurred'
+          );
         }
       }
     },
@@ -253,7 +266,7 @@ export const FileBrowserContextProvider = ({
         if (cancelled) {
           return;
         }
-        updateAllStates(false, null, null, [], '');
+        updateAllStates(false, null, null, [], null, null);
         return;
       }
 
@@ -264,18 +277,14 @@ export const FileBrowserContextProvider = ({
         if (cancelled) {
           return;
         }
-        updateAllStates(false, null, null, [], 'Invalid file share path name');
+        updateAllStates(false, null, null, [], null, 'Invalid file share path name');
         return;
       }
-      const folder = await fetchAndUpdateFileBrowserState(
-        urlFsp,
-        filePath || '.'
-      );
+
+      await fetchAndUpdateFileBrowserState(urlFsp, filePath || '.');
+
       if (cancelled) {
         return;
-      }
-      if (folder) {
-        setPropertiesTarget(folder);
       }
     };
     updateCurrentFileSharePathAndFolder();
