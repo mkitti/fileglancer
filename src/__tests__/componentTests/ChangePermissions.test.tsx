@@ -1,26 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
+import toast from 'react-hot-toast';
 
-// Define mock functions using vi.hoisted to ensure they're available during hoisting
+// Define mock functions using vi.hoisted to ensure they're available to vi.mock,
+// which is hoisted to be executed before all imports
 const mockFns = vi.hoisted(() => ({
-  success: vi.fn(),
-  error: vi.fn(),
   handleLocalPermissionChange: vi.fn()
 }));
-
-vi.mock('react-hot-toast', () => {
-  return {
-    __esModule: true,
-    default: Object.assign(
-      () => {}, // Mock the default function export
-      {
-        success: mockFns.success,
-        error: mockFns.error
-      }
-    )
-  };
-});
 
 // Mock only parts of usePermissionsDialog hook without mocking handleChangePermissions
 vi.mock(import('../../hooks/usePermissionsDialog'), async importOriginal => {
@@ -92,7 +79,7 @@ describe('Change Permissions dialog', () => {
 
     // Now check that toast.success was called with the right message
     await waitFor(() => {
-      expect(mockFns.success).toHaveBeenCalledWith('Permissions changed!');
+      expect(toast.success).toHaveBeenCalledWith('Permissions changed!');
     });
   });
 });
