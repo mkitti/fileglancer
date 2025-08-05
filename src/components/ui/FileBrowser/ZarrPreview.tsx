@@ -128,7 +128,6 @@ export default function ZarrPreview({
             <DataLinkDialog
               isImageShared={isImageShared}
               setIsImageShared={setIsImageShared}
-              filePathWithoutFsp={currentFolder?.path || ''}
               showDataLinkDialog={showDataLinkDialog}
               setShowDataLinkDialog={setShowDataLinkDialog}
               proxiedPath={proxiedPath}

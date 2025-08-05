@@ -27,7 +27,7 @@ type ProxiedPathContextType = {
   proxiedPath: ProxiedPath | null;
   dataUrl: string | null;
   allProxiedPaths?: ProxiedPath[];
-  createProxiedPath: (fspName: string, path: string) => Promise<Result<void>>;
+  createProxiedPath: () => Promise<Result<void>>;
   deleteProxiedPath: (proxiedPath: ProxiedPath) => Promise<void>;
 };
 
@@ -65,7 +65,7 @@ export const ProxiedPathProvider = ({
   );
   const [dataUrl, setDataUrl] = React.useState<string | null>(null);
   const { cookies } = useCookiesContext();
-  const { currentFolder, currentFileSharePath } = useFileBrowserContext();
+  const { fileBrowserState } = useFileBrowserContext();
 
   const updateProxiedPath = React.useCallback(
     (proxiedPath: ProxiedPath | null) => {
@@ -101,13 +101,13 @@ export const ProxiedPathProvider = ({
   }, [cookies]);
 
   const fetchProxiedPath = React.useCallback(async () => {
-    if (!currentFileSharePath || !currentFolder) {
+    if (!fileBrowserState.currentFileSharePath || !fileBrowserState.currentFolder) {
       log.trace('No current file share path or file/folder selected');
       return null;
     }
     try {
       const response = await sendFetchRequest(
-        `/api/fileglancer/proxied-path?fsp_name=${currentFileSharePath?.name}&path=${currentFolder?.path}`,
+        `/api/fileglancer/proxied-path?fsp_name=${fileBrowserState.currentFileSharePath?.name}&path=${fileBrowserState.currentFolder?.path}`,
         'GET',
         cookies['_xsrf']
       );
@@ -125,18 +125,21 @@ export const ProxiedPathProvider = ({
       log.error('Error fetching proxied path:', error);
     }
     return null;
-  }, [currentFileSharePath, currentFolder, cookies]);
+  }, [fileBrowserState.currentFileSharePath, fileBrowserState.currentFolder, cookies]);
 
-  async function createProxiedPath(
-    fspName: string,
-    path: string
-  ): Promise<Result<void>> {
+  async function createProxiedPath(): Promise<Result<void>> {
+    if (!fileBrowserState.currentFileSharePath){
+      return handleError(new Error('No file share path selected'))
+    } else if (!fileBrowserState.currentFolder){  
+      return handleError(new Error('No folder selected'))
+    } 
+
     try {
       const response = await sendFetchRequest(
         '/api/fileglancer/proxied-path',
         'POST',
         cookies['_xsrf'],
-        { fsp_name: fspName, path: path }
+        { fsp_name: fileBrowserState.currentFileSharePath.name, path: fileBrowserState.currentFolder.path }
       );
 
       if (response.ok) {
@@ -196,8 +199,8 @@ export const ProxiedPathProvider = ({
       }
     })();
   }, [
-    currentFileSharePath,
-    currentFolder,
+    fileBrowserState.currentFileSharePath,
+    fileBrowserState.currentFolder,
     fetchProxiedPath,
     updateProxiedPath
   ]);

@@ -15,7 +15,6 @@ import TextWithFilePath from './TextWithFilePath';
 type DataLinkDialogProps = {
   isImageShared: boolean;
   setIsImageShared?: React.Dispatch<React.SetStateAction<boolean>>;
-  filePathWithoutFsp: string;
   showDataLinkDialog: boolean;
   setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
   proxiedPath: ProxiedPath | null;
@@ -24,22 +23,25 @@ type DataLinkDialogProps = {
 export default function DataLinkDialog({
   isImageShared,
   setIsImageShared,
-  filePathWithoutFsp,
   showDataLinkDialog,
   setShowDataLinkDialog,
   proxiedPath
 }: DataLinkDialogProps): JSX.Element {
   const { createProxiedPath, deleteProxiedPath } = useProxiedPathContext();
-  const { currentFileSharePath } = useFileBrowserContext();
+  const { fileBrowserState } = useFileBrowserContext();
   const { pathPreference } = usePreferencesContext();
 
-  if (!currentFileSharePath) {
-    return <>{toast.error('No file share path selected')}</>; // No file share path available
+  if (!fileBrowserState.currentFileSharePath) {
+    return <>{toast.error('No file share path selected')}</>;
   }
+  if (!fileBrowserState.currentFolder) {
+    return <>{toast.error('No folder selected')}</>;
+  }
+
   const displayPath = getPreferredPathForDisplay(
     pathPreference,
-    currentFileSharePath,
-    filePathWithoutFsp
+    fileBrowserState.currentFileSharePath,
+    fileBrowserState.currentFolder.path
   );
 
   return (
@@ -81,10 +83,7 @@ export default function DataLinkDialog({
             color="error"
             className="!rounded-md flex items-center gap-2"
             onClick={async () => {
-              const result = await createProxiedPath(
-                currentFileSharePath.name,
-                filePathWithoutFsp
-              );
+              const result = await createProxiedPath();
               if (result.success) {
                 toast.success(
                   `Successfully created data link for ${displayPath}`
