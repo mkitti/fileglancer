@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import userEvent from '@testing-library/user-event';
 
 import Sidebar from '@/components/ui/Sidebar/Sidebar';
-import { render, screen, waitFor } from '@/__tests__/test-utils';
+import { render, screen } from '@/__tests__/test-utils';
 
 describe('Sidebar', () => {
   it('displays all zones initially', async () => {
