@@ -20,6 +20,9 @@ export const handlers = [
       ]
     });
   }),
+  http.post('http://localhost:3000/api/fileglancer/proxied-path', ({request})=>{
+    return HttpResponse.json(null, {status: 200})
+  }),
 
   // Preferences
   http.get(
