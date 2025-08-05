@@ -16,7 +16,7 @@ export default function ChangePermissions({
   showPermissionsDialog,
   setShowPermissionsDialog
 }: ChangePermissionsProps): JSX.Element {
-  const { propertiesTarget: targetItem } = useFileBrowserContext();
+  const { fileBrowserState } = useFileBrowserContext();
 
   const {
     handleLocalPermissionChange,
@@ -29,7 +29,7 @@ export default function ChangePermissions({
       open={showPermissionsDialog}
       onClose={() => setShowPermissionsDialog(false)}
     >
-      {targetItem ? (
+      {fileBrowserState.propertiesTarget ? (
         <form
           onSubmit={async event => {
             event.preventDefault();
@@ -39,10 +39,13 @@ export default function ChangePermissions({
               );
               return;
             }
-            const result = await handleChangePermissions(
-              targetItem,
-              localPermissions
-            );
+            if (!fileBrowserState.propertiesTarget) {
+              toast.error(
+                'Error setting permissions: no properties target set'
+              );
+              return;
+            }
+            const result = await handleChangePermissions();
             if (result.success) {
               toast.success('Permissions changed!');
             } else {
@@ -53,7 +56,7 @@ export default function ChangePermissions({
         >
           <TextWithFilePath
             text="Change permissions for file:"
-            path={targetItem.name}
+            path={fileBrowserState.propertiesTarget.name}
           />
           <table className="w-full my-4 border border-surface dark:border-surface-light text-foreground">
             <thead className="border-b border-surface dark:border-surface-light bg-surface-dark text-sm font-medium">
@@ -69,7 +72,9 @@ export default function ChangePermissions({
             {localPermissions ? (
               <tbody className="text-sm">
                 <tr className="border-b border-surface dark:border-surface-light">
-                  <td className="p-3 font-medium">Owner: {targetItem.owner}</td>
+                  <td className="p-3 font-medium">
+                    Owner: {fileBrowserState.propertiesTarget.owner}
+                  </td>
                   {/* Owner read/write */}
                   <td className="p-3">
                     <input
@@ -91,7 +96,9 @@ export default function ChangePermissions({
                 </tr>
 
                 <tr className="border-b border-surface dark:border-surface-light">
-                  <td className="p-3 font-medium">Group: {targetItem.group}</td>
+                  <td className="p-3 font-medium">
+                    Group: {fileBrowserState.propertiesTarget.group}
+                  </td>
                   {/* Group read/write */}
                   <td className="p-3">
                     <input

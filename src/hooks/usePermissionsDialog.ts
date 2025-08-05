@@ -8,14 +8,12 @@ import { handleBadResponse, handleError } from '@/utils/errorHandling';
 
 export default function usePermissionsDialog() {
   const { cookies } = useCookiesContext();
-  const {
-    currentFileSharePath,
-    refreshFiles,
-    propertiesTarget: targetItem
-  } = useFileBrowserContext();
+  const { fileBrowserState, refreshFiles } = useFileBrowserContext();
 
   const [localPermissions, setLocalPermissions] = React.useState(
-    targetItem ? targetItem.permissions : null
+    fileBrowserState.propertiesTarget
+      ? fileBrowserState.propertiesTarget.permissions
+      : null
   );
 
   function handleLocalPermissionChange(
@@ -43,17 +41,21 @@ export default function usePermissionsDialog() {
     });
   }
 
-  async function handleChangePermissions(
-    targetItem: FileOrFolder,
-    localPermissions: FileOrFolder['permissions']
-  ): Promise<Result<void>> {
-    if (!currentFileSharePath) {
-      return handleError(new Error('No file share path selected'));
+  async function handleChangePermissions(): Promise<Result<void>> {
+    if (!fileBrowserState.currentFileSharePath) {
+      return handleError(
+        new Error('Cannot change permissions; no file share path selected')
+      );
+    }
+    if (!fileBrowserState.propertiesTarget) {
+      return handleError(
+        new Error('Cannot change permissions; no properties target set')
+      );
     }
 
     const fetchPath = getFileBrowsePath(
-      currentFileSharePath.name,
-      targetItem.path
+      fileBrowserState.currentFileSharePath.name,
+      fileBrowserState.propertiesTarget.path
     );
 
     try {
