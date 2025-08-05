@@ -3,6 +3,7 @@
 import { http, HttpResponse } from 'msw';
 
 export const handlers = [
+  // Proxied paths
   http.get('http://localhost:3000/api/fileglancer/proxied-path', () => {
     return HttpResponse.json({
       paths: [
@@ -19,6 +20,8 @@ export const handlers = [
       ]
     });
   }),
+
+  // Preferences
   http.get(
     'http://localhost:3000/api/fileglancer/preference',
     ({ request }) => {
@@ -43,6 +46,8 @@ export const handlers = [
       }
     }
   ),
+
+  // File share paths
   http.get('http://localhost:3000/api/fileglancer/file-share-paths', () => {
     return HttpResponse.json({
       paths: [
@@ -51,10 +56,10 @@ export const handlers = [
           zone: 'Zone1',
           group: 'group1',
           storage: 'primary',
-          mount_path: '/test/path',
-          mac_path: 'smb://test/path',
-          windows_path: '\\\\test\\path',
-          linux_path: '/test/path'
+          mount_path: '/test/fsp',
+          mac_path: 'smb://test/fsp',
+          windows_path: '\\\\test\\fsp',
+          linux_path: '/test/fsp'
         },
         {
           name: 'another_fsp',
@@ -69,6 +74,8 @@ export const handlers = [
       ]
     });
   }),
+
+  // Files
   http.get(
     'http://localhost:3000/api/fileglancer/files/:fspName',
     ({ params, request }) => {
@@ -95,7 +102,6 @@ export const handlers = [
       return HttpResponse.json({ error: 'Not found' }, { status: 404 });
     }
   ),
-
   // Default to successful PATCH request for permission changes
   // 204 = successful, no content in response
   http.patch(
@@ -103,5 +109,52 @@ export const handlers = [
     ({ request }) => {
       return HttpResponse.json(null, { status: 204 });
     }
-  )
+  ),
+
+  // Tickets
+  http.get(
+    'http://localhost:3000/api/fileglancer/ticket',
+    () => {
+      return HttpResponse.json({
+  "tickets": [
+    {
+      "username": "testuser",
+      "path": "test_user_zarr",
+      "fsp_name": "groups_scicompsoft_home",
+      "key": "FT-79",
+      "created": "2025-08-05T12:00:00.000000-04:00",
+      "updated": "2025-08-05T12:30:00.000000-04:00",
+      "status": "In Progress",
+      "resolution": "Unresolved",
+      "description": "Convert /groups/scicompsoft/home/test_user to a ZARR file.\nDestination folder: \\Users\\test_user\\dev\\fileglancer\nRequested by: test_user",
+      "link": "https://hhmi.atlassian.net//browse/FT-79",
+      "comments": []
+    },
+    {
+      "username": "testuser",
+      "path": "test_user_tiff",
+      "fsp_name": "groups_scicompsoft_home",
+      "key": "FT-80",
+      "created": "2025-08-04T10:00:00.000000-04:00",
+      "updated": "2025-08-05T09:00:00.000000-04:00",
+      "status": "Closed",
+      "resolution": "Resolved",
+      "description": "Backup /groups/scicompsoft/home/test_user to cloud storage.\nRequested by: test_user",
+      "link": "https://hhmi.atlassian.net//browse/FT-80",
+      "comments": []
+    }
+  ]
+})
+
+    }
+  ),
+  http.post(
+    'http://localhost:3000/api/fileglancer/ticket',
+    () => {
+      return HttpResponse.json({"username": "testuser", "path": "/test/path", "fsp_name": "test_fsp", "key": "FT-78", "created": "2025-08-05T11:05:43.533000-04:00", "updated": "2025-08-05T11:05:43.683000-04:00", "status": "Open", "resolution": "Unresolved", "description": "Test description", "comments": []})
+    }
+  ),
+
+  //Profile
+  http.get('http://localhost:3000/api/fileglancer/profile', ()=> {return HttpResponse.json({"username": "testuser"})})
 ];

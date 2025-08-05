@@ -11,6 +11,8 @@ import { FileBrowserContextProvider } from '@/contexts/FileBrowserContext';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
 import { ProxiedPathProvider } from '@/contexts/ProxiedPathContext';
 import { OpenFavoritesProvider } from '@/contexts/OpenFavoritesContext';
+import { TicketProvider } from '@/contexts/TicketsContext';
+import { ProfileContextProvider } from '@/contexts/ProfileContext';
 import ErrorFallback from '@/components/ErrorFallback';
 
 interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
@@ -40,7 +42,11 @@ const Browse = ({ children }: { children: React.ReactNode }) => {
         <OpenFavoritesProvider>
           <PreferencesProvider>
             <FileBrowserTestingWrapper>
-              <ProxiedPathProvider>{children}</ProxiedPathProvider>
+              <ProxiedPathProvider>
+                <ProfileContextProvider>
+                <TicketProvider>{children}</TicketProvider>
+                </ProfileContextProvider>
+                </ProxiedPathProvider>
             </FileBrowserTestingWrapper>
           </PreferencesProvider>
         </OpenFavoritesProvider>
