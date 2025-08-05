@@ -32,10 +32,11 @@ import ChangePermissions from '@/components/ui/Dialogs/ChangePermissions';
 import { render, screen } from '@/__tests__/test-utils';
 
 describe('Change Permissions dialog', () => {
+  
   beforeEach(async () => {
     vi.clearAllMocks();
-
     const setShowPermissionsDialog = vi.fn();
+
     render(
       <ChangePermissions
         showPermissionsDialog={true}
@@ -43,8 +44,12 @@ describe('Change Permissions dialog', () => {
       />,
       { initialEntries: ['/browse/test_fsp/my_folder/my_file'] }
     );
+
     await waitFor(() => {
-      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      const btn = screen.getByText('Change Permissions', {
+        selector: 'button[type="submit"]'
+      });
+      expect(btn).toBeInTheDocument();
     });
   });
 
@@ -58,28 +63,32 @@ describe('Change Permissions dialog', () => {
   });
 
   it('calls toast.success for an ok HTTP response', async () => {
-    // Workaround for error: "element.animate" is not a function, caused by ripple animation on btn
-    // https://github.com/jsdom/jsdom/issues/3429#issuecomment-1936128876
-    Element.prototype.animate = vi
-      .fn()
-      .mockImplementation(() => ({ finished: Promise.resolve() }));
     const user = userEvent.setup();
-
-    // First ensure the button is in the document and wait for it
-    const changePermissionsButton = await waitFor(() => {
-      const btn = screen.getByText('Change Permissions', {
+    await user.click(screen.getByText('Change Permissions', {
         selector: 'button[type="submit"]'
-      });
-      expect(btn).toBeInTheDocument();
-      return btn;
-    });
-
-    // Click the button to submit the form
-    await user.click(changePermissionsButton);
-
-    // Now check that toast.success was called with the right message
+      }));
     await waitFor(() => {
       expect(toast.success).toHaveBeenCalledWith('Permissions changed!');
+    });
+  });
+
+  it('calls toast.error for a bad HTTP response', async () => {
+     // Override the mock for this specific test to simulate an error
+    const { server } = await import('@/__tests__/mocks/node');
+    const { http, HttpResponse } = await import('msw');
+    
+    server.use(
+      http.patch('http://localhost:3000/api/fileglancer/files/:fspName', () => {
+        return HttpResponse.json({ error: 'Permission denied' }, { status: 500 });
+      })
+    );
+
+    const user = userEvent.setup();
+    await user.click(screen.getByText('Change Permissions', {
+        selector: 'button[type="submit"]'
+      }));
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Error changing permissions: Permission denied');
     });
   });
 });
