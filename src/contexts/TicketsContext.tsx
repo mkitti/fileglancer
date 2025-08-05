@@ -52,7 +52,7 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
   const [allTickets, setAllTickets] = React.useState<Ticket[]>([]);
   const [ticket, setTicket] = React.useState<Ticket | null>(null);
   const { cookies } = useCookiesContext();
-  const { currentFileSharePath, propertiesTarget } = useFileBrowserContext();
+  const { fileBrowserState } = useFileBrowserContext();
   const { profile } = useProfileContext();
 
   const fetchAllTickets = React.useCallback(async (): Promise<Result<null>> => {
@@ -67,18 +67,13 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
         setAllTickets(sortTicketsByDate(data.tickets) as Ticket[]);
       }
       return createSuccess();
-      // if (response.status === 404) {
-      //    logger.info('No tickets found');
-      //    setAllTickets([]);
-      //    return createSuccess([] as Ticket[]);
-      //  }
     } catch (error) {
       return handleError(error);
     }
   }, [cookies]);
 
   const fetchTicket = React.useCallback(async () => {
-    if (!currentFileSharePath || !propertiesTarget) {
+    if (!fileBrowserState.currentFileSharePath || !fileBrowserState.propertiesTarget) {
       log.warn(
         'Cannot fetch ticket; no current file share path or file/folder selected'
       );
@@ -86,7 +81,7 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
     }
     try {
       const response = await sendFetchRequest(
-        `/api/fileglancer/ticket?fsp_name=${currentFileSharePath?.name}&path=${propertiesTarget?.path}`,
+        `/api/fileglancer/ticket?fsp_name=${fileBrowserState.currentFileSharePath.name}&path=${fileBrowserState.propertiesTarget.path}`,
         'GET',
         cookies['_xsrf']
       );
@@ -105,43 +100,27 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
       log.error('Error fetching ticket:', error);
     }
     return null;
-  }, [currentFileSharePath, propertiesTarget, cookies]);
+  }, [fileBrowserState.currentFileSharePath, fileBrowserState.propertiesTarget, cookies]);
 
   async function createTicket(destinationFolder: string): Promise<void> {
-    if (!currentFileSharePath) {
+    if (!fileBrowserState.currentFileSharePath) {
       throw new Error('No file share path selected');
-    } else if (!propertiesTarget) {
+    } else if (!fileBrowserState.propertiesTarget) {
       throw new Error('No properties target selected');
     }
 
-    const fetchPath = getFileBrowsePath(
-      currentFileSharePath.name,
-      propertiesTarget.path
-    );
-
     const messagePath = joinPaths(
-      currentFileSharePath.mount_path,
-      propertiesTarget.path
+      fileBrowserState.currentFileSharePath.mount_path,
+      fileBrowserState.propertiesTarget.path
     );
-
-    const checkPathResponse = await sendFetchRequest(
-      fetchPath,
-      'GET',
-      cookies['_xsrf']
-    );
-
-    if (!checkPathResponse.ok) {
-      const error = await getResponseError(checkPathResponse);
-      throw new Error(error);
-    }
 
     const createTicketResponse = await sendFetchRequest(
       '/api/fileglancer/ticket',
       'POST',
       cookies['_xsrf'],
       {
-        fsp_name: currentFileSharePath.name,
-        path: propertiesTarget.path,
+        fsp_name: fileBrowserState.currentFileSharePath.name,
+        path: fileBrowserState.propertiesTarget.path,
         project_key: 'FT',
         issue_type: 'Task',
         summary: 'Convert file to ZARR',
@@ -150,12 +129,11 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
     );
 
     if (!createTicketResponse.ok) {
-      const error = await getResponseError(checkPathResponse);
+      const error = await getResponseError(createTicketResponse);
       throw new Error(error);
     }
 
     const ticketData = await createTicketResponse.json();
-    logger.debug('Ticket creation response:', ticketData);
 
     logger.info('Ticket created successfully:', ticketData);
     setTicket(ticketData);
@@ -169,7 +147,7 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
 
   React.useEffect(() => {
     (async function () {
-      if (!currentFileSharePath || !propertiesTarget) {
+      if (!fileBrowserState.currentFileSharePath || !fileBrowserState.propertiesTarget) {
         return;
       }
       try {
@@ -183,7 +161,7 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
         log.error('Error in useEffect:', error);
       }
     })();
-  }, [fetchTicket, propertiesTarget, currentFileSharePath]);
+  }, [fetchTicket, fileBrowserState.propertiesTarget, fileBrowserState.currentFileSharePath]);
 
   return (
     <TicketContext.Provider
