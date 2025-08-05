@@ -1,6 +1,5 @@
 //https://mswjs.io/docs/quick-start
 
-import { name } from 'happy-dom/lib/PropertySymbol.js';
 import { http, HttpResponse } from 'msw';
 
 export const handlers = [
@@ -69,5 +68,40 @@ export const handlers = [
         }
       ]
     });
-  })
+  }),
+  http.get(
+    'http://localhost:3000/api/fileglancer/files/:fspName',
+    ({ params, request }) => {
+      const url = new URL(request.url);
+      const subpath = url.searchParams.get('subpath');
+      const { fspName } = params;
+
+      if (fspName === 'test_fsp') {
+        return HttpResponse.json({
+          info: {
+            name: subpath ? subpath.split('/').pop() : '',
+            path: subpath || '.',
+            size: subpath ? 1024 : 0,
+            is_dir: true,
+            permissions: 'drwxr-xr-x',
+            owner: 'testuser',
+            group: 'testgroup',
+            last_modified: 1647855213
+          },
+          files: []
+        });
+      }
+
+      return HttpResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+  ),
+
+  // Default to successful PATCH request for permission changes
+  // 204 = successful, no content in response
+  http.patch(
+    'http://localhost:3000/api/fileglancer/files/:fspName',
+    ({ request }) => {
+      return HttpResponse.json(null, { status: 204 });
+    }
+  )
 ];
