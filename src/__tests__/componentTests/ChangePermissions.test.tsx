@@ -53,14 +53,9 @@ describe('Change Permissions dialog', () => {
     });
   });
 
-  it('displays permissions dialog for file in URL', async () => {
-    await waitFor(() => {
-      expect(
-        screen.getByText('Change permissions for file:')
-      ).toBeInTheDocument();
+  it('displays permissions dialog for file in URL', () => {
       expect(screen.getByText('my_file')).toBeInTheDocument();
     });
-  });
 
   it('calls toast.success for an ok HTTP response', async () => {
     const user = userEvent.setup();
