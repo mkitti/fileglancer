@@ -45,7 +45,15 @@ export const ExternalBucketProvider = ({
   const updateExternalBucket = React.useCallback(
     (bucket: ExternalBucket | null) => {
       setExternalBucket(bucket);
-      if (bucket && currentFolder) {
+
+      if (!fileBrowserState.currentFileSharePath) {
+        throw new Error('No file share path selected');
+      }
+      if (!fileBrowserState.currentFolder) {
+        throw new Error('No folder selected');
+      }
+
+      if (bucket) {
         // Check if current path is an ancestor of the bucket path
         if (
           fileBrowserState.currentFileSharePath.name === bucket.fsp_name &&
