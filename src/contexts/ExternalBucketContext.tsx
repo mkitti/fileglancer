@@ -46,14 +46,13 @@ export const ExternalBucketProvider = ({
     (bucket: ExternalBucket | null) => {
       setExternalBucket(bucket);
 
-      if (!fileBrowserState.currentFileSharePath) {
-        throw new Error('No file share path selected');
-      }
-      if (!fileBrowserState.currentFolder) {
-        throw new Error('No folder selected');
-      }
-
       if (bucket) {
+        if (!fileBrowserState.currentFileSharePath) {
+          throw new Error('No file share path selected');
+        }
+        if (!fileBrowserState.currentFolder) {
+          throw new Error('No folder selected');
+        }
         // Check if current path is an ancestor of the bucket path
         if (
           fileBrowserState.currentFileSharePath.name === bucket.fsp_name &&
