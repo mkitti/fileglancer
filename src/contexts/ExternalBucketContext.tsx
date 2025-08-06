@@ -47,9 +47,14 @@ export const ExternalBucketProvider = ({
       setExternalBucket(bucket);
       if (bucket && currentFolder) {
         // Check if current path is an ancestor of the bucket path
-        if (currentFileSharePath?.name === bucket.fsp_name && currentFolder.path.startsWith(bucket.relative_path)) {
+        if (
+          currentFileSharePath?.name === bucket.fsp_name &&
+          currentFolder.path.startsWith(bucket.relative_path)
+        ) {
           // Create data URL with relative path from bucket
-          const relativePath = currentFolder.path.substring(bucket.relative_path.length);
+          const relativePath = currentFolder.path.substring(
+            bucket.relative_path.length
+          );
           const cleanRelativePath = relativePath.startsWith('/')
             ? relativePath.substring(1)
             : relativePath;
