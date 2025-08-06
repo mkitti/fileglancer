@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button, Typography } from '@material-tailwind/react';
 import toast from 'react-hot-toast';
+import logger from '@/logger';
 
 import {
   ProxiedPath,
@@ -30,6 +31,7 @@ export default function DataLinkDialog({
   const { createProxiedPath, deleteProxiedPath } = useProxiedPathContext();
   const { fileBrowserState } = useFileBrowserContext();
   const { pathPreference } = usePreferencesContext();
+  logger.debug(`ALERT: ${fileBrowserState.currentFileSharePath}`);
 
   if (!fileBrowserState.currentFileSharePath) {
     return <>{toast.error('No file share path selected')}</>;

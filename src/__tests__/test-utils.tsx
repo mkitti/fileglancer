@@ -44,9 +44,9 @@ const Browse = ({ children }: { children: React.ReactNode }) => {
             <FileBrowserTestingWrapper>
               <ProxiedPathProvider>
                 <ProfileContextProvider>
-                <TicketProvider>{children}</TicketProvider>
+                  <TicketProvider>{children}</TicketProvider>
                 </ProfileContextProvider>
-                </ProxiedPathProvider>
+              </ProxiedPathProvider>
             </FileBrowserTestingWrapper>
           </PreferencesProvider>
         </OpenFavoritesProvider>

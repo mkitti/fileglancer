@@ -73,7 +73,10 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
   }, [cookies]);
 
   const fetchTicket = React.useCallback(async () => {
-    if (!fileBrowserState.currentFileSharePath || !fileBrowserState.propertiesTarget) {
+    if (
+      !fileBrowserState.currentFileSharePath ||
+      !fileBrowserState.propertiesTarget
+    ) {
       log.warn(
         'Cannot fetch ticket; no current file share path or file/folder selected'
       );
@@ -100,7 +103,11 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
       log.error('Error fetching ticket:', error);
     }
     return null;
-  }, [fileBrowserState.currentFileSharePath, fileBrowserState.propertiesTarget, cookies]);
+  }, [
+    fileBrowserState.currentFileSharePath,
+    fileBrowserState.propertiesTarget,
+    cookies
+  ]);
 
   async function createTicket(destinationFolder: string): Promise<void> {
     if (!fileBrowserState.currentFileSharePath) {
@@ -147,7 +154,10 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
 
   React.useEffect(() => {
     (async function () {
-      if (!fileBrowserState.currentFileSharePath || !fileBrowserState.propertiesTarget) {
+      if (
+        !fileBrowserState.currentFileSharePath ||
+        !fileBrowserState.propertiesTarget
+      ) {
         return;
       }
       try {
@@ -161,7 +171,11 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
         log.error('Error in useEffect:', error);
       }
     })();
-  }, [fetchTicket, fileBrowserState.propertiesTarget, fileBrowserState.currentFileSharePath]);
+  }, [
+    fetchTicket,
+    fileBrowserState.propertiesTarget,
+    fileBrowserState.currentFileSharePath
+  ]);
 
   return (
     <TicketContext.Provider

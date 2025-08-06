@@ -32,7 +32,6 @@ import ChangePermissions from '@/components/ui/Dialogs/ChangePermissions';
 import { render, screen } from '@/__tests__/test-utils';
 
 describe('Change Permissions dialog', () => {
-  
   beforeEach(async () => {
     vi.clearAllMocks();
     const setShowPermissionsDialog = vi.fn();
@@ -54,36 +53,45 @@ describe('Change Permissions dialog', () => {
   });
 
   it('displays permissions dialog for file in URL', () => {
-      expect(screen.getByText('my_file')).toBeInTheDocument();
-    });
+    expect(screen.getByText('my_file')).toBeInTheDocument();
+  });
 
   it('calls toast.success for an ok HTTP response', async () => {
     const user = userEvent.setup();
-    await user.click(screen.getByText('Change Permissions', {
+    await user.click(
+      screen.getByText('Change Permissions', {
         selector: 'button[type="submit"]'
-      }));
+      })
+    );
     await waitFor(() => {
       expect(toast.success).toHaveBeenCalledWith('Permissions changed!');
     });
   });
 
   it('calls toast.error for a bad HTTP response', async () => {
-     // Override the mock for this specific test to simulate an error
+    // Override the mock for this specific test to simulate an error
     const { server } = await import('@/__tests__/mocks/node');
     const { http, HttpResponse } = await import('msw');
-    
+
     server.use(
       http.patch('http://localhost:3000/api/fileglancer/files/:fspName', () => {
-        return HttpResponse.json({ error: 'Permission denied' }, { status: 500 });
+        return HttpResponse.json(
+          { error: 'Permission denied' },
+          { status: 500 }
+        );
       })
     );
 
     const user = userEvent.setup();
-    await user.click(screen.getByText('Change Permissions', {
+    await user.click(
+      screen.getByText('Change Permissions', {
         selector: 'button[type="submit"]'
-      }));
+      })
+    );
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith('Error changing permissions: Permission denied');
+      expect(toast.error).toHaveBeenCalledWith(
+        'Error changing permissions: Permission denied'
+      );
     });
   });
 });
