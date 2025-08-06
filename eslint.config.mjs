@@ -25,7 +25,8 @@ export default defineConfig([
     'fileglancer/labextension/*',
     '.ipynb_checkpoints/*',
     'jest.config.js',
-    'package-lock.json'
+    'package-lock.json',
+    '.claude/settings.local.json'
   ]),
   {
     files: ['**/*.{js,mjs,cjs,ts,jsx,tsx}'],
