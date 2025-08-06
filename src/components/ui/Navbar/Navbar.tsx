@@ -8,6 +8,7 @@ import {
 } from '@material-tailwind/react';
 import { Link } from 'react-router-dom';
 import {
+  HiOutlineInformationCircle,
   HiOutlineMoon,
   HiOutlineMenu,
   HiOutlineX,
@@ -19,9 +20,7 @@ import { TbBrandGithub } from 'react-icons/tb';
 
 import ProfileMenu from './ProfileMenu';
 import { BetaSticker } from '@/components/ui/Beta';
-import Tag from '@/components/ui/Tag';
 import useTheme from '@/hooks/useTheme';
-import useVersionNo from '@/hooks/useVersionState';
 
 const LINKS = [
   {
@@ -38,16 +37,12 @@ const LINKS = [
     icon: HiOutlineBriefcase,
     title: 'Jobs',
     href: '/jobs'
-  }
-  /**
-   * TODO: Add these back in when they are implemented
-
+  },
   {
-    icon: InformationCircleIcon,
+    icon: HiOutlineInformationCircle,
     title: 'Help',
     href: '/help'
   }
-  */
 ];
 
 // Links list component
@@ -71,13 +66,6 @@ function NavList() {
       ))}
     </>
   );
-}
-
-function VersionTag() {
-  const { versionNo } = useVersionNo();
-  return versionNo ? (
-    <Tag classProps="text-secondary dark:text-secondary-light bg-background">{`v${versionNo}`}</Tag>
-  ) : null;
 }
 
 // Composed navbar
@@ -140,10 +128,7 @@ export default function FileglancerNavbar() {
               </Typography>
             </div>
           </Link>
-          <div className="flex gap-1">
-            <VersionTag />
-            <BetaSticker />
-          </div>
+          <BetaSticker />
         </div>
 
         {/* Desktop menu links */}
