@@ -7,6 +7,7 @@ from fileglancer.handlers import (
     StaticHandler,
     PreferencesHandler,
     ProxiedPathHandler,
+    ExternalBucketHandler,
     ProfileHandler,
     TicketHandler,
 )
@@ -78,6 +79,7 @@ class Fileglancer(ExtensionApp):
         self.handlers.extend([
             (r"/api/fileglancer/file-share-paths", FileSharePathsHandler),
             (r"/api/fileglancer/proxied-path", ProxiedPathHandler),
+            (r"/api/fileglancer/external-bucket", ExternalBucketHandler),
             (r"/api/fileglancer/files/(.*)", FileMetadataHandler),
             (r"/api/fileglancer/files", FileMetadataHandler),
             (r"/api/fileglancer/content/(.*)", FileContentHandler),
