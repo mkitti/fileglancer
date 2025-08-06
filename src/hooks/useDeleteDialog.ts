@@ -2,21 +2,25 @@ import type { FileOrFolder, Result } from '@/shared.types';
 import { getFileBrowsePath, sendFetchRequest } from '@/utils';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import { handleError, handleBadResponse } from '@/utils/errorHandling';
+import {
+  handleError,
+  handleBadResponse,
+  createSuccess
+} from '@/utils/errorHandling';
 
 export default function useDeleteDialog() {
   const { cookies } = useCookiesContext();
-  const { currentFileSharePath, refreshFiles } = useFileBrowserContext();
+  const { fileBrowserState, refreshFiles } = useFileBrowserContext();
 
   async function handleDelete(targetItem: FileOrFolder): Promise<Result<void>> {
-    if (!currentFileSharePath) {
+    if (!fileBrowserState.currentFileSharePath) {
       return handleError(
         new Error('Current file share path not set; cannot delete item')
       );
     }
 
     const fetchPath = getFileBrowsePath(
-      currentFileSharePath.name,
+      fileBrowserState.currentFileSharePath.name,
       targetItem.path
     );
 
@@ -29,7 +33,8 @@ export default function useDeleteDialog() {
       if (!response.ok) {
         return handleBadResponse(response);
       } else {
-        return await refreshFiles();
+        await refreshFiles();
+        return createSuccess();
       }
     } catch (error) {
       return handleError(error);
