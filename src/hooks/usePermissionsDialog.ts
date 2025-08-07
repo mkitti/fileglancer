@@ -16,6 +16,8 @@ export default function usePermissionsDialog() {
       : null
   );
 
+  const [isLoading, setIsLoading] = React.useState(false)
+
   function handleLocalPermissionChange(
     event: React.ChangeEvent<HTMLInputElement>
   ) {
@@ -42,6 +44,8 @@ export default function usePermissionsDialog() {
   }
 
   async function handleChangePermissions(): Promise<Result<void>> {
+    setIsLoading(true)
+
     if (!fileBrowserState.currentFileSharePath) {
       return await handleError(
         new Error('Cannot change permissions; no file share path selected')
@@ -67,7 +71,6 @@ export default function usePermissionsDialog() {
           permissions: localPermissions
         }
       );
-
       if (response.ok) {
         return await refreshFiles();
       } else {
@@ -83,6 +86,7 @@ export default function usePermissionsDialog() {
   return {
     handleLocalPermissionChange,
     localPermissions,
-    handleChangePermissions
+    handleChangePermissions,
+    isLoading
   };
 }

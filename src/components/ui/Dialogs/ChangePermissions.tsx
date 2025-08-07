@@ -6,6 +6,7 @@ import FgDialog from './FgDialog';
 import TextWithFilePath from './TextWithFilePath';
 import usePermissionsDialog from '@/hooks/usePermissionsDialog';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { useProfileContext } from '@/contexts/ProfileContext';
 
 type ChangePermissionsProps = {
   showPermissionsDialog: boolean;
@@ -17,12 +18,16 @@ export default function ChangePermissions({
   setShowPermissionsDialog
 }: ChangePermissionsProps): JSX.Element {
   const { fileBrowserState } = useFileBrowserContext();
+  const { profile } = useProfileContext();
 
   const {
     handleLocalPermissionChange,
     localPermissions,
-    handleChangePermissions
+    handleChangePermissions,
+    isLoading
   } = usePermissionsDialog();
+
+  const isOwner = profile?.username === fileBrowserState.propertiesTarget?.owner
 
   return (
     <FgDialog
@@ -145,7 +150,7 @@ export default function ChangePermissions({
               </tbody>
             ) : null}
           </table>
-          <Button className="!rounded-md" type="submit">
+          <Button className="!rounded-md" type="submit" disabled={isLoading}>
             Change Permissions
           </Button>
         </form>
