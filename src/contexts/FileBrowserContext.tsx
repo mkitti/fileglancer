@@ -241,7 +241,7 @@ export const FileBrowserContextProvider = ({
       !fileBrowserState.currentFileSharePath ||
       !fileBrowserState.currentFolder
     ) {
-      return handleError(
+      return await handleError(
         new Error('File share path and folder required to refresh files')
       );
     }
@@ -253,7 +253,7 @@ export const FileBrowserContextProvider = ({
       );
       return createSuccess();
     } catch (error) {
-      return handleError(error);
+      return await handleError(error);
     }
   };
 

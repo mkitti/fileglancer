@@ -37,11 +37,7 @@ interface Failure {
   error: string;
 }
 
-interface ApiFailure extends Failure {
-  code: number;
-}
-
-type Result<T> = Success<T> | Failure | ApiFailure;
+type Result<T> = Success<T> | Failure;
 
 export type {
   FileOrFolder,
@@ -51,6 +47,5 @@ export type {
   Cookies,
   Result,
   Success,
-  Failure,
-  ApiFailure
+  Failure
 };

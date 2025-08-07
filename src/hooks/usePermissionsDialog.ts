@@ -2,9 +2,9 @@ import React from 'react';
 
 import { sendFetchRequest, getFileBrowsePath } from '@/utils';
 import { useCookiesContext } from '@/contexts/CookiesContext';
-import type { FileOrFolder, Result } from '@/shared.types';
+import type {  Result } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import { handleBadResponse, handleError } from '@/utils/errorHandling';
+import {  handleError } from '@/utils/errorHandling';
 
 export default function usePermissionsDialog() {
   const { cookies } = useCookiesContext();
@@ -43,12 +43,12 @@ export default function usePermissionsDialog() {
 
   async function handleChangePermissions(): Promise<Result<void>> {
     if (!fileBrowserState.currentFileSharePath) {
-      return handleError(
+      return await handleError(
         new Error('Cannot change permissions; no file share path selected')
       );
     }
     if (!fileBrowserState.propertiesTarget) {
-      return handleError(
+      return await handleError(
         new Error('Cannot change permissions; no properties target set')
       );
     }
@@ -71,10 +71,12 @@ export default function usePermissionsDialog() {
       if (response.ok) {
         return await refreshFiles();
       } else {
-        return handleBadResponse(response);
+        return await handleError(response);
       }
     } catch (error) {
-      return handleError(error);
+      return await handleError(error);
+    } finally {
+      setIsLoading(false)
     }
   }
 

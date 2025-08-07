@@ -204,7 +204,7 @@ export const PreferencesProvider = ({
         await savePreferencesToBackend('path', localPathPreference);
         setPathPreference(localPathPreference);
       } catch (error) {
-        return handleError(error);
+        return await handleError(error);
       }
       return createSuccess();
     },

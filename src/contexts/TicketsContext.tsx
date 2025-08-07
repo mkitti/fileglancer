@@ -62,13 +62,17 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
         'GET',
         cookies['_xsrf']
       );
-      const data = await response.json();
-      if (data?.tickets) {
-        setAllTickets(sortTicketsByDate(data.tickets) as Ticket[]);
+      if(response.ok){
+        const data = await response.json();
+        if (data?.tickets) {
+          setAllTickets(sortTicketsByDate(data.tickets) as Ticket[]);
+        }
+        return createSuccess(undefined);
+      } else{
+        return await handleError(response)
       }
-      return createSuccess();
     } catch (error) {
-      return handleError(error);
+      return await handleError(error);
     }
   }, [cookies]);
 

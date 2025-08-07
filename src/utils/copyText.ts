@@ -35,11 +35,11 @@ const copyToClipboard = async (text: string | null): Promise<Result<null>> => {
       }
       log.info('Copied to clipboard:', text);
     } catch (error) {
-      return handleError(error);
+      return await handleError(error);
     }
     return createSuccess();
   } else {
-    return handleError(new Error('No text provided to copy to clipboard'));
+    return await handleError(new Error('No text provided to copy to clipboard'));
   }
 };
 

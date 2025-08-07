@@ -8,7 +8,6 @@ import type { Result } from '@/shared.types';
 import {
   createSuccess,
   getResponseError,
-  handleBadResponse,
   handleError
 } from '@/utils/errorHandling';
 
@@ -136,9 +135,9 @@ export const ProxiedPathProvider = ({
 
   async function createProxiedPath(): Promise<Result<void>> {
     if (!fileBrowserState.currentFileSharePath) {
-      return handleError(new Error('No file share path selected'));
+      return await handleError(new Error('No file share path selected'));
     } else if (!fileBrowserState.currentFolder) {
-      return handleError(new Error('No folder selected'));
+      return await handleError(new Error('No folder selected'));
     }
 
     try {
@@ -158,12 +157,12 @@ export const ProxiedPathProvider = ({
         await fetchAllProxiedPaths();
         log.debug('Created proxied path:', proxiedPath);
       } else {
-        return handleBadResponse(response);
+        return await handleError(response);
       }
     } catch (error) {
-      return handleError(error);
+      return await handleError(error);
     }
-    return createSuccess();
+    return createSuccess(undefined);
   }
 
   const deleteProxiedPath = React.useCallback(
