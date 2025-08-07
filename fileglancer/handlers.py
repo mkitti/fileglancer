@@ -12,6 +12,7 @@ from fileglancer.tickets import get_tickets_manager
 from fileglancer.paths import get_fsp_manager
 from fileglancer.preferences import get_preference_manager
 from fileglancer.proxiedpath import get_proxiedpath_manager
+from fileglancer.externalbucket import get_externalbucket_manager
 
 
 def _get_mounted_filestore(fsp):
@@ -535,7 +536,7 @@ class ProxiedPathHandler(BaseHandler):
             self.finish(json.dumps({"error": str(e)}))
 
 
-class TicketHandler(APIHandler):
+class TicketHandler(BaseHandler):
     """
     API handler for ticket operations
     """
@@ -652,6 +653,37 @@ class VersionHandler(BaseHandler):
         self.set_status(200)
         self.write(json.dumps({"version": version}))
         self.finish()
+
+class ExternalBucketHandler(BaseHandler):
+    """
+    API handler for external bucket operations
+    """
+    @web.authenticated
+    def get(self):
+        """
+        Get all external buckets or the bucket for a given FSP.
+        """
+        fsp_name = self.get_argument("fsp_name", None)
+        try:
+            external_bucket_manager = get_externalbucket_manager(self.settings)
+            if fsp_name:
+                self.log.info(f"GET /api/fileglancer/external-buckets fsp_name={fsp_name}")
+                response = external_bucket_manager.get_buckets(fsp_name)
+            else:
+                self.log.info(f"GET /api/fileglancer/external-buckets")
+                response = external_bucket_manager.get_buckets()
+            response.raise_for_status()
+            self.set_status(200)
+            self.finish(response.json())
+        except HTTPError as e:
+            self.log.error(f"Error getting external buckets: {str(e)}")    
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+        except Exception as e:
+            self.log.error(f"Error getting external buckets: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
 
 class ProfileHandler(BaseHandler):
     """

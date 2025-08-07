@@ -6,3 +6,4 @@ node_modules
 fileglancer
 .github
 /style/tailwind_converted.css
+.claude/settings.local.json
