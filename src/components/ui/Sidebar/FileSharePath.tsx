@@ -23,9 +23,9 @@ export default function FileSharePathComponent({
   const { pathPreference, fileSharePathPreferenceMap, handleFavoriteChange } =
     usePreferencesContext();
 
-  const isFavoritePath = fileSharePathPreferenceMap[makeMapKey('fsp', fsp.name)]
-    ? true
-    : false;
+  const isFavoritePath = Boolean(
+    fileSharePathPreferenceMap[makeMapKey('fsp', fsp.name)]
+  );
   const fspPath = getPreferredPathForDisplay(pathPreference, fsp);
   const link = makeBrowseLink(fsp.name);
 

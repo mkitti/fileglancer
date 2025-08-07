@@ -53,14 +53,14 @@ export default function ContextMenu({
   const { fileBrowserState } = useFileBrowserContext();
   const { folderPreferenceMap } = usePreferencesContext();
 
-  const isFavorite: boolean = folderPreferenceMap[
-    makeMapKey(
-      'folder',
-      `${fileBrowserState.currentFileSharePath?.name}_${selectedFiles[0].path}`
-    )
-  ]
-    ? true
-    : false;
+  const isFavorite: boolean = Boolean(
+    folderPreferenceMap[
+      makeMapKey(
+        'folder',
+        `${fileBrowserState.currentFileSharePath?.name}_${selectedFiles[0].path}`
+      )
+    ]
+  );
 
   const menuItems: MenuItem<ContextMenuActionProps>[] = [
     {

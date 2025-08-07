@@ -58,19 +58,19 @@ export default function Toolbar({
     currentFolder?.path
   );
 
-  const isFavorited = React.useMemo(() => {
+  const isFavorited: boolean = React.useMemo(() => {
     if (!currentFileSharePath) {
       return false;
     }
     if (!currentFolder || currentFolder.path === '.') {
       const fspKey = makeMapKey('fsp', currentFileSharePath.name);
-      return fspKey in fileSharePathPreferenceMap;
+      return Boolean(fspKey in fileSharePathPreferenceMap);
     }
     const folderKey = makeMapKey(
       'folder',
       `${currentFileSharePath.name}_${currentFolder.path}`
     );
-    return folderKey in folderPreferenceMap;
+    return Boolean(folderKey in folderPreferenceMap);
   }, [
     currentFileSharePath,
     currentFolder,
@@ -79,8 +79,9 @@ export default function Toolbar({
   ]);
 
   // Don't show favorite button if not in a valid location
-  const showFavoriteButton =
-    currentFileSharePath && currentFolder && currentFolder.is_dir;
+  const showFavoriteButton: boolean = Boolean(
+    currentFileSharePath && currentFolder && currentFolder.is_dir
+  );
 
   return (
     <div className="flex flex-col min-w-full p-2 border-b border-surface">

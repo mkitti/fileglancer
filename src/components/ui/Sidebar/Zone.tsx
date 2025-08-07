@@ -26,7 +26,9 @@ export default function Zone({
   const { zonePreferenceMap, handleFavoriteChange } = usePreferencesContext();
 
   const isOpen = openZones[zone.name] || false;
-  const isFavoriteZone = makeMapKey('zone', zone.name) in zonePreferenceMap;
+  const isFavoriteZone: boolean = Boolean(
+    makeMapKey('zone', zone.name) in zonePreferenceMap
+  );
 
   return (
     <React.Fragment>
