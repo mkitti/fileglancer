@@ -24,7 +24,7 @@ export default function Help() {
     {
       icon: SiClickup,
       title: 'Submit a bug report or feature request via ClickUp',
-      url: 'https://forms.clickup.com/10502797/f/a0gmd-713/NBUCBCIN78SI2BE71G'
+      url: `https://forms.clickup.com/10502797/f/a0gmd-713/NBUCBCIN78SI2BE71G?Version=${versionNo}&URL=${window.location}`
     },
     {
       icon: SiSlack,
