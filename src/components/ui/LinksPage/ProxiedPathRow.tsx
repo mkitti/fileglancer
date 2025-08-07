@@ -148,7 +148,6 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
       {showDataLinkDialog ? (
         <DataLinkDialog
           isImageShared={true}
-          filePathWithoutFsp={item.path}
           showDataLinkDialog={showDataLinkDialog}
           setShowDataLinkDialog={setShowDataLinkDialog}
           proxiedPath={item}
