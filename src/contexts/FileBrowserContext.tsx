@@ -251,7 +251,7 @@ export const FileBrowserContextProvider = ({
         fileBrowserState.currentFileSharePath,
         fileBrowserState.currentFolder.path
       );
-      return createSuccess();
+      return createSuccess(undefined);
     } catch (error) {
       return await handleError(error);
     }

@@ -25,7 +25,7 @@ function fallbackCopyTextToClipboard(text: string) {
   }
 }
 
-const copyToClipboard = async (text: string | null): Promise<Result<null>> => {
+const copyToClipboard = async (text: string | null): Promise<Result<void>> => {
   if (text) {
     try {
       if (!navigator.clipboard) {
@@ -37,7 +37,7 @@ const copyToClipboard = async (text: string | null): Promise<Result<null>> => {
     } catch (error) {
       return await handleError(error);
     }
-    return createSuccess();
+    return createSuccess(undefined);
   } else {
     return await handleError(new Error('No text provided to copy to clipboard'));
   }

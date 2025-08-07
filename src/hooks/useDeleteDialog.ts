@@ -33,7 +33,7 @@ export default function useDeleteDialog() {
         return await handleError(response);
       } else {
         await refreshFiles();
-        return createSuccess();
+        return createSuccess(undefined);
       }
     } catch (error) {
       return await handleError(error);

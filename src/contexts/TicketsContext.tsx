@@ -29,7 +29,7 @@ type TicketContextType = {
   ticket: Ticket | null;
   allTickets?: Ticket[];
   createTicket: (destination: string) => Promise<void>;
-  fetchAllTickets: () => Promise<Result<null>>;
+  fetchAllTickets: () => Promise<Result<void>>;
 };
 
 function sortTicketsByDate(tickets: Ticket[]): Ticket[] {
@@ -55,7 +55,7 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
   const { fileBrowserState } = useFileBrowserContext();
   const { profile } = useProfileContext();
 
-  const fetchAllTickets = React.useCallback(async (): Promise<Result<null>> => {
+  const fetchAllTickets = React.useCallback(async (): Promise<Result<void>> => {
     try {
       const response = await sendFetchRequest(
         '/api/fileglancer/ticket',
@@ -92,16 +92,14 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
         'GET',
         cookies['_xsrf']
       );
-      if (!response.ok) {
-        log.error(
-          `Failed to fetch ticket: ${response.status} ${response.statusText}`
-        );
-        return null;
-      }
+      if (response.ok){
       const data = (await response.json()) as any;
       log.debug('Fetched ticket:', data);
       if (data?.tickets) {
         return data.tickets[0] as Ticket;
+      }
+      } else {
+        return await handleError(response)
       }
     } catch (error) {
       log.error('Error fetching ticket:', error);
@@ -166,7 +164,7 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
       }
       try {
         const ticket = await fetchTicket();
-        if (ticket) {
+        if (ticket && "resolution" in ticket) {
           setTicket(ticket);
         } else {
           setTicket(null);

@@ -29,7 +29,7 @@ type Cookies = { [key: string]: string };
 
 type Success<T> = {
   success: true;
-  data?: T;
+  data: T;
 };
 
 interface Failure {

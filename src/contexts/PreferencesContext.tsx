@@ -198,7 +198,7 @@ export const PreferencesProvider = ({
     async (
       event: React.FormEvent<HTMLFormElement>,
       localPathPreference: ['linux_path'] | ['windows_path'] | ['mac_path']
-    ): Promise<Result<null>> => {
+    ): Promise<Result<void>> => {
       event.preventDefault();
       try {
         await savePreferencesToBackend('path', localPathPreference);
@@ -206,7 +206,7 @@ export const PreferencesProvider = ({
       } catch (error) {
         return await handleError(error);
       }
-      return createSuccess();
+      return createSuccess(undefined);
     },
     [savePreferencesToBackend]
   );
@@ -331,10 +331,10 @@ export const PreferencesProvider = ({
             );
             break;
           default:
-            return handleError(new Error(`Invalid favorite type: ${type}`));
+            return await handleError(new Error(`Invalid favorite type: ${type}`));
         }
       } catch (error) {
-        return handleError(error);
+        return await handleError(error);
       }
       return createSuccess(favoriteAdded);
     },

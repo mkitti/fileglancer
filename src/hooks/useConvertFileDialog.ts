@@ -8,14 +8,14 @@ export default function useConvertFileDialog() {
   const [destinationFolder, setDestinationFolder] = React.useState<string>('');
   const { createTicket } = useTicketContext();
 
-  async function handleTicketSubmit(): Promise<Result<null>> {
+  async function handleTicketSubmit(): Promise<Result<void>> {
     try {
       await createTicket(destinationFolder);
     } catch (error) {
       return await handleError(error);
     }
     setDestinationFolder('');
-    return createSuccess();
+    return createSuccess(undefined);
   }
 
   return {

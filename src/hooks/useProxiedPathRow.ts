@@ -26,7 +26,7 @@ export default function useProxiedPathRow({
     } catch (error) {
       return await handleError(error);
     }
-    return createSuccess();
+    return createSuccess(undefined);
   };
 
   const handleCopyUrl = async (item: ProxiedPath): Promise<Result<void>> => {
@@ -35,7 +35,7 @@ export default function useProxiedPathRow({
     } catch (error) {
       return await handleError(error);
     }
-    return createSuccess();
+    return createSuccess(undefined);
   };
 
   const handleUnshare = (pathFsp: FileSharePath) => {
