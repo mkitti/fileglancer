@@ -8,12 +8,14 @@ import useProxiedPathRow from '@/hooks/useProxiedPathRow';
 import {
   formatDateString,
   getPreferredPathForDisplay,
-  makeMapKey
+  makeMapKey,
+  makeBrowseLink
 } from '@/utils';
 import useDataLinkDialog from '@/hooks/useDataLinkDialog';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 import type { FileSharePath } from '@/shared.types';
 import type { MenuItem } from '@/components/ui/Menus/FgMenuItems';
+import { FgStyledLink } from '../Links';
 
 type ProxiedPathRowProps = {
   item: ProxiedPath;
@@ -33,13 +35,9 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
   const { pathPreference } = usePreferencesContext();
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
 
-  const {
-    handleCopyPath,
-    handleCopyUrl,
-    handleUnshare,
-    handleRowClick,
-    handleNameClick
-  } = useProxiedPathRow({ item, setShowDataLinkDialog });
+  const { handleCopyPath, handleCopyUrl, handleUnshare } = useProxiedPathRow({
+    setShowDataLinkDialog
+  });
 
   const pathFsp = zonesAndFileSharePathsMap[
     makeMapKey('fsp', item.fsp_name)
@@ -78,6 +76,8 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
     displayPath,
     pathFsp
   };
+
+  const browseLink = makeBrowseLink(item.fsp_name, item.path);
 
   return (
     <>

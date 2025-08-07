@@ -15,6 +15,7 @@ import {
   formatFileSize,
   makeBrowseLink
 } from '@/utils/index';
+import { FgStyledLink } from '../Links';
 
 type FileRowProps = {
   file: FileOrFolder;
@@ -72,11 +73,7 @@ export default function FileRow({
         <Tooltip>
           <Tooltip.Trigger className="max-w-full truncate">
             {file.is_dir ? (
-              <Typography
-                as={Link}
-                to={link}
-                className="font-medium text-primary-light hover:underline"
-              >
+              <Typography as={FgStyledLink} to={link}>
                 {file.name}
               </Typography>
             ) : (

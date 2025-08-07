@@ -9,6 +9,7 @@ import {
   makeMapKey
 } from '@/utils';
 import { FileSharePath } from '@/shared.types';
+import { FgStyledLink } from '../Links';
 
 export default function TicketRow({ item }: { item: Ticket }) {
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
@@ -26,12 +27,9 @@ export default function TicketRow({ item }: { item: Ticket }) {
   return (
     <>
       <div className="line-clamp-2">
-        <Link
-          to={`/browse/${ticket.fsp_name}/${ticket.path}`}
-          className="text-primary hover:underline truncate block"
-        >
+        <FgStyledLink to={`/browse/${item.fsp_name}/${item.path}`}>
           {displayPath}
-        </Link>
+        </FgStyledLink>
       </div>
       <div className="line-clamp-2 text-sm text-foreground">
         {item.description.split('\n')[0]}
