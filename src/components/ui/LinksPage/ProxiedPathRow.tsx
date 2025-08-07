@@ -81,55 +81,39 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
 
   return (
     <>
-      <div
-        key={item.sharing_key}
-        className="grid grid-cols-[1.5fr_2.5fr_1.5fr_1fr] gap-4 items-center px-4 py-3 border-b last:border-b-0 border-surface hover:bg-primary-light/20 relative cursor-pointer hover:bg-surface-light"
-        onClick={handleRowClick}
-      >
-        {/* Sharing name */}
-        <Tooltip>
-          <Tooltip.Trigger className="max-w-full truncate">
-            <Typography
-              variant="small"
-              className="text-left text-primary-light truncate hover:underline"
-              onClick={handleNameClick}
-            >
-              {item.sharing_name}
-            </Typography>
-          </Tooltip.Trigger>
-          <Tooltip.Content>{item.sharing_name}</Tooltip.Content>
-        </Tooltip>
-        {/* Mount path */}
-        <Tooltip>
-          <Tooltip.Trigger className="max-w-full truncate">
-            <Typography
-              variant="small"
-              className="text-left text-foreground truncate"
-            >
-              {displayPath}
-            </Typography>
-          </Tooltip.Trigger>
-          <Tooltip.Content>{displayPath}</Tooltip.Content>
-        </Tooltip>
-        {/* Date shared */}
-        <Tooltip>
-          <Tooltip.Trigger className="max-w-full truncate">
-            <Typography
-              variant="small"
-              className="text-left text-foreground truncate"
-            >
-              {formatDateString(item.created_at)}
-            </Typography>
-          </Tooltip.Trigger>
-          <Tooltip.Content>{formatDateString(item.created_at)}</Tooltip.Content>
-        </Tooltip>
-        {/* Actions */}
-        <div onClick={e => e.stopPropagation()}>
-          <DataLinksActionsMenu<ProxiedPathRowActionProps>
-            menuItems={menuItems}
-            actionProps={actionProps}
-          />
-        </div>
+      {/* Sharing name */}
+      <Tooltip>
+        <Tooltip.Trigger className="max-w-full truncate">
+          <Typography className="text-foreground">
+            {item.sharing_name}
+          </Typography>
+        </Tooltip.Trigger>
+        <Tooltip.Content>{item.sharing_name}</Tooltip.Content>
+      </Tooltip>
+      {/* Mount path */}
+      <Tooltip>
+        <Tooltip.Trigger className="max-w-full truncate">
+          <Typography as={FgStyledLink} to={browseLink} className="truncate">
+            {displayPath}
+          </Typography>
+        </Tooltip.Trigger>
+        <Tooltip.Content>{displayPath}</Tooltip.Content>
+      </Tooltip>
+      {/* Date shared */}
+      <Tooltip>
+        <Tooltip.Trigger className="max-w-full truncate">
+          <Typography className="text-foreground truncate">
+            {formatDateString(item.created_at)}
+          </Typography>
+        </Tooltip.Trigger>
+        <Tooltip.Content>{formatDateString(item.created_at)}</Tooltip.Content>
+      </Tooltip>
+      {/* Actions */}
+      <div onClick={e => e.stopPropagation()}>
+        <DataLinksActionsMenu<ProxiedPathRowActionProps>
+          menuItems={menuItems}
+          actionProps={actionProps}
+        />
       </div>
       {/* Sharing dialog */}
       {showDataLinkDialog ? (

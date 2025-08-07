@@ -1,10 +1,11 @@
 import { List, Typography } from '@material-tailwind/react';
-import { Link } from 'react-router';
 import { TbBrandGithub } from 'react-icons/tb';
 import { SiClickup, SiSlack } from 'react-icons/si';
+import { IconType } from 'react-icons/lib';
 
 import useVersionNo from '@/hooks/useVersionState';
-import { IconType } from 'react-icons/lib';
+import { FgStyledLink } from './ui/Links';
+import { FgCard } from './Cards';
 
 type HelpLink = {
   icon: IconType;
@@ -34,21 +35,35 @@ export default function Help() {
   ];
 
   return (
-    <>
-      <Typography type="h5" className="mb-6 text-foreground font-bold">
-        Help
-      </Typography>
-      <List className="w-fit gap-2">
-      {helpLinks.map(({ icon: Icon, title, url }) => (
-        <List.Item as={Link} to={url} target="_blank"
-            rel="noopener noreferrer" className='px-0'>
-          <List.ItemStart>
-            <Icon className="icon-large" />
-          </List.ItemStart>
-          <Typography className="text-lg">{title}</Typography>
-        </List.Item>
-      ))}
-      </List>
-    </>
+    <div className="flex flex-col ">
+      <div className="flex justify-between mb-6">
+        <Typography type="h5" className="text-foreground font-bold">
+          Help
+        </Typography>
+        <Typography type="lead" className="text-secondary-light font-bold">
+          {`Fileglancer version ${versionNo}`}
+        </Typography>
+      </div>
+      <FgCard>
+        <List className="w-fit gap-2">
+          {helpLinks.map(({ icon: Icon, title, url }) => (
+            <List.Item className="hover:bg-transparent focus:bg-transparent">
+              <List.ItemStart>
+                <Icon className="icon-large" />
+              </List.ItemStart>
+              <Typography
+                as={FgStyledLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                textSize="large"
+                to={url}
+              >
+                {title}
+              </Typography>
+            </List.Item>
+          ))}
+        </List>
+      </FgCard>
+    </div>
   );
 }
