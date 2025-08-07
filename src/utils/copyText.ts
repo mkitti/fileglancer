@@ -39,7 +39,9 @@ const copyToClipboard = async (text: string | null): Promise<Result<void>> => {
     }
     return createSuccess(undefined);
   } else {
-    return await handleError(new Error('No text provided to copy to clipboard'));
+    return await handleError(
+      new Error('No text provided to copy to clipboard')
+    );
   }
 };
 

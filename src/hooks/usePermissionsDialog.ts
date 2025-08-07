@@ -2,9 +2,9 @@ import React from 'react';
 
 import { sendFetchRequest, getFileBrowsePath } from '@/utils';
 import { useCookiesContext } from '@/contexts/CookiesContext';
-import type {  Result } from '@/shared.types';
+import type { Result } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import {  handleError } from '@/utils/errorHandling';
+import { handleError } from '@/utils/errorHandling';
 
 export default function usePermissionsDialog() {
   const { cookies } = useCookiesContext();
@@ -16,7 +16,7 @@ export default function usePermissionsDialog() {
       : null
   );
 
-  const [isLoading, setIsLoading] = React.useState(false)
+  const [isLoading, setIsLoading] = React.useState(false);
 
   function handleLocalPermissionChange(
     event: React.ChangeEvent<HTMLInputElement>
@@ -44,7 +44,7 @@ export default function usePermissionsDialog() {
   }
 
   async function handleChangePermissions(): Promise<Result<void>> {
-    setIsLoading(true)
+    setIsLoading(true);
 
     if (!fileBrowserState.currentFileSharePath) {
       return await handleError(
@@ -79,7 +79,7 @@ export default function usePermissionsDialog() {
     } catch (error) {
       return await handleError(error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 

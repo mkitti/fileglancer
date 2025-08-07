@@ -3,7 +3,7 @@ import logger, { default as log } from '@/logger';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { useProfileContext } from './ProfileContext';
-import { sendFetchRequest, getFileBrowsePath, joinPaths } from '@/utils';
+import { sendFetchRequest, joinPaths } from '@/utils';
 import type { Result } from '@/shared.types';
 import {
   createSuccess,
@@ -62,14 +62,14 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
         'GET',
         cookies['_xsrf']
       );
-      if(response.ok){
+      if (response.ok) {
         const data = await response.json();
         if (data?.tickets) {
           setAllTickets(sortTicketsByDate(data.tickets) as Ticket[]);
         }
         return createSuccess(undefined);
-      } else{
-        return await handleError(response)
+      } else {
+        return await handleError(response);
       }
     } catch (error) {
       return await handleError(error);
@@ -92,14 +92,14 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
         'GET',
         cookies['_xsrf']
       );
-      if (response.ok){
-      const data = (await response.json()) as any;
-      log.debug('Fetched ticket:', data);
-      if (data?.tickets) {
-        return data.tickets[0] as Ticket;
-      }
+      if (response.ok) {
+        const data = (await response.json()) as any;
+        log.debug('Fetched ticket:', data);
+        if (data?.tickets) {
+          return data.tickets[0] as Ticket;
+        }
       } else {
-        return await handleError(response)
+        return await handleError(response);
       }
     } catch (error) {
       log.error('Error fetching ticket:', error);
@@ -164,7 +164,7 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
       }
       try {
         const ticket = await fetchTicket();
-        if (ticket && "resolution" in ticket) {
+        if (ticket && 'resolution' in ticket) {
           setTicket(ticket);
         } else {
           setTicket(null);

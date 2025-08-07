@@ -331,7 +331,9 @@ export const PreferencesProvider = ({
             );
             break;
           default:
-            return await handleError(new Error(`Invalid favorite type: ${type}`));
+            return await handleError(
+              new Error(`Invalid favorite type: ${type}`)
+            );
         }
       } catch (error) {
         return await handleError(error);

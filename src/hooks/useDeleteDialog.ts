@@ -2,10 +2,7 @@ import type { FileOrFolder, Result } from '@/shared.types';
 import { getFileBrowsePath, sendFetchRequest } from '@/utils';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import {
-  handleError,
-  createSuccess
-} from '@/utils/errorHandling';
+import { handleError, createSuccess } from '@/utils/errorHandling';
 
 export default function useDeleteDialog() {
   const { cookies } = useCookiesContext();

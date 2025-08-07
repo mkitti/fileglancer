@@ -44,7 +44,6 @@ export default function ZarrPreview({
 
   const { showDataLinkDialog, setShowDataLinkDialog } = useDataLinkDialog();
   const { proxiedPath } = useProxiedPathContext();
-  const { currentFolder } = useFileBrowserContext();
 
   React.useEffect(() => {
     setIsImageShared(proxiedPath !== null);

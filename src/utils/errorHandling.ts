@@ -1,5 +1,5 @@
 import logger from '@/logger';
-import type { Success, Failure} from '@/shared.types';
+import type { Success, Failure } from '@/shared.types';
 
 function createSuccess<T>(data: T): Success<T> {
   return { success: true, data };
@@ -21,14 +21,14 @@ async function getErrorString(error: unknown): Promise<string> {
   if (error instanceof Error) {
     return error.message;
   }
-  if (error instanceof Response){
-    return await getResponseError(error)
+  if (error instanceof Response) {
+    return await getResponseError(error);
   }
   return 'An unknown error occurred';
 }
 
 async function handleError(error: unknown): Promise<Failure> {
-  const errorString = await getErrorString(error)
+  const errorString = await getErrorString(error);
   logger.error(errorString);
   return createFailure(errorString);
 }

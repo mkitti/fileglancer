@@ -27,8 +27,6 @@ export default function ChangePermissions({
     isLoading
   } = usePermissionsDialog();
 
-  const isOwner = profile?.username === fileBrowserState.propertiesTarget?.owner
-
   return (
     <FgDialog
       open={showPermissionsDialog}

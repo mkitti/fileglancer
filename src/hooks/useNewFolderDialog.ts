@@ -18,7 +18,9 @@ export default function useNewFolderDialog() {
       return await handleError(new Error('No file share path selected.'));
     }
     if (!currentFolder) {
-      return await handleError(new Error('No current file or folder selected.'));
+      return await handleError(
+        new Error('No current file or folder selected.')
+      );
     }
     try {
       const response = await sendFetchRequest(
