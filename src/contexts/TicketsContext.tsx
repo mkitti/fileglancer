@@ -156,28 +156,14 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
 
   React.useEffect(() => {
     (async function () {
-      if (
-        !fileBrowserState.currentFileSharePath ||
-        !fileBrowserState.propertiesTarget
-      ) {
-        return;
-      }
-      try {
-        const ticket = await fetchTicket();
-        if (ticket && 'resolution' in ticket) {
-          setTicket(ticket);
-        } else {
-          setTicket(null);
-        }
-      } catch (error) {
-        log.error('Error in useEffect:', error);
+      const result = await fetchTicket();
+      if (result.success) {
+        setTicket(result.data);
+      } else {
+        setTicket(null);
       }
     })();
-  }, [
-    fetchTicket,
-    fileBrowserState.propertiesTarget,
-    fileBrowserState.currentFileSharePath
-  ]);
+  }, [fetchTicket]);
 
   return (
     <TicketContext.Provider
