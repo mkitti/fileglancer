@@ -6,7 +6,6 @@ import FgDialog from './FgDialog';
 import TextWithFilePath from './TextWithFilePath';
 import usePermissionsDialog from '@/hooks/usePermissionsDialog';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import { useProfileContext } from '@/contexts/ProfileContext';
 
 type ChangePermissionsProps = {
   showPermissionsDialog: boolean;
@@ -18,7 +17,6 @@ export default function ChangePermissions({
   setShowPermissionsDialog
 }: ChangePermissionsProps): JSX.Element {
   const { fileBrowserState } = useFileBrowserContext();
-  const { profile } = useProfileContext();
 
   const {
     handleLocalPermissionChange,
@@ -85,6 +83,7 @@ export default function ChangePermissions({
                       name="r_1"
                       checked={localPermissions[1] === 'r'}
                       disabled
+                      aria-label="r_1"
                     />
                   </td>
                   <td className="p-3">
@@ -94,6 +93,7 @@ export default function ChangePermissions({
                       checked={localPermissions[2] === 'w'}
                       onChange={event => handleLocalPermissionChange(event)}
                       className="accent-secondary-light hover:cursor-pointer"
+                      aria-label="w_2"
                     />
                   </td>
                 </tr>
@@ -110,6 +110,7 @@ export default function ChangePermissions({
                       checked={localPermissions[4] === 'r'}
                       onChange={event => handleLocalPermissionChange(event)}
                       className="accent-secondary-light hover:cursor-pointer"
+                      aria-label="r_4"
                     />
                   </td>
                   <td className="p-3">
@@ -119,6 +120,7 @@ export default function ChangePermissions({
                       checked={localPermissions[5] === 'w'}
                       onChange={event => handleLocalPermissionChange(event)}
                       className="accent-secondary-light hover:cursor-pointer"
+                      aria-label="w_5"
                     />
                   </td>
                 </tr>
@@ -133,6 +135,7 @@ export default function ChangePermissions({
                       checked={localPermissions[7] === 'r'}
                       onChange={event => handleLocalPermissionChange(event)}
                       className="accent-secondary-light hover:cursor-pointer"
+                      aria-label="r_7"
                     />
                   </td>
                   <td className="p-3">
@@ -142,13 +145,22 @@ export default function ChangePermissions({
                       checked={localPermissions[8] === 'w'}
                       onChange={event => handleLocalPermissionChange(event)}
                       className="accent-secondary-light hover:cursor-pointer"
+                      aria-label="w_8"
                     />
                   </td>
                 </tr>
               </tbody>
             ) : null}
           </table>
-          <Button className="!rounded-md" type="submit" disabled={isLoading}>
+          <Button
+            className="!rounded-md"
+            type="submit"
+            disabled={Boolean(
+              isLoading ||
+                localPermissions ===
+                  fileBrowserState.propertiesTarget.permissions
+            )}
+          >
             Change Permissions
           </Button>
         </form>

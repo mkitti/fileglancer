@@ -3,26 +3,36 @@ import { waitFor } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import toast from 'react-hot-toast';
 
-// Define mock functions using vi.hoisted to ensure they're available to vi.mock,
-// which is hoisted to be executed before all imports
-const mockFns = vi.hoisted(() => ({
-  handleLocalPermissionChange: vi.fn()
-}));
+// Define mock value for propertiesTarget using vi.hoisted
+const mockPropertiesTarget = vi.hoisted(() => {
+  return {
+    group: 'test_group',
+    is_dir: true,
+    last_modified: 1754405788.7264824,
+    name: 'test_target',
+    owner: 'test_user',
+    path: 'test_target',
+    permissions: 'drwxrwxr-x',
+    size: 1024
+  };
+});
 
-// Mock only parts of usePermissionsDialog hook without mocking handleChangePermissions
-vi.mock(import('../../hooks/usePermissionsDialog'), async importOriginal => {
+// Mock the FileBrowserContext module
+vi.mock(import('../../contexts/FileBrowserContext'), async importOriginal => {
   const originalModule = await importOriginal();
+  const { useFileBrowserContext } = originalModule;
 
   return {
-    // The default export is our hook function
-    default: () => {
-      // We're not executing the original hook here to avoid context issues
-      // Instead, we're returning an object with the properties we want
+    ...originalModule,
+    useFileBrowserContext: () => {
+      const originalContext = useFileBrowserContext();
       return {
-        handleChangePermissions:
-          originalModule.default().handleChangePermissions,
-        handleLocalPermissionChange: mockFns.handleLocalPermissionChange,
-        localPermissions: 'drwxrwxr-x'
+        ...originalContext,
+        fileBrowserState: {
+          ...originalContext.fileBrowserState,
+          propertiesTarget: mockPropertiesTarget
+        },
+        propertiesTarget: mockPropertiesTarget
       };
     }
   };
@@ -41,7 +51,7 @@ describe('Change Permissions dialog', () => {
         showPermissionsDialog={true}
         setShowPermissionsDialog={setShowPermissionsDialog}
       />,
-      { initialEntries: ['/browse/test_fsp/my_folder/my_file'] }
+      { initialEntries: ['/browse/test_fsp/my_folder'] }
     );
 
     await waitFor(() => {
@@ -52,12 +62,33 @@ describe('Change Permissions dialog', () => {
     });
   });
 
-  it('displays permissions dialog for file in URL', () => {
-    expect(screen.getByText('my_file')).toBeInTheDocument();
+  it('displays permissions dialog for target file', () => {
+    expect(screen.getByText('test_target')).toBeInTheDocument();
+  });
+
+  it('disables submit button when no changes are made', () => {
+    const submitButton = screen.getByText('Change Permissions', {
+      selector: 'button[type="submit"]'
+    });
+    expect(submitButton).toBeDisabled();
+  });
+
+  it('should update local permissions when input is checked', async () => {
+    const user = userEvent.setup();
+    const checkbox = screen.getByRole('checkbox', { name: 'w_8' });
+
+    expect(checkbox).not.toBeChecked();
+    await user.click(checkbox);
+
+    // Checkboxes are updated based on the local permissions state
+    // Initial mock target state is 'drwxrwxr-x', it should now be 'drwxrwxrwx'
+    expect(checkbox).toBeChecked();
   });
 
   it('calls toast.success for an ok HTTP response', async () => {
     const user = userEvent.setup();
+    const checkbox = screen.getByRole('checkbox', { name: 'w_8' });
+    await user.click(checkbox);
     await user.click(
       screen.getByText('Change Permissions', {
         selector: 'button[type="submit"]'
@@ -83,6 +114,8 @@ describe('Change Permissions dialog', () => {
     );
 
     const user = userEvent.setup();
+    const checkbox = screen.getByRole('checkbox', { name: 'w_8' });
+    await user.click(checkbox);
     await user.click(
       screen.getByText('Change Permissions', {
         selector: 'button[type="submit"]'
@@ -90,7 +123,7 @@ describe('Change Permissions dialog', () => {
     );
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith(
-        'Error changing permissions: Permission denied'
+        'Error changing permissions: 500: Permission denied'
       );
     });
   });
