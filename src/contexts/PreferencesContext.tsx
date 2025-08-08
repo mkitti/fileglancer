@@ -461,15 +461,18 @@ export const PreferencesProvider = ({
 
   // Get initial recently viewed folders from backend
   React.useEffect(() => {
+    if (!isZonesMapReady) {
+      return;
+    }
     (async function () {
       const backendPrefs = (await fetchPreferences(
         'recentlyViewedFolders'
       )) as FolderPreference[];
-      if (backendPrefs) {
+      if (backendPrefs.length > 0) {
         setRecentlyViewedFolders(backendPrefs);
       }
     })();
-  }, [fetchPreferences]);
+  }, [fetchPreferences, isZonesMapReady]);
 
   // Store last viewed folder path and FSP name to avoid duplicate updates
   const lastFolderPathRef = React.useRef<string | null>(null);
