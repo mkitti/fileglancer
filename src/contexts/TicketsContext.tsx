@@ -29,7 +29,8 @@ type TicketContextType = {
   ticket: Ticket | null;
   allTickets?: Ticket[];
   createTicket: (destination: string) => Promise<void>;
-  fetchAllTickets: () => Promise<Result<void>>;
+  fetchAllTickets: () => Promise<Result<Ticket[] | null>>;
+  setAllTickets: React.Dispatch<React.SetStateAction<Ticket[]>>;
 };
 
 function sortTicketsByDate(tickets: Ticket[]): Ticket[] {
@@ -55,7 +56,9 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
   const { fileBrowserState } = useFileBrowserContext();
   const { profile } = useProfileContext();
 
-  const fetchAllTickets = React.useCallback(async (): Promise<Result<void>> => {
+  const fetchAllTickets = React.useCallback(async (): Promise<
+    Result<Ticket[] | null>
+  > => {
     try {
       const response = await sendFetchRequest(
         '/api/fileglancer/ticket',
@@ -65,9 +68,14 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
       if (response.ok) {
         const data = await response.json();
         if (data?.tickets) {
-          setAllTickets(sortTicketsByDate(data.tickets) as Ticket[]);
+          return createSuccess(sortTicketsByDate(data.tickets) as Ticket[]);
         }
-        return createSuccess(undefined);
+        // Not an error, just no tickets available
+        return createSuccess(null);
+      } else if (response.status === 404) {
+        log.warn('No ticket found for the current file share path and target');
+        // This is not an error, just no tickets available
+        return createSuccess(null);
       } else {
         return await handleError(response);
       }
@@ -76,15 +84,28 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [cookies]);
 
-  const fetchTicket = React.useCallback(async () => {
+  const fetchTicket = React.useCallback(async (): Promise<
+    Result<Ticket | null>
+  > => {
     if (
-      !fileBrowserState.currentFileSharePath ||
-      !fileBrowserState.propertiesTarget
+      (!fileBrowserState.currentFileSharePath ||
+        !fileBrowserState.propertiesTarget) &&
+      !fileBrowserState.isFileBrowserReady
     ) {
       log.warn(
         'Cannot fetch ticket; no current file share path or file/folder selected'
       );
-      return null;
+      // This is probably not an error, just the state before the file browser is ready
+      return createSuccess(null);
+    } else if (
+      !fileBrowserState.currentFileSharePath ||
+      !fileBrowserState.propertiesTarget
+    ) {
+      return await handleError(
+        new Error(
+          'File browser is ready but no file share path or properties target selected'
+        )
+      );
     }
     try {
       const response = await sendFetchRequest(
@@ -96,18 +117,23 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
         const data = (await response.json()) as any;
         log.debug('Fetched ticket:', data);
         if (data?.tickets) {
-          return data.tickets[0] as Ticket;
+          return createSuccess(data.tickets[0] as Ticket);
         }
+      }
+      if (response.status === 404) {
+        log.warn('No ticket found for the current file share path and target');
+        // This is not an error, just no ticket available
+        return createSuccess(null);
       } else {
         return await handleError(response);
       }
     } catch (error) {
-      log.error('Error fetching ticket:', error);
+      return await handleError(error);
     }
-    return null;
   }, [
     fileBrowserState.currentFileSharePath,
     fileBrowserState.propertiesTarget,
+    fileBrowserState.isFileBrowserReady,
     cookies
   ]);
 
@@ -150,7 +176,10 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
 
   React.useEffect(() => {
     (async function () {
-      await fetchAllTickets();
+      const result = await fetchAllTickets();
+      if (result.success) {
+        setAllTickets(result.data || []);
+      }
     })();
   }, [fetchAllTickets]);
 
@@ -171,7 +200,8 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
         ticket,
         allTickets,
         createTicket,
-        fetchAllTickets
+        fetchAllTickets,
+        setAllTickets
       }}
     >
       {children}

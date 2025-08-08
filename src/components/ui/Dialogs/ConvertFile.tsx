@@ -23,7 +23,7 @@ export default function ConvertFileDialog({
     useConvertFileDialog();
   const { pathPreference } = usePreferencesContext();
   const { propertiesTarget, currentFileSharePath } = useFileBrowserContext();
-  const { fetchAllTickets } = useTicketContext();
+  const { fetchAllTickets, setAllTickets } = useTicketContext();
 
   const placeholderText =
     pathPreference[0] === 'windows_path'
@@ -66,6 +66,8 @@ export default function ConvertFileDialog({
               toast.error(
                 `Error refreshing ticket list: ${refreshTicketResponse.error}`
               );
+            } else {
+              setAllTickets(refreshTicketResponse.data || []);
             }
           }
           setShowConvertFileDialog(false);
