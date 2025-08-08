@@ -61,7 +61,7 @@ describe('Delete dialog', () => {
     await user.click(screen.getByText('Delete'));
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith(
-        'Error deleting item: Unknown error'
+        'Error deleting item: 500: Unknown error'
       );
     });
   });

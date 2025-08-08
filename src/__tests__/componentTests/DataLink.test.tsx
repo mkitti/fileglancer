@@ -50,7 +50,7 @@ describe('Data Link dialog', () => {
     await user.click(screen.getByText('Create Data Link'));
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith(
-        'Error creating data link: Unknown error'
+        'Error creating data link: 500: Unknown error'
       );
     });
   });

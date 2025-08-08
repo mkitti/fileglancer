@@ -91,7 +91,7 @@ describe('Convert File dialog', () => {
     );
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith(
-        'Error creating ticket: Unknown error'
+        'Error creating ticket: 500: Unknown error'
       );
     });
   });
