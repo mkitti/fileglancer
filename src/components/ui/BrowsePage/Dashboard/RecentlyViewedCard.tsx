@@ -107,7 +107,7 @@ export default function RecentlyViewedCard() {
 
   return (
     <DashboardCard title="Recently viewed">
-      <div className="space-y-1">
+      <ul>
         {recentItems.map((item, index) => {
           // This would change to a map key to acess an fsp in the zones and fsp map
           const fsp = exampleFileSharePaths[item.fspName];
@@ -133,7 +133,7 @@ export default function RecentlyViewedCard() {
             );
           }
         })}
-      </div>
+      </ul>
     </DashboardCard>
   );
 }
