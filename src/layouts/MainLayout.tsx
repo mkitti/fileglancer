@@ -9,6 +9,7 @@ import { PreferencesProvider } from '@/contexts/PreferencesContext';
 import { OpenFavoritesProvider } from '@/contexts/OpenFavoritesContext';
 import { TicketProvider } from '@/contexts/TicketsContext';
 import { ProxiedPathProvider } from '@/contexts/ProxiedPathContext';
+import { ExternalBucketProvider } from '@/contexts/ExternalBucketContext';
 import { ProfileContextProvider } from '@/contexts/ProfileContext';
 import FileglancerNavbar from '@/components/ui/Navbar/Navbar';
 import { BetaBanner } from '@/components/ui/Beta';
@@ -26,24 +27,26 @@ export const MainLayout = () => {
           <FileBrowserContextProvider fspName={fspName} filePath={filePath}>
             <PreferencesProvider>
               <ProxiedPathProvider>
-                <ProfileContextProvider>
-                  <TicketProvider>
-                    <Toaster
-                      position="bottom-center"
-                      toastOptions={{
-                        className: 'min-w-fit',
-                        success: { duration: 4000 }
-                      }}
-                    />
-                    <div className="flex flex-col items-center h-full w-full overflow-y-hidden bg-background text-foreground box-border">
-                      <FileglancerNavbar />
-                      <BetaBanner />
-                      <ErrorBoundary FallbackComponent={ErrorFallback}>
-                        <Outlet />
-                      </ErrorBoundary>
-                    </div>
-                  </TicketProvider>
-                </ProfileContextProvider>
+                <ExternalBucketProvider>
+                  <ProfileContextProvider>
+                    <TicketProvider>
+                      <Toaster
+                        position="bottom-center"
+                        toastOptions={{
+                          className: 'min-w-fit',
+                          success: { duration: 4000 }
+                        }}
+                      />
+                      <div className="flex flex-col items-center h-full w-full overflow-y-hidden bg-background text-foreground box-border">
+                        <FileglancerNavbar />
+                        <BetaBanner />
+                        <ErrorBoundary FallbackComponent={ErrorFallback}>
+                          <Outlet />
+                        </ErrorBoundary>
+                      </div>
+                    </TicketProvider>
+                  </ProfileContextProvider>
+                </ExternalBucketProvider>
               </ProxiedPathProvider>
             </PreferencesProvider>
           </FileBrowserContextProvider>
