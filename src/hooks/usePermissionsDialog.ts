@@ -4,7 +4,7 @@ import { sendFetchRequest, getFileBrowsePath } from '@/utils';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import type { Result } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import { handleError } from '@/utils/errorHandling';
+import { handleError, toHttpError } from '@/utils/errorHandling';
 
 export default function usePermissionsDialog() {
   const { cookies } = useCookiesContext();
@@ -58,12 +58,12 @@ export default function usePermissionsDialog() {
     setIsLoading(true);
 
     if (!fileBrowserState.currentFileSharePath) {
-      return await handleError(
+      return handleError(
         new Error('Cannot change permissions; no file share path selected')
       );
     }
     if (!fileBrowserState.propertiesTarget) {
-      return await handleError(
+      return handleError(
         new Error('Cannot change permissions; no properties target set')
       );
     }
@@ -85,10 +85,10 @@ export default function usePermissionsDialog() {
       if (response.ok) {
         return await refreshFiles();
       } else {
-        return await handleError(response);
+        throw toHttpError(response);
       }
     } catch (error) {
-      return await handleError(error);
+      return handleError(error);
     } finally {
       setIsLoading(false);
     }

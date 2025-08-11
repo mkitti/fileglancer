@@ -5,11 +5,7 @@ import type { FileSharePath, Zone } from '@/shared.types';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { useZoneAndFspMapContext } from './ZonesAndFspMapContext';
 import { sendFetchRequest, makeMapKey, HTTPError } from '@/utils';
-import {
-  createSuccess,
-  getResponseError,
-  handleError
-} from '@/utils/errorHandling';
+import { createSuccess, handleError, toHttpError } from '@/utils/errorHandling';
 import type { Result } from '@/shared.types';
 
 export type FolderFavorite = {
@@ -184,12 +180,10 @@ export const PreferencesProvider = ({
         { value: value }
       );
       if (!response.ok) {
-        const error = await getResponseError(response);
-        throw new Error(
-          `Error saving preferences to database: ${response.status}: ${error}`
-        );
+        throw await toHttpError(response);
+      } else {
+        return response;
       }
-      return response;
     },
     [cookies]
   );
@@ -204,7 +198,7 @@ export const PreferencesProvider = ({
         await savePreferencesToBackend('path', localPathPreference);
         setPathPreference(localPathPreference);
       } catch (error) {
-        return await handleError(error);
+        return handleError(error);
       }
       return createSuccess(undefined);
     },
@@ -331,12 +325,10 @@ export const PreferencesProvider = ({
             );
             break;
           default:
-            return await handleError(
-              new Error(`Invalid favorite type: ${type}`)
-            );
+            return handleError(new Error(`Invalid favorite type: ${type}`));
         }
       } catch (error) {
-        return await handleError(error);
+        return handleError(error);
       }
       return createSuccess(favoriteAdded);
     },

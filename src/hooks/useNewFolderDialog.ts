@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { getFileBrowsePath, sendFetchRequest, joinPaths } from '@/utils';
-import { handleError } from '@/utils/errorHandling';
+import { handleError, toHttpError } from '@/utils/errorHandling';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import type { Result } from '@/shared.types';
@@ -15,12 +15,10 @@ export default function useNewFolderDialog() {
 
   async function handleNewFolderSubmit(): Promise<Result<void>> {
     if (!currentFileSharePath) {
-      return await handleError(new Error('No file share path selected.'));
+      return handleError(new Error('No file share path selected.'));
     }
     if (!currentFolder) {
-      return await handleError(
-        new Error('No current file or folder selected.')
-      );
+      return handleError(new Error('No current file or folder selected.'));
     }
     try {
       const response = await sendFetchRequest(
@@ -37,10 +35,10 @@ export default function useNewFolderDialog() {
       if (response.ok) {
         return await refreshFiles();
       } else {
-        return await handleError(response);
+        throw toHttpError(response);
       }
     } catch (error) {
-      return await handleError(error);
+      return handleError(error);
     }
   }
 

@@ -5,11 +5,7 @@ import { useCookiesContext } from '@/contexts/CookiesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { sendFetchRequest } from '@/utils';
 import type { Result } from '@/shared.types';
-import {
-  createSuccess,
-  getResponseError,
-  handleError
-} from '@/utils/errorHandling';
+import { createSuccess, handleError, toHttpError } from '@/utils/errorHandling';
 
 export type ProxiedPath = {
   username: string;
@@ -79,7 +75,9 @@ export const ProxiedPathProvider = ({
     []
   );
 
-  const fetchAllProxiedPaths = React.useCallback(async (): Promise<void> => {
+  const fetchAllProxiedPaths = React.useCallback(async (): Promise<
+    Result<ProxiedPath[] | void>
+  > => {
     const response = await sendFetchRequest(
       '/api/fileglancer/proxied-path',
       'GET',
@@ -87,46 +85,51 @@ export const ProxiedPathProvider = ({
     );
 
     if (!response.ok) {
-      const error = getResponseError(response);
-      throw new Error(
-        `Error fetching proxied paths: ${response.status}: ${error} `
-      );
+      throw await toHttpError(response);
     }
 
     const data = await response.json();
     if (data?.paths) {
-      setAllProxiedPaths(sortProxiedPathsByDate(data.paths) as ProxiedPath[]);
+      return createSuccess(sortProxiedPathsByDate(data.paths as ProxiedPath[]));
+    } else {
+      return createSuccess(undefined);
     }
   }, [cookies]);
 
-  const fetchProxiedPath = React.useCallback(async () => {
+  const fetchProxiedPath = React.useCallback(async (): Promise<
+    Result<ProxiedPath | void>
+  > => {
     if (
       !fileBrowserState.currentFileSharePath ||
       !fileBrowserState.currentFolder
     ) {
-      log.trace('No current file share path or file/folder selected');
-      return null;
+      log.warn('No current file share path or file/folder selected');
+      return createSuccess(undefined);
     }
     try {
       const response = await sendFetchRequest(
-        `/api/fileglancer/proxied-path?fsp_name=${fileBrowserState.currentFileSharePath?.name}&path=${fileBrowserState.currentFolder?.path}`,
+        `/api/fileglancer/proxied-path?fsp_name=${fileBrowserState.currentFileSharePath.name}&path=${fileBrowserState.currentFolder.path}`,
         'GET',
         cookies['_xsrf']
       );
-      if (!response.ok) {
-        log.error(
-          `Failed to fetch proxied path: ${response.status} ${response.statusText}`
+      if (!response.ok && response.status !== 404) {
+        log.warn(
+          `No proxied path found for fsp ${fileBrowserState.currentFileSharePath.name} and path ${fileBrowserState.currentFolder.path}: ${response.status} ${response.statusText}`
         );
-        return null;
+        // This is not an error, just no proxied path found for this fsp/path
+        return createSuccess(undefined);
+      } else if (!response.ok) {
+        throw await toHttpError(response);
       }
       const data = (await response.json()) as any;
       if (data?.paths) {
-        return data.paths[0] as ProxiedPath;
+        return createSuccess(data.paths[0] as ProxiedPath);
+      } else {
+        return createSuccess(undefined);
       }
     } catch (error) {
-      log.error('Error fetching proxied path:', error);
+      return handleError(error);
     }
-    return null;
   }, [
     fileBrowserState.currentFileSharePath,
     fileBrowserState.currentFolder,
@@ -135,9 +138,9 @@ export const ProxiedPathProvider = ({
 
   async function createProxiedPath(): Promise<Result<void>> {
     if (!fileBrowserState.currentFileSharePath) {
-      return await handleError(new Error('No file share path selected'));
+      return handleError(new Error('No file share path selected'));
     } else if (!fileBrowserState.currentFolder) {
-      return await handleError(new Error('No folder selected'));
+      return handleError(new Error('No folder selected'));
     }
 
     try {
@@ -157,10 +160,10 @@ export const ProxiedPathProvider = ({
         await fetchAllProxiedPaths();
         log.debug('Created proxied path:', proxiedPath);
       } else {
-        return await handleError(response);
+        throw await toHttpError(response);
       }
     } catch (error) {
-      return await handleError(error);
+      return handleError(error);
     }
     return createSuccess(undefined);
   }
@@ -186,25 +189,20 @@ export const ProxiedPathProvider = ({
 
   React.useEffect(() => {
     (async function () {
-      try {
-        await fetchAllProxiedPaths();
-      } catch (error) {
-        log.error(error);
+      const result = await fetchAllProxiedPaths();
+      if (result.success && result.data) {
+        setAllProxiedPaths(result.data as ProxiedPath[]);
       }
     })();
   }, [fetchAllProxiedPaths]);
 
   React.useEffect(() => {
     (async function () {
-      try {
-        const path = await fetchProxiedPath();
-        if (path) {
-          updateProxiedPath(path);
-        } else {
-          updateProxiedPath(null);
-        }
-      } catch (error) {
-        log.error('Error in useEffect:', error);
+      const result = await fetchProxiedPath();
+      if (result.success && result.data) {
+        updateProxiedPath(result.data);
+      } else {
+        updateProxiedPath(null);
       }
     })();
   }, [

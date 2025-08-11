@@ -12,7 +12,7 @@ export default function useConvertFileDialog() {
     try {
       await createTicket(destinationFolder);
     } catch (error) {
-      return await handleError(error);
+      return handleError(error);
     }
     setDestinationFolder('');
     return createSuccess(undefined);

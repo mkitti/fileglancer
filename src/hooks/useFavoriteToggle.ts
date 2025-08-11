@@ -14,7 +14,7 @@ export default function useFavoriteToggle() {
       !fileBrowserState.currentFileSharePath ||
       !fileBrowserState.currentFolder
     ) {
-      return await handleError(
+      return handleError(
         new Error('A file share path must be set to favorite an item')
       );
     }
@@ -49,7 +49,7 @@ export default function useFavoriteToggle() {
         );
       }
     } catch (error) {
-      return await handleError(error);
+      return handleError(error);
     }
   }
 

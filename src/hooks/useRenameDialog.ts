@@ -6,7 +6,7 @@ import {
   sendFetchRequest,
   removeLastSegmentFromPath
 } from '@/utils';
-import { handleError } from '@/utils/errorHandling';
+import { handleError, toHttpError } from '@/utils/errorHandling';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { Result } from '@/shared.types';
@@ -19,7 +19,7 @@ export default function useRenameDialog() {
 
   async function handleRenameSubmit(path: string): Promise<Result<void>> {
     if (!currentFileSharePath) {
-      return await handleError(new Error('No file share path selected.'));
+      return handleError(new Error('No file share path selected.'));
     }
 
     try {
@@ -37,10 +37,10 @@ export default function useRenameDialog() {
       if (response.ok) {
         return await refreshFiles();
       } else {
-        return await handleError(response);
+        throw toHttpError(response);
       }
     } catch (error) {
-      return await handleError(error);
+      return handleError(error);
     }
   }
 

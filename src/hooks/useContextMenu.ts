@@ -85,7 +85,7 @@ export default function useContextMenu() {
         'folder'
       );
     } else {
-      return await handleError(new Error('No file share path selected'));
+      return handleError(new Error('No file share path selected'));
     }
   };
 

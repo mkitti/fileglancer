@@ -6,11 +6,7 @@ import { getFileBrowsePath, makeMapKey, sendFetchRequest } from '@/utils';
 import { useCookiesContext } from './CookiesContext';
 import { useZoneAndFspMapContext } from './ZonesAndFspMapContext';
 import { normalizePosixStylePath } from '@/utils/pathHandling';
-import {
-  createSuccess,
-  getResponseError,
-  handleError
-} from '@/utils/errorHandling';
+import { createSuccess, handleError, toHttpError } from '@/utils/errorHandling';
 
 type FileBrowserResponse = {
   info: FileOrFolder;
@@ -176,8 +172,7 @@ export const FileBrowserContextProvider = ({
         } else if (response.status === 404) {
           throw new Error('Folder not found');
         } else {
-          const error = await getResponseError(response);
-          throw new Error(error);
+          throw toHttpError(response);
         }
       }
 
@@ -241,7 +236,7 @@ export const FileBrowserContextProvider = ({
       !fileBrowserState.currentFileSharePath ||
       !fileBrowserState.currentFolder
     ) {
-      return await handleError(
+      return handleError(
         new Error('File share path and folder required to refresh files')
       );
     }
@@ -253,7 +248,7 @@ export const FileBrowserContextProvider = ({
       );
       return createSuccess(undefined);
     } catch (error) {
-      return await handleError(error);
+      return handleError(error);
     }
   };
 

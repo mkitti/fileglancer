@@ -5,11 +5,7 @@ import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { useProfileContext } from './ProfileContext';
 import { sendFetchRequest, joinPaths } from '@/utils';
 import type { Result } from '@/shared.types';
-import {
-  createSuccess,
-  getResponseError,
-  handleError
-} from '@/utils/errorHandling';
+import { createSuccess, handleError, toHttpError } from '@/utils/errorHandling';
 
 export type Ticket = {
   username: string;
@@ -77,10 +73,10 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
         // This is not an error, just no tickets available
         return createSuccess(null);
       } else {
-        return await handleError(response);
+        throw await toHttpError(response);
       }
     } catch (error) {
-      return await handleError(error);
+      return handleError(error);
     }
   }, [cookies]);
 
@@ -101,7 +97,7 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
       !fileBrowserState.currentFileSharePath ||
       !fileBrowserState.propertiesTarget
     ) {
-      return await handleError(
+      return handleError(
         new Error(
           'File browser is ready but no file share path or properties target selected'
         )
@@ -125,10 +121,10 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
         // This is not an error, just no ticket available
         return createSuccess(null);
       } else {
-        return await handleError(response);
+        return handleError(response);
       }
     } catch (error) {
-      return await handleError(error);
+      return handleError(error);
     }
   }, [
     fileBrowserState.currentFileSharePath,
@@ -164,8 +160,7 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
     );
 
     if (!createTicketResponse.ok) {
-      const error = await getResponseError(createTicketResponse);
-      throw new Error(error);
+      throw await toHttpError(createTicketResponse);
     }
 
     const ticketData = await createTicketResponse.json();

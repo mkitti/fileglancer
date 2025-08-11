@@ -24,7 +24,7 @@ export default function useProxiedPathRow({
     try {
       await copyToClipboard(displayPath);
     } catch (error) {
-      return await handleError(error);
+      return handleError(error);
     }
     return createSuccess(undefined);
   };
@@ -33,7 +33,7 @@ export default function useProxiedPathRow({
     try {
       await copyToClipboard(item.url);
     } catch (error) {
-      return await handleError(error);
+      return handleError(error);
     }
     return createSuccess(undefined);
   };
