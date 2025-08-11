@@ -28,14 +28,14 @@ const MockRouterAndProviders = ({
           <CookiesProvider>
             <ZonesAndFspMapContextProvider>
               <OpenFavoritesProvider>
-                <PreferencesProvider>
-                  <FileBrowserContextProvider
-                    fspName={fspName}
-                    filePath={filePath}
-                  >
+                <FileBrowserContextProvider
+                  fspName={fspName}
+                  filePath={filePath}
+                >
+                  <PreferencesProvider>
                     <ProxiedPathProvider>{children}</ProxiedPathProvider>
-                  </FileBrowserContextProvider>
-                </PreferencesProvider>
+                  </PreferencesProvider>
+                </FileBrowserContextProvider>
               </OpenFavoritesProvider>
             </ZonesAndFspMapContextProvider>
           </CookiesProvider>
