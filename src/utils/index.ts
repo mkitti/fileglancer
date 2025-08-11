@@ -25,7 +25,9 @@ const formatFileSize = (sizeInBytes: number): string => {
 
 const formatUnixTimestamp = (timestamp: number): string => {
   const date = new Date(timestamp * 1000);
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
     month: 'short',
     day: 'numeric',
     year: 'numeric'
