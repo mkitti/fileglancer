@@ -27,7 +27,7 @@ export default function useDeleteDialog() {
         cookies['_xsrf']
       );
       if (!response.ok) {
-        throw toHttpError(response);
+        throw await toHttpError(response);
       } else {
         await refreshFiles();
         return createSuccess(undefined);

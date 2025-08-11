@@ -172,7 +172,7 @@ export const FileBrowserContextProvider = ({
         } else if (response.status === 404) {
           throw new Error('Folder not found');
         } else {
-          throw toHttpError(response);
+          throw await toHttpError(response);
         }
       }
 

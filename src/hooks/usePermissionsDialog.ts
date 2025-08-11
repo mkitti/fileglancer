@@ -85,7 +85,7 @@ export default function usePermissionsDialog() {
       if (response.ok) {
         return await refreshFiles();
       } else {
-        throw toHttpError(response);
+        throw await toHttpError(response);
       }
     } catch (error) {
       return handleError(error);
