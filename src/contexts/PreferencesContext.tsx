@@ -468,7 +468,7 @@ export const PreferencesProvider = ({
       const backendPrefs = (await fetchPreferences(
         'recentlyViewedFolders'
       )) as FolderPreference[];
-      if (backendPrefs.length > 0) {
+      if (backendPrefs && backendPrefs.length > 0) {
         setRecentlyViewedFolders(backendPrefs);
       }
     })();
