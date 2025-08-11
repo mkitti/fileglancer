@@ -1,6 +1,6 @@
 import React, { ReactNode } from 'react';
 import { Link } from 'react-router';
-import { IconButton, Tooltip, Typography } from '@material-tailwind/react';
+import { IconButton, Typography } from '@material-tailwind/react';
 import { TbFile } from 'react-icons/tb';
 import {
   HiOutlineEllipsisHorizontalCircle,
@@ -15,6 +15,7 @@ import {
   formatFileSize,
   makeBrowseLink
 } from '@/utils/index';
+import FgTooltip from '../widgets/FgTooltip';
 
 type FileRowProps = {
   file: FileOrFolder;
@@ -69,24 +70,21 @@ export default function FileRow({
     >
       {/* Name column */}
       <div className="flex items-center pl-3 py-1">
-        <Tooltip>
-          <Tooltip.Trigger className="max-w-full truncate">
-            {file.is_dir ? (
-              <Typography
-                as={Link}
-                to={link}
-                className="font-medium text-primary-light hover:underline"
-              >
-                {file.name}
-              </Typography>
-            ) : (
-              <Typography className="font-medium text-primary-default truncate">
-                {file.name}
-              </Typography>
-            )}
-          </Tooltip.Trigger>
-          <Tooltip.Content>{file.name}</Tooltip.Content>
-        </Tooltip>
+        <FgTooltip label={file.name} triggerClasses="max-w-full truncate">
+          {file.is_dir ? (
+            <Typography
+              as={Link}
+              to={link}
+              className="font-medium text-primary-light hover:underline"
+            >
+              {file.name}
+            </Typography>
+          ) : (
+            <Typography className="font-medium text-primary-default truncate">
+              {file.name}
+            </Typography>
+          )}
+        </FgTooltip>
       </div>
 
       {/* Type column */}

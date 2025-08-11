@@ -6,7 +6,7 @@ import FileListCrumbs from './Crumbs';
 import FileRow from './FileRow';
 import ZarrPreview from './ZarrPreview';
 import ContextMenu from '@/components/ui/Menus/ContextMenu';
-import Loader from '@/components/ui/Loader';
+import Loader from '@/components/ui/widgets/Loader';
 import useContextMenu from '@/hooks/useContextMenu';
 import useZarrMetadata from '@/hooks/useZarrMetadata';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';

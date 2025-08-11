@@ -3,8 +3,7 @@ import {
   Button,
   ButtonGroup,
   Switch,
-  Typography,
-  Tooltip
+  Typography
 } from '@material-tailwind/react';
 import { Link } from 'react-router-dom';
 
@@ -16,7 +15,8 @@ import copy_logo from '@/assets/copy-link-64.png';
 
 import ZarrMetadataTable from '@/components/ui/BrowsePage/ZarrMetadataTable';
 import DataLinkDialog from '@/components/ui/Dialogs/DataLink';
-import Loader from '@/components/ui/Loader';
+import Loader from '@/components/ui/widgets/Loader';
+import FgTooltip from '@/components/ui/widgets/FgTooltip';
 import type { OpenWithToolUrls, ZarrMetadata } from '@/hooks/useZarrMetadata';
 import useDataLinkDialog from '@/hooks/useDataLinkDialog';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
@@ -59,6 +59,9 @@ export default function ZarrPreview({
       }, 1000);
     }
   };
+
+  const tooltipTriggerClasses =
+    'rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75';
 
   return (
     <div className="my-4 p-4 shadow-sm rounded-md bg-primary-light/30">
@@ -142,113 +145,86 @@ export default function ZarrPreview({
               </Typography>
               <ButtonGroup className="relative">
                 {openWithToolUrls.validator ? (
-                  <Tooltip placement="top">
-                    <Tooltip.Trigger
-                      as={Button}
-                      variant="ghost"
-                      className="rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75"
+                  <FgTooltip
+                    as={Button}
+                    variant="ghost"
+                    triggerClasses={tooltipTriggerClasses}
+                    label="View in OME-Zarr Validator"
+                  >
+                    <Link
+                      to={openWithToolUrls.validator}
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
-                      <Link
-                        to={openWithToolUrls.validator}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <img
-                          src={validator_logo}
-                          alt="OME-Zarr Validator logo"
-                          className="max-h-8 max-w-8 m-1 rounded-sm"
-                        />
-                      </Link>
-                      <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-                        <Typography type="small" className="opacity-90">
-                          View in OME-Zarr Validator
-                        </Typography>
-                        <Tooltip.Arrow />
-                      </Tooltip.Content>
-                    </Tooltip.Trigger>
-                  </Tooltip>
+                      <img
+                        src={validator_logo}
+                        alt="OME-Zarr Validator logo"
+                        className="max-h-8 max-w-8 m-1 rounded-sm"
+                      />
+                    </Link>{' '}
+                  </FgTooltip>
                 ) : null}
 
                 {openWithToolUrls.neuroglancer ? (
-                  <Tooltip placement="top">
-                    <Tooltip.Trigger
-                      as={Button}
-                      variant="ghost"
-                      className="rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75"
+                  <FgTooltip
+                    as={Button}
+                    variant="ghost"
+                    triggerClasses={tooltipTriggerClasses}
+                    label="View in Neuroglancer"
+                  >
+                    <Link
+                      to={openWithToolUrls.neuroglancer}
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
-                      <Link
-                        to={openWithToolUrls.neuroglancer}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <img
-                          src={neuroglancer_logo}
-                          alt="Neuroglancer logo"
-                          className="max-h-8 max-w-8 m-1 rounded-sm"
-                        />
-                      </Link>
-                      <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-                        <Typography type="small" className="opacity-90">
-                          View in Neuroglancer
-                        </Typography>
-                        <Tooltip.Arrow />
-                      </Tooltip.Content>
-                    </Tooltip.Trigger>
-                  </Tooltip>
+                      <img
+                        src={neuroglancer_logo}
+                        alt="Neuroglancer logo"
+                        className="max-h-8 max-w-8 m-1 rounded-sm"
+                      />
+                    </Link>
+                  </FgTooltip>
                 ) : null}
 
                 {openWithToolUrls.vole ? (
-                  <Tooltip placement="top">
-                    <Tooltip.Trigger
-                      as={Button}
-                      variant="ghost"
-                      className="rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75"
+                  <FgTooltip
+                    as={Button}
+                    variant="ghost"
+                    triggerClasses={tooltipTriggerClasses}
+                    label="View in Vol-E"
+                  >
+                    <Link
+                      to={openWithToolUrls.vole}
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
-                      <Link
-                        to={openWithToolUrls.vole}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <img
-                          src={volE_logo}
-                          alt="Vol-E logo"
-                          className="max-h-8 max-w-8 m-1 rounded-sm"
-                        />
-                      </Link>
-                      <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-                        <Typography type="small" className="opacity-90">
-                          View in Vol-E
-                        </Typography>
-                        <Tooltip.Arrow />
-                      </Tooltip.Content>
-                    </Tooltip.Trigger>
-                  </Tooltip>
+                      <img
+                        src={volE_logo}
+                        alt="Vol-E logo"
+                        className="max-h-8 max-w-8 m-1 rounded-sm"
+                      />
+                    </Link>
+                  </FgTooltip>
                 ) : null}
 
                 {openWithToolUrls.copy ? (
-                  <Tooltip
-                    placement="top"
-                    open={showCopiedTooltip ? true : undefined}
+                  <FgTooltip
+                    as={Button}
+                    variant="ghost"
+                    triggerClasses={tooltipTriggerClasses}
+                    label={
+                      showCopiedTooltip
+                        ? 'Copied!'
+                        : 'Copy data URL to clipboard'
+                    }
+                    onClick={handleCopyUrl}
                   >
-                    <Tooltip.Trigger
-                      as={Button}
-                      variant="ghost"
-                      className="rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75"
-                      onClick={handleCopyUrl}
-                    >
-                      <img
-                        src={copy_logo}
-                        alt="Copy URL icon"
-                        className="max-h-8 max-w-8 m-1 rounded-sm"
-                      />
-                      <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-                        <Typography type="small" className="opacity-90">
-                          {showCopiedTooltip ? 'Copied!' : 'Copy data URL'}
-                        </Typography>
-                        <Tooltip.Arrow />
-                      </Tooltip.Content>
-                    </Tooltip.Trigger>
-                  </Tooltip>
+                    <img
+                      src={copy_logo}
+                      alt="Copy URL icon"
+                      className="max-h-8 max-w-8 m-1 rounded-sm"
+                    />
+                  </FgTooltip>
                 ) : null}
               </ButtonGroup>
             </div>

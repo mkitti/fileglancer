@@ -1,12 +1,7 @@
 import React from 'react';
 import { default as log } from '@/logger';
 import { Link } from 'react-router-dom';
-import {
-  IconButton,
-  List,
-  Tooltip,
-  Typography
-} from '@material-tailwind/react';
+import { IconButton, List, Typography } from '@material-tailwind/react';
 import { HiOutlineFolder } from 'react-icons/hi2';
 import { HiStar } from 'react-icons/hi';
 
@@ -20,6 +15,7 @@ import {
 } from '@/utils';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import MissingFolderFavoriteDialog from './MissingFolderFavoriteDialog';
+import FgTooltip from '../widgets/FgTooltip';
 import type { FileSharePath } from '@/shared.types';
 
 import {
@@ -120,14 +116,11 @@ export default function Folder({
               {getLastSegmentFromPath(folderPath)}
             </Typography>
           </div>
-          <Tooltip placement="right">
-            <Tooltip.Trigger className="w-full">
-              <Typography className="text-left text-sm short:text-xs truncate">
-                {displayPath}
-              </Typography>
-            </Tooltip.Trigger>
-            <Tooltip.Content>{displayPath}</Tooltip.Content>
-          </Tooltip>
+          <FgTooltip label={displayPath} triggerClasses="w-full">
+            <Typography className="text-left text-sm short:text-xs truncate">
+              {displayPath}
+            </Typography>
+          </FgTooltip>
         </Link>
         {folderFavorite ? (
           <div

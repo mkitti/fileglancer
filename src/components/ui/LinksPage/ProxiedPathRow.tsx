@@ -1,4 +1,4 @@
-import { Tooltip, Typography } from '@material-tailwind/react';
+import { Typography } from '@material-tailwind/react';
 
 import DataLinkDialog from '@/components/ui/Dialogs/DataLink';
 import DataLinksActionsMenu from '@/components/ui/Menus/DataLinksActions';
@@ -14,6 +14,7 @@ import useDataLinkDialog from '@/hooks/useDataLinkDialog';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 import type { FileSharePath } from '@/shared.types';
 import type { MenuItem } from '@/components/ui/Menus/FgMenuItems';
+import FgTooltip from '../widgets/FgTooltip';
 
 type ProxiedPathRowProps = {
   item: ProxiedPath;
@@ -79,6 +80,8 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
     pathFsp
   };
 
+  const tooltipTriggerClasses = 'max-w-full truncate';
+
   return (
     <>
       <div
@@ -87,42 +90,42 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
         onClick={handleRowClick}
       >
         {/* Sharing name */}
-        <Tooltip>
-          <Tooltip.Trigger className="max-w-full truncate">
-            <Typography
-              variant="small"
-              className="text-left text-primary-light truncate hover:underline"
-              onClick={handleNameClick}
-            >
-              {item.sharing_name}
-            </Typography>
-          </Tooltip.Trigger>
-          <Tooltip.Content>{item.sharing_name}</Tooltip.Content>
-        </Tooltip>
+        <FgTooltip
+          label={item.sharing_name}
+          triggerClasses={tooltipTriggerClasses}
+        >
+          <Typography
+            variant="small"
+            className="text-left text-primary-light truncate hover:underline"
+            onClick={handleNameClick}
+          >
+            {item.sharing_name}
+          </Typography>
+        </FgTooltip>
+
         {/* Mount path */}
-        <Tooltip>
-          <Tooltip.Trigger className="max-w-full truncate">
-            <Typography
-              variant="small"
-              className="text-left text-foreground truncate"
-            >
-              {displayPath}
-            </Typography>
-          </Tooltip.Trigger>
-          <Tooltip.Content>{displayPath}</Tooltip.Content>
-        </Tooltip>
+        <FgTooltip label={displayPath} triggerClasses={tooltipTriggerClasses}>
+          <Typography
+            variant="small"
+            className="text-left text-foreground truncate"
+          >
+            {displayPath}
+          </Typography>
+        </FgTooltip>
+
         {/* Date shared */}
-        <Tooltip>
-          <Tooltip.Trigger className="max-w-full truncate">
-            <Typography
-              variant="small"
-              className="text-left text-foreground truncate"
-            >
-              {formatDateString(item.created_at)}
-            </Typography>
-          </Tooltip.Trigger>
-          <Tooltip.Content>{formatDateString(item.created_at)}</Tooltip.Content>
-        </Tooltip>
+        <FgTooltip
+          label={formatDateString(item.created_at)}
+          triggerClasses={tooltipTriggerClasses}
+        >
+          <Typography
+            variant="small"
+            className="text-left text-foreground truncate"
+          >
+            {formatDateString(item.created_at)}
+          </Typography>
+        </FgTooltip>
+
         {/* Actions */}
         <div onClick={e => e.stopPropagation()}>
           <DataLinksActionsMenu<ProxiedPathRowActionProps>

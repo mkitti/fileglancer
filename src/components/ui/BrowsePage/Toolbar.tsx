@@ -1,12 +1,7 @@
 import * as React from 'react';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router';
-import {
-  ButtonGroup,
-  IconButton,
-  Tooltip,
-  Typography
-} from '@material-tailwind/react';
+import { ButtonGroup } from '@material-tailwind/react';
 import {
   HiRefresh,
   HiEye,
@@ -19,6 +14,7 @@ import {
 } from 'react-icons/hi';
 import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
 
+import FgTooltip from '@/components/ui/widgets/FgTooltip';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useProfileContext } from '@/contexts/ProfileContext';
@@ -103,219 +99,124 @@ export default function Toolbar({
   const showFavoriteButton =
     currentFileSharePath && currentFolder && currentFolder.is_dir;
 
+  const triggerClasses =
+    'inline-grid place-items-center border align-middle select-none font-sans font-medium text-center transition-all duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none data-[shape=circular]:rounded-full text-sm min-w-[38px] min-h-[38px] rounded-md shadow-sm hover:shadow-md bg-transparent border-primary text-primary hover:bg-primary hover:text-primary-foreground outline-none group';
+
   return (
     <div className="flex flex-col min-w-full p-2 border-b border-surface">
       <div className="flex justify-between items-center">
         <ButtonGroup className="gap-1">
           {/* Show/hide favorites and zone browser sidebar */}
-          <Tooltip placement="top">
-            <Tooltip.Trigger
-              as={IconButton}
-              variant="outline"
-              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                setShowSidebar((prev: boolean) => !prev);
-                e.currentTarget.blur();
-              }}
-            >
-              {showSidebar ? (
-                <>
-                  <GoSidebarCollapse className="icon-default scale-x-[-1]" />
-                  <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-                    <Typography type="small" className="opacity-90">
-                      Hide favorites and zone browser
-                    </Typography>
-                    <Tooltip.Arrow />
-                  </Tooltip.Content>
-                </>
-              ) : (
-                <>
-                  <GoSidebarExpand className="icon-default scale-x-[-1]" />
-                  <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-                    <Typography type="small" className="opacity-90">
-                      View favorites and zone browser
-                    </Typography>
-                    <Tooltip.Arrow />
-                  </Tooltip.Content>
-                </>
-              )}
-            </Tooltip.Trigger>
-          </Tooltip>
+          <FgTooltip
+            label={
+              showSidebar
+                ? 'Hide favorites and zone browser'
+                : 'View favorites and zone browser'
+            }
+            icon={showSidebar ? GoSidebarExpand : GoSidebarCollapse}
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+              setShowSidebar((prev: boolean) => !prev);
+              e.currentTarget.blur();
+            }}
+            triggerClasses={triggerClasses}
+          />
 
           {/* Go to home folder */}
-          <Tooltip placement="top">
-            <Tooltip.Trigger
-              as={Link}
-              variant="outline"
-              to={`/browse/${profile?.homeFileSharePathName}/${profile?.homeDirectoryName}`}
-              className="inline-grid place-items-center border align-middle select-none font-sans font-medium text-center transition-all duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none data-[shape=circular]:rounded-full text-sm min-w-[38px] min-h-[38px] rounded-md shadow-sm hover:shadow-md bg-transparent border-primary text-primary hover:bg-primary hover:text-primary-foreground outline-none group"
-            >
-              <HiOutlineHome className="icon-default" />
-              <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-                <Typography type="small" className="opacity-90">
-                  Go to home folder
-                </Typography>
-                <Tooltip.Arrow />
-              </Tooltip.Content>
-            </Tooltip.Trigger>
-          </Tooltip>
+          <FgTooltip
+            as={Link}
+            link={`/browse/${profile?.homeFileSharePathName}/${profile?.homeDirectoryName}`}
+            icon={HiOutlineHome}
+            label="Go to home folder"
+            triggerClasses={triggerClasses}
+          />
 
           {/* Refresh browser contents */}
-          <Tooltip placement="top">
-            <Tooltip.Trigger
-              as={IconButton}
-              variant="outline"
-              disabled={!currentFileSharePath}
-              onClick={async () => {
-                if (!currentFileSharePath) {
-                  return;
-                }
-                await refreshFiles();
-              }}
-            >
-              <HiRefresh className="icon-default" />
-              <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-                <Typography type="small" className="opacity-90">
-                  Refresh file browser
-                </Typography>
-                <Tooltip.Arrow />
-              </Tooltip.Content>
-            </Tooltip.Trigger>
-          </Tooltip>
+          <FgTooltip
+            icon={HiRefresh}
+            label="Refresh file browser"
+            disabledCondition={!currentFileSharePath}
+            onClick={async () => {
+              if (!currentFileSharePath) {
+                return;
+              }
+              await refreshFiles();
+            }}
+            triggerClasses={triggerClasses}
+          />
 
           {/* Make new folder */}
-          <Tooltip placement="top">
-            <Tooltip.Trigger
-              as={IconButton}
-              variant="outline"
-              disabled={!currentFileSharePath}
-              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                setShowNewFolderDialog(true);
-                e.currentTarget.blur();
-              }}
-            >
-              <HiFolderAdd className="icon-default" />
-            </Tooltip.Trigger>
-            <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-              <Typography type="small" className="opacity-90">
-                New folder
-              </Typography>
-              <Tooltip.Arrow />
-            </Tooltip.Content>
-          </Tooltip>
+          <FgTooltip
+            icon={HiFolderAdd}
+            label="New folder"
+            disabledCondition={!currentFileSharePath}
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+              setShowNewFolderDialog(true);
+              e.currentTarget.blur();
+            }}
+            triggerClasses={triggerClasses}
+          />
 
           {/* Show/hide dot files and folders */}
-          <Tooltip placement="top">
-            <Tooltip.Trigger
-              as={IconButton}
-              variant="outline"
-              disabled={!currentFileSharePath}
-              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                setHideDotFiles((prev: boolean) => !prev);
-                e.currentTarget.blur();
-              }}
-            >
-              {hideDotFiles ? (
-                <HiEyeOff className="icon-default" />
-              ) : (
-                <HiEye className="icon-default" />
-              )}
-              <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-                <Typography type="small" className="opacity-90">
-                  {hideDotFiles ? 'Show dot files' : 'Hide dot files'}
-                </Typography>
-                <Tooltip.Arrow />
-              </Tooltip.Content>
-            </Tooltip.Trigger>
-          </Tooltip>
+          <FgTooltip
+            icon={hideDotFiles ? HiEyeOff : HiEye}
+            label={hideDotFiles ? 'Show dot files' : 'Hide dot files'}
+            disabledCondition={!currentFileSharePath}
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+              setHideDotFiles((prev: boolean) => !prev);
+              e.currentTarget.blur();
+            }}
+            triggerClasses={triggerClasses}
+          />
 
           {/* Add/remove current folder from favorites */}
-          {showFavoriteButton && (
-            <Tooltip placement="top">
-              <Tooltip.Trigger
-                as={IconButton}
-                variant="outline"
-                disabled={!currentFileSharePath}
-                onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                  handleFavoriteClick();
-                  e.currentTarget.blur();
-                }}
-              >
-                {isFavorited ? (
-                  <HiStar className="icon-default" />
-                ) : (
-                  <HiOutlineStar className="icon-default" />
-                )}
-                <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-                  <Typography type="small" className="opacity-90">
-                    {isFavorited
-                      ? 'Remove current directory from favorites'
-                      : 'Add current directory to favorites'}
-                  </Typography>
-                  <Tooltip.Arrow />
-                </Tooltip.Content>
-              </Tooltip.Trigger>
-            </Tooltip>
-          )}
+          {showFavoriteButton ? (
+            <FgTooltip
+              icon={isFavorited ? HiStar : HiOutlineStar}
+              label={
+                isFavorited
+                  ? 'Remove current directory from favorites'
+                  : 'Add current directory to favorites'
+              }
+              disabledCondition={!currentFileSharePath}
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                handleFavoriteClick();
+                e.currentTarget.blur();
+              }}
+              triggerClasses={triggerClasses}
+            />
+          ) : null}
 
           {/* Copy path */}
-          <Tooltip placement="top">
-            <Tooltip.Trigger
-              as={IconButton}
-              variant="outline"
-              disabled={!currentFileSharePath}
-              onClick={() => {
-                try {
-                  copyToClipboard(fullPath);
-                  toast.success('Path copied to clipboard!');
-                } catch (error) {
-                  toast.error(`Failed to copy path. Error: ${error}`);
-                }
-              }}
-            >
-              <HiOutlineClipboardCopy className="icon-default" />
-              <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-                <Typography type="small" className="opacity-90">
-                  Copy current path
-                </Typography>
-                <Tooltip.Arrow />
-              </Tooltip.Content>
-            </Tooltip.Trigger>
-          </Tooltip>
+          <FgTooltip
+            icon={HiOutlineClipboardCopy}
+            label="Copy current path"
+            disabledCondition={!currentFileSharePath}
+            onClick={() => {
+              try {
+                copyToClipboard(fullPath);
+                toast.success('Path copied to clipboard!');
+              } catch (error) {
+                toast.error(`Failed to copy path. Error: ${error}`);
+              }
+            }}
+            triggerClasses={triggerClasses}
+          />
         </ButtonGroup>
 
         {/* Show/hide properties drawer */}
-        <Tooltip placement="top">
-          <Tooltip.Trigger
-            as={IconButton}
-            variant="outline"
-            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-              setShowPropertiesDrawer((prev: boolean) => !prev);
-              e.currentTarget.blur();
-            }}
-          >
-            {showPropertiesDrawer ? (
-              <>
-                <GoSidebarCollapse className="icon-default" />
-                <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-                  <Typography type="small" className="opacity-90">
-                    Hide file properties
-                  </Typography>
-                  <Tooltip.Arrow />
-                </Tooltip.Content>
-              </>
-            ) : (
-              <>
-                <GoSidebarExpand className="icon-default" />
-                <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-                  <Typography type="small" className="opacity-90">
-                    View file properties
-                  </Typography>
-                  <Tooltip.Arrow />
-                </Tooltip.Content>
-              </>
-            )}
-          </Tooltip.Trigger>
-        </Tooltip>
+        <FgTooltip
+          icon={showPropertiesDrawer ? GoSidebarCollapse : GoSidebarExpand}
+          label={
+            showPropertiesDrawer
+              ? 'Hide file properties'
+              : 'View file properties'
+          }
+          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+            setShowPropertiesDrawer((prev: boolean) => !prev);
+            e.currentTarget.blur();
+          }}
+          triggerClasses={triggerClasses}
+        />
       </div>
     </div>
   );
