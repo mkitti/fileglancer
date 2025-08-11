@@ -3,12 +3,7 @@ import logger, { default as log } from '@/logger';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { useProfileContext } from './ProfileContext';
-import {
-  sendFetchRequest,
-  getFileBrowsePath,
-  getFullPath,
-  joinPaths
-} from '@/utils';
+import { sendFetchRequest, getFileBrowsePath, joinPaths } from '@/utils';
 import type { Result } from '@/shared.types';
 
 export type Ticket = {

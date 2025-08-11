@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Typography } from '@material-tailwind/react';
+import { Button } from '@material-tailwind/react';
 import toast from 'react-hot-toast';
 
 import FgDialog from '@/components/ui/Dialogs/FgDialog';

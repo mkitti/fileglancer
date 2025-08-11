@@ -1,4 +1,4 @@
-import { IconButton, Tooltip, Typography } from '@material-tailwind/react';
+import { Tooltip, Typography } from '@material-tailwind/react';
 
 type FgTooltipProps = {
   as?: React.ElementType;
