@@ -214,7 +214,6 @@ export default function Toolbar({
                   } else {
                     toast.success('Favorite removed!');
                   }
-                  e.currentTarget.blur();
                 }}
               >
                 {isFavorited ? (
