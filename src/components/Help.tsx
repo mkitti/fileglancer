@@ -40,7 +40,7 @@ export default function Help() {
         <Typography type="h5" className="text-foreground font-bold">
           Help
         </Typography>
-        <Typography type="lead" className="text-secondary-light font-bold">
+        <Typography type="lead" className="text-foreground font-bold">
           {`Fileglancer version ${versionNo}`}
         </Typography>
       </div>
