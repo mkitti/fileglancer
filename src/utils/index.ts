@@ -41,7 +41,13 @@ const formatDateString = (dateStr: string) => {
     normalized = dateStr + 'Z';
   }
   const date = new Date(normalized);
-  return date.toLocaleString();
+  return date.toLocaleString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    month: 'numeric',
+    day: 'numeric',
+    year: 'numeric'
+  });
 };
 
 class HTTPError extends Error {
