@@ -1,5 +1,6 @@
 import * as React from 'react';
 import toast from 'react-hot-toast';
+import { Link } from 'react-router';
 import {
   ButtonGroup,
   IconButton,
@@ -12,6 +13,7 @@ import {
   HiEyeOff,
   HiFolderAdd,
   HiOutlineClipboardCopy,
+  HiOutlineHome,
   HiOutlineStar,
   HiStar
 } from 'react-icons/hi';
@@ -19,6 +21,7 @@ import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
 
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import { useProfileContext } from '@/contexts/ProfileContext';
 import { getPreferredPathForDisplay, makeMapKey } from '@/utils';
 import { copyToClipboard } from '@/utils/copyText';
 
@@ -43,7 +46,7 @@ export default function Toolbar({
 }: ToolbarProps): JSX.Element {
   const { currentFolder, currentFileSharePath, refreshFiles } =
     useFileBrowserContext();
-
+  const { profile } = useProfileContext();
   const {
     folderPreferenceMap,
     fileSharePathPreferenceMap,
@@ -135,6 +138,24 @@ export default function Toolbar({
                   </Tooltip.Content>
                 </>
               )}
+            </Tooltip.Trigger>
+          </Tooltip>
+
+          {/* Go to home folder */}
+          <Tooltip placement="top">
+            <Tooltip.Trigger
+              as={Link}
+              variant="outline"
+              to={`/browse/${profile?.homeFileSharePathName}/${profile?.homeDirectoryName}`}
+              className="inline-grid place-items-center border align-middle select-none font-sans font-medium text-center transition-all duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none data-[shape=circular]:rounded-full text-sm min-w-[38px] min-h-[38px] rounded-md shadow-sm hover:shadow-md bg-transparent border-primary text-primary hover:bg-primary hover:text-primary-foreground outline-none group"
+            >
+              <HiOutlineHome className="icon-default" />
+              <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
+                <Typography type="small" className="opacity-90">
+                  Go to home folder
+                </Typography>
+                <Tooltip.Arrow />
+              </Tooltip.Content>
             </Tooltip.Trigger>
           </Tooltip>
 

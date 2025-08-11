@@ -6,6 +6,8 @@ import { useCookiesContext } from '@/contexts/CookiesContext';
 
 type Profile = {
   username: string;
+  homeFileSharePathName: string;
+  homeDirectoryName: string;
 };
 
 type ProfileContextType = {
