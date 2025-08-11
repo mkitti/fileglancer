@@ -35,7 +35,7 @@ export default function Help() {
   ];
 
   return (
-    <div className="flex flex-col ">
+    <>
       <div className="flex justify-between mb-6">
         <Typography type="h5" className="text-foreground font-bold">
           Help
@@ -45,7 +45,7 @@ export default function Help() {
         </Typography>
       </div>
       <FgCard>
-        <List className="w-fit gap-2">
+        <List className="w-fit gap-2 p-4">
           {helpLinks.map(({ icon: Icon, title, url }) => (
             <List.Item className="hover:bg-transparent focus:bg-transparent">
               <List.ItemStart>
@@ -64,6 +64,6 @@ export default function Help() {
           ))}
         </List>
       </FgCard>
-    </div>
+    </>
   );
 }

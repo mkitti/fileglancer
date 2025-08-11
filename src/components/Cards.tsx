@@ -13,9 +13,7 @@ type TableCardProps = {
 
 function FgCard({ children }: { children: React.ReactNode }) {
   return (
-    <Card className="rounded-lg shadow dark:shadow-foreground border border-surface dark:border-foreground p-4">
-      {children}
-    </Card>
+    <Card className="border-surface dark:border-foreground">{children}</Card>
   );
 }
 
