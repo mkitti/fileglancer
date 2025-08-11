@@ -9,6 +9,7 @@ type FgTooltipProps = {
   icon?: React.ElementType;
   label: string;
   triggerClasses?: string;
+  openCondition?: boolean;
   children?: React.ReactNode;
 };
 
@@ -21,13 +22,14 @@ export default function FgTooltip({
   icon,
   label,
   triggerClasses,
+  openCondition,
   children
 }: FgTooltipProps) {
   const Component = as || null;
   const Icon = icon || null;
 
   return (
-    <Tooltip placement="top">
+    <Tooltip placement="top" open={openCondition}>
       <Tooltip.Trigger
         as={Component}
         variant={variant || null}

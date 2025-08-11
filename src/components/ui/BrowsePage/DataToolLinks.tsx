@@ -13,6 +13,7 @@ import volE_logo from '@/assets/aics_website-3d-cell-viewer.png';
 import copy_logo from '@/assets/copy-link-64.png';
 import type { OpenWithToolUrls } from '@/hooks/useZarrMetadata';
 import { copyToClipboard } from '@/utils/copyText';
+import FgTooltip from '../widgets/FgTooltip';
 
 export default function DataToolLinks({
   title,
@@ -32,6 +33,10 @@ export default function DataToolLinks({
       }, 1000);
     }
   };
+
+  const tooltipTriggerClasses =
+    'rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75';
+
   return (
     <div className="my-1">
       <Typography className="font-semibold text-sm text-surface-foreground">
@@ -39,106 +44,77 @@ export default function DataToolLinks({
       </Typography>
       <ButtonGroup className="relative">
         {urls.validator ? (
-          <Tooltip placement="top">
-            <Tooltip.Trigger
-              as={Button}
-              variant="ghost"
-              className="rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75"
-            >
-              <Link
-                to={urls.validator}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <img
-                  src={validator_logo}
-                  alt="OME-Zarr Validator logo"
-                  className="max-h-8 max-w-8 m-1 rounded-sm"
-                />
-              </Link>
-              <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-                <Typography type="small" className="opacity-90">
-                  View in OME-Zarr Validator
-                </Typography>
-                <Tooltip.Arrow />
-              </Tooltip.Content>
-            </Tooltip.Trigger>
-          </Tooltip>
+          <FgTooltip
+            as={Button}
+            variant="ghost"
+            triggerClasses={tooltipTriggerClasses}
+            label="View in OME-Zarr Validator"
+          >
+            <Link to={urls.validator} target="_blank" rel="noopener noreferrer">
+              <img
+                src={validator_logo}
+                alt="OME-Zarr Validator logo"
+                className="max-h-8 max-w-8 m-1 rounded-sm"
+              />
+            </Link>
+          </FgTooltip>
         ) : null}
 
         {urls.neuroglancer ? (
-          <Tooltip placement="top">
-            <Tooltip.Trigger
-              as={Button}
-              variant="ghost"
-              className="rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75"
+          <FgTooltip
+            as={Button}
+            variant="ghost"
+            triggerClasses={tooltipTriggerClasses}
+            label="View in Neuroglancer"
+          >
+            {' '}
+            <Link
+              to={urls.neuroglancer}
+              target="_blank"
+              rel="noopener noreferrer"
             >
-              <Link
-                to={urls.neuroglancer}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <img
-                  src={neuroglancer_logo}
-                  alt="Neuroglancer logo"
-                  className="max-h-8 max-w-8 m-1 rounded-sm"
-                />
-              </Link>
-              <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-                <Typography type="small" className="opacity-90">
-                  View in Neuroglancer
-                </Typography>
-                <Tooltip.Arrow />
-              </Tooltip.Content>
-            </Tooltip.Trigger>
-          </Tooltip>
+              <img
+                src={neuroglancer_logo}
+                alt="Neuroglancer logo"
+                className="max-h-8 max-w-8 m-1 rounded-sm"
+              />
+            </Link>
+          </FgTooltip>
         ) : null}
 
         {urls.vole ? (
-          <Tooltip placement="top">
-            <Tooltip.Trigger
-              as={Button}
-              variant="ghost"
-              className="rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75"
-            >
-              <Link to={urls.vole} target="_blank" rel="noopener noreferrer">
-                <img
-                  src={volE_logo}
-                  alt="Vol-E logo"
-                  className="max-h-8 max-w-8 m-1 rounded-sm"
-                />
-              </Link>
-              <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-                <Typography type="small" className="opacity-90">
-                  View in Vol-E
-                </Typography>
-                <Tooltip.Arrow />
-              </Tooltip.Content>
-            </Tooltip.Trigger>
-          </Tooltip>
+          <FgTooltip
+            as={Button}
+            variant="ghost"
+            triggerClasses={tooltipTriggerClasses}
+            label="View in Vol-E"
+          >
+            {' '}
+            <Link to={urls.vole} target="_blank" rel="noopener noreferrer">
+              <img
+                src={volE_logo}
+                alt="Vol-E logo"
+                className="max-h-8 max-w-8 m-1 rounded-sm"
+              />
+            </Link>
+          </FgTooltip>
         ) : null}
 
         {urls.copy ? (
-          <Tooltip placement="top" open={showCopiedTooltip ? true : undefined}>
-            <Tooltip.Trigger
-              as={Button}
-              variant="ghost"
-              className="rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75"
-              onClick={handleCopyUrl}
-            >
-              <img
-                src={copy_logo}
-                alt="Copy URL icon"
-                className="max-h-8 max-w-8 m-1 rounded-sm"
-              />
-              <Tooltip.Content className="px-2.5 py-1.5 text-primary-foreground">
-                <Typography type="small" className="opacity-90">
-                  {showCopiedTooltip ? 'Copied!' : 'Copy data URL'}
-                </Typography>
-                <Tooltip.Arrow />
-              </Tooltip.Content>
-            </Tooltip.Trigger>
-          </Tooltip>
+          <FgTooltip
+            as={Button}
+            variant="ghost"
+            triggerClasses={tooltipTriggerClasses}
+            label={showCopiedTooltip ? 'Copied!' : 'Copy data URL'}
+            onClick={handleCopyUrl}
+            openCondition={showCopiedTooltip ? true : undefined}
+          >
+            <img
+              src={copy_logo}
+              alt="Copy URL icon"
+              className="max-h-8 max-w-8 m-1 rounded-sm"
+            />
+          </FgTooltip>
         ) : null}
       </ButtonGroup>
     </div>
