@@ -1,10 +1,11 @@
 import { Typography } from '@material-tailwind/react';
 
 import TicketRow from '@/components/ui/JobsPage/TicketRow';
+import Loader from '@/components/ui/Loader';
 import { useTicketContext } from '@/contexts/TicketsContext';
 
 export default function Jobs() {
-  const { allTickets } = useTicketContext();
+  const { allTickets, loadingTickets } = useTicketContext();
   return (
     <>
       <Typography type="h5" className="mb-6 text-foreground font-bold">
@@ -23,16 +24,23 @@ export default function Jobs() {
           <Typography className="font-bold">Status</Typography>
           <Typography className="font-bold">Last Updated</Typography>
         </div>
-
-        {allTickets?.map(ticket => (
-          <TicketRow key={ticket.key} ticket={ticket} />
-        ))}
-
-        {!allTickets || allTickets.length === 0 ? (
+        {loadingTickets ? (
+          <div className="flex justify-center w-full py-4">
+            <Loader text="Checking for jobs..." />
+          </div>
+        ) : allTickets && allTickets.length > 0 ? (
+          allTickets.map(ticket => (
+            <TicketRow key={ticket.key} ticket={ticket} />
+          ))
+        ) : !allTickets || allTickets.length === 0 ? (
           <div className="px-4 py-8 text-center text-gray-500">
             You have not started any jobs.
           </div>
-        ) : null}
+        ) : (
+          <div className="px-4 py-8 text-center text-gray-500">
+            There was an error loading jobs.
+          </div>
+        )}
       </div>
     </>
   );

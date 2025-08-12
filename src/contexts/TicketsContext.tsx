@@ -3,12 +3,7 @@ import logger, { default as log } from '@/logger';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { useProfileContext } from './ProfileContext';
-import {
-  sendFetchRequest,
-  getFileBrowsePath,
-  getFullPath,
-  joinPaths
-} from '@/utils';
+import { sendFetchRequest, getFileBrowsePath, joinPaths } from '@/utils';
 import type { Result } from '@/shared.types';
 
 export type Ticket = {
@@ -28,6 +23,7 @@ export type Ticket = {
 type TicketContextType = {
   ticket: Ticket | null;
   allTickets?: Ticket[];
+  loadingTickets?: boolean;
   createTicket: (
     destination: string
   ) => Promise<Result<Ticket[] | null, Error>>;
@@ -52,12 +48,14 @@ export const useTicketContext = () => {
 
 export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
   const [allTickets, setAllTickets] = React.useState<Ticket[]>([]);
+  const [loadingTickets, setLoadingTickets] = React.useState<boolean>(true);
   const [ticket, setTicket] = React.useState<Ticket | null>(null);
   const { cookies } = useCookiesContext();
   const { currentFileSharePath, propertiesTarget } = useFileBrowserContext();
   const { profile } = useProfileContext();
 
   const fetchAllTickets = React.useCallback(async (): Promise<void> => {
+    setLoadingTickets(true);
     const response = await sendFetchRequest(
       '/api/fileglancer/ticket',
       'GET',
@@ -80,6 +78,7 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
     if (data?.tickets) {
       setAllTickets(sortTicketsByDate(data.tickets) as Ticket[]);
     }
+    setLoadingTickets(false);
   }, [cookies]);
 
   const fetchTicket = React.useCallback(async () => {
@@ -216,6 +215,7 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
       value={{
         ticket,
         allTickets,
+        loadingTickets,
         createTicket,
         fetchAllTickets
       }}
