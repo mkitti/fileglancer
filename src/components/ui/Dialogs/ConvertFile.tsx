@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 
 import FgDialog from './FgDialog';
 import TextWithFilePath from './TextWithFilePath';
+import Loader from '../Loader';
 import useConvertFileDialog from '@/hooks/useConvertFileDialog';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
@@ -19,6 +20,8 @@ export default function ConvertFileDialog({
   showConvertFileDialog,
   setShowConvertFileDialog
 }: ItemNamingDialogProps): JSX.Element {
+  const [waitingForTicketResponse, setWaitingForTicketResponse] =
+    React.useState(false);
   const { destinationFolder, setDestinationFolder } = useConvertFileDialog();
   const { pathPreference } = usePreferencesContext();
   const { propertiesTarget, currentFileSharePath } = useFileBrowserContext();
@@ -54,13 +57,16 @@ export default function ConvertFileDialog({
       <form
         onSubmit={async event => {
           event.preventDefault();
+          setWaitingForTicketResponse(true);
           const result = await createTicket(destinationFolder);
           if (result.ok) {
             await fetchAllTickets();
+            setWaitingForTicketResponse(false);
             setShowConvertFileDialog(false);
             setDestinationFolder('');
             toast.success('Ticket created successfully!');
           } else if (!result.ok) {
+            setWaitingForTicketResponse(false);
             toast.error(result.error.message);
           }
         }}
@@ -86,8 +92,19 @@ export default function ConvertFileDialog({
             className="mb-4 p-2 text-foreground text-lg border border-primary-light rounded-sm focus:outline-none focus:border-primary bg-background"
           />
         </div>
-        <Button className="!rounded-md" type="submit">
-          Submit
+        <Button
+          className="!rounded-md"
+          type="submit"
+          disabled={!destinationFolder}
+        >
+          {waitingForTicketResponse ? (
+            <div className="flex items-center gap-2">
+              <Loader customClasses="h-5 w-5 border-white" />
+              <span>Processing...</span>
+            </div>
+          ) : (
+            'Submit'
+          )}
         </Button>
       </form>
     </FgDialog>
