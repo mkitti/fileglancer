@@ -1,5 +1,4 @@
 import React, { ReactNode } from 'react';
-import { Link } from 'react-router';
 import { IconButton, Typography } from '@material-tailwind/react';
 import { TbFile } from 'react-icons/tb';
 import {
@@ -16,6 +15,7 @@ import {
   makeBrowseLink
 } from '@/utils/index';
 import FgTooltip from '../widgets/FgTooltip';
+import { FgStyledLink } from '../Links';
 
 type FileRowProps = {
   file: FileOrFolder;
@@ -72,11 +72,7 @@ export default function FileRow({
       <div className="flex items-center pl-3 py-1">
         <FgTooltip label={file.name} triggerClasses="max-w-full truncate">
           {file.is_dir ? (
-            <Typography
-              as={Link}
-              to={link}
-              className="font-medium text-primary-light hover:underline"
-            >
+            <Typography as={FgStyledLink} to={link}>
               {file.name}
             </Typography>
           ) : (

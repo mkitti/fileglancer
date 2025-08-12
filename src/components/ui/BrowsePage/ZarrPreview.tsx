@@ -10,7 +10,6 @@ import type { OpenWithToolUrls, ZarrMetadata } from '@/hooks/useZarrMetadata';
 import useDataLinkDialog from '@/hooks/useDataLinkDialog';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useExternalBucketContext } from '@/contexts/ExternalBucketContext';
-import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import {
   Metadata,
   generateNeuroglancerStateForZarrArray,
@@ -40,7 +39,6 @@ export default function ZarrPreview({
   const { showDataLinkDialog, setShowDataLinkDialog } = useDataLinkDialog();
   const { proxiedPath } = useProxiedPathContext();
   const { externalBucket, externalDataUrl } = useExternalBucketContext();
-  const { currentFolder } = useFileBrowserContext();
 
   React.useEffect(() => {
     setIsImageShared(proxiedPath !== null);
@@ -156,7 +154,6 @@ export default function ZarrPreview({
             <DataLinkDialog
               isImageShared={isImageShared}
               setIsImageShared={setIsImageShared}
-              filePathWithoutFsp={currentFolder?.path || ''}
               showDataLinkDialog={showDataLinkDialog}
               setShowDataLinkDialog={setShowDataLinkDialog}
               proxiedPath={proxiedPath}

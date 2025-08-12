@@ -1,8 +1,10 @@
 import * as React from 'react';
 import { Alert, Button, Card, Typography } from '@material-tailwind/react';
 import { HiX } from 'react-icons/hi';
+
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import useLocalPathPreference from '@/hooks/useLocalPathPreference';
+import { FgCard } from './Cards';
 
 export default function Preferences() {
   const {
@@ -27,7 +29,7 @@ export default function Preferences() {
           handlePathPreferenceSubmit(event, localPathPreference)
         }
       >
-        <Card className="p-6">
+        <FgCard>
           <Card.Header>
             <Typography className="font-semibold">
               Format to use for file paths:
@@ -112,7 +114,7 @@ export default function Preferences() {
               </Alert>
             ) : null}
           </Card.Footer>
-        </Card>
+        </FgCard>
       </form>
     </>
   );

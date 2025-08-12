@@ -18,8 +18,10 @@ import FgTooltip from '@/components/ui/widgets/FgTooltip';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useProfileContext } from '@/contexts/ProfileContext';
+import { useOpenFavoritesContext } from '@/contexts/OpenFavoritesContext';
 import { getPreferredPathForDisplay, makeMapKey } from '@/utils';
 import { copyToClipboard } from '@/utils/copyText';
+import useFavoriteToggle from '@/hooks/useFavoriteToggle';
 
 type ToolbarProps = {
   hideDotFiles: boolean;
@@ -43,12 +45,10 @@ export default function Toolbar({
   const { currentFolder, currentFileSharePath, refreshFiles } =
     useFileBrowserContext();
   const { profile } = useProfileContext();
-  const {
-    folderPreferenceMap,
-    fileSharePathPreferenceMap,
-    pathPreference,
-    handleFavoriteChange
-  } = usePreferencesContext();
+  const { folderPreferenceMap, fileSharePathPreferenceMap, pathPreference } =
+    usePreferencesContext();
+  const { handleFavoriteToggle } = useFavoriteToggle();
+  const { openFavoritesSection } = useOpenFavoritesContext();
 
   const fullPath = getPreferredPathForDisplay(
     pathPreference,
@@ -76,28 +76,10 @@ export default function Toolbar({
     fileSharePathPreferenceMap
   ]);
 
-  const handleFavoriteClick = React.useCallback(async () => {
-    if (!currentFileSharePath || !currentFolder) {
-      return;
-    }
-    if (!currentFolder || currentFolder.path === '.') {
-      await handleFavoriteChange(currentFileSharePath, 'fileSharePath');
-      return;
-    } else {
-      await handleFavoriteChange(
-        {
-          type: 'folder',
-          folderPath: currentFolder.path,
-          fsp: currentFileSharePath
-        },
-        'folder'
-      );
-    }
-  }, [currentFolder, currentFileSharePath, handleFavoriteChange]);
-
   // Don't show favorite button if not in a valid location
-  const showFavoriteButton =
-    currentFileSharePath && currentFolder && currentFolder.is_dir;
+  const showFavoriteButton: boolean = Boolean(
+    currentFileSharePath && currentFolder && currentFolder.is_dir
+  );
 
   const triggerClasses =
     'inline-grid place-items-center border align-middle select-none font-sans font-medium text-center transition-all duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none data-[shape=circular]:rounded-full text-sm min-w-[38px] min-h-[38px] rounded-md shadow-sm hover:shadow-md bg-transparent border-primary text-primary hover:bg-primary hover:text-primary-foreground outline-none group';
@@ -137,9 +119,16 @@ export default function Toolbar({
             disabledCondition={!currentFileSharePath}
             onClick={async () => {
               if (!currentFileSharePath) {
-                return;
+                toast.error(
+                  'Cannot refresh files - no file share path selected.'
+                );
               }
-              await refreshFiles();
+              const result = await refreshFiles();
+              if (result.success) {
+                toast.success('File browser refreshed!');
+              } else {
+                toast.error(`Error refreshing file browser: ${result.error}`);
+              }
             }}
             triggerClasses={triggerClasses}
           />
@@ -178,9 +167,16 @@ export default function Toolbar({
                   : 'Add current directory to favorites'
               }
               disabledCondition={!currentFileSharePath}
-              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                handleFavoriteClick();
-                e.currentTarget.blur();
+              onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
+                const result = await handleFavoriteToggle(false);
+                if (!result.success) {
+                  toast.error(`Error updating favorites: ${result.error}`);
+                } else if (result.data === true) {
+                  openFavoritesSection();
+                  toast.success('Favorite added!');
+                } else {
+                  toast.success('Favorite removed!');
+                }
               }}
               triggerClasses={triggerClasses}
             />

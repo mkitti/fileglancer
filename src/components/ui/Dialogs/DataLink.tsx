@@ -8,14 +8,15 @@ import {
 } from '@/contexts/ProxiedPathContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import { getPreferredPathForDisplay } from '@/utils';
+import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
+import { getPreferredPathForDisplay, makeMapKey } from '@/utils';
+import type { FileSharePath } from '@/shared.types';
 import FgDialog from './FgDialog';
 import TextWithFilePath from './TextWithFilePath';
 
 type DataLinkDialogProps = {
   isImageShared: boolean;
   setIsImageShared?: React.Dispatch<React.SetStateAction<boolean>>;
-  filePathWithoutFsp: string;
   showDataLinkDialog: boolean;
   setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
   proxiedPath: ProxiedPath | null;
@@ -24,22 +25,41 @@ type DataLinkDialogProps = {
 export default function DataLinkDialog({
   isImageShared,
   setIsImageShared,
-  filePathWithoutFsp,
   showDataLinkDialog,
   setShowDataLinkDialog,
   proxiedPath
 }: DataLinkDialogProps): JSX.Element {
-  const { createProxiedPath, deleteProxiedPath } = useProxiedPathContext();
-  const { currentFileSharePath } = useFileBrowserContext();
+  const { createProxiedPath, deleteProxiedPath, refreshProxiedPaths } =
+    useProxiedPathContext();
+  const { fileBrowserState } = useFileBrowserContext();
   const { pathPreference } = usePreferencesContext();
+  const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
 
-  if (!currentFileSharePath) {
-    return <>{toast.error('No file share path selected')}</>; // No file share path available
+  const fspKey = proxiedPath
+    ? makeMapKey('fsp', proxiedPath.fsp_name)
+    : fileBrowserState.currentFileSharePath
+      ? makeMapKey('fsp', fileBrowserState.currentFileSharePath.name)
+      : '';
+
+  if (fspKey === '') {
+    return <>{toast.error('Valid file share path or proxied path required')}</>;
   }
+
+  const pathFsp = zonesAndFileSharePathsMap[fspKey] as FileSharePath;
+  const targetPath = proxiedPath
+    ? proxiedPath.path
+    : fileBrowserState.currentFolder
+      ? fileBrowserState.currentFolder.path
+      : '';
+
+  if (!targetPath) {
+    return <>{toast.error('Valid current folder or proxied path required')}</>;
+  }
+
   const displayPath = getPreferredPathForDisplay(
     pathPreference,
-    currentFileSharePath,
-    filePathWithoutFsp
+    pathFsp,
+    targetPath
   );
 
   return (
@@ -81,28 +101,28 @@ export default function DataLinkDialog({
             color="error"
             className="!rounded-md flex items-center gap-2"
             onClick={async () => {
-              try {
-                const newProxiedPath = await createProxiedPath(
-                  currentFileSharePath.name,
-                  filePathWithoutFsp
+              const createProxiedPathResult = await createProxiedPath();
+              if (createProxiedPathResult.success) {
+                toast.success(
+                  `Successfully created data link for ${displayPath}`
                 );
-                if (newProxiedPath) {
-                  toast.success(
-                    `Successfully created data link for ${displayPath}`
+                const refreshResult = await refreshProxiedPaths();
+                if (!refreshResult.success) {
+                  toast.error(
+                    `Error refreshing proxied paths: ${refreshResult.error}`
                   );
-                } else {
-                  toast.error(`Error creating data link for ${displayPath}`);
+                  return;
                 }
-                setShowDataLinkDialog(false);
-                if (setIsImageShared) {
-                  setIsImageShared(true);
-                }
-              } catch (error) {
+              } else {
                 toast.error(
-                  `Error creating data link for ${displayPath}: ${
-                    error instanceof Error ? error.message : 'Unknown error'
-                  }`
+                  `Error creating data link: ${createProxiedPathResult.error}`
                 );
+              }
+              setShowDataLinkDialog(false);
+              if (setIsImageShared) {
+                // setIsImageShared does not exist in props for proxied path row,
+                // where the image is always shared
+                setIsImageShared(true);
               }
             }}
           >
@@ -115,25 +135,32 @@ export default function DataLinkDialog({
             color="error"
             className="!rounded-md flex items-center gap-2"
             onClick={async () => {
-              try {
-                if (proxiedPath) {
-                  await deleteProxiedPath(proxiedPath);
-                } else {
-                  toast.error('Proxied path not found');
-                }
+              if (!proxiedPath) {
+                toast.error('Proxied path not found');
+                return;
+              }
+
+              const deleteResult = await deleteProxiedPath(proxiedPath);
+              if (!deleteResult.success) {
+                toast.error(`Error deleting data link: ${deleteResult.error}`);
+                return;
+              } else {
                 toast.success(
                   `Successfully deleted data link for ${displayPath}`
                 );
-                setShowDataLinkDialog(false);
-                if (setIsImageShared) {
-                  setIsImageShared(false);
+
+                const refreshResult = await refreshProxiedPaths();
+                if (!refreshResult.success) {
+                  toast.error(
+                    `Error refreshing proxied paths: ${refreshResult.error}`
+                  );
+                  return;
                 }
-              } catch (error) {
-                toast.error(
-                  `Error deleting data link for ${displayPath}: ${
-                    error instanceof Error ? error.message : 'Unknown error'
-                  }`
-                );
+              }
+
+              setShowDataLinkDialog(false);
+              if (setIsImageShared) {
+                setIsImageShared(false);
               }
             }}
           >

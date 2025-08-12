@@ -22,16 +22,16 @@ export default function DeleteDialog({
   setShowDeleteDialog
 }: DeleteDialogProps): JSX.Element {
   const { handleDelete } = useDeleteDialog();
-  const { currentFileSharePath } = useFileBrowserContext();
+  const { fileBrowserState } = useFileBrowserContext();
   const { pathPreference } = usePreferencesContext();
 
-  if (!currentFileSharePath) {
+  if (!fileBrowserState.currentFileSharePath) {
     return <>{toast.error('No file share path selected')}</>; // No file share path available
   }
 
   const displayPath = getPreferredPathForDisplay(
     pathPreference,
-    currentFileSharePath,
+    fileBrowserState.currentFileSharePath,
     targetItem.path
   );
 
@@ -48,8 +48,11 @@ export default function DeleteDialog({
         color="error"
         className="!rounded-md"
         onClick={async () => {
-          const success = await handleDelete(targetItem);
-          if (success) {
+          const result = await handleDelete(targetItem);
+          if (!result.success) {
+            toast.error(`Error deleting item: ${result.error}`);
+          } else {
+            toast.success(`Item deleted!`);
             setShowDeleteDialog(false);
           }
         }}
