@@ -3,11 +3,13 @@ import { Link } from 'react-router';
 import { Typography } from '@material-tailwind/react';
 
 import errorImg from '@/assets/error_icon_gradient.png';
+import useVersionNo from '@/hooks/useVersionState';
 
 export default function ErrorFallback({ error }: any) {
   if (error instanceof Error) {
     logger.error('ErrorBoundary caught an error:', error);
   }
+  const { versionNo } = useVersionNo();
   return (
     <div className="flex-grow overflow-y-auto w-full">
       <div className="flex flex-col gap-4 justify-center items-center pt-8">
@@ -35,7 +37,7 @@ export default function ErrorFallback({ error }: any) {
         <Typography
           type="h5"
           as={Link}
-          to="https://forms.clickup.com/10502797/f/a0gmd-713/NBUCBCIN78SI2BE71G"
+          to={`https://forms.clickup.com/10502797/f/a0gmd-713/NBUCBCIN78SI2BE71G?Version=${versionNo}&URL=${window.location}`}
           target="_blank"
           rel="noopener noreferrer"
           className="text-black dark:text-white underline"
