@@ -1,7 +1,6 @@
 import React from 'react';
 import { Button, Typography } from '@material-tailwind/react';
 import toast from 'react-hot-toast';
-import logger from '@/logger';
 
 import {
   ProxiedPath,
@@ -30,7 +29,8 @@ export default function DataLinkDialog({
   setShowDataLinkDialog,
   proxiedPath
 }: DataLinkDialogProps): JSX.Element {
-  const { createProxiedPath, deleteProxiedPath } = useProxiedPathContext();
+  const { createProxiedPath, deleteProxiedPath, refreshProxiedPaths } =
+    useProxiedPathContext();
   const { fileBrowserState } = useFileBrowserContext();
   const { pathPreference } = usePreferencesContext();
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
@@ -101,13 +101,22 @@ export default function DataLinkDialog({
             color="error"
             className="!rounded-md flex items-center gap-2"
             onClick={async () => {
-              const result = await createProxiedPath();
-              if (result.success) {
+              const createProxiedPathResult = await createProxiedPath();
+              if (createProxiedPathResult.success) {
                 toast.success(
                   `Successfully created data link for ${displayPath}`
                 );
+                const refreshResult = await refreshProxiedPaths();
+                if (!refreshResult.success) {
+                  toast.error(
+                    `Error refreshing proxied paths: ${refreshResult.error}`
+                  );
+                  return;
+                }
               } else {
-                toast.error(`Error creating data link: ${result.error}`);
+                toast.error(
+                  `Error creating data link: ${createProxiedPathResult.error}`
+                );
               }
               setShowDataLinkDialog(false);
               if (setIsImageShared) {
@@ -126,25 +135,32 @@ export default function DataLinkDialog({
             color="error"
             className="!rounded-md flex items-center gap-2"
             onClick={async () => {
-              try {
-                if (proxiedPath) {
-                  await deleteProxiedPath(proxiedPath);
-                } else {
-                  toast.error('Proxied path not found');
-                }
+              if (!proxiedPath) {
+                toast.error('Proxied path not found');
+                return;
+              }
+
+              const deleteResult = await deleteProxiedPath(proxiedPath);
+              if (!deleteResult.success) {
+                toast.error(`Error deleting data link: ${deleteResult.error}`);
+                return;
+              } else {
                 toast.success(
                   `Successfully deleted data link for ${displayPath}`
                 );
-                setShowDataLinkDialog(false);
-                if (setIsImageShared) {
-                  setIsImageShared(false);
+
+                const refreshResult = await refreshProxiedPaths();
+                if (!refreshResult.success) {
+                  toast.error(
+                    `Error refreshing proxied paths: ${refreshResult.error}`
+                  );
+                  return;
                 }
-              } catch (error) {
-                toast.error(
-                  `Error deleting data link for ${displayPath}: ${
-                    error instanceof Error ? error.message : 'Unknown error'
-                  }`
-                );
+              }
+
+              setShowDataLinkDialog(false);
+              if (setIsImageShared) {
+                setIsImageShared(false);
               }
             }}
           >

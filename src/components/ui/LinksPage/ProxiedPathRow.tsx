@@ -25,7 +25,7 @@ type ProxiedPathRowProps = {
 type ProxiedPathRowActionProps = {
   handleCopyPath: (path: string) => Promise<Result<void>>;
   handleCopyUrl: (item: ProxiedPath) => Promise<Result<void>>;
-  handleUnshare: (pathFsp: FileSharePath) => void;
+  handleUnshare: () => void;
   item: ProxiedPath;
   displayPath: string;
   pathFsp: FileSharePath | undefined;
@@ -75,8 +75,7 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
     },
     {
       name: 'Unshare',
-      action: (props: ProxiedPathRowActionProps) =>
-        props.handleUnshare(props.pathFsp as FileSharePath),
+      action: (props: ProxiedPathRowActionProps) => props.handleUnshare(),
       color: 'text-red-600'
     }
   ];

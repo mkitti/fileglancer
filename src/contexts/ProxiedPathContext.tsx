@@ -22,8 +22,9 @@ type ProxiedPathContextType = {
   proxiedPath: ProxiedPath | null;
   dataUrl: string | null;
   allProxiedPaths?: ProxiedPath[];
-  createProxiedPath: () => Promise<Result<void>>;
-  deleteProxiedPath: (proxiedPath: ProxiedPath) => Promise<void>;
+  createProxiedPath: () => Promise<Result<ProxiedPath | void>>;
+  deleteProxiedPath: (proxiedPath: ProxiedPath) => Promise<Result<void>>;
+  refreshProxiedPaths: () => Promise<Result<ProxiedPath[] | void>>;
 };
 
 function sortProxiedPathsByDate(paths: ProxiedPath[]): ProxiedPath[] {
@@ -96,6 +97,18 @@ export const ProxiedPathProvider = ({
     }
   }, [cookies]);
 
+  const refreshProxiedPaths = async (): Promise<Result<void>> => {
+    try {
+      const result = await fetchAllProxiedPaths();
+      if (result.success && result.data) {
+        setAllProxiedPaths(result.data as ProxiedPath[]);
+      }
+      return createSuccess(undefined);
+    } catch (error) {
+      return handleError(error);
+    }
+  };
+
   const fetchProxiedPath = React.useCallback(async (): Promise<
     Result<ProxiedPath | void>
   > => {
@@ -136,7 +149,7 @@ export const ProxiedPathProvider = ({
     cookies
   ]);
 
-  async function createProxiedPath(): Promise<Result<void>> {
+  async function createProxiedPath(): Promise<Result<ProxiedPath | void>> {
     if (!fileBrowserState.currentFileSharePath) {
       return handleError(new Error('No file share path selected'));
     } else if (!fileBrowserState.currentFolder) {
@@ -157,34 +170,34 @@ export const ProxiedPathProvider = ({
       if (response.ok) {
         const proxiedPath = (await response.json()) as ProxiedPath;
         updateProxiedPath(proxiedPath);
-        await fetchAllProxiedPaths();
-        log.debug('Created proxied path:', proxiedPath);
+        return createSuccess(proxiedPath);
       } else {
         throw await toHttpError(response);
       }
     } catch (error) {
       return handleError(error);
     }
-    return createSuccess(undefined);
   }
 
   const deleteProxiedPath = React.useCallback(
-    async (proxiedPath: ProxiedPath) => {
-      const response = await sendFetchRequest(
-        `/api/fileglancer/proxied-path?sharing_key=${proxiedPath.sharing_key}`,
-        'DELETE',
-        cookies['_xsrf']
-      );
-      if (!response.ok) {
-        throw new Error(
-          `Failed to delete proxied path: ${response.status} ${response.statusText}`
+    async (proxiedPath: ProxiedPath): Promise<Result<void>> => {
+      try {
+        const response = await sendFetchRequest(
+          `/api/fileglancer/proxied-path?sharing_key=${proxiedPath.sharing_key}`,
+          'DELETE',
+          cookies['_xsrf']
         );
+        if (!response.ok) {
+          throw toHttpError(response);
+        } else {
+          updateProxiedPath(null);
+          return createSuccess(undefined);
+        }
+      } catch (error) {
+        return handleError(error);
       }
-      log.debug('Deleted proxied path:', proxiedPath);
-      updateProxiedPath(null);
-      await fetchAllProxiedPaths();
     },
-    [cookies, updateProxiedPath, fetchAllProxiedPaths]
+    [cookies, updateProxiedPath]
   );
 
   React.useEffect(() => {
@@ -219,7 +232,8 @@ export const ProxiedPathProvider = ({
         dataUrl,
         allProxiedPaths,
         createProxiedPath,
-        deleteProxiedPath
+        deleteProxiedPath,
+        refreshProxiedPaths
       }}
     >
       {children}
