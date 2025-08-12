@@ -39,6 +39,29 @@ class BaseHandler(APIHandler):
         """
         return os.getenv("USER", self.current_user.username)
 
+    def get_home_directory_path(self):
+        """
+        Get the home directory path of the current user.
+        
+        Returns:
+            str: The home directory path.
+        """
+        return os.path.expanduser(f"~{self.get_current_user()}")
+
+    def get_home_file_share_path_name(self):
+        """
+        Get the file share path for the current user's home directory.
+        
+        Returns:
+            str: The file share path name for the user's home directory, formatted as file_share_path_name
+        """
+        home_file_share_path = os.path.split(self.get_home_directory_path())[0]
+        file_share_paths = get_fsp_manager(self.settings).get_file_share_paths()
+        for fsp in file_share_paths:
+            if fsp.mount_path == home_file_share_path:
+                return fsp.name
+        return None
+
 
 class StreamingProxy(BaseHandler):
     """
@@ -693,9 +716,13 @@ class ProfileHandler(BaseHandler):
     def get(self):
         """Get the current user's profile"""
         username = self.get_current_user()
-        self.log.info(f"GET /api/fileglancer/profile username={username}")
+        home_fsp_name = self.get_home_file_share_path_name()
+        home_directory_name = os.path.basename(self.get_home_directory_path())
+        self.log.info(f"GET /api/fileglancer/profile username={username} home_fsp_name={home_fsp_name} home_directory_name={home_directory_name}")
         response = {
             "username": username,
+            "homeFileSharePathName": home_fsp_name,
+            "homeDirectoryName": home_directory_name,
         }
         try:
             self.set_status(200)

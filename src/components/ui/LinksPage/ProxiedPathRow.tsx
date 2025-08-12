@@ -1,4 +1,5 @@
-import { Tooltip, Typography } from '@material-tailwind/react';
+import { Typography } from '@material-tailwind/react';
+import toast from 'react-hot-toast';
 
 import DataLinkDialog from '@/components/ui/Dialogs/DataLink';
 import DataLinksActionsMenu from '@/components/ui/Menus/DataLinksActions';
@@ -8,21 +9,24 @@ import useProxiedPathRow from '@/hooks/useProxiedPathRow';
 import {
   formatDateString,
   getPreferredPathForDisplay,
-  makeMapKey
+  makeMapKey,
+  makeBrowseLink
 } from '@/utils';
 import useDataLinkDialog from '@/hooks/useDataLinkDialog';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
-import type { FileSharePath } from '@/shared.types';
+import type { FileSharePath, Result } from '@/shared.types';
 import type { MenuItem } from '@/components/ui/Menus/FgMenuItems';
+import { FgStyledLink } from '../widgets/FgLink';
+import FgTooltip from '../widgets/FgTooltip';
 
 type ProxiedPathRowProps = {
   item: ProxiedPath;
 };
 
 type ProxiedPathRowActionProps = {
-  handleCopyPath: (path: string) => void;
-  handleCopyUrl: (item: ProxiedPath) => void;
-  handleUnshare: (pathFsp: FileSharePath) => void;
+  handleCopyPath: (path: string) => Promise<Result<void>>;
+  handleCopyUrl: (item: ProxiedPath) => Promise<Result<void>>;
+  handleUnshare: () => void;
   item: ProxiedPath;
   displayPath: string;
   pathFsp: FileSharePath | undefined;
@@ -33,13 +37,9 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
   const { pathPreference } = usePreferencesContext();
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
 
-  const {
-    handleCopyPath,
-    handleCopyUrl,
-    handleUnshare,
-    handleRowClick,
-    handleNameClick
-  } = useProxiedPathRow({ item, setShowDataLinkDialog });
+  const { handleCopyPath, handleCopyUrl, handleUnshare } = useProxiedPathRow({
+    setShowDataLinkDialog
+  });
 
   const pathFsp = zonesAndFileSharePathsMap[
     makeMapKey('fsp', item.fsp_name)
@@ -54,18 +54,29 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
   const menuItems: MenuItem<ProxiedPathRowActionProps>[] = [
     {
       name: 'Copy path',
-      action: (props: ProxiedPathRowActionProps) =>
-        props.handleCopyPath(props.displayPath)
+      action: async (props: ProxiedPathRowActionProps) => {
+        const result = await props.handleCopyPath(props.displayPath);
+        if (result.success) {
+          toast.success('Path copied!');
+        } else {
+          toast.error(`Error copying path: ${result.error}`);
+        }
+      }
     },
     {
       name: 'Copy sharing link (S3-compatible URL)',
-      action: (props: ProxiedPathRowActionProps) =>
-        props.handleCopyUrl(props.item)
+      action: async (props: ProxiedPathRowActionProps) => {
+        const result = await props.handleCopyUrl(props.item);
+        if (result.success) {
+          toast.success('Sharing link copied!');
+        } else {
+          toast.error(`Error copying sharing link: ${result.error}`);
+        }
+      }
     },
     {
       name: 'Unshare',
-      action: (props: ProxiedPathRowActionProps) =>
-        props.handleUnshare(props.pathFsp as FileSharePath),
+      action: (props: ProxiedPathRowActionProps) => props.handleUnshare(),
       color: 'text-red-600'
     }
   ];
@@ -79,63 +90,57 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
     pathFsp
   };
 
+  const browseLink = makeBrowseLink(item.fsp_name, item.path);
+
+  const tooltipTriggerClasses = 'max-w-full truncate';
+
   return (
     <>
-      <div
-        key={item.sharing_key}
-        className="grid grid-cols-[1.5fr_2.5fr_1.5fr_1fr] gap-4 items-center px-4 py-3 border-b last:border-b-0 border-surface hover:bg-primary-light/20 relative cursor-pointer hover:bg-surface-light"
-        onClick={handleRowClick}
+      {/* Sharing name */}
+      <FgTooltip
+        label={item.sharing_name}
+        triggerClasses={tooltipTriggerClasses}
       >
-        {/* Sharing name */}
-        <Tooltip>
-          <Tooltip.Trigger className="max-w-full truncate">
-            <Typography
-              variant="small"
-              className="text-left text-primary-light truncate hover:underline"
-              onClick={handleNameClick}
-            >
-              {item.sharing_name}
-            </Typography>
-          </Tooltip.Trigger>
-          <Tooltip.Content>{item.sharing_name}</Tooltip.Content>
-        </Tooltip>
-        {/* Mount path */}
-        <Tooltip>
-          <Tooltip.Trigger className="max-w-full truncate">
-            <Typography
-              variant="small"
-              className="text-left text-foreground truncate"
-            >
-              {displayPath}
-            </Typography>
-          </Tooltip.Trigger>
-          <Tooltip.Content>{displayPath}</Tooltip.Content>
-        </Tooltip>
-        {/* Date shared */}
-        <Tooltip>
-          <Tooltip.Trigger className="max-w-full truncate">
-            <Typography
-              variant="small"
-              className="text-left text-foreground truncate"
-            >
-              {formatDateString(item.created_at)}
-            </Typography>
-          </Tooltip.Trigger>
-          <Tooltip.Content>{formatDateString(item.created_at)}</Tooltip.Content>
-        </Tooltip>
-        {/* Actions */}
-        <div onClick={e => e.stopPropagation()}>
-          <DataLinksActionsMenu<ProxiedPathRowActionProps>
-            menuItems={menuItems}
-            actionProps={actionProps}
-          />
-        </div>
+        <Typography className="text-foreground truncate">
+          {item.sharing_name}
+        </Typography>
+      </FgTooltip>
+
+      {/* Mount path */}
+      <FgTooltip label={displayPath} triggerClasses={tooltipTriggerClasses}>
+        <Typography
+          as={FgStyledLink}
+          to={browseLink}
+          className="text-left truncate"
+        >
+          {displayPath}
+        </Typography>
+      </FgTooltip>
+
+      {/* Date shared */}
+      <FgTooltip
+        label={formatDateString(item.created_at)}
+        triggerClasses={tooltipTriggerClasses}
+      >
+        <Typography
+          variant="small"
+          className="text-left text-foreground truncate"
+        >
+          {formatDateString(item.created_at)}
+        </Typography>
+      </FgTooltip>
+
+      {/* Actions */}
+      <div onClick={e => e.stopPropagation()}>
+        <DataLinksActionsMenu<ProxiedPathRowActionProps>
+          menuItems={menuItems}
+          actionProps={actionProps}
+        />
       </div>
       {/* Sharing dialog */}
       {showDataLinkDialog ? (
         <DataLinkDialog
           isImageShared={true}
-          filePathWithoutFsp={item.path}
           showDataLinkDialog={showDataLinkDialog}
           setShowDataLinkDialog={setShowDataLinkDialog}
           proxiedPath={item}

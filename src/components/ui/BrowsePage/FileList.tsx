@@ -6,7 +6,7 @@ import FileListCrumbs from './Crumbs';
 import FileRow from './FileRow';
 import ZarrPreview from './ZarrPreview';
 import ContextMenu from '@/components/ui/Menus/ContextMenu';
-import Loader from '@/components/ui/Loader';
+import Loader from '@/components/ui/widgets/Loader';
 import useContextMenu from '@/hooks/useContextMenu';
 import useZarrMetadata from '@/hooks/useZarrMetadata';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
@@ -42,7 +42,7 @@ export default function FileList({
     setShowContextMenu,
     menuRef,
     handleContextMenuClick,
-    handleFavoriteToggleMenuItemClick
+    handleContextMenuFavorite
   } = useContextMenu();
 
   const {
@@ -120,7 +120,7 @@ export default function FileList({
           })
         ) : !areFileDataLoading &&
           displayFiles.length === 0 &&
-          !fileBrowserState.fetchErrorMsg ? (
+          !fileBrowserState.uiErrorMsg ? (
           <div className="flex items-center pl-3 py-1">
             <Typography className="text-primary-default">
               No files available for display.
@@ -128,10 +128,10 @@ export default function FileList({
           </div>
         ) : !areFileDataLoading &&
           displayFiles.length === 0 &&
-          fileBrowserState.fetchErrorMsg ? (
+          fileBrowserState.uiErrorMsg ? (
           <div className="flex items-center pl-3 py-1">
             <Typography className="text-primary-default">
-              {fileBrowserState.fetchErrorMsg}
+              {fileBrowserState.uiErrorMsg}
             </Typography>
           </div>
         ) : null}
@@ -142,7 +142,7 @@ export default function FileList({
           y={contextMenuCoords.y}
           menuRef={menuRef}
           selectedFiles={selectedFiles}
-          handleFavoriteToggleMenuItemClick={handleFavoriteToggleMenuItemClick}
+          handleContextMenuFavorite={handleContextMenuFavorite}
           setShowPropertiesDrawer={setShowPropertiesDrawer}
           setShowContextMenu={setShowContextMenu}
           setShowRenameDialog={setShowRenameDialog}

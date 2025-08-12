@@ -3,8 +3,9 @@ import logger, { default as log } from '@/logger';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { useProfileContext } from './ProfileContext';
-import { sendFetchRequest, getFileBrowsePath, joinPaths } from '@/utils';
+import { sendFetchRequest, joinPaths } from '@/utils';
 import type { Result } from '@/shared.types';
+import { createSuccess, handleError, toHttpError } from '@/utils/errorHandling';
 
 export type Ticket = {
   username: string;
@@ -24,10 +25,8 @@ type TicketContextType = {
   ticket: Ticket | null;
   allTickets?: Ticket[];
   loadingTickets?: boolean;
-  createTicket: (
-    destination: string
-  ) => Promise<Result<Ticket[] | null, Error>>;
-  fetchAllTickets: () => Promise<void>;
+  createTicket: (destination: string) => Promise<void>;
+  fetchAllTickets: () => Promise<Result<Ticket[] | null>>;
 };
 
 function sortTicketsByDate(tickets: Ticket[]): Ticket[] {
@@ -51,164 +50,144 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
   const [loadingTickets, setLoadingTickets] = React.useState<boolean>(true);
   const [ticket, setTicket] = React.useState<Ticket | null>(null);
   const { cookies } = useCookiesContext();
-  const { currentFileSharePath, propertiesTarget } = useFileBrowserContext();
+  const { fileBrowserState } = useFileBrowserContext();
   const { profile } = useProfileContext();
 
-  const fetchAllTickets = React.useCallback(async (): Promise<void> => {
+  const fetchAllTickets = React.useCallback(async (): Promise<
+    Result<Ticket[] | null>
+  > => {
     setLoadingTickets(true);
-    const response = await sendFetchRequest(
-      '/api/fileglancer/ticket',
-      'GET',
-      cookies['_xsrf']
-    );
-    if (!response.ok) {
-      if (response.status === 404) {
-        logger.warn('No tickets found');
-        setAllTickets([]);
-        return;
+    try {
+      const response = await sendFetchRequest(
+        '/api/fileglancer/ticket',
+        'GET',
+        cookies['_xsrf']
+      );
+      if (response.ok) {
+        const data = await response.json();
+        if (data?.tickets) {
+          return createSuccess(sortTicketsByDate(data.tickets) as Ticket[]);
+        }
+        // Not an error, just no tickets available
+        return createSuccess(null);
+      } else if (response.status === 404) {
+        log.warn('No ticket found for the current file share path and target');
+        // This is not an error, just no tickets available
+        return createSuccess(null);
       } else {
-        logger.error(
-          `Failed to fetch tickets: ${response.status} ${response.statusText}`
-        );
-        return;
+        throw await toHttpError(response);
       }
+    } catch (error) {
+      return handleError(error);
+    } finally {
+      setLoadingTickets(false);
     }
-    const data = await response.json();
-    logger.debug('Fetched all tickets:', data);
-    if (data?.tickets) {
-      setAllTickets(sortTicketsByDate(data.tickets) as Ticket[]);
-    }
-    setLoadingTickets(false);
   }, [cookies]);
 
-  const fetchTicket = React.useCallback(async () => {
-    if (!currentFileSharePath || !propertiesTarget) {
+  const fetchTicket = React.useCallback(async (): Promise<
+    Result<Ticket | void>
+  > => {
+    if (
+      !fileBrowserState.currentFileSharePath ||
+      !fileBrowserState.propertiesTarget
+    ) {
       log.warn(
         'Cannot fetch ticket; no current file share path or file/folder selected'
       );
-      return null;
+      // This is probably not an error, just the state before the file browser is ready
+      return createSuccess(undefined);
     }
+
     try {
       const response = await sendFetchRequest(
-        `/api/fileglancer/ticket?fsp_name=${currentFileSharePath?.name}&path=${propertiesTarget?.path}`,
+        `/api/fileglancer/ticket?fsp_name=${fileBrowserState.currentFileSharePath.name}&path=${fileBrowserState.propertiesTarget.path}`,
         'GET',
         cookies['_xsrf']
       );
+
       if (!response.ok) {
-        log.error(
-          `Failed to fetch ticket: ${response.status} ${response.statusText}`
-        );
-        return null;
-      }
-      const data = (await response.json()) as any;
-      log.debug('Fetched ticket:', data);
-      if (data?.tickets) {
-        return data.tickets[0] as Ticket;
+        throw await toHttpError(response);
+      } else {
+        if (response.status === 404) {
+          log.warn(
+            'No ticket found for the current file share path and target'
+          );
+          // This is not an error, just no ticket available
+          return createSuccess(undefined);
+        } else {
+          const data = (await response.json()) as any;
+          if (data?.tickets) {
+            return createSuccess(data.tickets[0] as Ticket);
+          } else {
+            log.warn('No ticket data found in response');
+            return createSuccess(undefined);
+          }
+        }
       }
     } catch (error) {
-      log.error('Error fetching ticket:', error);
+      return handleError(error);
     }
-    return null;
-  }, [currentFileSharePath, propertiesTarget, cookies]);
+  }, [
+    fileBrowserState.currentFileSharePath,
+    fileBrowserState.propertiesTarget,
+    cookies
+  ]);
 
-  async function createTicket(
-    destinationFolder: string
-  ): Promise<Result<Ticket[] | null, Error>> {
-    if (!currentFileSharePath) {
-      return { ok: false, error: new Error('No file share path selected') };
-    } else if (!propertiesTarget) {
-      return { ok: false, error: new Error('No properties target selected') };
+  async function createTicket(destinationFolder: string): Promise<void> {
+    if (!fileBrowserState.currentFileSharePath) {
+      throw new Error('No file share path selected');
+    } else if (!fileBrowserState.propertiesTarget) {
+      throw new Error('No properties target selected');
     }
-
-    const fetchPath = getFileBrowsePath(
-      currentFileSharePath.name,
-      propertiesTarget.path
-    );
 
     const messagePath = joinPaths(
-      currentFileSharePath.mount_path,
-      propertiesTarget.path
+      fileBrowserState.currentFileSharePath.mount_path,
+      fileBrowserState.propertiesTarget.path
     );
 
-    try {
-      const checkPathResponse = await sendFetchRequest(
-        fetchPath,
-        'GET',
-        cookies['_xsrf']
-      );
-
-      if (!checkPathResponse.ok && checkPathResponse.status === 404) {
-        return {
-          ok: false,
-          error: new Error('File not found')
-        };
+    const createTicketResponse = await sendFetchRequest(
+      '/api/fileglancer/ticket',
+      'POST',
+      cookies['_xsrf'],
+      {
+        fsp_name: fileBrowserState.currentFileSharePath.name,
+        path: fileBrowserState.propertiesTarget.path,
+        project_key: 'FT',
+        issue_type: 'Task',
+        summary: 'Convert file to ZARR',
+        description: `Convert ${messagePath} to a ZARR file.\nDestination folder: ${destinationFolder}\nRequested by: ${profile?.username}`
       }
+    );
 
-      const createTicketResponse = await sendFetchRequest(
-        '/api/fileglancer/ticket',
-        'POST',
-        cookies['_xsrf'],
-        {
-          fsp_name: currentFileSharePath.name,
-          path: propertiesTarget.path,
-          project_key: 'FT',
-          issue_type: 'Task',
-          summary: 'Convert file to ZARR',
-          description: `Convert ${messagePath} to a ZARR file.\nDestination folder: ${destinationFolder}\nRequested by: ${profile?.username}`
-        }
-      );
-
-      const ticketData = await createTicketResponse.json();
-      logger.debug('Ticket creation response:', ticketData);
-
-      if (createTicketResponse.ok && createTicketResponse.status === 200) {
-        logger.info('Ticket created successfully:', ticketData);
-        setTicket(ticketData);
-        return {
-          ok: true,
-          value: ticketData
-        };
-      } else if (!createTicketResponse.ok) {
-        logger.error('Error creating ticket:', ticketData.error);
-        return {
-          ok: false,
-          error: new Error(`Error creating ticket: ${ticketData.error}`)
-        };
-      }
-    } catch (error) {
-      return {
-        ok: false,
-        error: new Error(
-          `Unknown error creating ticket${error instanceof Error ? `: ${error.message}` : ''}`
-        )
-      };
+    if (!createTicketResponse.ok) {
+      throw await toHttpError(createTicketResponse);
     }
-    return { ok: true, value: null };
+
+    const ticketData = await createTicketResponse.json();
+
+    logger.info('Ticket created successfully:', ticketData);
+    setTicket(ticketData);
   }
 
   React.useEffect(() => {
     (async function () {
-      await fetchAllTickets();
+      const result = await fetchAllTickets();
+      if (result.success) {
+        setAllTickets(result.data || []);
+      }
     })();
   }, [fetchAllTickets]);
 
   React.useEffect(() => {
     (async function () {
-      if (!currentFileSharePath || !propertiesTarget) {
-        return;
-      }
-      try {
-        const ticket = await fetchTicket();
-        if (ticket) {
-          setTicket(ticket);
-        } else {
-          setTicket(null);
-        }
-      } catch (error) {
-        log.error('Error in useEffect:', error);
+      const result = await fetchTicket();
+      if (result.success && result.data) {
+        setTicket(result.data);
+      } else {
+        setTicket(null);
       }
     })();
-  }, [fetchTicket, propertiesTarget]);
+  }, [fetchTicket]);
 
   return (
     <TicketContext.Provider

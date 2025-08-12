@@ -8,6 +8,7 @@ import {
 } from '@material-tailwind/react';
 import { Link } from 'react-router-dom';
 import {
+  HiOutlineInformationCircle,
   HiOutlineMoon,
   HiOutlineMenu,
   HiOutlineX,
@@ -18,8 +19,8 @@ import { HiOutlineFolder, HiOutlineBriefcase } from 'react-icons/hi2';
 import { TbBrandGithub } from 'react-icons/tb';
 
 import ProfileMenu from './ProfileMenu';
-import useTheme from '@/hooks/useTheme';
 import { BetaSticker } from '@/components/ui/Beta';
+import useTheme from '@/hooks/useTheme';
 
 const LINKS = [
   {
@@ -36,16 +37,12 @@ const LINKS = [
     icon: HiOutlineBriefcase,
     title: 'Jobs',
     href: '/jobs'
-  }
-  /**
-   * TODO: Add these back in when they are implemented
-
+  },
   {
-    icon: InformationCircleIcon,
+    icon: HiOutlineInformationCircle,
     title: 'Help',
     href: '/help'
   }
-  */
 ];
 
 // Links list component
@@ -73,8 +70,8 @@ function NavList() {
 
 // Composed navbar
 export default function FileglancerNavbar() {
-  const { toggleTheme, isLightTheme, setIsLightTheme } = useTheme();
   const [openNav, setOpenNav] = React.useState(false);
+  const { toggleTheme, isLightTheme, setIsLightTheme } = useTheme();
 
   React.useEffect(() => {
     window.addEventListener(
@@ -95,7 +92,7 @@ export default function FileglancerNavbar() {
         {/* Logo */}
         <div className="flex items-center gap-1">
           <Link to="/browse">
-            <div className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent flex items-center">
+            <div className="bg-gradient-to-r from-primary to-secondary dark:to-secondary-light bg-clip-text text-transparent flex items-center">
               <svg
                 className="icon-large short:icon-small text-primary"
                 viewBox="0 0 18 24"
@@ -125,13 +122,12 @@ export default function FileglancerNavbar() {
               </svg>
               <Typography
                 type="h6"
-                className="ml-2 mr-2 block font-semibold pointer-events-none short:text-base"
+                className="ml-2 block font-semibold pointer-events-none short:text-base"
               >
                 Janelia Fileglancer
               </Typography>
             </div>
           </Link>
-          {/* Beta sticker */}
           <BetaSticker />
         </div>
 

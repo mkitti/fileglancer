@@ -1,5 +1,4 @@
 import React, { ReactNode } from 'react';
-import { Link } from 'react-router';
 import {
   BreadcrumbLink,
   Breadcrumb,
@@ -11,6 +10,7 @@ import toast from 'react-hot-toast';
 import { HiChevronRight, HiOutlineDuplicate } from 'react-icons/hi';
 import { HiMiniSlash, HiOutlineSquares2X2 } from 'react-icons/hi2';
 
+import { FgStyledLink } from '../widgets/FgLink';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import {
@@ -59,12 +59,7 @@ export default function Crumbs(): ReactNode {
               // Render a breadcrumb link for each segment in the parent path
               return (
                 <React.Fragment key={pathSegment + '-' + index}>
-                  <BreadcrumbLink
-                    as={Link}
-                    to={link}
-                    variant="text"
-                    className="rounded-md hover:bg-primary-light/20 hover:!text-black focus:!text-black transition-colors cursor-pointer"
-                  >
+                  <BreadcrumbLink as={FgStyledLink} to={link}>
                     <Typography
                       variant="small"
                       className="font-medium text-primary-light"

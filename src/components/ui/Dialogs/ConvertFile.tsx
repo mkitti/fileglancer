@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 
 import FgDialog from './FgDialog';
 import TextWithFilePath from './TextWithFilePath';
-import Loader from '../Loader';
+import Loader from '@/components/ui/widgets/Loader';
 import useConvertFileDialog from '@/hooks/useConvertFileDialog';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
@@ -22,10 +22,11 @@ export default function ConvertFileDialog({
 }: ItemNamingDialogProps): JSX.Element {
   const [waitingForTicketResponse, setWaitingForTicketResponse] =
     React.useState(false);
-  const { destinationFolder, setDestinationFolder } = useConvertFileDialog();
+  const { destinationFolder, setDestinationFolder, handleTicketSubmit } =
+    useConvertFileDialog();
   const { pathPreference } = usePreferencesContext();
   const { propertiesTarget, currentFileSharePath } = useFileBrowserContext();
-  const { createTicket, fetchAllTickets } = useTicketContext();
+  const { fetchAllTickets } = useTicketContext();
 
   const placeholderText =
     pathPreference[0] === 'windows_path'
@@ -58,17 +59,24 @@ export default function ConvertFileDialog({
         onSubmit={async event => {
           event.preventDefault();
           setWaitingForTicketResponse(true);
-          const result = await createTicket(destinationFolder);
-          if (result.ok) {
-            await fetchAllTickets();
+          const createTicketResult = await handleTicketSubmit();
+
+          if (!createTicketResult.success) {
+            toast.error(`Error creating ticket: ${createTicketResult.error}`);
             setWaitingForTicketResponse(false);
-            setShowConvertFileDialog(false);
-            setDestinationFolder('');
-            toast.success('Ticket created successfully!');
-          } else if (!result.ok) {
-            setWaitingForTicketResponse(false);
-            toast.error(result.error.message);
+          } else {
+            toast.success('Ticket created!');
+            const refreshTicketResponse = await fetchAllTickets();
+            if (!refreshTicketResponse.success) {
+              setWaitingForTicketResponse(false);
+              toast.error(
+                `Error refreshing ticket list: ${refreshTicketResponse.error}`
+              );
+            } else {
+              setAllTickets(refreshTicketResponse.data || []);
+            }
           }
+          setShowConvertFileDialog(false);
         }}
       >
         <TextWithFilePath text="Source Folder" path={displayPath} />

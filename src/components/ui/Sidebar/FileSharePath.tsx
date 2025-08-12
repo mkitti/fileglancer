@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { List, Typography, IconButton } from '@material-tailwind/react';
 import { HiOutlineStar, HiStar } from 'react-icons/hi';
 import { HiOutlineRectangleStack } from 'react-icons/hi2';
+import toast from 'react-hot-toast';
 
 import type { FileSharePath } from '@/shared.types';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
@@ -14,17 +15,19 @@ import {
 
 type FileSharePathComponentProps = {
   fsp: FileSharePath;
+  isFavoritable?: boolean;
 };
 
 export default function FileSharePathComponent({
-  fsp
+  fsp,
+  isFavoritable = true
 }: FileSharePathComponentProps) {
   const { pathPreference, fileSharePathPreferenceMap, handleFavoriteChange } =
     usePreferencesContext();
 
-  const isFavoritePath = fileSharePathPreferenceMap[makeMapKey('fsp', fsp.name)]
-    ? true
-    : false;
+  const isFavoritePath = Boolean(
+    fileSharePathPreferenceMap[makeMapKey('fsp', fsp.name)]
+  );
   const fspPath = getPreferredPathForDisplay(pathPreference, fsp);
   const link = makeBrowseLink(fsp.name);
 
@@ -46,28 +49,37 @@ export default function FileSharePathComponent({
         </Typography>
       </Link>
 
-      <div
-        onClick={e => {
-          e.stopPropagation();
-          e.preventDefault();
-        }}
-      >
-        <IconButton
-          className="min-w-0 min-h-0"
-          variant="ghost"
-          isCircular
-          onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
+      {isFavoritable && (
+        <div
+          onClick={e => {
             e.stopPropagation();
-            await handleFavoriteChange(fsp, 'fileSharePath');
+            e.preventDefault();
           }}
         >
-          {isFavoritePath ? (
-            <HiStar className="icon-small short:icon-xsmall mb-[2px]" />
-          ) : (
-            <HiOutlineStar className="icon-small short:icon-xsmall mb-[2px]" />
-          )}
-        </IconButton>
-      </div>
+          <IconButton
+            className="min-w-0 min-h-0"
+            variant="ghost"
+            isCircular
+            onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
+              e.stopPropagation();
+              const result = await handleFavoriteChange(fsp, 'fileSharePath');
+              if (result.success) {
+                toast.success(
+                  `Favorite ${result.data === true ? 'added!' : 'removed!'}`
+                );
+              } else {
+                toast.error(`Error adding favorite: ${result.error}`);
+              }
+            }}
+          >
+            {isFavoritePath ? (
+              <HiStar className="icon-small short:icon-xsmall mb-[2px]" />
+            ) : (
+              <HiOutlineStar className="icon-small short:icon-xsmall mb-[2px]" />
+            )}
+          </IconButton>
+        </div>
+      )}
     </List.Item>
   );
 }

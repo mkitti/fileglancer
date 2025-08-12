@@ -6,7 +6,7 @@ import { ZonesAndFileSharePathsMap } from '@/shared.types';
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
 import useOpenZones from '@/hooks/useOpenZones';
 import Zone from './Zone';
-import Loader from '@/components/ui/Loader';
+import Loader from '@/components/ui/widgets/Loader';
 
 export default function ZonesBrowser({
   searchQuery,

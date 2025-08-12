@@ -2,15 +2,14 @@ import React from 'react';
 import { Switch, Typography } from '@material-tailwind/react';
 
 import zarrLogo from '@/assets/zarr.jpg';
-import ZarrMetadataTable from '@/components/ui/FileBrowser/ZarrMetadataTable';
+import ZarrMetadataTable from '@/components/ui/BrowsePage/ZarrMetadataTable';
 import DataLinkDialog from '@/components/ui/Dialogs/DataLink';
-import Loader from '@/components/ui/Loader';
+import Loader from '@/components/ui/widgets/Loader';
 import DataToolLinks from './DataToolLinks';
 import type { OpenWithToolUrls, ZarrMetadata } from '@/hooks/useZarrMetadata';
 import useDataLinkDialog from '@/hooks/useDataLinkDialog';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useExternalBucketContext } from '@/contexts/ExternalBucketContext';
-import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import {
   Metadata,
   generateNeuroglancerStateForZarrArray,
@@ -40,7 +39,6 @@ export default function ZarrPreview({
   const { showDataLinkDialog, setShowDataLinkDialog } = useDataLinkDialog();
   const { proxiedPath } = useProxiedPathContext();
   const { externalBucket, externalDataUrl } = useExternalBucketContext();
-  const { currentFolder } = useFileBrowserContext();
 
   React.useEffect(() => {
     setIsImageShared(proxiedPath !== null);
@@ -149,7 +147,6 @@ export default function ZarrPreview({
             <DataLinkDialog
               isImageShared={isImageShared}
               setIsImageShared={setIsImageShared}
-              filePathWithoutFsp={currentFolder?.path || ''}
               showDataLinkDialog={showDataLinkDialog}
               setShowDataLinkDialog={setShowDataLinkDialog}
               proxiedPath={proxiedPath}
