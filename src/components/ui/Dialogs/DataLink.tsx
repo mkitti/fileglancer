@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button, Typography } from '@material-tailwind/react';
 import toast from 'react-hot-toast';
+import logger from '@/logger';
 
 import {
   ProxiedPath,
@@ -15,7 +16,6 @@ import TextWithFilePath from './TextWithFilePath';
 type DataLinkDialogProps = {
   isImageShared: boolean;
   setIsImageShared?: React.Dispatch<React.SetStateAction<boolean>>;
-  filePathWithoutFsp: string;
   showDataLinkDialog: boolean;
   setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
   proxiedPath: ProxiedPath | null;
@@ -24,22 +24,26 @@ type DataLinkDialogProps = {
 export default function DataLinkDialog({
   isImageShared,
   setIsImageShared,
-  filePathWithoutFsp,
   showDataLinkDialog,
   setShowDataLinkDialog,
   proxiedPath
 }: DataLinkDialogProps): JSX.Element {
   const { createProxiedPath, deleteProxiedPath } = useProxiedPathContext();
-  const { currentFileSharePath } = useFileBrowserContext();
+  const { fileBrowserState } = useFileBrowserContext();
   const { pathPreference } = usePreferencesContext();
+  logger.debug(`ALERT: ${fileBrowserState.currentFileSharePath}`);
 
-  if (!currentFileSharePath) {
-    return <>{toast.error('No file share path selected')}</>; // No file share path available
+  if (!fileBrowserState.currentFileSharePath) {
+    return <>{toast.error('No file share path selected')}</>;
   }
+  if (!fileBrowserState.currentFolder) {
+    return <>{toast.error('No folder selected')}</>;
+  }
+
   const displayPath = getPreferredPathForDisplay(
     pathPreference,
-    currentFileSharePath,
-    filePathWithoutFsp
+    fileBrowserState.currentFileSharePath,
+    fileBrowserState.currentFolder.path
   );
 
   return (
@@ -81,28 +85,19 @@ export default function DataLinkDialog({
             color="error"
             className="!rounded-md flex items-center gap-2"
             onClick={async () => {
-              try {
-                const newProxiedPath = await createProxiedPath(
-                  currentFileSharePath.name,
-                  filePathWithoutFsp
+              const result = await createProxiedPath();
+              if (result.success) {
+                toast.success(
+                  `Successfully created data link for ${displayPath}`
                 );
-                if (newProxiedPath) {
-                  toast.success(
-                    `Successfully created data link for ${displayPath}`
-                  );
-                } else {
-                  toast.error(`Error creating data link for ${displayPath}`);
-                }
-                setShowDataLinkDialog(false);
-                if (setIsImageShared) {
-                  setIsImageShared(true);
-                }
-              } catch (error) {
-                toast.error(
-                  `Error creating data link for ${displayPath}: ${
-                    error instanceof Error ? error.message : 'Unknown error'
-                  }`
-                );
+              } else {
+                toast.error(`Error creating data link: ${result.error}`);
+              }
+              setShowDataLinkDialog(false);
+              if (setIsImageShared) {
+                // setIsImageShared does not exist in props for proxied path row,
+                // where the image is always shared
+                setIsImageShared(true);
               }
             }}
           >

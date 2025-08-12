@@ -1,10 +1,8 @@
-import log from 'loglevel';
-import toast from 'react-hot-toast';
-
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 import { copyToClipboard } from '@/utils/copyText';
-import { FileSharePath } from '@/shared.types';
+import { createSuccess, handleError } from '@/utils/errorHandling';
+import { FileSharePath, Result } from '@/shared.types';
 
 export default function useProxiedPathRow({
   setShowDataLinkDialog
@@ -13,24 +11,22 @@ export default function useProxiedPathRow({
 }) {
   const { setCurrentFileSharePath } = useFileBrowserContext();
 
-  const handleCopyPath = async (displayPath: string) => {
+  const handleCopyPath = async (displayPath: string): Promise<Result<void>> => {
     try {
       await copyToClipboard(displayPath);
-      toast.success('Path copied to clipboard');
     } catch (error) {
-      log.error('Failed to copy path:', error);
-      toast.error('Failed to copy path');
+      return handleError(error);
     }
+    return createSuccess(undefined);
   };
 
-  const handleCopyUrl = async (item: ProxiedPath) => {
+  const handleCopyUrl = async (item: ProxiedPath): Promise<Result<void>> => {
     try {
       await copyToClipboard(item.url);
-      toast.success('URL copied to clipboard');
     } catch (error) {
-      log.error('Failed to copy sharing URL:', error);
-      toast.error('Failed to copy URL');
+      return handleError(error);
     }
+    return createSuccess(undefined);
   };
 
   const handleUnshare = (pathFsp: FileSharePath) => {
