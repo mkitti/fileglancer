@@ -9,7 +9,9 @@ import {
 } from '@/contexts/ProxiedPathContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import { getPreferredPathForDisplay } from '@/utils';
+import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
+import { getPreferredPathForDisplay, makeMapKey } from '@/utils';
+import type { FileSharePath } from '@/shared.types';
 import FgDialog from './FgDialog';
 import TextWithFilePath from './TextWithFilePath';
 
@@ -31,19 +33,33 @@ export default function DataLinkDialog({
   const { createProxiedPath, deleteProxiedPath } = useProxiedPathContext();
   const { fileBrowserState } = useFileBrowserContext();
   const { pathPreference } = usePreferencesContext();
-  logger.debug(`ALERT: ${fileBrowserState.currentFileSharePath}`);
+  const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
 
-  if (!fileBrowserState.currentFileSharePath) {
-    return <>{toast.error('No file share path selected')}</>;
+  const fspKey = proxiedPath
+    ? makeMapKey('fsp', proxiedPath.fsp_name)
+    : fileBrowserState.currentFileSharePath
+      ? makeMapKey('fsp', fileBrowserState.currentFileSharePath.name)
+      : '';
+
+  if (fspKey === '') {
+    return <>{toast.error('Valid file share path or proxied path required')}</>;
   }
-  if (!fileBrowserState.currentFolder) {
-    return <>{toast.error('No folder selected')}</>;
+
+  const pathFsp = zonesAndFileSharePathsMap[fspKey] as FileSharePath;
+  const targetPath = proxiedPath
+    ? proxiedPath.path
+    : fileBrowserState.currentFolder
+      ? fileBrowserState.currentFolder.path
+      : '';
+
+  if (!targetPath) {
+    return <>{toast.error('Valid current folder or proxied path required')}</>;
   }
 
   const displayPath = getPreferredPathForDisplay(
     pathPreference,
-    fileBrowserState.currentFileSharePath,
-    fileBrowserState.currentFolder.path
+    pathFsp,
+    targetPath
   );
 
   return (

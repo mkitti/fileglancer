@@ -1,16 +1,13 @@
-import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 import { copyToClipboard } from '@/utils/copyText';
 import { createSuccess, handleError } from '@/utils/errorHandling';
-import { FileSharePath, Result } from '@/shared.types';
+import { Result } from '@/shared.types';
 
 export default function useProxiedPathRow({
   setShowDataLinkDialog
 }: {
   setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
-  const { setCurrentFileSharePath } = useFileBrowserContext();
-
   const handleCopyPath = async (displayPath: string): Promise<Result<void>> => {
     try {
       await copyToClipboard(displayPath);
@@ -29,8 +26,7 @@ export default function useProxiedPathRow({
     return createSuccess(undefined);
   };
 
-  const handleUnshare = (pathFsp: FileSharePath) => {
-    setCurrentFileSharePath(pathFsp);
+  const handleUnshare = async () => {
     setShowDataLinkDialog(true);
   };
 
