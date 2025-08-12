@@ -1,3 +1,5 @@
+import { Typography } from '@material-tailwind/react';
+
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import type { Ticket } from '@/contexts/TicketsContext';
@@ -29,9 +31,9 @@ export default function TicketRow({ item }: { item: Ticket }) {
           {displayPath}
         </FgStyledLink>
       </div>
-      <div className="line-clamp-2 text-sm text-foreground">
-        {item.description.split('\n')[0]}
-      </div>
+      <Typography className="line-clamp-2 text-foreground">
+        {item.description}
+      </Typography>
       <div className="text-sm">
         <span
           className={`px-2 py-1 rounded-full text-xs ${
