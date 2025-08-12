@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  Button,
-  ButtonGroup,
-  Tooltip,
-  Typography
-} from '@material-tailwind/react';
+import { Button, ButtonGroup, Typography } from '@material-tailwind/react';
 import { Link } from 'react-router';
 
 import neuroglancer_logo from '@/assets/neuroglancer.png';

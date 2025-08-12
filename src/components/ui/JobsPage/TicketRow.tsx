@@ -1,5 +1,3 @@
-import { Link } from 'react-router';
-
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import type { Ticket } from '@/contexts/TicketsContext';
