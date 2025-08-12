@@ -6,6 +6,7 @@ import { ZonesAndFileSharePathsMap } from '@/shared.types';
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
 import useOpenZones from '@/hooks/useOpenZones';
 import Zone from './Zone';
+import Loader from '@/components/ui/Loader';
 
 export default function ZonesBrowser({
   searchQuery,
@@ -14,7 +15,8 @@ export default function ZonesBrowser({
   searchQuery: string;
   filteredZonesMap: ZonesAndFileSharePathsMap;
 }) {
-  const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
+  const { zonesAndFileSharePathsMap, areZoneDataLoading } =
+    useZoneAndFspMapContext();
   const { openZones, toggleOpenZones } = useOpenZones();
 
   const displayZones: ZonesAndFileSharePathsMap =
@@ -46,20 +48,26 @@ export default function ZonesBrowser({
         open={openZones['all'] ? true : false}
         className="overflow-x-hidden flex-grow w-full"
       >
-        <List className="h-full py-0 gap-0 bg-background">
-          {Object.entries(displayZones).map(([key, value]) => {
-            if (key.startsWith('zone') && 'fileSharePaths' in value) {
-              return (
-                <Zone
-                  key={key}
-                  zone={value}
-                  openZones={openZones}
-                  toggleOpenZones={toggleOpenZones}
-                />
-              );
-            }
-          })}
-        </List>
+        {areZoneDataLoading ? (
+          <div className="flex justify-center w-full py-4">
+            <Loader />
+          </div>
+        ) : (
+          <List className="h-full py-0 gap-0 bg-background">
+            {Object.entries(displayZones).map(([key, value]) => {
+              if (key.startsWith('zone') && 'fileSharePaths' in value) {
+                return (
+                  <Zone
+                    key={key}
+                    zone={value}
+                    openZones={openZones}
+                    toggleOpenZones={toggleOpenZones}
+                  />
+                );
+              }
+            })}
+          </List>
+        )}
       </Collapse>
     </div>
   );
