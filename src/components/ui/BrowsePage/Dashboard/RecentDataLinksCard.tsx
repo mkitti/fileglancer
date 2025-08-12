@@ -2,13 +2,14 @@ import { Typography } from '@material-tailwind/react';
 
 import DashboardCard from '@/components/ui/BrowsePage/Dashboard/FgDashboardCard';
 import ProxiedPathRow from '@/components/ui/LinksPage/ProxiedPathRow';
+import { TableRow } from '@/components/Cards';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 
 export default function RecentDataLinksCard() {
   const { allProxiedPaths } = useProxiedPathContext();
 
-  // Get the 5 most recent data links
-  const recentDataLinks = allProxiedPaths?.slice(0, 5) || [];
+  // Get the 10 most recent data links
+  const recentDataLinks = allProxiedPaths?.slice(0, 10) || [];
 
   return (
     <DashboardCard title="Recently created data links">
@@ -19,11 +20,14 @@ export default function RecentDataLinksCard() {
           </Typography>
         </div>
       ) : (
-        <div className="space-y-2">
-          {recentDataLinks.map(proxiedPath => (
+        recentDataLinks.map(proxiedPath => (
+          <TableRow
+            gridColsClass="grid-cols-[1.5fr_2.5fr_1.5fr_1fr]"
+            key={proxiedPath.sharing_key}
+          >
             <ProxiedPathRow key={proxiedPath.sharing_key} item={proxiedPath} />
-          ))}
-        </div>
+          </TableRow>
+        ))
       )}
     </DashboardCard>
   );

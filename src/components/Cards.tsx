@@ -72,4 +72,4 @@ function TableCard({
   );
 }
 
-export { FgCard, TableCard };
+export { FgCard, TableCard, TableRow };

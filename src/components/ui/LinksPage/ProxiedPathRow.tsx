@@ -101,12 +101,18 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
         label={item.sharing_name}
         triggerClasses={tooltipTriggerClasses}
       >
-        <Typography className="text-foreground">{item.sharing_name}</Typography>
+        <Typography className="text-foreground truncate">
+          {item.sharing_name}
+        </Typography>
       </FgTooltip>
 
       {/* Mount path */}
       <FgTooltip label={displayPath} triggerClasses={tooltipTriggerClasses}>
-        <Typography as={FgStyledLink} to={browseLink} className="truncate">
+        <Typography
+          as={FgStyledLink}
+          to={browseLink}
+          className="text-left truncate"
+        >
           {displayPath}
         </Typography>
       </FgTooltip>
