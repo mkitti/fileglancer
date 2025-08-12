@@ -18,7 +18,8 @@ export type ProxiedPath = {
 type ProxiedPathContextType = {
   proxiedPath: ProxiedPath | null;
   dataUrl: string | null;
-  allProxiedPaths?: ProxiedPath[];
+  allProxiedPaths: ProxiedPath[];
+  loadingProxiedPaths: boolean;
   createProxiedPath: (
     fspName: string,
     path: string
@@ -55,6 +56,8 @@ export const ProxiedPathProvider = ({
   const [allProxiedPaths, setAllProxiedPaths] = React.useState<ProxiedPath[]>(
     []
   );
+  const [loadingProxiedPaths, setLoadingProxiedPaths] =
+    React.useState<boolean>(false);
   const [proxiedPath, setProxiedPath] = React.useState<ProxiedPath | null>(
     null
   );
@@ -76,6 +79,7 @@ export const ProxiedPathProvider = ({
   );
 
   const fetchAllProxiedPaths = React.useCallback(async (): Promise<void> => {
+    setLoadingProxiedPaths(true);
     const response = await sendFetchRequest(
       '/api/fileglancer/proxied-path',
       'GET',
@@ -98,6 +102,7 @@ export const ProxiedPathProvider = ({
     if (data?.paths) {
       setAllProxiedPaths(sortProxiedPathsByDate(data.paths) as ProxiedPath[]);
     }
+    setLoadingProxiedPaths(false);
   }, [cookies]);
 
   const fetchProxiedPath = React.useCallback(async () => {
@@ -200,6 +205,7 @@ export const ProxiedPathProvider = ({
         proxiedPath,
         dataUrl,
         allProxiedPaths,
+        loadingProxiedPaths,
         createProxiedPath,
         deleteProxiedPath
       }}

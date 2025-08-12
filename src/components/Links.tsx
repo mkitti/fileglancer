@@ -1,9 +1,10 @@
 import { Typography } from '@material-tailwind/react';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import ProxiedPathRow from './ui/LinksPage/ProxiedPathRow';
+import Loader from '@/components/ui/Loader';
 
 export default function Links() {
-  const { allProxiedPaths } = useProxiedPathContext();
+  const { allProxiedPaths, loadingProxiedPaths } = useProxiedPathContext();
 
   return (
     <>
@@ -22,14 +23,23 @@ export default function Links() {
           <Typography className="font-bold">Date Created</Typography>
           <Typography className="font-bold">Actions</Typography>
         </div>
-        {allProxiedPaths?.map(item => (
-          <ProxiedPathRow key={item.sharing_key} item={item} />
-        ))}
-        {!allProxiedPaths || allProxiedPaths?.length === 0 ? (
-          <div className="px-4 py-8 text-center text-gray-500">
-            No shared paths.
+        {loadingProxiedPaths ? (
+          <div className="flex justify-center w-full py-4">
+            <Loader text="Checking for data links..." />
           </div>
-        ) : null}
+        ) : allProxiedPaths && allProxiedPaths.length > 0 ? (
+          allProxiedPaths.map(item => (
+            <ProxiedPathRow key={item.sharing_key} item={item} />
+          ))
+        ) : !allProxiedPaths || allProxiedPaths?.length === 0 ? (
+          <div className="px-4 py-8 text-center text-gray-500">
+            No data links.
+          </div>
+        ) : (
+          <div className="px-4 py-8 text-center text-gray-500">
+            There was an error loading data links.
+          </div>
+        )}
       </div>
     </>
   );
