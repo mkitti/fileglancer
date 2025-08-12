@@ -15,7 +15,7 @@ import {
   makeBrowseLink
 } from '@/utils/index';
 import FgTooltip from '../widgets/FgTooltip';
-import { FgStyledLink } from '../Links';
+import { FgStyledLink } from '../widgets/FgLink';
 
 type FileRowProps = {
   file: FileOrFolder;

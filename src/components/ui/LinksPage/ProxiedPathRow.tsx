@@ -16,7 +16,7 @@ import useDataLinkDialog from '@/hooks/useDataLinkDialog';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 import type { FileSharePath, Result } from '@/shared.types';
 import type { MenuItem } from '@/components/ui/Menus/FgMenuItems';
-import { FgStyledLink } from '../Links';
+import { FgStyledLink } from '../widgets/FgLink';
 import FgTooltip from '../widgets/FgTooltip';
 
 type ProxiedPathRowProps = {

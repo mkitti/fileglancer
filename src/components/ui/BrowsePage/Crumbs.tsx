@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 import { HiChevronRight, HiOutlineDuplicate } from 'react-icons/hi';
 import { HiMiniSlash, HiOutlineSquares2X2 } from 'react-icons/hi2';
 
-import { FgStyledLink } from '../Links';
+import { FgStyledLink } from '../widgets/FgLink';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import {

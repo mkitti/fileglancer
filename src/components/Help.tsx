@@ -4,7 +4,7 @@ import { SiClickup, SiSlack } from 'react-icons/si';
 import { IconType } from 'react-icons/lib';
 
 import useVersionNo from '@/hooks/useVersionState';
-import { FgStyledLink } from './ui/Links';
+import { FgStyledLink } from './ui/widgets/FgLink';
 import { FgCard } from './Cards';
 
 type HelpLink = {
