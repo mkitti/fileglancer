@@ -50,7 +50,7 @@ export default function ZonesBrowser({
       >
         {areZoneDataLoading ? (
           <div className="flex justify-center w-full py-4">
-            <Loader />
+            <Loader text="Loading zones..." />
           </div>
         ) : (
           <List className="h-full py-0 gap-0 bg-background">

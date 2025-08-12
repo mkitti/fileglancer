@@ -101,7 +101,7 @@ export default function FileList({
         {/* File rows */}
         {areFileDataLoading ? (
           <div className="flex justify-center w-full py-4">
-            <Loader />
+            <Loader text="Loading contents..." />
           </div>
         ) : !areFileDataLoading && displayFiles.length > 0 ? (
           displayFiles.map((file, index) => {

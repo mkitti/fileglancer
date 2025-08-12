@@ -98,10 +98,7 @@ export default function ConvertFileDialog({
           disabled={!destinationFolder}
         >
           {waitingForTicketResponse ? (
-            <div className="flex items-center gap-2">
-              <Loader customClasses="h-5 w-5 border-white" />
-              <span>Processing...</span>
-            </div>
+            <Loader customClasses="h-5 w-5 border-white" text="Processing..." />
           ) : (
             'Submit'
           )}
