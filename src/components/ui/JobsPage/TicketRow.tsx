@@ -26,12 +26,12 @@ export default function TicketRow({ item }: { item: Ticket }) {
 
   return (
     <>
-      <div className="line-clamp-2">
+      <div className="line-clamp-2 max-w-full">
         <FgStyledLink to={`/browse/${item.fsp_name}/${item.path}`}>
           {displayPath}
         </FgStyledLink>
       </div>
-      <Typography className="line-clamp-2 text-foreground">
+      <Typography className="line-clamp-2 text-foreground max-w-full">
         {item.description}
       </Typography>
       <div className="text-sm">
