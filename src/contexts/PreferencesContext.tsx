@@ -354,7 +354,12 @@ export const PreferencesProvider = ({
       } as FolderPreference;
       const updatedFolders = [...recentlyViewedFolders];
 
-      // First check if folderPath is a descendant path of the most recently viewed folder path
+      // First, if length is 0, just add the new item
+      if (updatedFolders.length === 0) {
+        updatedFolders.push(newItem);
+        return updatedFolders;
+      }
+      // Check if folderPath is a descendant path of the most recently viewed folder path
       // Or if it is a direct ancestor of the most recently viewed folder path
       // If it is, replace the most recent item
       if (
