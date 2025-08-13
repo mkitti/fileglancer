@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 
 import FgDialog from './FgDialog';
 import TextWithFilePath from './TextWithFilePath';
-import Loader from '@/components/ui/widgets/Loader';
+import { Spinner } from '@/components/ui/widgets/Loaders';
 import useConvertFileDialog from '@/hooks/useConvertFileDialog';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
@@ -26,7 +26,7 @@ export default function ConvertFileDialog({
     useConvertFileDialog();
   const { pathPreference } = usePreferencesContext();
   const { propertiesTarget, currentFileSharePath } = useFileBrowserContext();
-  const { fetchAllTickets } = useTicketContext();
+  const { refreshTickets } = useTicketContext();
 
   const placeholderText =
     pathPreference[0] === 'windows_path'
@@ -65,15 +65,13 @@ export default function ConvertFileDialog({
             toast.error(`Error creating ticket: ${createTicketResult.error}`);
             setWaitingForTicketResponse(false);
           } else {
+            const refreshTicketResponse = await refreshTickets();
             toast.success('Ticket created!');
-            const refreshTicketResponse = await fetchAllTickets();
+            setWaitingForTicketResponse(false);
             if (!refreshTicketResponse.success) {
-              setWaitingForTicketResponse(false);
               toast.error(
                 `Error refreshing ticket list: ${refreshTicketResponse.error}`
               );
-            } else {
-              setAllTickets(refreshTicketResponse.data || []);
             }
           }
           setShowConvertFileDialog(false);
@@ -106,7 +104,7 @@ export default function ConvertFileDialog({
           disabled={!destinationFolder}
         >
           {waitingForTicketResponse ? (
-            <Loader customClasses="h-5 w-5 border-white" text="Processing..." />
+            <Spinner customClasses="border-white" text="Processing..." />
           ) : (
             'Submit'
           )}

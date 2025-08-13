@@ -27,6 +27,7 @@ type TicketContextType = {
   loadingTickets?: boolean;
   createTicket: (destination: string) => Promise<void>;
   fetchAllTickets: () => Promise<Result<Ticket[] | null>>;
+  refreshTickets: () => Promise<Result<void>>;
 };
 
 function sortTicketsByDate(tickets: Ticket[]): Ticket[] {
@@ -83,6 +84,16 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
       setLoadingTickets(false);
     }
   }, [cookies]);
+
+  const refreshTickets = async (): Promise<Result<void>> => {
+    const result = await fetchAllTickets();
+    if (result.success) {
+      setAllTickets(result.data || []);
+      return createSuccess(undefined);
+    } else {
+      return handleError(result.error);
+    }
+  };
 
   const fetchTicket = React.useCallback(async (): Promise<
     Result<Ticket | void>
@@ -196,7 +207,8 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
         allTickets,
         loadingTickets,
         createTicket,
-        fetchAllTickets
+        fetchAllTickets,
+        refreshTickets
       }}
     >
       {children}
