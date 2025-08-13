@@ -4,7 +4,6 @@ import { HiX } from 'react-icons/hi';
 
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import useLocalPathPreference from '@/hooks/useLocalPathPreference';
-import { FgCard } from './Cards';
 
 export default function Preferences() {
   const {
@@ -29,7 +28,7 @@ export default function Preferences() {
           handlePathPreferenceSubmit(event, localPathPreference)
         }
       >
-        <FgCard>
+        <Card>
           <Card.Header>
             <Typography className="font-semibold">
               Format to use for file paths:
@@ -114,7 +113,7 @@ export default function Preferences() {
               </Alert>
             ) : null}
           </Card.Footer>
-        </FgCard>
+        </Card>
       </form>
     </>
   );

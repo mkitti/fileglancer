@@ -1,11 +1,10 @@
-import { List, Typography } from '@material-tailwind/react';
+import { Card, List, Typography } from '@material-tailwind/react';
 import { TbBrandGithub } from 'react-icons/tb';
 import { SiClickup, SiSlack } from 'react-icons/si';
 import { IconType } from 'react-icons/lib';
 
 import useVersionNo from '@/hooks/useVersionState';
 import { FgStyledLink } from './ui/widgets/FgLink';
-import { FgCard } from './Cards';
 
 type HelpLink = {
   icon: IconType;
@@ -44,7 +43,7 @@ export default function Help() {
           {`Fileglancer version ${versionNo}`}
         </Typography>
       </div>
-      <FgCard>
+      <Card>
         <List className="w-fit gap-2 p-4">
           {helpLinks.map(({ icon: Icon, title, url }) => (
             <List.Item className="hover:bg-transparent focus:bg-transparent">
@@ -63,7 +62,7 @@ export default function Help() {
             </List.Item>
           ))}
         </List>
-      </FgCard>
+      </Card>
     </>
   );
 }
