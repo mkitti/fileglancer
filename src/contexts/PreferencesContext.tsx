@@ -44,6 +44,7 @@ type PreferencesContextType = {
     type: 'zone' | 'fileSharePath' | 'folder'
   ) => Promise<Result<boolean>>;
   recentlyViewedFolders: FolderPreference[];
+  loadingRecentlyViewedFolders: boolean;
 };
 
 const PreferencesContext = React.createContext<PreferencesContextType | null>(
@@ -88,6 +89,8 @@ export const PreferencesProvider = ({
   const [recentlyViewedFolders, setRecentlyViewedFolders] = React.useState<
     FolderPreference[]
   >([]);
+  const [loadingRecentlyViewedFolders, setLoadingRecentlyViewedFolders] =
+    React.useState(false);
   const [isFileSharePathFavoritesReady, setIsFileSharePathFavoritesReady] =
     React.useState(false);
 
@@ -445,6 +448,7 @@ export const PreferencesProvider = ({
 
   // Get initial recently viewed folders from backend
   React.useEffect(() => {
+    setLoadingRecentlyViewedFolders(true);
     if (!isZonesMapReady) {
       return;
     }
@@ -455,6 +459,7 @@ export const PreferencesProvider = ({
       if (backendPrefs && backendPrefs.length > 0) {
         setRecentlyViewedFolders(backendPrefs);
       }
+      setLoadingRecentlyViewedFolders(false);
     })();
   }, [fetchPreferences, isZonesMapReady]);
 
@@ -535,7 +540,8 @@ export const PreferencesProvider = ({
         folderFavorites,
         isFileSharePathFavoritesReady,
         handleFavoriteChange,
-        recentlyViewedFolders
+        recentlyViewedFolders,
+        loadingRecentlyViewedFolders
       }}
     >
       {children}

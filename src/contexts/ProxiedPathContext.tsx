@@ -208,23 +208,24 @@ export const ProxiedPathProvider = ({
 
   React.useEffect(() => {
     (async function () {
+      setLoadingProxiedPaths(true);
       const result = await fetchAllProxiedPaths();
       if (result.success && result.data) {
         setAllProxiedPaths(result.data as ProxiedPath[]);
+        setLoadingProxiedPaths(false);
+      } else {
+        setLoadingProxiedPaths(false);
       }
     })();
   }, [fetchAllProxiedPaths]);
 
   React.useEffect(() => {
     (async function () {
-      setLoadingProxiedPaths(true);
       const result = await fetchProxiedPath();
       if (result.success && result.data) {
         updateProxiedPath(result.data);
-        setLoadingProxiedPaths(false);
       } else {
         updateProxiedPath(null);
-        setLoadingProxiedPaths(false);
       }
     })();
   }, [
