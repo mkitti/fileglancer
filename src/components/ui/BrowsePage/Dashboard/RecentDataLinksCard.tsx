@@ -2,7 +2,7 @@ import { Typography } from '@material-tailwind/react';
 
 import DashboardCard from '@/components/ui/BrowsePage/Dashboard/FgDashboardCard';
 import ProxiedPathRow from '@/components/ui/LinksPage/ProxiedPathRow';
-import { TableRow } from '@/components/Cards';
+import { TableRow } from '@/components/ui/widgets/TableCard';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 
 export default function RecentDataLinksCard() {
