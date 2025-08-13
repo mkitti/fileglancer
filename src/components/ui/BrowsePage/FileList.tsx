@@ -6,7 +6,7 @@ import FileListCrumbs from './Crumbs';
 import FileRow from './FileRow';
 import ZarrPreview from './ZarrPreview';
 import ContextMenu from '@/components/ui/Menus/ContextMenu';
-import Loader from '@/components/ui/widgets/Loader';
+import { FileRowSkeleton } from '@/components/ui/widgets/Loaders';
 import useContextMenu from '@/hooks/useContextMenu';
 import useZarrMetadata from '@/hooks/useZarrMetadata';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
@@ -100,9 +100,9 @@ export default function FileList({
         </div>
         {/* File rows */}
         {areFileDataLoading ? (
-          <div className="flex justify-center w-full py-4">
-            <Loader text="Loading contents..." />
-          </div>
+          Array.from({ length: 10 }, (_, index) => (
+            <FileRowSkeleton key={index} />
+          ))
         ) : !areFileDataLoading && displayFiles.length > 0 ? (
           displayFiles.map((file, index) => {
             return (

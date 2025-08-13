@@ -6,7 +6,7 @@ import { ZonesAndFileSharePathsMap } from '@/shared.types';
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
 import useOpenZones from '@/hooks/useOpenZones';
 import Zone from './Zone';
-import Loader from '@/components/ui/widgets/Loader';
+import { SidebarItemSkeleton } from '@/components/ui/widgets/Loaders';
 
 export default function ZonesBrowser({
   searchQuery,
@@ -49,9 +49,9 @@ export default function ZonesBrowser({
         className="overflow-x-hidden flex-grow w-full"
       >
         {areZoneDataLoading ? (
-          <div className="flex justify-center w-full py-4">
-            <Loader text="Loading zones..." />
-          </div>
+          Array.from({ length: 10 }, (_, index) => (
+            <SidebarItemSkeleton key={index} />
+          ))
         ) : (
           <List className="h-full py-0 gap-0 bg-background">
             {Object.entries(displayZones).map(([key, value]) => {

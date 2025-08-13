@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, Typography } from '@material-tailwind/react';
 
-import Loader from '@/components/ui/widgets/Loader';
+import { TableRowSkeleton } from '@/components/ui/widgets/Loaders';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 import type { Ticket } from '@/contexts/TicketsContext';
 
@@ -11,7 +11,6 @@ type TableCardProps = {
   rowContent?: React.FC<any>;
   items?: ProxiedPath[] | Ticket[];
   loadingState?: boolean;
-  loadingText?: string;
   emptyText?: string;
 };
 
@@ -43,7 +42,6 @@ function TableCard({
   rowContent,
   items,
   loadingState,
-  loadingText,
   emptyText
 }: TableCardProps) {
   return (
@@ -58,9 +56,7 @@ function TableCard({
         ))}
       </div>
       {loadingState ? (
-        <div className="flex justify-center w-full py-4">
-          <Loader text={loadingText} />
-        </div>
+        <TableRowSkeleton gridColsClass={gridColsClass} />
       ) : rowContent && items && items.length > 0 ? (
         items.map((item: ProxiedPath | Ticket, index) => {
           const RowComponent = rowContent;

@@ -23,7 +23,6 @@ export default function Jobs() {
         rowContent={TicketRow}
         items={allTickets}
         loadingState={loadingTickets}
-        loadingText="Checking for jobs..."
         emptyText="You have not started any jobs."
       />
     </>

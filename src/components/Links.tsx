@@ -23,7 +23,6 @@ export default function Links() {
         rowContent={ProxiedPathRow}
         items={allProxiedPaths}
         loadingState={loadingProxiedPaths}
-        loadingText="Checking for data links..."
         emptyText="No shared paths."
       />
     </>
