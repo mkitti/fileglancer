@@ -353,22 +353,35 @@ export const PreferencesProvider = ({
         fspName: fspName
       } as FolderPreference;
       const updatedFolders = [...recentlyViewedFolders];
-      const index = updatedFolders.findIndex(
-        folder =>
-          folder.folderPath === newItem.folderPath &&
-          folder.fspName === newItem.fspName
-      );
-      if (index === -1) {
-        updatedFolders.unshift(newItem);
-        if (updatedFolders.length > 10) {
-          updatedFolders.pop(); // Remove the oldest entry if we exceed the limit
+
+      // First check if folderPath is a descendant path of the most recently viewed folder path
+      // Or if it is a direct ancestor of the most recently viewed folder path
+      // If it is, replace the most recent item
+      if (
+        (updatedFolders.length > 0 &&
+          folderPath.startsWith(updatedFolders[0].folderPath)) ||
+        updatedFolders[0].folderPath.startsWith(folderPath)
+      ) {
+        updatedFolders[0] = newItem;
+        return updatedFolders;
+      } else {
+        const index = updatedFolders.findIndex(
+          folder =>
+            folder.folderPath === newItem.folderPath &&
+            folder.fspName === newItem.fspName
+        );
+        if (index === -1) {
+          updatedFolders.unshift(newItem);
+          if (updatedFolders.length > 10) {
+            updatedFolders.pop(); // Remove the oldest entry if we exceed the 10 item limit
+          }
+        } else if (index > 0) {
+          // If the folder is already in the list, move it to the front
+          updatedFolders.splice(index, 1);
+          updatedFolders.unshift(newItem);
         }
-      } else if (index > 0) {
-        // If the folder is already in the list, move it to the front
-        updatedFolders.splice(index, 1);
-        updatedFolders.unshift(newItem);
+        return updatedFolders;
       }
-      return updatedFolders;
     },
     [recentlyViewedFolders]
   );
@@ -462,7 +475,8 @@ export const PreferencesProvider = ({
   const lastFolderPathRef = React.useRef<string | null>(null);
   const lastFspNameRef = React.useRef<string | null>(null);
 
-  // useEffect that runs when the current folder in fileBrowserState changes
+  // useEffect that runs when the current folder in fileBrowserState changes,
+  // to update the recently viewed folders
   React.useEffect(() => {
     if (
       !fileBrowserState.currentFileSharePath ||
