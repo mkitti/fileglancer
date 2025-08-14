@@ -2,9 +2,9 @@ import React from 'react';
 import { Switch, Typography } from '@material-tailwind/react';
 
 import zarrLogo from '@/assets/zarr.jpg';
-import ZarrMetadataTable from '@/components/ui/FileBrowser/ZarrMetadataTable';
+import ZarrMetadataTable from '@/components/ui/BrowsePage/ZarrMetadataTable';
 import DataLinkDialog from '@/components/ui/Dialogs/DataLink';
-import Loader from '@/components/ui/Loader';
+import Loader from '@/components/ui/widgets/Loader';
 import DataToolLinks from './DataToolLinks';
 import type { OpenWithToolUrls, ZarrMetadata } from '@/hooks/useZarrMetadata';
 import useDataLinkDialog from '@/hooks/useDataLinkDialog';

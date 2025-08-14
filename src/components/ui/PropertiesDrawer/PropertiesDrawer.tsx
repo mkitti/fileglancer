@@ -3,7 +3,6 @@ import {
   Button,
   Card,
   IconButton,
-  Tooltip,
   Typography,
   Tabs
 } from '@material-tailwind/react';
@@ -19,6 +18,7 @@ import { copyToClipboard } from '@/utils/copyText';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useTicketContext } from '@/contexts/TicketsContext';
+import FgTooltip from '../widgets/FgTooltip';
 
 type PropertiesDrawerProps = {
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
@@ -40,6 +40,8 @@ export default function PropertiesDrawer({
     currentFileSharePath,
     propertiesTarget?.path
   );
+
+  const tooltipTriggerClasses = 'max-w-[calc(100%-2rem)] truncate';
 
   return (
     <Card className="min-w-full h-full max-h-full overflow-y-auto overflow-x-hidden p-4 rounded-none shadow-lg flex flex-col">
@@ -64,15 +66,15 @@ export default function PropertiesDrawer({
             <HiOutlineFolder className="icon-default" />
           ) : (
             <HiOutlineDocument className="icon-default" />
-          )}{' '}
-          <Tooltip>
-            <Tooltip.Trigger className="max-w-[calc(100%-2rem)]">
-              <Typography className="font-semibold truncate max-w-full">
-                {propertiesTarget?.name}
-              </Typography>
-            </Tooltip.Trigger>
-            <Tooltip.Content>{propertiesTarget?.name}</Tooltip.Content>
-          </Tooltip>
+          )}
+          <FgTooltip
+            label={propertiesTarget.name}
+            triggerClasses={tooltipTriggerClasses}
+          >
+            <Typography className="font-semibold truncate max-w-full">
+              {propertiesTarget?.name}
+            </Typography>
+          </FgTooltip>
         </div>
       ) : (
         <Typography className="mt-3 mb-4">
@@ -101,15 +103,15 @@ export default function PropertiesDrawer({
 
           <Tabs.Panel value="overview">
             <div className="group flex justify-between items-center overflow-x-hidden">
-              <Tooltip>
-                <Tooltip.Trigger className="max-w-[calc(100%-2rem)]">
-                  <Typography className="text-foreground font-medium text-sm truncate max-w-full">
-                    <span className="!font-bold">Path: </span>
-                    {fullPath}
-                  </Typography>
-                </Tooltip.Trigger>
-                <Tooltip.Content className="z-10">{fullPath}</Tooltip.Content>
-              </Tooltip>
+              <FgTooltip
+                label={fullPath}
+                triggerClasses={tooltipTriggerClasses}
+              >
+                <Typography className="text-foreground font-medium text-sm truncate max-w-full">
+                  <span className="!font-bold">Path: </span>
+                  {fullPath}
+                </Typography>
+              </FgTooltip>
 
               <IconButton
                 variant="ghost"

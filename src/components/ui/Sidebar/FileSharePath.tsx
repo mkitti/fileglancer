@@ -15,10 +15,12 @@ import {
 
 type FileSharePathComponentProps = {
   fsp: FileSharePath;
+  isFavoritable?: boolean;
 };
 
 export default function FileSharePathComponent({
-  fsp
+  fsp,
+  isFavoritable = true
 }: FileSharePathComponentProps) {
   const { pathPreference, fileSharePathPreferenceMap, handleFavoriteChange } =
     usePreferencesContext();
@@ -47,35 +49,37 @@ export default function FileSharePathComponent({
         </Typography>
       </Link>
 
-      <div
-        onClick={e => {
-          e.stopPropagation();
-          e.preventDefault();
-        }}
-      >
-        <IconButton
-          className="min-w-0 min-h-0"
-          variant="ghost"
-          isCircular
-          onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
+      {isFavoritable && (
+        <div
+          onClick={e => {
             e.stopPropagation();
-            const result = await handleFavoriteChange(fsp, 'fileSharePath');
-            if (result.success) {
-              toast.success(
-                `Favorite ${result.data === true ? 'added!' : 'removed!'}`
-              );
-            } else {
-              toast.error(`Error adding favorite: ${result.error}`);
-            }
+            e.preventDefault();
           }}
         >
-          {isFavoritePath ? (
-            <HiStar className="icon-small short:icon-xsmall mb-[2px]" />
-          ) : (
-            <HiOutlineStar className="icon-small short:icon-xsmall mb-[2px]" />
-          )}
-        </IconButton>
-      </div>
+          <IconButton
+            className="min-w-0 min-h-0"
+            variant="ghost"
+            isCircular
+            onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
+              e.stopPropagation();
+              const result = await handleFavoriteChange(fsp, 'fileSharePath');
+              if (result.success) {
+                toast.success(
+                  `Favorite ${result.data === true ? 'added!' : 'removed!'}`
+                );
+              } else {
+                toast.error(`Error adding favorite: ${result.error}`);
+              }
+            }}
+          >
+            {isFavoritePath ? (
+              <HiStar className="icon-small short:icon-xsmall mb-[2px]" />
+            ) : (
+              <HiOutlineStar className="icon-small short:icon-xsmall mb-[2px]" />
+            )}
+          </IconButton>
+        </div>
+      )}
     </List.Item>
   );
 }

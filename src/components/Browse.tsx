@@ -5,14 +5,15 @@ import useHideDotFiles from '@/hooks/useHideDotFiles';
 import useSelectedFiles from '@/hooks/useSelectedFiles';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
-import FileList from './ui/FileBrowser/FileList';
-import Toolbar from './ui/FileBrowser/Toolbar';
+import FileList from './ui/BrowsePage/FileList';
+import Toolbar from './ui/BrowsePage/Toolbar';
 import RenameDialog from './ui/Dialogs/Rename';
 import NewFolderDialog from './ui/Dialogs/NewFolder';
 import Delete from './ui/Dialogs/Delete';
 import ChangePermissions from './ui/Dialogs/ChangePermissions';
-import Dashboard from './ui/FileBrowser/Dashboard';
 import ConvertFileDialog from './ui/Dialogs/ConvertFile';
+import RecentDataLinksCard from './ui/BrowsePage/Dashboard/RecentDataLinksCard';
+import RecentlyViewedCard from './ui/BrowsePage/Dashboard/RecentlyViewedCard';
 
 type OutletContextType = {
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
@@ -46,7 +47,7 @@ export default function Browse() {
   const [showRenameDialog, setShowRenameDialog] = React.useState(false);
 
   return (
-    <div className="flex-1 flex flex-col h-full">
+    <div className="flex flex-col h-full max-h-full">
       <Toolbar
         hideDotFiles={hideDotFiles}
         setHideDotFiles={setHideDotFiles}
@@ -56,9 +57,14 @@ export default function Browse() {
         setShowSidebar={setShowSidebar}
         setShowNewFolderDialog={setShowNewFolderDialog}
       />
-      <div className="relative grow h-full flex flex-col overflow-y-auto mb-3">
+      <div
+        className={`relative grow max-h-full flex flex-col overflow-y-auto ${!currentFileSharePath ? 'grid grid-cols-2 bg-surface-light gap-6 p-6' : ''}`}
+      >
         {!currentFileSharePath ? (
-          <Dashboard />
+          <>
+            <RecentlyViewedCard />
+            <RecentDataLinksCard />
+          </>
         ) : (
           <FileList
             selectedFiles={selectedFiles}

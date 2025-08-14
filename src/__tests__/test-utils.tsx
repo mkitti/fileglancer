@@ -40,15 +40,15 @@ const Browse = ({ children }: { children: React.ReactNode }) => {
     <CookiesProvider>
       <ZonesAndFspMapContextProvider>
         <OpenFavoritesProvider>
-          <PreferencesProvider>
-            <FileBrowserTestingWrapper>
+          <FileBrowserTestingWrapper>
+            <PreferencesProvider>
               <ProxiedPathProvider>
                 <ProfileContextProvider>
                   <TicketProvider>{children}</TicketProvider>
                 </ProfileContextProvider>
               </ProxiedPathProvider>
-            </FileBrowserTestingWrapper>
-          </PreferencesProvider>
+            </PreferencesProvider>
+          </FileBrowserTestingWrapper>
         </OpenFavoritesProvider>
       </ZonesAndFspMapContextProvider>
     </CookiesProvider>

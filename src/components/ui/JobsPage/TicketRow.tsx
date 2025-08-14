@@ -1,5 +1,3 @@
-import { Link } from 'react-router';
-
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import type { Ticket } from '@/contexts/TicketsContext';
@@ -9,7 +7,7 @@ import {
   makeMapKey
 } from '@/utils';
 import { FileSharePath } from '@/shared.types';
-import { FgStyledLink } from '../Links';
+import { FgStyledLink } from '../widgets/FgLink';
 
 export default function TicketRow({ item }: { item: Ticket }) {
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();

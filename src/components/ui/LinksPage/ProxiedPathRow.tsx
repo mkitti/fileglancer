@@ -1,4 +1,4 @@
-import { Tooltip, Typography } from '@material-tailwind/react';
+import { Typography } from '@material-tailwind/react';
 import toast from 'react-hot-toast';
 
 import DataLinkDialog from '@/components/ui/Dialogs/DataLink';
@@ -16,7 +16,8 @@ import useDataLinkDialog from '@/hooks/useDataLinkDialog';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 import type { FileSharePath, Result } from '@/shared.types';
 import type { MenuItem } from '@/components/ui/Menus/FgMenuItems';
-import { FgStyledLink } from '../Links';
+import { FgStyledLink } from '../widgets/FgLink';
+import FgTooltip from '../widgets/FgTooltip';
 
 type ProxiedPathRowProps = {
   item: ProxiedPath;
@@ -91,35 +92,44 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
 
   const browseLink = makeBrowseLink(item.fsp_name, item.path);
 
+  const tooltipTriggerClasses = 'max-w-full truncate';
+
   return (
     <>
       {/* Sharing name */}
-      <Tooltip>
-        <Tooltip.Trigger className="max-w-full truncate">
-          <Typography className="text-foreground">
-            {item.sharing_name}
-          </Typography>
-        </Tooltip.Trigger>
-        <Tooltip.Content>{item.sharing_name}</Tooltip.Content>
-      </Tooltip>
+      <FgTooltip
+        label={item.sharing_name}
+        triggerClasses={tooltipTriggerClasses}
+      >
+        <Typography className="text-foreground truncate">
+          {item.sharing_name}
+        </Typography>
+      </FgTooltip>
+
       {/* Mount path */}
-      <Tooltip>
-        <Tooltip.Trigger className="max-w-full truncate">
-          <Typography as={FgStyledLink} to={browseLink} className="truncate">
-            {displayPath}
-          </Typography>
-        </Tooltip.Trigger>
-        <Tooltip.Content>{displayPath}</Tooltip.Content>
-      </Tooltip>
+      <FgTooltip label={displayPath} triggerClasses={tooltipTriggerClasses}>
+        <Typography
+          as={FgStyledLink}
+          to={browseLink}
+          className="text-left truncate"
+        >
+          {displayPath}
+        </Typography>
+      </FgTooltip>
+
       {/* Date shared */}
-      <Tooltip>
-        <Tooltip.Trigger className="max-w-full truncate">
-          <Typography className="text-foreground truncate">
-            {formatDateString(item.created_at)}
-          </Typography>
-        </Tooltip.Trigger>
-        <Tooltip.Content>{formatDateString(item.created_at)}</Tooltip.Content>
-      </Tooltip>
+      <FgTooltip
+        label={formatDateString(item.created_at)}
+        triggerClasses={tooltipTriggerClasses}
+      >
+        <Typography
+          variant="small"
+          className="text-left text-foreground truncate"
+        >
+          {formatDateString(item.created_at)}
+        </Typography>
+      </FgTooltip>
+
       {/* Actions */}
       <div onClick={e => e.stopPropagation()}>
         <DataLinksActionsMenu<ProxiedPathRowActionProps>

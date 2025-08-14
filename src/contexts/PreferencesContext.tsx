@@ -4,6 +4,7 @@ import { default as log } from '@/logger';
 import type { FileSharePath, Zone } from '@/shared.types';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { useZoneAndFspMapContext } from './ZonesAndFspMapContext';
+import { useFileBrowserContext } from './FileBrowserContext';
 import { sendFetchRequest, makeMapKey, HTTPError } from '@/utils';
 import { createSuccess, handleError, toHttpError } from '@/utils/errorHandling';
 import type { Result } from '@/shared.types';
@@ -42,6 +43,7 @@ type PreferencesContextType = {
     item: Zone | FileSharePath | FolderFavorite,
     type: 'zone' | 'fileSharePath' | 'folder'
   ) => Promise<Result<boolean>>;
+  recentlyViewedFolders: FolderPreference[];
 };
 
 const PreferencesContext = React.createContext<PreferencesContextType | null>(
@@ -83,12 +85,16 @@ export const PreferencesProvider = ({
   const [folderFavorites, setFolderFavorites] = React.useState<
     FolderFavorite[]
   >([]);
+  const [recentlyViewedFolders, setRecentlyViewedFolders] = React.useState<
+    FolderPreference[]
+  >([]);
   const [isFileSharePathFavoritesReady, setIsFileSharePathFavoritesReady] =
     React.useState(false);
 
   const { cookies } = useCookiesContext();
   const { isZonesMapReady, zonesAndFileSharePathsMap } =
     useZoneAndFspMapContext();
+  const { fileBrowserState } = useFileBrowserContext();
 
   const fetchPreferences = React.useCallback(
     async (key: string) => {
@@ -339,6 +345,58 @@ export const PreferencesProvider = ({
     ]
   );
 
+  const updateRecentlyViewedFolders = React.useCallback(
+    (folderPath: string, fspName: string): FolderPreference[] => {
+      const updatedFolders = [...recentlyViewedFolders];
+
+      // Do not save file share paths in the recently viewed folders
+      if (folderPath === '.') {
+        return updatedFolders;
+      }
+
+      const newItem = {
+        type: 'folder',
+        folderPath: folderPath,
+        fspName: fspName
+      } as FolderPreference;
+
+      // First, if length is 0, just add the new item
+      if (updatedFolders.length === 0) {
+        updatedFolders.push(newItem);
+        return updatedFolders;
+      }
+      // Check if folderPath is a descendant path of the most recently viewed folder path
+      // Or if it is a direct ancestor of the most recently viewed folder path
+      // If it is, replace the most recent item
+      if (
+        (updatedFolders.length > 0 &&
+          folderPath.startsWith(updatedFolders[0].folderPath)) ||
+        updatedFolders[0].folderPath.startsWith(folderPath)
+      ) {
+        updatedFolders[0] = newItem;
+        return updatedFolders;
+      } else {
+        const index = updatedFolders.findIndex(
+          folder =>
+            folder.folderPath === newItem.folderPath &&
+            folder.fspName === newItem.fspName
+        );
+        if (index === -1) {
+          updatedFolders.unshift(newItem);
+          if (updatedFolders.length > 10) {
+            updatedFolders.pop(); // Remove the oldest entry if we exceed the 10 item limit
+          }
+        } else if (index > 0) {
+          // If the folder is already in the list, move it to the front
+          updatedFolders.splice(index, 1);
+          updatedFolders.unshift(newItem);
+        }
+        return updatedFolders;
+      }
+    },
+    [recentlyViewedFolders]
+  );
+
   React.useEffect(() => {
     (async function () {
       const rawPathPreference = await fetchPreferences('path');
@@ -409,6 +467,84 @@ export const PreferencesProvider = ({
     })();
   }, [isZonesMapReady, fetchPreferences, updateLocalFolderPreferenceStates]);
 
+  // Get initial recently viewed folders from backend
+  React.useEffect(() => {
+    if (!isZonesMapReady) {
+      return;
+    }
+    (async function () {
+      const backendPrefs = (await fetchPreferences(
+        'recentlyViewedFolders'
+      )) as FolderPreference[];
+      if (backendPrefs && backendPrefs.length > 0) {
+        setRecentlyViewedFolders(backendPrefs);
+      }
+    })();
+  }, [fetchPreferences, isZonesMapReady]);
+
+  // Store last viewed folder path and FSP name to avoid duplicate updates
+  const lastFolderPathRef = React.useRef<string | null>(null);
+  const lastFspNameRef = React.useRef<string | null>(null);
+
+  // useEffect that runs when the current folder in fileBrowserState changes,
+  // to update the recently viewed folder
+  React.useEffect(() => {
+    if (
+      !fileBrowserState.currentFileSharePath ||
+      !fileBrowserState.currentFolder
+    ) {
+      return;
+    }
+
+    const fspName = fileBrowserState.currentFileSharePath.name;
+    const folderPath = fileBrowserState.currentFolder.path;
+
+    // Skip if this is the same folder we just processed
+    if (
+      lastFspNameRef.current === fspName &&
+      lastFolderPathRef.current === folderPath
+    ) {
+      return;
+    }
+
+    // Update references
+    lastFspNameRef.current = fspName;
+    lastFolderPathRef.current = folderPath;
+
+    // Use a cancel flag
+    let isCancelled = false;
+
+    const processUpdate = async () => {
+      // If the effect was cleaned up before this async function runs, abort
+      if (isCancelled) {
+        return;
+      }
+
+      try {
+        const updatedFolders = updateRecentlyViewedFolders(folderPath, fspName);
+        // Check again if cancelled before updating state
+        if (isCancelled) {
+          return;
+        }
+        setRecentlyViewedFolders(updatedFolders);
+        await savePreferencesToBackend('recentlyViewedFolders', updatedFolders);
+      } catch (error) {
+        if (!isCancelled) {
+          console.error('Error updating recently viewed folders:', error);
+        }
+      }
+    };
+    processUpdate();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    fileBrowserState, // Include the whole state object to satisfy ESLint
+    updateRecentlyViewedFolders,
+    savePreferencesToBackend
+  ]);
+
   return (
     <PreferencesContext.Provider
       value={{
@@ -423,7 +559,8 @@ export const PreferencesProvider = ({
         folderPreferenceMap,
         folderFavorites,
         isFileSharePathFavoritesReady,
-        handleFavoriteChange
+        handleFavoriteChange,
+        recentlyViewedFolders
       }}
     >
       {children}

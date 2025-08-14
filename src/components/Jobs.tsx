@@ -2,7 +2,7 @@ import { Typography } from '@material-tailwind/react';
 
 import TicketRow from '@/components/ui/JobsPage/TicketRow';
 import { useTicketContext } from '@/contexts/TicketsContext';
-import { TableCard } from './Cards';
+import { TableCard } from './ui/widgets/TableCard';
 
 export default function Jobs() {
   const { allTickets } = useTicketContext();
