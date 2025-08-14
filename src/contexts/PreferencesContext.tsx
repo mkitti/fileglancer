@@ -347,12 +347,18 @@ export const PreferencesProvider = ({
 
   const updateRecentlyViewedFolders = React.useCallback(
     (folderPath: string, fspName: string): FolderPreference[] => {
+      const updatedFolders = [...recentlyViewedFolders];
+
+      // Do not save file share paths in the recently viewed folders
+      if (folderPath === '.') {
+        return updatedFolders;
+      }
+
       const newItem = {
         type: 'folder',
         folderPath: folderPath,
         fspName: fspName
       } as FolderPreference;
-      const updatedFolders = [...recentlyViewedFolders];
 
       // First, if length is 0, just add the new item
       if (updatedFolders.length === 0) {
@@ -481,7 +487,7 @@ export const PreferencesProvider = ({
   const lastFspNameRef = React.useRef<string | null>(null);
 
   // useEffect that runs when the current folder in fileBrowserState changes,
-  // to update the recently viewed folders
+  // to update the recently viewed folder
   React.useEffect(() => {
     if (
       !fileBrowserState.currentFileSharePath ||
