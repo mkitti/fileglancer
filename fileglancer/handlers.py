@@ -29,6 +29,8 @@ def _get_mounted_filestore(fsp):
 
 
 class BaseHandler(APIHandler):
+    _home_file_share_path_cache = {}
+
     def get_current_user(self):
         """
         Get the current user's username. Uses the USER environment variable 
@@ -55,11 +57,18 @@ class BaseHandler(APIHandler):
         Returns:
             str: The file share path name for the user's home directory, formatted as file_share_path_name
         """
-        home_file_share_path = os.path.split(self.get_home_directory_path())[0]
+        key = os.path.split(self.get_home_directory_path())[0]
+
+        if key in self._home_file_share_path_cache:
+            return self._home_file_share_path_cache[key]
+
         file_share_paths = get_fsp_manager(self.settings).get_file_share_paths()
         for fsp in file_share_paths:
-            if fsp.mount_path == home_file_share_path:
+            if fsp.mount_path == key:
+                self._home_file_share_path_cache[key] = fsp.name
                 return fsp.name
+
+        self._home_file_share_path_cache[key] = None
         return None
 
 
