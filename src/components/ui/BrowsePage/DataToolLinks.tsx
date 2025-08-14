@@ -25,7 +25,7 @@ export default function DataToolLinks({
       setShowCopiedTooltip(true);
       setTimeout(() => {
         setShowCopiedTooltip(false);
-      }, 1000);
+      }, 2000);
     }
   };
 
