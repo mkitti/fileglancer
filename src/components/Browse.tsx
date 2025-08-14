@@ -14,6 +14,7 @@ import ChangePermissions from './ui/Dialogs/ChangePermissions';
 import ConvertFileDialog from './ui/Dialogs/ConvertFile';
 import RecentDataLinksCard from './ui/BrowsePage/Dashboard/RecentDataLinksCard';
 import RecentlyViewedCard from './ui/BrowsePage/Dashboard/RecentlyViewedCard';
+import NavigationInput from './NavigateInput';
 
 type OutletContextType = {
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
@@ -58,10 +59,11 @@ export default function Browse() {
         setShowNewFolderDialog={setShowNewFolderDialog}
       />
       <div
-        className={`relative grow max-h-full flex flex-col overflow-y-auto ${!currentFileSharePath ? 'grid grid-cols-2 bg-surface-light gap-6 p-6' : ''}`}
+        className={`relative grow max-h-full flex flex-col overflow-y-auto ${!currentFileSharePath ? 'grid grid-cols-2 grid-rows-2 grid-rows-[40px_1fr] bg-surface-light gap-6 p-6' : ''}`}
       >
         {!currentFileSharePath ? (
           <>
+            <NavigationInput />
             <RecentlyViewedCard />
             <RecentDataLinksCard />
           </>
