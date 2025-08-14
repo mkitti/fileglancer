@@ -14,9 +14,17 @@ export default function RecentDataLinksCard() {
   return (
     <DashboardCard title="Recently created data links">
       {recentDataLinks.length === 0 ? (
-        <div className="text-center py-8">
-          <Typography variant="small" className="text-muted-foreground">
-            No data links created yet
+        <div className="px-4 pt-4 flex flex-col gap-4">
+          <Typography className="text-muted-foreground">
+            No data links created yet.
+          </Typography>
+          <Typography className="text-muted-foreground">
+            Data links allow you to open Zarr files in external viewers like
+            Neuroglancer. You can share data links with internal collaborators.
+          </Typography>
+          <Typography className="text-muted-foreground">
+            Create a data link by navigating to any Zarr folder in the file
+            browser and clicking the "Data Link" toggle.
           </Typography>
         </div>
       ) : (
