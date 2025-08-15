@@ -21,13 +21,13 @@ import { useTicketContext } from '@/contexts/TicketsContext';
 import FgTooltip from '../widgets/FgTooltip';
 
 type PropertiesDrawerProps = {
-  setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
+  togglePropertiesDrawer: () => void;
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
   setShowConvertFileDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function PropertiesDrawer({
-  setShowPropertiesDrawer,
+  togglePropertiesDrawer,
   setShowPermissionsDialog,
   setShowConvertFileDialog
 }: PropertiesDrawerProps): JSX.Element {
@@ -53,7 +53,7 @@ export default function PropertiesDrawer({
           color="secondary"
           className="h-8 w-8 rounded-full text-foreground hover:bg-secondary-light/20"
           onClick={() => {
-            setShowPropertiesDrawer((prev: boolean) => !prev);
+            togglePropertiesDrawer();
           }}
         >
           <HiX className="icon-default" />

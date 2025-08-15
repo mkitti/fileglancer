@@ -16,7 +16,7 @@ type FileListProps = {
   setSelectedFiles: React.Dispatch<React.SetStateAction<FileOrFolder[]>>;
   showPropertiesDrawer: boolean;
   hideDotFiles: boolean;
-  setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
+  togglePropertiesDrawer: () => void;
   setShowRenameDialog: React.Dispatch<React.SetStateAction<boolean>>;
   setShowDeleteDialog: React.Dispatch<React.SetStateAction<boolean>>;
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
@@ -28,7 +28,7 @@ export default function FileList({
   setSelectedFiles,
   showPropertiesDrawer,
   hideDotFiles,
-  setShowPropertiesDrawer,
+  togglePropertiesDrawer,
   setShowRenameDialog,
   setShowDeleteDialog,
   setShowPermissionsDialog,
@@ -144,7 +144,7 @@ export default function FileList({
           menuRef={menuRef}
           selectedFiles={selectedFiles}
           handleContextMenuFavorite={handleContextMenuFavorite}
-          setShowPropertiesDrawer={setShowPropertiesDrawer}
+          togglePropertiesDrawer={togglePropertiesDrawer}
           setShowContextMenu={setShowContextMenu}
           setShowRenameDialog={setShowRenameDialog}
           setShowDeleteDialog={setShowDeleteDialog}

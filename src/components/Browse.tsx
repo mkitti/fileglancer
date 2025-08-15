@@ -17,7 +17,7 @@ import RecentlyViewedCard from './ui/BrowsePage/Dashboard/RecentlyViewedCard';
 
 type OutletContextType = {
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
-  setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
+  togglePropertiesDrawer: () => void;
   setShowSidebar: React.Dispatch<React.SetStateAction<boolean>>;
   setShowConvertFileDialog: React.Dispatch<React.SetStateAction<boolean>>;
   showPermissionsDialog: boolean;
@@ -29,7 +29,7 @@ type OutletContextType = {
 export default function Browse() {
   const {
     setShowPermissionsDialog,
-    setShowPropertiesDrawer,
+    togglePropertiesDrawer,
     setShowSidebar,
     setShowConvertFileDialog,
     showPermissionsDialog,
@@ -52,7 +52,7 @@ export default function Browse() {
         hideDotFiles={hideDotFiles}
         setHideDotFiles={setHideDotFiles}
         showPropertiesDrawer={showPropertiesDrawer}
-        setShowPropertiesDrawer={setShowPropertiesDrawer}
+        togglePropertiesDrawer={togglePropertiesDrawer}
         showSidebar={showSidebar}
         setShowSidebar={setShowSidebar}
         setShowNewFolderDialog={setShowNewFolderDialog}
@@ -71,7 +71,7 @@ export default function Browse() {
             setSelectedFiles={setSelectedFiles}
             showPropertiesDrawer={showPropertiesDrawer}
             hideDotFiles={hideDotFiles}
-            setShowPropertiesDrawer={setShowPropertiesDrawer}
+            togglePropertiesDrawer={togglePropertiesDrawer}
             setShowRenameDialog={setShowRenameDialog}
             setShowDeleteDialog={setShowDeleteDialog}
             setShowPermissionsDialog={setShowPermissionsDialog}
