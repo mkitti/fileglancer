@@ -3,7 +3,7 @@ import { Outlet } from 'react-router';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { PiDotsSixVerticalBold } from 'react-icons/pi';
 
-import useShowPropertiesDrawer from '@/hooks/useShowPropertiesDrawer';
+import useLayoutPrefs from '@/hooks/useLayoutPrefs';
 import Sidebar from '@/components/ui/Sidebar/Sidebar';
 import PropertiesDrawer from '@/components/ui/PropertiesDrawer/PropertiesDrawer';
 
@@ -14,12 +14,12 @@ export const BrowsePageLayout = () => {
     React.useState(false);
   const [showSidebar, setShowSidebar] = React.useState(true);
 
-  const { showPropertiesDrawer, setShowPropertiesDrawer } =
-    useShowPropertiesDrawer();
+  const { layoutPrefsStorage, togglePropertiesDrawer, showPropertiesDrawer } =
+    useLayoutPrefs();
 
   const outletContextValue = {
     setShowPermissionsDialog: setShowPermissionsDialog,
-    setShowPropertiesDrawer: setShowPropertiesDrawer,
+    togglePropertiesDrawer: togglePropertiesDrawer,
     setShowSidebar: setShowSidebar,
     setShowConvertFileDialog: setShowConvertFileDialog,
     showPermissionsDialog: showPermissionsDialog,
@@ -30,13 +30,17 @@ export const BrowsePageLayout = () => {
 
   return (
     <div className="flex h-full w-full overflow-y-hidden">
-      <PanelGroup autoSaveId="conditional" direction="horizontal">
+      <PanelGroup
+        autoSaveId="layout"
+        direction="horizontal"
+        storage={layoutPrefsStorage}
+      >
         {showSidebar ? (
           <>
             <Panel
               id="sidebar"
               order={1}
-              defaultSize={18}
+              defaultSize={24}
               minSize={10}
               maxSize={50}
             >
@@ -58,12 +62,12 @@ export const BrowsePageLayout = () => {
             <Panel
               id="properties"
               order={3}
-              defaultSize={18}
+              defaultSize={24}
               minSize={15}
               maxSize={50}
             >
               <PropertiesDrawer
-                setShowPropertiesDrawer={setShowPropertiesDrawer}
+                togglePropertiesDrawer={togglePropertiesDrawer}
                 setShowPermissionsDialog={setShowPermissionsDialog}
                 setShowConvertFileDialog={setShowConvertFileDialog}
               />
