@@ -1,6 +1,6 @@
 import React from 'react';
 
-import NavigationInput from '@/components/NavigateInput';
+import NavigationInput from '@/components/ui/widgets/NavigateInput';
 import FgDialog from './FgDialog';
 
 type NavigationDialogProps = {
