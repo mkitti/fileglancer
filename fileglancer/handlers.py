@@ -265,15 +265,21 @@ class FileMetadataHandler(FileShareHandler):
         if file_info is None:
             raise web.HTTPError(400, "JSON body missing")
 
-        file_type = file_info.get("type")
-        if file_type == "directory":
-            self.log.info(f"Creating {subpath} as a directory")
-            filestore.create_dir(subpath)
-        elif file_type == "file":
-            self.log.info(f"Creating {subpath} as a file")
-            filestore.create_empty_file(subpath)
-        else:
-            raise web.HTTPError(400, "Invalid file type")
+        try:
+            file_type = file_info.get("type")
+            if file_type == "directory":
+                self.log.info(f"Creating {subpath} as a directory")
+                filestore.create_dir(subpath)
+            elif file_type == "file":
+                self.log.info(f"Creating {subpath} as a file")
+                filestore.create_empty_file(subpath)
+            else:
+                raise web.HTTPError(400, "Invalid file type")
+        
+        except PermissionError as e:
+            self.set_status(403)
+            self.finish(json.dumps({"error": str(e)}))
+            return
 
         self.set_status(201)
         self.finish()
