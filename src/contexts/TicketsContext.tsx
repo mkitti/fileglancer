@@ -24,9 +24,10 @@ export type Ticket = {
 type TicketContextType = {
   ticket: Ticket | null;
   allTickets?: Ticket[];
+  loadingTickets?: boolean;
   createTicket: (destination: string) => Promise<void>;
   fetchAllTickets: () => Promise<Result<Ticket[] | null>>;
-  setAllTickets: React.Dispatch<React.SetStateAction<Ticket[]>>;
+  refreshTickets: () => Promise<Result<void>>;
 };
 
 function sortTicketsByDate(tickets: Ticket[]): Ticket[] {
@@ -47,6 +48,7 @@ export const useTicketContext = () => {
 
 export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
   const [allTickets, setAllTickets] = React.useState<Ticket[]>([]);
+  const [loadingTickets, setLoadingTickets] = React.useState<boolean>(true);
   const [ticket, setTicket] = React.useState<Ticket | null>(null);
   const { cookies } = useCookiesContext();
   const { fileBrowserState } = useFileBrowserContext();
@@ -55,6 +57,7 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchAllTickets = React.useCallback(async (): Promise<
     Result<Ticket[] | null>
   > => {
+    setLoadingTickets(true);
     try {
       const response = await sendFetchRequest(
         '/api/fileglancer/ticket',
@@ -77,51 +80,60 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (error) {
       return handleError(error);
+    } finally {
+      setLoadingTickets(false);
     }
   }, [cookies]);
 
+  const refreshTickets = async (): Promise<Result<void>> => {
+    const result = await fetchAllTickets();
+    if (result.success) {
+      setAllTickets(result.data || []);
+      return createSuccess(undefined);
+    } else {
+      return handleError(result.error);
+    }
+  };
+
   const fetchTicket = React.useCallback(async (): Promise<
-    Result<Ticket | null>
+    Result<Ticket | void>
   > => {
     if (
-      (!fileBrowserState.currentFileSharePath ||
-        !fileBrowserState.propertiesTarget) &&
-      !fileBrowserState.isFileBrowserReady
+      !fileBrowserState.currentFileSharePath ||
+      !fileBrowserState.propertiesTarget
     ) {
       log.warn(
         'Cannot fetch ticket; no current file share path or file/folder selected'
       );
       // This is probably not an error, just the state before the file browser is ready
-      return createSuccess(null);
-    } else if (
-      !fileBrowserState.currentFileSharePath ||
-      !fileBrowserState.propertiesTarget
-    ) {
-      return handleError(
-        new Error(
-          'File browser is ready but no file share path or properties target selected'
-        )
-      );
+      return createSuccess(undefined);
     }
+
     try {
       const response = await sendFetchRequest(
         `/api/fileglancer/ticket?fsp_name=${fileBrowserState.currentFileSharePath.name}&path=${fileBrowserState.propertiesTarget.path}`,
         'GET',
         cookies['_xsrf']
       );
-      if (response.ok) {
-        const data = (await response.json()) as any;
-        log.debug('Fetched ticket:', data);
-        if (data?.tickets) {
-          return createSuccess(data.tickets[0] as Ticket);
-        }
-      }
-      if (response.status === 404) {
-        log.warn('No ticket found for the current file share path and target');
-        // This is not an error, just no ticket available
-        return createSuccess(null);
+
+      if (!response.ok) {
+        throw await toHttpError(response);
       } else {
-        return handleError(response);
+        if (response.status === 404) {
+          log.warn(
+            'No ticket found for the current file share path and target'
+          );
+          // This is not an error, just no ticket available
+          return createSuccess(undefined);
+        } else {
+          const data = (await response.json()) as any;
+          if (data?.tickets) {
+            return createSuccess(data.tickets[0] as Ticket);
+          } else {
+            log.warn('No ticket data found in response');
+            return createSuccess(undefined);
+          }
+        }
       }
     } catch (error) {
       return handleError(error);
@@ -129,7 +141,6 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
   }, [
     fileBrowserState.currentFileSharePath,
     fileBrowserState.propertiesTarget,
-    fileBrowserState.isFileBrowserReady,
     cookies
   ]);
 
@@ -181,7 +192,7 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
   React.useEffect(() => {
     (async function () {
       const result = await fetchTicket();
-      if (result.success) {
+      if (result.success && result.data) {
         setTicket(result.data);
       } else {
         setTicket(null);
@@ -194,9 +205,10 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
       value={{
         ticket,
         allTickets,
+        loadingTickets,
         createTicket,
         fetchAllTickets,
-        setAllTickets
+        refreshTickets
       }}
     >
       {children}

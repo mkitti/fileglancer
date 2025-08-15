@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 
 import FgDialog from './FgDialog';
 import TextWithFilePath from './TextWithFilePath';
+import { Spinner } from '@/components/ui/widgets/Loaders';
 import useConvertFileDialog from '@/hooks/useConvertFileDialog';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
@@ -19,11 +20,13 @@ export default function ConvertFileDialog({
   showConvertFileDialog,
   setShowConvertFileDialog
 }: ItemNamingDialogProps): JSX.Element {
+  const [waitingForTicketResponse, setWaitingForTicketResponse] =
+    React.useState(false);
   const { destinationFolder, setDestinationFolder, handleTicketSubmit } =
     useConvertFileDialog();
   const { pathPreference } = usePreferencesContext();
   const { propertiesTarget, currentFileSharePath } = useFileBrowserContext();
-  const { fetchAllTickets, setAllTickets } = useTicketContext();
+  const { refreshTickets } = useTicketContext();
 
   const placeholderText =
     pathPreference[0] === 'windows_path'
@@ -55,19 +58,20 @@ export default function ConvertFileDialog({
       <form
         onSubmit={async event => {
           event.preventDefault();
+          setWaitingForTicketResponse(true);
           const createTicketResult = await handleTicketSubmit();
 
           if (!createTicketResult.success) {
             toast.error(`Error creating ticket: ${createTicketResult.error}`);
+            setWaitingForTicketResponse(false);
           } else {
+            const refreshTicketResponse = await refreshTickets();
             toast.success('Ticket created!');
-            const refreshTicketResponse = await fetchAllTickets();
+            setWaitingForTicketResponse(false);
             if (!refreshTicketResponse.success) {
               toast.error(
                 `Error refreshing ticket list: ${refreshTicketResponse.error}`
               );
-            } else {
-              setAllTickets(refreshTicketResponse.data || []);
             }
           }
           setShowConvertFileDialog(false);
@@ -94,8 +98,16 @@ export default function ConvertFileDialog({
             className="mb-4 p-2 text-foreground text-lg border border-primary-light rounded-sm focus:outline-none focus:border-primary bg-background"
           />
         </div>
-        <Button className="!rounded-md" type="submit">
-          Submit
+        <Button
+          className="!rounded-md"
+          type="submit"
+          disabled={!destinationFolder}
+        >
+          {waitingForTicketResponse ? (
+            <Spinner customClasses="border-white" text="Processing..." />
+          ) : (
+            'Submit'
+          )}
         </Button>
       </form>
     </FgDialog>

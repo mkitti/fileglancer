@@ -5,7 +5,7 @@ import { useTicketContext } from '@/contexts/TicketsContext';
 import { TableCard } from './ui/widgets/TableCard';
 
 export default function Jobs() {
-  const { allTickets } = useTicketContext();
+  const { allTickets, loadingTickets } = useTicketContext();
   return (
     <>
       <Typography type="h5" className="mb-6 text-foreground font-bold">
@@ -22,7 +22,8 @@ export default function Jobs() {
         rowTitles={['File Path', 'Job Description', 'Status', 'Last Updated']}
         rowContent={TicketRow}
         items={allTickets}
-        emptyMessage="You have not opened any Jira tasks."
+        loadingState={loadingTickets}
+        emptyText="You have not opened any Jira tasks."
       />
     </>
   );

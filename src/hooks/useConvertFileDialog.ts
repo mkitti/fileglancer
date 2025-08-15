@@ -11,11 +11,12 @@ export default function useConvertFileDialog() {
   async function handleTicketSubmit(): Promise<Result<void>> {
     try {
       await createTicket(destinationFolder);
+      return createSuccess(undefined);
     } catch (error) {
       return handleError(error);
+    } finally {
+      setDestinationFolder('');
     }
-    setDestinationFolder('');
-    return createSuccess(undefined);
   }
 
   return {

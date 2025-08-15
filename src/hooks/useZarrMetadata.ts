@@ -38,13 +38,13 @@ export default function useZarrMetadata() {
   const validatorBaseUrl = 'https://ome.github.io/ome-ngff-validator/?source=';
   const neuroglancerBaseUrl = 'https://neuroglancer-demo.appspot.com/#!';
   const voleBaseUrl = 'https://volumeviewer.allencell.org/viewer?url=';
-  const { fileBrowserState } = useFileBrowserContext();
+  const { fileBrowserState, areFileDataLoading } = useFileBrowserContext();
   const { dataUrl } = useProxiedPathContext();
   const [cookies] = useCookies(['_xsrf']);
 
   const checkZarrMetadata = React.useCallback(
     async (cancelRef: { cancel: boolean }) => {
-      if (!fileBrowserState.isFileBrowserReady) {
+      if (areFileDataLoading) {
         return;
       }
       setMetadata(null);
@@ -123,7 +123,7 @@ export default function useZarrMetadata() {
         }
       }
     },
-    [fileBrowserState, cookies]
+    [areFileDataLoading, fileBrowserState, cookies]
   );
 
   // When the file browser state changes, check for Zarr metadata
