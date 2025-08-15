@@ -4,7 +4,6 @@ import { Switch, Typography } from '@material-tailwind/react';
 import zarrLogo from '@/assets/zarr.jpg';
 import ZarrMetadataTable from '@/components/ui/BrowsePage/ZarrMetadataTable';
 import DataLinkDialog from '@/components/ui/Dialogs/DataLink';
-import Loader from '@/components/ui/widgets/Loader';
 import DataToolLinks from './DataToolLinks';
 import type { OpenWithToolUrls, ZarrMetadata } from '@/hooks/useZarrMetadata';
 import useDataLinkDialog from '@/hooks/useDataLinkDialog';
@@ -92,12 +91,11 @@ export default function ZarrPreview({
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2 max-h-full">
             {loadingThumbnail ? (
-              <>
-                <Typography className="text-surface-foreground">
-                  Loading OME-Zarr image thumbnail...
+              <div className="w-72 h-72 animate-pulse bg-surface text-foreground flex">
+                <Typography className="place-self-center text-center w-full">
+                  Loading thumbnail...
                 </Typography>
-                <Loader />
-              </>
+              </div>
             ) : null}
             {!loadingThumbnail && metadata && thumbnailSrc ? (
               <img

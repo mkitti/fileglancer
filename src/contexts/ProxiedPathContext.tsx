@@ -21,7 +21,8 @@ export type ProxiedPath = {
 type ProxiedPathContextType = {
   proxiedPath: ProxiedPath | null;
   dataUrl: string | null;
-  allProxiedPaths?: ProxiedPath[];
+  allProxiedPaths: ProxiedPath[];
+  loadingProxiedPaths: boolean;
   createProxiedPath: () => Promise<Result<ProxiedPath | void>>;
   deleteProxiedPath: (proxiedPath: ProxiedPath) => Promise<Result<void>>;
   refreshProxiedPaths: () => Promise<Result<ProxiedPath[] | void>>;
@@ -56,6 +57,8 @@ export const ProxiedPathProvider = ({
   const [allProxiedPaths, setAllProxiedPaths] = React.useState<ProxiedPath[]>(
     []
   );
+  const [loadingProxiedPaths, setLoadingProxiedPaths] =
+    React.useState<boolean>(false);
   const [proxiedPath, setProxiedPath] = React.useState<ProxiedPath | null>(
     null
   );
@@ -98,6 +101,7 @@ export const ProxiedPathProvider = ({
   }, [cookies]);
 
   const refreshProxiedPaths = async (): Promise<Result<void>> => {
+    setLoadingProxiedPaths(true);
     try {
       const result = await fetchAllProxiedPaths();
       if (result.success && result.data) {
@@ -106,6 +110,8 @@ export const ProxiedPathProvider = ({
       return createSuccess(undefined);
     } catch (error) {
       return handleError(error);
+    } finally {
+      setLoadingProxiedPaths(false);
     }
   };
 
@@ -202,9 +208,13 @@ export const ProxiedPathProvider = ({
 
   React.useEffect(() => {
     (async function () {
+      setLoadingProxiedPaths(true);
       const result = await fetchAllProxiedPaths();
       if (result.success && result.data) {
         setAllProxiedPaths(result.data as ProxiedPath[]);
+        setLoadingProxiedPaths(false);
+      } else {
+        setLoadingProxiedPaths(false);
       }
     })();
   }, [fetchAllProxiedPaths]);
@@ -231,6 +241,7 @@ export const ProxiedPathProvider = ({
         proxiedPath,
         dataUrl,
         allProxiedPaths,
+        loadingProxiedPaths,
         createProxiedPath,
         deleteProxiedPath,
         refreshProxiedPaths

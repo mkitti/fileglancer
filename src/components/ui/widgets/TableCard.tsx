@@ -1,5 +1,7 @@
 import React from 'react';
 import { Card, Typography } from '@material-tailwind/react';
+
+import { TableRowSkeleton } from '@/components/ui/widgets/Loaders';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 import type { Ticket } from '@/contexts/TicketsContext';
 
@@ -8,7 +10,8 @@ type TableCardProps = {
   rowTitles: string[];
   rowContent?: React.FC<any>;
   items?: ProxiedPath[] | Ticket[];
-  emptyMessage?: string;
+  loadingState?: boolean;
+  emptyText?: string;
 };
 
 function TableRow({
@@ -32,7 +35,8 @@ function TableCard({
   rowTitles,
   rowContent,
   items,
-  emptyMessage
+  loadingState,
+  emptyText
 }: TableCardProps) {
   return (
     <Card>
@@ -45,21 +49,24 @@ function TableCard({
           </Typography>
         ))}
       </div>
-
-      {rowContent && items && items.length > 0
-        ? items.map((item: ProxiedPath | Ticket, index) => {
-            const RowComponent = rowContent;
-            return (
-              <TableRow key={index} gridColsClass={gridColsClass}>
-                <RowComponent item={item} />
-              </TableRow>
-            );
-          })
-        : null}
-
-      {(!items || items.length === 0) && (
+      {loadingState ? (
+        <TableRowSkeleton gridColsClass={gridColsClass} />
+      ) : rowContent && items && items.length > 0 ? (
+        items.map((item: ProxiedPath | Ticket, index) => {
+          const RowComponent = rowContent;
+          return (
+            <TableRow key={index} gridColsClass={gridColsClass}>
+              <RowComponent item={item} />
+            </TableRow>
+          );
+        })
+      ) : !items || items.length === 0 ? (
         <div className="px-4 py-8 text-center text-foreground">
-          {emptyMessage || 'No data available'}
+          {emptyText || 'No data available'}
+        </div>
+      ) : (
+        <div className="px-4 py-8 text-center text-foreground">
+          There was an error loading the data.
         </div>
       )}
     </Card>

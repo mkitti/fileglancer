@@ -3,17 +3,27 @@ import { Typography } from '@material-tailwind/react';
 import DashboardCard from '@/components/ui/BrowsePage/Dashboard/FgDashboardCard';
 import ProxiedPathRow from '@/components/ui/LinksPage/ProxiedPathRow';
 import { TableRow } from '@/components/ui/widgets/TableCard';
+import { TableRowSkeleton } from '@/components/ui/widgets/Loaders';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 
 export default function RecentDataLinksCard() {
-  const { allProxiedPaths } = useProxiedPathContext();
+  const { allProxiedPaths, loadingProxiedPaths } = useProxiedPathContext();
 
   // Get the 10 most recent data links
   const recentDataLinks = allProxiedPaths?.slice(0, 10) || [];
 
   return (
     <DashboardCard title="Recently created data links">
-      {recentDataLinks.length === 0 ? (
+      {loadingProxiedPaths ? (
+        Array(5)
+          .fill(0)
+          .map((_, index) => (
+            <TableRowSkeleton
+              key={index}
+              gridColsClass="grid-cols-[1.5fr_2.5fr_1.5fr_1fr]"
+            />
+          ))
+      ) : recentDataLinks.length === 0 ? (
         <div className="px-4 pt-4 flex flex-col gap-4">
           <Typography className="text-muted-foreground">
             No data links created yet.

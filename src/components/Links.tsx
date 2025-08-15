@@ -5,7 +5,7 @@ import ProxiedPathRow from './ui/LinksPage/ProxiedPathRow';
 import { TableCard } from './ui/widgets/TableCard';
 
 export default function Links() {
-  const { allProxiedPaths } = useProxiedPathContext();
+  const { allProxiedPaths, loadingProxiedPaths } = useProxiedPathContext();
 
   return (
     <>
@@ -22,7 +22,8 @@ export default function Links() {
         rowTitles={['Name', 'File Path', 'Date Created', 'Actions']}
         rowContent={ProxiedPathRow}
         items={allProxiedPaths}
-        emptyMessage="No shared paths."
+        loadingState={loadingProxiedPaths}
+        emptyText="No shared paths."
       />
     </>
   );
