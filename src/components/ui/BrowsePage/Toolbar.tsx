@@ -8,7 +8,7 @@ import {
   HiEyeOff,
   HiFolderAdd,
   HiOutlineClipboardCopy,
-  HiOutlineHome,
+  HiHome,
   HiOutlineStar,
   HiStar
 } from 'react-icons/hi';
@@ -107,7 +107,7 @@ export default function Toolbar({
           <FgTooltip
             as={Link}
             link={`/browse/${profile?.homeFileSharePathName}/${profile?.homeDirectoryName}`}
-            icon={HiOutlineHome}
+            icon={HiHome}
             label="Go to home folder"
             triggerClasses={triggerClasses}
           />

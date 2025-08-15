@@ -14,12 +14,6 @@ type TableCardProps = {
   emptyText?: string;
 };
 
-function FgCard({ children }: { children: React.ReactNode }) {
-  return (
-    <Card className="border-surface dark:border-foreground">{children}</Card>
-  );
-}
-
 function TableRow({
   gridColsClass,
   children
@@ -29,7 +23,7 @@ function TableRow({
 }) {
   return (
     <div
-      className={`grid ${gridColsClass} justify-items-start gap-4 px-4 py-4 border-b border-surface dark:border-foreground last:border-0`}
+      className={`grid ${gridColsClass} justify-items-start gap-4 px-4 py-4 border-b border-surface last:border-0`}
     >
       {children}
     </div>
@@ -45,7 +39,7 @@ function TableCard({
   emptyText
 }: TableCardProps) {
   return (
-    <FgCard>
+    <Card>
       <div
         className={`grid ${gridColsClass} gap-4 px-4 py-2 border-b border-surface dark:border-foreground`}
       >
@@ -75,8 +69,8 @@ function TableCard({
           There was an error loading the data.
         </div>
       )}
-    </FgCard>
+    </Card>
   );
 }
 
-export { FgCard, TableCard, TableRow };
+export { TableCard, TableRow };
