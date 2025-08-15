@@ -1,8 +1,9 @@
 import { Button, Input, Typography } from '@material-tailwind/react';
 import { HiChevronRight } from 'react-icons/hi';
-
-import useNavigationInput from '@/hooks/useNavigationInput';
 import toast from 'react-hot-toast';
+
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import useNavigationInput from '@/hooks/useNavigationInput';
 
 export default function NavigationInput({
   location,
@@ -13,6 +14,14 @@ export default function NavigationInput({
 }): JSX.Element {
   const { inputValue, handleInputChange, handleNavigationInputSubmit } =
     useNavigationInput();
+  const { pathPreference } = usePreferencesContext();
+
+  const placeholderText =
+    pathPreference[0] === 'windows_path'
+      ? '\\\\prfs.hhmi.org\\path\\to\\folder'
+      : pathPreference[0] === 'linux_path'
+        ? '/groups/path/to/folder'
+        : 'smb://prfs.hhmi.org/path/to/folder';
 
   return (
     <div
@@ -43,7 +52,7 @@ export default function NavigationInput({
           value={inputValue}
           onChange={handleInputChange}
           type="text"
-          placeholder="/path/to/file"
+          placeholder={placeholderText}
         />
         <Button type="submit" className="max-h-full flex-1 gap-1">
           Go
