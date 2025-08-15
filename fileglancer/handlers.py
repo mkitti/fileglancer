@@ -307,9 +307,14 @@ class FileMetadataHandler(FileShareHandler):
                 self.log.info(f"Renaming {old_file_info.path} to {new_path}")
                 filestore.rename_file_or_dir(old_file_info.path, new_path)
 
+        except PermissionError as e:
+            self.set_status(403)
+            self.finish(json.dumps({"error": str(e)}))
+            return
         except OSError as e:
             self.set_status(500)
             self.finish(json.dumps({"error": str(e)}))
+            return
 
         self.set_status(204)
         self.finish()
