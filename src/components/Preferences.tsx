@@ -40,7 +40,9 @@ export default function Preferences() {
                 type="radio"
                 id="linux_path"
                 value="linux_path"
-                checked={localPathPreference[0] === 'linux_path'}
+                checked={
+                  localPathPreference && localPathPreference[0] === 'linux_path'
+                }
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                   handleLocalChange(event);
                 }}
@@ -61,7 +63,10 @@ export default function Preferences() {
                 type="radio"
                 id="windows_path"
                 value="windows_path"
-                checked={localPathPreference[0] === 'windows_path'}
+                checked={
+                  localPathPreference &&
+                  localPathPreference[0] === 'windows_path'
+                }
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                   handleLocalChange(event);
                 }}
@@ -81,7 +86,9 @@ export default function Preferences() {
                 type="radio"
                 id="mac_path"
                 value="mac_path"
-                checked={localPathPreference[0] === 'mac_path'}
+                checked={
+                  localPathPreference && localPathPreference[0] === 'mac_path'
+                }
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                   handleLocalChange(event);
                 }}
@@ -96,7 +103,14 @@ export default function Preferences() {
             </div>
           </Card.Body>
           <Card.Footer>
-            <Button className="!rounded-md" type="submit">
+            <Button
+              className="!rounded-md"
+              type="submit"
+              disabled={
+                localPathPreference &&
+                localPathPreference[0] === pathPreference[0]
+              }
+            >
               Submit
             </Button>
           </Card.Footer>
