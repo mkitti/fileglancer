@@ -336,8 +336,15 @@ class FileMetadataHandler(FileShareHandler):
         filestore = self._get_filestore(path)
         if filestore is None:
             return
+            
+        try:
+            filestore.remove_file_or_dir(subpath)
 
-        filestore.remove_file_or_dir(subpath)
+        except PermissionError as e:
+            self.set_status(403)
+            self.finish(json.dumps({"error": str(e)}))
+            return
+
         self.set_status(204)
         self.finish()
 
