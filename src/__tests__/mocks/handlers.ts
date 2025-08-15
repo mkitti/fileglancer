@@ -37,18 +37,25 @@ export const handlers = [
         return HttpResponse.json({
           value: ['linux_path']
         });
-      } else if (queryParam === 'fileSharePath') {
+      } else if (
+        queryParam === 'fileSharePath' ||
+        queryParam === 'zone' ||
+        queryParam === 'folder' ||
+        queryParam === 'recentlyViewedFolders'
+      ) {
         return HttpResponse.json({
           value: []
         });
-      } else if (queryParam === 'zone') {
-        return HttpResponse.json({
-          value: []
-        });
-      } else if (queryParam === 'folder') {
-        return HttpResponse.json({
-          value: []
-        });
+      }
+    }
+  ),
+  http.put(
+    'http://localhost:3000/api/fileglancer/preference',
+    ({ request }) => {
+      const url = new URL(request.url);
+      const queryParam = url.searchParams.get('key');
+      if (queryParam === 'recentlyViewedFolders') {
+        return HttpResponse.json(null, { status: 204 });
       }
     }
   ),
