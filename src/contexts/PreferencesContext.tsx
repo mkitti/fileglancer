@@ -44,6 +44,8 @@ type PreferencesContextType = {
     type: 'zone' | 'fileSharePath' | 'folder'
   ) => Promise<Result<boolean>>;
   recentlyViewedFolders: FolderPreference[];
+  layout: string;
+  handleUpdateLayout: (layout: string) => Promise<void>;
 };
 
 const PreferencesContext = React.createContext<PreferencesContextType | null>(
@@ -90,6 +92,7 @@ export const PreferencesProvider = ({
   >([]);
   const [isFileSharePathFavoritesReady, setIsFileSharePathFavoritesReady] =
     React.useState(false);
+  const [layout, setLayout] = React.useState<string>('');
 
   const { cookies } = useCookiesContext();
   const { isZonesMapReady, zonesAndFileSharePathsMap } =
@@ -193,6 +196,11 @@ export const PreferencesProvider = ({
     },
     [cookies]
   );
+
+  const handleUpdateLayout = async (layout: string): Promise<void> => {
+    await savePreferencesToBackend('layout', layout);
+    setLayout(layout);
+  };
 
   const handlePathPreferenceSubmit = React.useCallback(
     async (
@@ -399,6 +407,16 @@ export const PreferencesProvider = ({
 
   React.useEffect(() => {
     (async function () {
+      const rawLayoutPref = await fetchPreferences('layout');
+      if (rawLayoutPref) {
+        log.debug('setting layout:', rawLayoutPref);
+        setLayout(rawLayoutPref);
+      }
+    })();
+  }, [fetchPreferences]);
+
+  React.useEffect(() => {
+    (async function () {
       const rawPathPreference = await fetchPreferences('path');
       if (rawPathPreference) {
         log.debug('setting initial path preference:', rawPathPreference);
@@ -560,7 +578,9 @@ export const PreferencesProvider = ({
         folderFavorites,
         isFileSharePathFavoritesReady,
         handleFavoriteChange,
-        recentlyViewedFolders
+        recentlyViewedFolders,
+        layout,
+        handleUpdateLayout
       }}
     >
       {children}
