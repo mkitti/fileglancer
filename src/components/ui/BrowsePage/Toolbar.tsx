@@ -13,9 +13,9 @@ import {
   HiStar
 } from 'react-icons/hi';
 import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
-import { IoNavigateCircleSharp } from 'react-icons/io5';
 
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
+import NavigationButton from './NavigationButton';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useProfileContext } from '@/contexts/ProfileContext';
@@ -32,7 +32,6 @@ type ToolbarProps = {
   showSidebar: boolean;
   setShowSidebar: React.Dispatch<React.SetStateAction<boolean>>;
   setShowNewFolderDialog: React.Dispatch<React.SetStateAction<boolean>>;
-  setShowNavigationDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function Toolbar({
@@ -42,8 +41,7 @@ export default function Toolbar({
   setShowPropertiesDrawer,
   showSidebar,
   setShowSidebar,
-  setShowNewFolderDialog,
-  setShowNavigationDialog
+  setShowNewFolderDialog
 }: ToolbarProps): JSX.Element {
   const { currentFolder, currentFileSharePath, refreshFiles } =
     useFileBrowserContext();
@@ -116,15 +114,7 @@ export default function Toolbar({
           />
 
           {/* Open navigate dialog */}
-          <FgTooltip
-            icon={IoNavigateCircleSharp}
-            label="Navigate to a path"
-            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-              setShowNavigationDialog(true);
-              e.currentTarget.blur();
-            }}
-            triggerClasses={triggerClasses}
-          />
+          <NavigationButton triggerClasses={triggerClasses} />
 
           {/* Refresh browser contents */}
           <FgTooltip
