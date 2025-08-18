@@ -7,6 +7,7 @@ import { useCookiesContext } from './CookiesContext';
 
 type ZonesAndFspMapContextType = {
   isZonesMapReady: boolean;
+  areZoneDataLoading: boolean;
   zonesAndFileSharePathsMap: ZonesAndFileSharePathsMap;
 };
 
@@ -29,6 +30,7 @@ export const ZonesAndFspMapContextProvider = ({
   children: React.ReactNode;
 }) => {
   const [isZonesMapReady, setIsZonesMapReady] = React.useState(false);
+  const [areZoneDataLoading, setAreZoneDataLoading] = React.useState(false);
   const [zonesAndFileSharePathsMap, setZonesAndFileSharePathsMap] =
     React.useState<ZonesAndFileSharePathsMap>({});
 
@@ -124,6 +126,7 @@ export const ZonesAndFspMapContextProvider = ({
 
   const updateZonesAndFileSharePathsMap =
     React.useCallback(async (): Promise<void> => {
+      setAreZoneDataLoading(true);
       let rawData: { paths: FileSharePath[] } = { paths: [] };
       try {
         rawData = await getZones();
@@ -139,6 +142,8 @@ export const ZonesAndFspMapContextProvider = ({
         } else {
           log.error('An unknown error occurred when fetching zones');
         }
+      } finally {
+        setAreZoneDataLoading(false);
       }
     }, [getZones]);
 
@@ -159,6 +164,7 @@ export const ZonesAndFspMapContextProvider = ({
     <ZonesAndFspMapContext.Provider
       value={{
         isZonesMapReady,
+        areZoneDataLoading,
         zonesAndFileSharePathsMap
       }}
     >

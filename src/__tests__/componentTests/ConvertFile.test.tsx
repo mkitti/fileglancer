@@ -62,6 +62,10 @@ describe('Convert File dialog', () => {
 
   it('calls toast.success for an ok HTTP response', async () => {
     const user = userEvent.setup();
+    await user.type(
+      screen.getByPlaceholderText('/path/to/destination/folder/'),
+      '/test'
+    );
     await user.click(
       screen.getByText('Submit', {
         selector: 'button[type="submit"]'
@@ -84,6 +88,10 @@ describe('Convert File dialog', () => {
     );
 
     const user = userEvent.setup();
+    await user.type(
+      screen.getByPlaceholderText('/path/to/destination/folder/'),
+      '/test'
+    );
     await user.click(
       screen.getByText('Submit', {
         selector: 'button[type="submit"]'

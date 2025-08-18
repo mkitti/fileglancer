@@ -6,7 +6,7 @@ import FileListCrumbs from './Crumbs';
 import FileRow from './FileRow';
 import ZarrPreview from './ZarrPreview';
 import ContextMenu from '@/components/ui/Menus/ContextMenu';
-import Loader from '@/components/ui/widgets/Loader';
+import { FileRowSkeleton } from '@/components/ui/widgets/Loaders';
 import useContextMenu from '@/hooks/useContextMenu';
 import useZarrMetadata from '@/hooks/useZarrMetadata';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
@@ -34,7 +34,7 @@ export default function FileList({
   setShowPermissionsDialog,
   setShowConvertFileDialog
 }: FileListProps): React.ReactNode {
-  const { fileBrowserState } = useFileBrowserContext();
+  const { fileBrowserState, areFileDataLoading } = useFileBrowserContext();
 
   const {
     contextMenuCoords,
@@ -57,7 +57,7 @@ export default function FileList({
     return hideDotFiles
       ? fileBrowserState.files.filter(file => !file.name.startsWith('.'))
       : fileBrowserState.files;
-  }, [fileBrowserState, hideDotFiles]);
+  }, [fileBrowserState.files, hideDotFiles]);
 
   return (
     <div className="px-2 transition-all duration-300 flex flex-col h-full overflow-hidden">
@@ -72,7 +72,6 @@ export default function FileList({
             thumbnailError={thumbnailError}
           />
         ) : null}
-
         <div className="min-w-full bg-background select-none">
           {/* Header row */}
           <div className="min-w-fit grid grid-cols-[minmax(170px,2fr)_minmax(80px,1fr)_minmax(95px,1fr)_minmax(75px,1fr)_minmax(40px,1fr)] gap-4 p-0 text-foreground">
@@ -100,7 +99,11 @@ export default function FileList({
           </div>
         </div>
         {/* File rows */}
-        {fileBrowserState.isFileBrowserReady && displayFiles.length > 0 ? (
+        {areFileDataLoading ? (
+          Array.from({ length: 10 }, (_, index) => (
+            <FileRowSkeleton key={index} />
+          ))
+        ) : !areFileDataLoading && displayFiles.length > 0 ? (
           displayFiles.map((file, index) => {
             return (
               <FileRow
@@ -115,7 +118,7 @@ export default function FileList({
               />
             );
           })
-        ) : fileBrowserState.isFileBrowserReady &&
+        ) : !areFileDataLoading &&
           displayFiles.length === 0 &&
           !fileBrowserState.uiErrorMsg ? (
           <div className="flex items-center pl-3 py-1">
@@ -123,7 +126,7 @@ export default function FileList({
               No files available for display.
             </Typography>
           </div>
-        ) : fileBrowserState.isFileBrowserReady &&
+        ) : !areFileDataLoading &&
           displayFiles.length === 0 &&
           fileBrowserState.uiErrorMsg ? (
           <div className="flex items-center pl-3 py-1">
@@ -131,11 +134,7 @@ export default function FileList({
               {fileBrowserState.uiErrorMsg}
             </Typography>
           </div>
-        ) : (
-          <div className="flex justify-center w-full py-2">
-            <Loader />
-          </div>
-        )}
+        ) : null}
       </div>
       {showContextMenu ? (
         <ContextMenu

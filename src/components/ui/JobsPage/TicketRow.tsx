@@ -1,3 +1,5 @@
+import { Typography } from '@material-tailwind/react';
+
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import type { Ticket } from '@/contexts/TicketsContext';
@@ -24,14 +26,14 @@ export default function TicketRow({ item }: { item: Ticket }) {
 
   return (
     <>
-      <div className="line-clamp-2">
+      <div className="line-clamp-2 max-w-full">
         <FgStyledLink to={`/browse/${item.fsp_name}/${item.path}`}>
           {displayPath}
         </FgStyledLink>
       </div>
-      <div className="line-clamp-2 text-sm text-foreground">
-        {item.description.split('\n')[0]}
-      </div>
+      <Typography className="line-clamp-2 text-foreground max-w-full">
+        {item.description}
+      </Typography>
       <div className="text-sm">
         <span
           className={`px-2 py-1 rounded-full text-xs ${
