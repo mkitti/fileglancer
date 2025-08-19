@@ -18,9 +18,7 @@ export default function FgDialog({
   return (
     <Dialog open={open}>
       <Dialog.Overlay>
-        <Dialog.Content
-          className={`p-6 bg-surface-light dark:bg-surface ${className}`}
-        >
+        <Dialog.Content className={`p-6 bg-surface-light ${className}`}>
           <IconButton
             size="sm"
             variant="outline"
