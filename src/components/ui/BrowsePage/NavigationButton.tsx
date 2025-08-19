@@ -9,7 +9,9 @@ type NavigationButtonProps = {
   triggerClasses: string;
 };
 
-export default function NavigationButton({ triggerClasses }: NavigationButtonProps): JSX.Element {
+export default function NavigationButton({
+  triggerClasses
+}: NavigationButtonProps): JSX.Element {
   const [showNavigationDialog, setShowNavigationDialog] = React.useState(false);
 
   return (
