@@ -12,6 +12,11 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src')
     }
   },
+  css: {
+    lightningcss: {
+      errorRecovery: true
+    }
+  },
   build: {
     sourcemap: true,
     outDir: 'fileglancer/ui',
