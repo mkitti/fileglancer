@@ -95,7 +95,6 @@ export default function Browse() {
       ) : null}
       {showDeleteDialog ? (
         <Delete
-          targetItem={selectedFiles[0]}
           showDeleteDialog={showDeleteDialog}
           setShowDeleteDialog={setShowDeleteDialog}
         />
