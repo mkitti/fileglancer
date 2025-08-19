@@ -6,7 +6,6 @@ import {
   HiRefresh,
   HiEye,
   HiEyeOff,
-  HiFolderAdd,
   HiOutlineClipboardCopy,
   HiHome,
   HiOutlineStar,
@@ -16,6 +15,7 @@ import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
 
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
 import NavigationButton from './NavigationButton';
+import NewFolderButton from './NewFolderButton';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useProfileContext } from '@/contexts/ProfileContext';
@@ -31,7 +31,6 @@ type ToolbarProps = {
   setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
   showSidebar: boolean;
   setShowSidebar: React.Dispatch<React.SetStateAction<boolean>>;
-  setShowNewFolderDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function Toolbar({
@@ -40,8 +39,7 @@ export default function Toolbar({
   showPropertiesDrawer,
   setShowPropertiesDrawer,
   showSidebar,
-  setShowSidebar,
-  setShowNewFolderDialog
+  setShowSidebar
 }: ToolbarProps): JSX.Element {
   const { currentFolder, currentFileSharePath, refreshFiles } =
     useFileBrowserContext();
@@ -138,16 +136,7 @@ export default function Toolbar({
           />
 
           {/* Make new folder */}
-          <FgTooltip
-            icon={HiFolderAdd}
-            label="New folder"
-            disabledCondition={!currentFileSharePath}
-            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-              setShowNewFolderDialog(true);
-              e.currentTarget.blur();
-            }}
-            triggerClasses={triggerClasses}
-          />
+          <NewFolderButton triggerClasses={triggerClasses} />
 
           {/* Show/hide dot files and folders */}
           <FgTooltip

@@ -8,7 +8,6 @@ import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import FileList from './ui/BrowsePage/FileList';
 import Toolbar from './ui/BrowsePage/Toolbar';
 import RenameDialog from './ui/Dialogs/Rename';
-import NewFolderDialog from './ui/Dialogs/NewFolder';
 import Delete from './ui/Dialogs/Delete';
 import ChangePermissions from './ui/Dialogs/ChangePermissions';
 import ConvertFileDialog from './ui/Dialogs/ConvertFile';
@@ -44,7 +43,6 @@ export default function Browse() {
   const { currentFileSharePath } = useFileBrowserContext();
 
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
-  const [showNewFolderDialog, setShowNewFolderDialog] = React.useState(false);
   const [showRenameDialog, setShowRenameDialog] = React.useState(false);
 
   return (
@@ -56,7 +54,6 @@ export default function Browse() {
         setShowPropertiesDrawer={setShowPropertiesDrawer}
         showSidebar={showSidebar}
         setShowSidebar={setShowSidebar}
-        setShowNewFolderDialog={setShowNewFolderDialog}
       />
       <div
         className={`relative grow max-h-full flex flex-col overflow-y-auto ${!currentFileSharePath ? 'grid grid-cols-2 grid-rows-2 grid-rows-[60px_1fr] bg-surface-light gap-6 p-6' : ''}`}
@@ -85,12 +82,6 @@ export default function Browse() {
         <RenameDialog
           showRenameDialog={showRenameDialog}
           setShowRenameDialog={setShowRenameDialog}
-        />
-      ) : null}
-      {showNewFolderDialog ? (
-        <NewFolderDialog
-          showNewFolderDialog={showNewFolderDialog}
-          setShowNewFolderDialog={setShowNewFolderDialog}
         />
       ) : null}
       {showDeleteDialog ? (
