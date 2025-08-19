@@ -25,12 +25,12 @@ export default function NavigationInput({
 
   return (
     <div
-      className={`flex flex-col ${location === 'dashboard' ? 'col-span-2 w-1/2 pr-3 gap-1 ' : 'w-full gap-3 mt-8'}`}
+      className={`flex flex-col ${location === 'dashboard' ? 'col-span-2 w-1/2 pr-3 gap-1' : 'w-full gap-3 mt-8'}`}
     >
       <Typography
         as="label"
         htmlFor="navigation-input-form"
-        className="font-semibold"
+        className="font-semibold text-foreground"
       >
         Navigate to path
       </Typography>
@@ -45,7 +45,7 @@ export default function NavigationInput({
             setShowNavigationDialog(false);
           }
         }}
-        className="flex items-center justify-center gap-2 bg-background"
+        className="flex items-center justify-center gap-2 bg-surface-light"
         id="navigation-input-form"
       >
         <Input
@@ -53,6 +53,7 @@ export default function NavigationInput({
           onChange={handleInputChange}
           type="text"
           placeholder={placeholderText}
+          className="bg-background text-lg"
         />
         <Button type="submit" className="max-h-full flex-1 gap-1">
           Go

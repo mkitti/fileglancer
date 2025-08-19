@@ -2,7 +2,7 @@ import React from 'react';
 import { IoNavigateCircleSharp } from 'react-icons/io5';
 
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
-import NavigationInput from '@/components/ui/widgets/NavigateInput';
+import NavigationInput from '@/components/ui/BrowsePage/NavigateInput';
 import FgDialog from '@/components/ui/Dialogs/FgDialog';
 
 type NavigationButtonProps = {

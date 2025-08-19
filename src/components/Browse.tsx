@@ -13,7 +13,7 @@ import ChangePermissions from './ui/Dialogs/ChangePermissions';
 import ConvertFileDialog from './ui/Dialogs/ConvertFile';
 import RecentDataLinksCard from './ui/BrowsePage/Dashboard/RecentDataLinksCard';
 import RecentlyViewedCard from './ui/BrowsePage/Dashboard/RecentlyViewedCard';
-import NavigationInput from './ui/widgets/NavigateInput';
+import NavigationInput from './ui/BrowsePage/NavigateInput';
 
 type OutletContextType = {
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
