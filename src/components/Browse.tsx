@@ -18,7 +18,7 @@ import RecentlyViewedCard from './ui/BrowsePage/Dashboard/RecentlyViewedCard';
 type OutletContextType = {
   setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
   togglePropertiesDrawer: () => void;
-  setShowSidebar: React.Dispatch<React.SetStateAction<boolean>>;
+  toggleSidebar: React.Dispatch<React.SetStateAction<boolean>>;
   setShowConvertFileDialog: React.Dispatch<React.SetStateAction<boolean>>;
   showPermissionsDialog: boolean;
   showPropertiesDrawer: boolean;
@@ -30,7 +30,7 @@ export default function Browse() {
   const {
     setShowPermissionsDialog,
     togglePropertiesDrawer,
-    setShowSidebar,
+    toggleSidebar,
     setShowConvertFileDialog,
     showPermissionsDialog,
     showPropertiesDrawer,
@@ -54,7 +54,7 @@ export default function Browse() {
         showPropertiesDrawer={showPropertiesDrawer}
         togglePropertiesDrawer={togglePropertiesDrawer}
         showSidebar={showSidebar}
-        setShowSidebar={setShowSidebar}
+        toggleSidebar={toggleSidebar}
         setShowNewFolderDialog={setShowNewFolderDialog}
       />
       <div

@@ -13,16 +13,20 @@ export const BrowsePageLayout = () => {
     React.useState(false);
   const [showConvertFileDialog, setShowConvertFileDialog] =
     React.useState(false);
-  const [showSidebar, setShowSidebar] = React.useState(true);
 
   const { isLayoutLoadedFromDB } = usePreferencesContext();
-  const { layoutPrefsStorage, togglePropertiesDrawer, showPropertiesDrawer } =
-    useLayoutPrefs();
+  const {
+    layoutPrefsStorage,
+    togglePropertiesDrawer,
+    showPropertiesDrawer,
+    showSidebar,
+    toggleSidebar
+  } = useLayoutPrefs();
 
   const outletContextValue = {
     setShowPermissionsDialog: setShowPermissionsDialog,
     togglePropertiesDrawer: togglePropertiesDrawer,
-    setShowSidebar: setShowSidebar,
+    toggleSidebar: toggleSidebar,
     setShowConvertFileDialog: setShowConvertFileDialog,
     showPermissionsDialog: showPermissionsDialog,
     showPropertiesDrawer: showPropertiesDrawer,
