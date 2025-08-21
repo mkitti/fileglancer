@@ -8,6 +8,17 @@ import useLayoutPrefs from '@/hooks/useLayoutPrefs';
 import Sidebar from '@/components/ui/Sidebar/Sidebar';
 import PropertiesDrawer from '@/components/ui/PropertiesDrawer/PropertiesDrawer';
 
+export type OutletContextType = {
+  setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  togglePropertiesDrawer: () => void;
+  toggleSidebar: () => void;
+  setShowConvertFileDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  showPermissionsDialog: boolean;
+  showPropertiesDrawer: boolean;
+  showSidebar: boolean;
+  showConvertFileDialog: boolean;
+};
+
 export const BrowsePageLayout = () => {
   const [showPermissionsDialog, setShowPermissionsDialog] =
     React.useState(false);
@@ -23,7 +34,7 @@ export const BrowsePageLayout = () => {
     toggleSidebar
   } = useLayoutPrefs();
 
-  const outletContextValue = {
+  const outletContextValue: OutletContextType = {
     setShowPermissionsDialog: setShowPermissionsDialog,
     togglePropertiesDrawer: togglePropertiesDrawer,
     toggleSidebar: toggleSidebar,

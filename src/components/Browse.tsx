@@ -1,5 +1,6 @@
 import React from 'react';
 import { useOutletContext } from 'react-router';
+import type { OutletContextType } from '@/layouts/BrowseLayout';
 
 import useHideDotFiles from '@/hooks/useHideDotFiles';
 import useSelectedFiles from '@/hooks/useSelectedFiles';
@@ -14,17 +15,6 @@ import ChangePermissions from './ui/Dialogs/ChangePermissions';
 import ConvertFileDialog from './ui/Dialogs/ConvertFile';
 import RecentDataLinksCard from './ui/BrowsePage/Dashboard/RecentDataLinksCard';
 import RecentlyViewedCard from './ui/BrowsePage/Dashboard/RecentlyViewedCard';
-
-type OutletContextType = {
-  setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
-  togglePropertiesDrawer: () => void;
-  toggleSidebar: React.Dispatch<React.SetStateAction<boolean>>;
-  setShowConvertFileDialog: React.Dispatch<React.SetStateAction<boolean>>;
-  showPermissionsDialog: boolean;
-  showPropertiesDrawer: boolean;
-  showSidebar: boolean;
-  showConvertFileDialog: boolean;
-};
 
 export default function Browse() {
   const {
