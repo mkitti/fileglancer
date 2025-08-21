@@ -2,7 +2,6 @@ import React from 'react';
 
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import logger from '@/logger';
-
 /**
  * Custom hook that provides storage interface for react-resizable-panels
  * with debounced updates to reduce API calls when resizing panels
@@ -12,14 +11,21 @@ import logger from '@/logger';
 
 const DEBOUNCE_MS = 500;
 
+// Name is set by the autosaveId prop in PanelGroup
+const LAYOUT_NAME = 'react-resizable-panels:layout';
+// Confusingly, the names are in alphabetical order, but the order of the sizes is set by the order prop in the respective Panel components
+const DEFAULT_LAYOUT =
+  '{"main,properties,sidebar":{"expandToSizes":{},"layout":[24,50,24]}}';
+
 // Layout keys for the two possible panel combinations
-const LAYOUT_KEYS_WITH_PROPERTIES = 'main, properties, sidebar';
-const LAYOUT_KEYS_WITHOUT_PROPERTIES = 'main, sidebar';
+const WITH_PROPERTIES = 'main,properties,sidebar';
+const WITHOUT_PROPERTIES = 'main,sidebar';
 
 export default function useLayoutPrefs() {
   const [showPropertiesDrawer, setShowPropertiesDrawer] =
     React.useState<boolean>(false);
-  const { layout, handleUpdateLayout } = usePreferencesContext();
+  const { layout, handleUpdateLayout, isLayoutLoadedFromDB } =
+    usePreferencesContext();
 
   const timerRef = React.useRef<number | null>(null);
 
@@ -45,98 +51,124 @@ export default function useLayoutPrefs() {
 
   // Initialize layouts from saved preferences
   React.useEffect(() => {
-    if (!layout || layout === '') {
+    if (!isLayoutLoadedFromDB) {
       return;
-    }
+    } else if (layout === '') {
+      // default layout includes properties drawer
+      setShowPropertiesDrawer(true);
+    } else {
+      try {
+        const parsedLayout = JSON.parse(layout);
+        const panelGroupData = parsedLayout[LAYOUT_NAME];
 
-    try {
-      const parsedLayout = JSON.parse(layout);
-      const panelGroupData = parsedLayout['react-resizable-panels:layout'];
-
-      if (panelGroupData) {
-        if (panelGroupData[LAYOUT_KEYS_WITH_PROPERTIES]) {
-          setShowPropertiesDrawer(true);
+        if (panelGroupData) {
+          if (panelGroupData[WITH_PROPERTIES]) {
+            setShowPropertiesDrawer(true);
+          } else if (panelGroupData[WITHOUT_PROPERTIES]) {
+            setShowPropertiesDrawer(false);
+          }
         }
+      } catch (error) {
+        logger.debug('Error parsing layout:', error);
       }
-    } catch (error) {
-      logger.debug('Error parsing layout:', error);
     }
-  }, [layout]);
+  }, [layout, isLayoutLoadedFromDB]);
 
   const layoutPrefsStorage = React.useMemo(
     () => ({
-      getItem(name: string) {
-        if (!layout) {
-          return null;
+      getItem(name: string): string {
+        logger.debug('getItem called with name:', name);
+        logger.debug('current layout value:', layout);
+        logger.debug('isLayoutLoadedFromDB:', isLayoutLoadedFromDB);
+
+        // Don't try to parse layout until it's loaded from the database
+        if (!isLayoutLoadedFromDB) {
+          logger.debug('Layout not loaded from DB yet, returning empty string');
+          return '';
+        }
+        // If layout is empty, return default layout
+        if (layout === '') {
+          logger.debug(
+            'Layout is empty, returning default layout',
+            DEFAULT_LAYOUT
+          );
+          return DEFAULT_LAYOUT;
         }
 
         try {
           const layoutObj = JSON.parse(layout);
-          const storedLayout = layoutObj[name];
+          logger.debug('parsed layout object:', layoutObj);
+          const storedLayout = JSON.stringify(layoutObj[name]);
 
           if (!storedLayout) {
-            return null;
+            logger.debug('No stored layout found for name:', name);
+            return '';
+          } else {
+            logger.debug('getItem returning storedLayout:', storedLayout);
+            return storedLayout;
           }
-
-          // Return the appropriate layout based on the current state
-          if (
-            showPropertiesDrawer &&
-            storedLayout[LAYOUT_KEYS_WITH_PROPERTIES]
-          ) {
-            return JSON.stringify(storedLayout[LAYOUT_KEYS_WITH_PROPERTIES]);
-          } else if (
-            !showPropertiesDrawer &&
-            storedLayout[LAYOUT_KEYS_WITHOUT_PROPERTIES]
-          ) {
-            return JSON.stringify(storedLayout[LAYOUT_KEYS_WITHOUT_PROPERTIES]);
-          }
-
-          return null;
         } catch (error) {
           logger.debug('Error getting layout item:', error);
-          return null;
+          return '';
         }
       },
       setItem(name: string, value: string) {
+        if (!isLayoutLoadedFromDB) {
+          logger.debug('Layout not loaded from DB yet');
+          return;
+        }
+        if (value === null || value === undefined || value === '') {
+          logger.debug('setItem called with empty value, ignoring');
+          return;
+        }
+
         try {
-          const valueObj = JSON.parse(value);
+          const incomingLayout = JSON.parse(value);
+          logger.debug(
+            'setItem called with name:',
+            name,
+            'parsed value:',
+            incomingLayout,
+            'showPropertiesDrawer:',
+            showPropertiesDrawer
+          );
+          let newLayoutObj = {};
 
-          let newLayoutObj;
-          if (layout) {
-            try {
-              newLayoutObj = JSON.parse(layout);
-            } catch {
-              newLayoutObj = {};
-            }
+          // First handle cases where the new layout has both key sets, indicating the presence of the properties panel
+          // has been toggled
+          // The new layout should use the key that matches the current state of the properties panel
+          if (incomingLayout[WITH_PROPERTIES] && showPropertiesDrawer) {
+            newLayoutObj = {
+              [name]: {
+                [WITH_PROPERTIES]: incomingLayout[WITH_PROPERTIES]
+              }
+            };
+          } else if (
+            incomingLayout[WITHOUT_PROPERTIES] &&
+            !showPropertiesDrawer
+          ) {
+            newLayoutObj = {
+              [name]: {
+                [WITHOUT_PROPERTIES]: incomingLayout[WITHOUT_PROPERTIES]
+              }
+            };
           } else {
-            newLayoutObj = {};
+            logger.debug('Invalid layout value:', value);
+            return;
           }
-
-          // Add name key to layout object, if currently not present (ie., empty)
-          if (!newLayoutObj[name]) {
-            newLayoutObj[name] = {};
-          }
-
-          // Store the layout under the appropriate key based on current state
-          const layoutKey = showPropertiesDrawer
-            ? LAYOUT_KEYS_WITH_PROPERTIES
-            : LAYOUT_KEYS_WITHOUT_PROPERTIES;
-
-          newLayoutObj[name][layoutKey] = valueObj;
 
           // Pass to debounce func, eventually preferences API
           // Note: setItem has to be synchronous for react-resizable-panels,
           // which is there's no await here even though handleUpdateLayout is async
           const newLayoutString = JSON.stringify(newLayoutObj);
+          logger.debug('setting layout with newLayoutString:', newLayoutString);
           debouncedUpdateLayout(newLayoutString);
-
-          logger.debug('Setting layout:', newLayoutString);
         } catch (error) {
           logger.debug('Error setting layout item:', error);
         }
       }
     }),
-    [layout, debouncedUpdateLayout, showPropertiesDrawer]
+    [layout, debouncedUpdateLayout, isLayoutLoadedFromDB, showPropertiesDrawer]
   );
 
   // Clean up the timer on unmount
@@ -154,3 +186,49 @@ export default function useLayoutPrefs() {
     togglePropertiesDrawer
   };
 }
+
+/** 
+ * Failed attempt to try to keep the sidebar panel size the same when toggling properties panel
+ * (
+            incomingLayoutKeys.includes(WITH_PROPERTIES) &&
+            incomingLayoutKeys.includes(WITHOUT_PROPERTIES)
+          ) {
+            console.log('showPropertiesDrawer:', showPropertiesDrawer);
+            if (showPropertiesDrawer.current) {
+              // If the new layout has properties panel but the previous one didn't,
+              // subtract the properties panel size from the main panel size in the prev panel. Keep the sidebar size the same.
+              // To access array of sizes, prevLayout[name][KEY]['layout']. The order of panels is alphabetical.
+              const mainPanelSize =
+                prevLayout[name][WITHOUT_PROPERTIES]['layout'][0] -
+                DEFAULT_PROPERTIES_SIZE;
+              const sidebarSize =
+                prevLayout[name][WITHOUT_PROPERTIES]['layout'][1];
+              const propertiesPanelSize = DEFAULT_PROPERTIES_SIZE; // Default size for properties panel
+              newLayoutObj = {
+                [name]: {
+                  [WITH_PROPERTIES]: {
+                    layout: [mainPanelSize, propertiesPanelSize, sidebarSize]
+                  },
+                  showPropertiesDrawer: true
+                }
+              };
+            } else {
+              // If the new layout doesn't have properties panel but the previous one did,
+              // add the properties panel size to the main panel size in the prev panel. Keep the sidebar size the same.
+              const mainPanelSize =
+                prevLayout[name][WITH_PROPERTIES]['layout'][0] +
+                prevLayout[name][WITH_PROPERTIES]['layout'][1];
+              const sidebarSize =
+                prevLayout[name][WITH_PROPERTIES]['layout'][2];
+              newLayoutObj = {
+                [name]: {
+                  [WITHOUT_PROPERTIES]: {
+                    layout: [mainPanelSize, sidebarSize]
+                  },
+                  showPropertiesDrawer: false
+                }
+              };
+            }
+          } else if (
+            //Now handle the cases where the new layout has only one of the two keys
+            // This menas the properties panel state has not changed */

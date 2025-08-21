@@ -47,6 +47,7 @@ type PreferencesContextType = {
   layout: string;
   handleUpdateLayout: (layout: string) => Promise<void>;
   loadingRecentlyViewedFolders: boolean;
+  isLayoutLoadedFromDB: boolean;
 };
 
 const PreferencesContext = React.createContext<PreferencesContextType | null>(
@@ -96,6 +97,7 @@ export const PreferencesProvider = ({
   const [isFileSharePathFavoritesReady, setIsFileSharePathFavoritesReady] =
     React.useState(false);
   const [layout, setLayout] = React.useState<string>('');
+  const [isLayoutLoadedFromDB, setIsLayoutLoadedFromDB] = React.useState(false);
 
   const { cookies } = useCookiesContext();
   const { isZonesMapReady, zonesAndFileSharePathsMap } =
@@ -410,13 +412,17 @@ export const PreferencesProvider = ({
 
   React.useEffect(() => {
     (async function () {
+      if (isLayoutLoadedFromDB) {
+        return; // Avoid re-fetching if already loaded
+      }
       const rawLayoutPref = await fetchPreferences('layout');
       if (rawLayoutPref) {
         log.debug('setting layout:', rawLayoutPref);
         setLayout(rawLayoutPref);
       }
+      setIsLayoutLoadedFromDB(true);
     })();
-  }, [fetchPreferences]);
+  }, [fetchPreferences, isLayoutLoadedFromDB]);
 
   React.useEffect(() => {
     (async function () {
@@ -586,7 +592,8 @@ export const PreferencesProvider = ({
         recentlyViewedFolders,
         layout,
         handleUpdateLayout,
-        loadingRecentlyViewedFolders
+        loadingRecentlyViewedFolders,
+        isLayoutLoadedFromDB
       }}
     >
       {children}
