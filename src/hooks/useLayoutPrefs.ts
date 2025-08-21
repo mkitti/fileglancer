@@ -18,12 +18,14 @@ const DEFAULT_LAYOUT =
   '{"main,properties,sidebar":{"expandToSizes":{},"layout":[24,50,24]}}';
 
 // Layout keys for the two possible panel combinations
-const WITH_PROPERTIES = 'main,properties,sidebar';
-const WITHOUT_PROPERTIES = 'main,sidebar';
+const WITH_PROPERTIES_AND_SIDEBAR = 'main,properties,sidebar';
+const ONLY_SIDEBAR = 'main,sidebar';
+const ONLY_PROPERTIES = 'main,properties';
 
 export default function useLayoutPrefs() {
   const [showPropertiesDrawer, setShowPropertiesDrawer] =
     React.useState<boolean>(false);
+  const [showSidebar, setShowSidebar] = React.useState(true);
   const { layout, handleUpdateLayout, isLayoutLoadedFromDB } =
     usePreferencesContext();
 
@@ -49,6 +51,10 @@ export default function useLayoutPrefs() {
     setShowPropertiesDrawer(prev => !prev);
   };
 
+  const toggleSidebar = () => {
+    setShowSidebar(prev => !prev);
+  };
+
   // Initialize layouts from saved preferences
   React.useEffect(() => {
     if (!isLayoutLoadedFromDB) {
@@ -62,9 +68,17 @@ export default function useLayoutPrefs() {
         const panelGroupData = parsedLayout[LAYOUT_NAME];
 
         if (panelGroupData) {
-          if (panelGroupData[WITH_PROPERTIES]) {
+          if (panelGroupData[WITH_PROPERTIES_AND_SIDEBAR]) {
             setShowPropertiesDrawer(true);
-          } else if (panelGroupData[WITHOUT_PROPERTIES]) {
+            setShowSidebar(true);
+          } else if (panelGroupData[ONLY_SIDEBAR]) {
+            setShowPropertiesDrawer(false);
+            setShowSidebar(true);
+          } else if (panelGroupData[ONLY_PROPERTIES]) {
+            setShowPropertiesDrawer(true);
+            setShowSidebar(false);
+          } else if (panelGroupData.main) {
+            setShowSidebar(false);
             setShowPropertiesDrawer(false);
           }
         }
@@ -124,6 +138,7 @@ export default function useLayoutPrefs() {
 
         try {
           const incomingLayout = JSON.parse(value);
+          const incomingLayoutKeys = Object.keys(incomingLayout);
           logger.debug(
             'setItem called with name:',
             name,
@@ -134,22 +149,55 @@ export default function useLayoutPrefs() {
           );
           let newLayoutObj = {};
 
-          // First handle cases where the new layout has both key sets, indicating the presence of the properties panel
-          // has been toggled
+          // Find key to use
+          // If there is only one key, this is the first time the layout is being set and we can use the one key directly
+          //If there are multiple keys, use the one that does not exist in the current layout
+          let key = '';
+          if (incomingLayoutKeys.length === 1) {
+            key = incomingLayoutKeys[0];
+          } else if (incomingLayoutKeys.length > 1) {
+            const possibleKey = incomingLayoutKeys.find(
+              key => !Object.keys(JSON.parse(layout)[LAYOUT_NAME]).includes(key)
+            );
+            key = possibleKey || '';
+          }
+
           // The new layout should use the key that matches the current state of the properties panel
-          if (incomingLayout[WITH_PROPERTIES] && showPropertiesDrawer) {
-            newLayoutObj = {
-              [name]: {
-                [WITH_PROPERTIES]: incomingLayout[WITH_PROPERTIES]
-              }
-            };
-          } else if (
-            incomingLayout[WITHOUT_PROPERTIES] &&
-            !showPropertiesDrawer
+          if (
+            key === WITH_PROPERTIES_AND_SIDEBAR &&
+            showPropertiesDrawer &&
+            showSidebar
           ) {
             newLayoutObj = {
               [name]: {
-                [WITHOUT_PROPERTIES]: incomingLayout[WITHOUT_PROPERTIES]
+                [WITH_PROPERTIES_AND_SIDEBAR]:
+                  incomingLayout[WITH_PROPERTIES_AND_SIDEBAR]
+              }
+            };
+          } else if (
+            key === ONLY_SIDEBAR &&
+            !showPropertiesDrawer &&
+            showSidebar
+          ) {
+            newLayoutObj = {
+              [name]: {
+                [ONLY_SIDEBAR]: incomingLayout[ONLY_SIDEBAR]
+              }
+            };
+          } else if (
+            key === ONLY_PROPERTIES &&
+            showPropertiesDrawer &&
+            !showSidebar
+          ) {
+            newLayoutObj = {
+              [name]: {
+                [ONLY_PROPERTIES]: incomingLayout[ONLY_PROPERTIES]
+              }
+            };
+          } else if (key === 'main' && !showPropertiesDrawer && !showSidebar) {
+            newLayoutObj = {
+              [name]: {
+                main: incomingLayout['main']
               }
             };
           } else {
@@ -168,7 +216,13 @@ export default function useLayoutPrefs() {
         }
       }
     }),
-    [layout, debouncedUpdateLayout, isLayoutLoadedFromDB, showPropertiesDrawer]
+    [
+      layout,
+      debouncedUpdateLayout,
+      isLayoutLoadedFromDB,
+      showPropertiesDrawer,
+      showSidebar
+    ]
   );
 
   // Clean up the timer on unmount
@@ -183,52 +237,8 @@ export default function useLayoutPrefs() {
   return {
     layoutPrefsStorage,
     showPropertiesDrawer,
-    togglePropertiesDrawer
+    togglePropertiesDrawer,
+    showSidebar,
+    toggleSidebar
   };
 }
-
-/** 
- * Failed attempt to try to keep the sidebar panel size the same when toggling properties panel
- * (
-            incomingLayoutKeys.includes(WITH_PROPERTIES) &&
-            incomingLayoutKeys.includes(WITHOUT_PROPERTIES)
-          ) {
-            console.log('showPropertiesDrawer:', showPropertiesDrawer);
-            if (showPropertiesDrawer.current) {
-              // If the new layout has properties panel but the previous one didn't,
-              // subtract the properties panel size from the main panel size in the prev panel. Keep the sidebar size the same.
-              // To access array of sizes, prevLayout[name][KEY]['layout']. The order of panels is alphabetical.
-              const mainPanelSize =
-                prevLayout[name][WITHOUT_PROPERTIES]['layout'][0] -
-                DEFAULT_PROPERTIES_SIZE;
-              const sidebarSize =
-                prevLayout[name][WITHOUT_PROPERTIES]['layout'][1];
-              const propertiesPanelSize = DEFAULT_PROPERTIES_SIZE; // Default size for properties panel
-              newLayoutObj = {
-                [name]: {
-                  [WITH_PROPERTIES]: {
-                    layout: [mainPanelSize, propertiesPanelSize, sidebarSize]
-                  },
-                  showPropertiesDrawer: true
-                }
-              };
-            } else {
-              // If the new layout doesn't have properties panel but the previous one did,
-              // add the properties panel size to the main panel size in the prev panel. Keep the sidebar size the same.
-              const mainPanelSize =
-                prevLayout[name][WITH_PROPERTIES]['layout'][0] +
-                prevLayout[name][WITH_PROPERTIES]['layout'][1];
-              const sidebarSize =
-                prevLayout[name][WITH_PROPERTIES]['layout'][2];
-              newLayoutObj = {
-                [name]: {
-                  [WITHOUT_PROPERTIES]: {
-                    layout: [mainPanelSize, sidebarSize]
-                  },
-                  showPropertiesDrawer: false
-                }
-              };
-            }
-          } else if (
-            //Now handle the cases where the new layout has only one of the two keys
-            // This menas the properties panel state has not changed */
