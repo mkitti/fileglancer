@@ -13,7 +13,8 @@ const DEBOUNCE_MS = 500;
 
 // Name is set by the autosaveId prop in PanelGroup
 const LAYOUT_NAME = 'react-resizable-panels:layout';
-// Confusingly, the names are in alphabetical order, but the order of the sizes is set by the order prop in the respective Panel components
+// Confusingly, the names are in alphabetical order, but the order of the sizes is set by the order prop
+// in the respective Panel components
 const DEFAULT_LAYOUT =
   '{"main,properties,sidebar":{"expandToSizes":{},"layout":[24,50,24]}}';
 
@@ -91,10 +92,6 @@ export default function useLayoutPrefs() {
   const layoutPrefsStorage = React.useMemo(
     () => ({
       getItem(name: string): string {
-        logger.debug('getItem called with name:', name);
-        logger.debug('current layout value:', layout);
-        logger.debug('isLayoutLoadedFromDB:', isLayoutLoadedFromDB);
-
         // Don't try to parse layout until it's loaded from the database
         if (!isLayoutLoadedFromDB) {
           logger.debug('Layout not loaded from DB yet, returning empty string');
@@ -111,7 +108,6 @@ export default function useLayoutPrefs() {
 
         try {
           const layoutObj = JSON.parse(layout);
-          logger.debug('parsed layout object:', layoutObj);
           const storedLayout = JSON.stringify(layoutObj[name]);
 
           if (!storedLayout) {
@@ -127,6 +123,7 @@ export default function useLayoutPrefs() {
         }
       },
       setItem(name: string, value: string) {
+        logger.debug('setItem called with name:', name, 'value:', value);
         if (!isLayoutLoadedFromDB) {
           logger.debug('Layout not loaded from DB yet');
           return;
@@ -143,10 +140,13 @@ export default function useLayoutPrefs() {
             'setItem called with name:',
             name,
             'parsed value:',
-            incomingLayout,
-            'showPropertiesDrawer:',
+            incomingLayout
+          );
+          logger.debug(
+            'Current showPropertiesDrawer state:',
             showPropertiesDrawer
           );
+          logger.debug('Current showSidebar state:', showSidebar);
           let newLayoutObj = {};
 
           // Find key to use
