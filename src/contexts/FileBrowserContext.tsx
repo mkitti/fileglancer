@@ -24,6 +24,7 @@ interface FileBrowserState {
   currentFolder: FileOrFolder | null;
   files: FileOrFolder[];
   propertiesTarget: FileOrFolder | null;
+  selectedFiles: FileOrFolder[];
   uiErrorMsg: string | null;
 }
 
@@ -75,6 +76,7 @@ export const FileBrowserContextProvider = ({
       currentFolder: null,
       files: [],
       propertiesTarget: null,
+      selectedFiles: [],
       uiErrorMsg: null
     });
   const [areFileDataLoading, setAreFileDataLoading] = React.useState(false);
@@ -110,6 +112,7 @@ export const FileBrowserContextProvider = ({
       folder: FileOrFolder | null,
       fileList: FileOrFolder[],
       targetItem: FileOrFolder | null,
+      selectedItems: FileOrFolder[] = [],
       msg: string | null
     ) => {
       // Update fileBrowserState with complete, consistent data
@@ -118,6 +121,7 @@ export const FileBrowserContextProvider = ({
         currentFolder: folder,
         files: fileList,
         propertiesTarget: targetItem,
+        selectedFiles: selectedItems,
         uiErrorMsg: msg
       });
 
@@ -198,13 +202,20 @@ export const FileBrowserContextProvider = ({
         });
 
         // Update all states consistently
-        updateAllStates(fsp, folder, files, folder, null);
+        updateAllStates(fsp, folder, files, folder, [], null);
       } catch (error) {
         log.error(error);
         if (error instanceof Error) {
-          updateAllStates(fsp, folder, [], folder, error.message);
+          updateAllStates(fsp, folder, [], folder, [], error.message);
         } else {
-          updateAllStates(fsp, folder, [], folder, 'An unknown error occurred');
+          updateAllStates(
+            fsp,
+            folder,
+            [],
+            folder,
+            [],
+            'An unknown error occurred'
+          );
         }
       } finally {
         setAreFileDataLoading(false);
@@ -244,7 +255,14 @@ export const FileBrowserContextProvider = ({
         if (cancelled) {
           return;
         }
-        updateAllStates(null, null, [], null, 'Invalid file share path name');
+        updateAllStates(
+          null,
+          null,
+          [],
+          null,
+          [],
+          'Invalid file share path name'
+        );
         return;
       }
 
@@ -255,7 +273,14 @@ export const FileBrowserContextProvider = ({
         if (cancelled) {
           return;
         }
-        updateAllStates(null, null, [], null, 'Invalid file share path name');
+        updateAllStates(
+          null,
+          null,
+          [],
+          null,
+          [],
+          'Invalid file share path name'
+        );
         return;
       }
 
