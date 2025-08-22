@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Typography } from '@material-tailwind/react';
 
-import type { FileOrFolder } from '@/shared.types';
 import FileListCrumbs from './Crumbs';
 import FileRow from './FileRow';
 import ZarrPreview from './ZarrPreview';
@@ -12,8 +11,6 @@ import useZarrMetadata from '@/hooks/useZarrMetadata';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
 type FileListProps = {
-  selectedFiles: FileOrFolder[];
-  setSelectedFiles: React.Dispatch<React.SetStateAction<FileOrFolder[]>>;
   showPropertiesDrawer: boolean;
   hideDotFiles: boolean;
   togglePropertiesDrawer: () => void;
@@ -24,8 +21,6 @@ type FileListProps = {
 };
 
 export default function FileList({
-  selectedFiles,
-  setSelectedFiles,
   showPropertiesDrawer,
   hideDotFiles,
   togglePropertiesDrawer,
@@ -41,8 +36,7 @@ export default function FileList({
     showContextMenu,
     setShowContextMenu,
     menuRef,
-    handleContextMenuClick,
-    handleContextMenuFavorite
+    handleContextMenuClick
   } = useContextMenu();
 
   const {
@@ -110,8 +104,6 @@ export default function FileList({
                 key={`${file.name}-${index}`}
                 file={file}
                 index={index}
-                selectedFiles={selectedFiles}
-                setSelectedFiles={setSelectedFiles}
                 displayFiles={displayFiles}
                 showPropertiesDrawer={showPropertiesDrawer}
                 handleContextMenuClick={handleContextMenuClick}
@@ -141,8 +133,6 @@ export default function FileList({
           x={contextMenuCoords.x}
           y={contextMenuCoords.y}
           menuRef={menuRef}
-          selectedFiles={selectedFiles}
-          handleContextMenuFavorite={handleContextMenuFavorite}
           togglePropertiesDrawer={togglePropertiesDrawer}
           setShowContextMenu={setShowContextMenu}
           setShowRenameDialog={setShowRenameDialog}

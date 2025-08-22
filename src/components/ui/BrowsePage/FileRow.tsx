@@ -8,7 +8,6 @@ import {
 
 import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import useHandleLeftClick from '@/hooks/useHandleLeftClick';
 import {
   formatUnixTimestamp,
   formatFileSize,
@@ -20,31 +19,25 @@ import { FgStyledLink } from '../widgets/FgLink';
 type FileRowProps = {
   file: FileOrFolder;
   index: number;
-  selectedFiles: FileOrFolder[];
-  setSelectedFiles: React.Dispatch<React.SetStateAction<FileOrFolder[]>>;
   displayFiles: FileOrFolder[];
   showPropertiesDrawer: boolean;
   handleContextMenuClick: (
     e: React.MouseEvent<HTMLDivElement>,
-    file: FileOrFolder,
-    selectedFiles: FileOrFolder[],
-    setSelectedFiles: React.Dispatch<React.SetStateAction<FileOrFolder[]>>
+    file: FileOrFolder
   ) => void;
 };
 
 export default function FileRow({
   file,
   index,
-  selectedFiles,
-  setSelectedFiles,
   // displayFiles,
   showPropertiesDrawer,
   handleContextMenuClick
 }: FileRowProps): ReactNode {
-  const { currentFileSharePath } = useFileBrowserContext();
-  const { handleLeftClick } = useHandleLeftClick();
+  const { currentFileSharePath, handleLeftClick, fileBrowserState } =
+    useFileBrowserContext();
 
-  const isSelected = selectedFiles.some(
+  const isSelected = fileBrowserState.selectedFiles.some(
     selectedFile => selectedFile.name === file.name
   );
 
@@ -57,15 +50,10 @@ export default function FileRow({
     <div
       className={`cursor-pointer grid grid-cols-[minmax(170px,2fr)_minmax(80px,1fr)_minmax(95px,1fr)_minmax(75px,1fr)_minmax(40px,1fr)] gap-4 hover:bg-primary-light/30 focus:bg-primary-light/30 ${isSelected && 'bg-primary-light/30'} ${index % 2 === 0 && !isSelected && 'bg-surface/50'}  `}
       onClick={(e: React.MouseEvent<HTMLDivElement>) =>
-        handleLeftClick(
-          file,
-          selectedFiles,
-          setSelectedFiles,
-          showPropertiesDrawer
-        )
+        handleLeftClick(file, showPropertiesDrawer)
       }
       onContextMenu={(e: React.MouseEvent<HTMLDivElement>) =>
-        handleContextMenuClick(e, file, selectedFiles, setSelectedFiles)
+        handleContextMenuClick(e, file)
       }
     >
       {/* Name column */}
@@ -113,7 +101,7 @@ export default function FileRow({
       <div
         className="py-1 text-grey-700 flex items-center flex-shrink-0"
         onClick={e => {
-          handleContextMenuClick(e, file, selectedFiles, setSelectedFiles);
+          handleContextMenuClick(e, file);
         }}
       >
         <IconButton variant="ghost">

@@ -3,7 +3,6 @@ import { useOutletContext } from 'react-router';
 import type { OutletContextType } from '@/layouts/BrowseLayout';
 
 import useHideDotFiles from '@/hooks/useHideDotFiles';
-import useSelectedFiles from '@/hooks/useSelectedFiles';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
 import FileList from './ui/BrowsePage/FileList';
@@ -29,7 +28,6 @@ export default function Browse() {
   } = useOutletContext<OutletContextType>();
 
   const { hideDotFiles, setHideDotFiles } = useHideDotFiles();
-  const { selectedFiles, setSelectedFiles } = useSelectedFiles();
   const { currentFileSharePath } = useFileBrowserContext();
 
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
@@ -56,8 +54,6 @@ export default function Browse() {
           </>
         ) : (
           <FileList
-            selectedFiles={selectedFiles}
-            setSelectedFiles={setSelectedFiles}
             showPropertiesDrawer={showPropertiesDrawer}
             hideDotFiles={hideDotFiles}
             togglePropertiesDrawer={togglePropertiesDrawer}

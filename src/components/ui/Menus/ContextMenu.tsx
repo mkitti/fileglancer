@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import toast from 'react-hot-toast';
 
 import FgMenuItems, { MenuItem } from './FgMenuItems';
-import type { FileOrFolder, Result } from '@/shared.types';
+import type { Result } from '@/shared.types';
 import { makeMapKey } from '@/utils';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
@@ -12,10 +12,6 @@ type ContextMenuProps = {
   x: number;
   y: number;
   menuRef: React.RefObject<HTMLDivElement | null>;
-  selectedFiles: FileOrFolder[];
-  handleContextMenuFavorite: (
-    selectedFiles: FileOrFolder[]
-  ) => Promise<Result<boolean>>;
   togglePropertiesDrawer: () => void;
   setShowContextMenu: React.Dispatch<React.SetStateAction<boolean>>;
   setShowRenameDialog: React.Dispatch<React.SetStateAction<boolean>>;
@@ -25,10 +21,7 @@ type ContextMenuProps = {
 };
 
 type ContextMenuActionProps = {
-  selectedFiles: FileOrFolder[];
-  handleContextMenuFavorite: (
-    selectedFiles: FileOrFolder[]
-  ) => Promise<Result<boolean>>;
+  handleContextMenuFavorite: () => Promise<Result<boolean>>;
   togglePropertiesDrawer: () => void;
   setShowContextMenu: React.Dispatch<React.SetStateAction<boolean>>;
   setShowRenameDialog: React.Dispatch<React.SetStateAction<boolean>>;
@@ -41,8 +34,6 @@ export default function ContextMenu({
   x,
   y,
   menuRef,
-  selectedFiles,
-  handleContextMenuFavorite,
   togglePropertiesDrawer,
   setShowContextMenu,
   setShowRenameDialog,
@@ -51,13 +42,14 @@ export default function ContextMenu({
   setShowConvertFileDialog
 }: ContextMenuProps): React.ReactNode {
   const { fileBrowserState } = useFileBrowserContext();
-  const { folderPreferenceMap } = usePreferencesContext();
+  const { folderPreferenceMap, handleContextMenuFavorite } =
+    usePreferencesContext();
 
   const isFavorite: boolean = Boolean(
     folderPreferenceMap[
       makeMapKey(
         'folder',
-        `${fileBrowserState.currentFileSharePath?.name}_${selectedFiles[0].path}`
+        `${fileBrowserState.currentFileSharePath?.name}_${fileBrowserState.selectedFiles[0].path}`
       )
     ]
   );
@@ -74,7 +66,7 @@ export default function ContextMenu({
     {
       name: isFavorite ? 'Unset favorite' : 'Set favorite',
       action: async (props: ContextMenuActionProps) => {
-        const result = await props.handleContextMenuFavorite(selectedFiles);
+        const result = await props.handleContextMenuFavorite();
         if (!result.success) {
           toast.error(`Error toggling favorite: ${result.error}`);
         } else {
@@ -82,7 +74,7 @@ export default function ContextMenu({
         }
         setShowContextMenu(false);
       },
-      shouldShow: selectedFiles[0].is_dir
+      shouldShow: fileBrowserState.selectedFiles[0].is_dir
     },
     {
       name: 'Convert to ZARR',
@@ -105,7 +97,7 @@ export default function ContextMenu({
         props.setShowPermissionsDialog(true);
         props.setShowContextMenu(false);
       },
-      shouldShow: !selectedFiles[0].is_dir
+      shouldShow: !fileBrowserState.selectedFiles[0].is_dir
     },
     {
       name: 'Delete',
@@ -119,7 +111,7 @@ export default function ContextMenu({
   ];
 
   const actionProps = {
-    selectedFiles,
+    fileBrowserState,
     handleContextMenuFavorite,
     togglePropertiesDrawer,
     setShowContextMenu,

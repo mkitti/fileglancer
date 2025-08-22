@@ -1,9 +1,7 @@
 import * as React from 'react';
 
-import type { FileOrFolder, Result } from '@/shared.types';
+import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import { handleError } from '@/utils/errorHandling';
 
 export default function useContextMenu() {
   const [contextMenuCoords, setContextMenuCoords] = React.useState({
@@ -14,8 +12,7 @@ export default function useContextMenu() {
 
   const menuRef = React.useRef<HTMLDivElement>(null);
 
-  const { currentFileSharePath, setPropertiesTarget } = useFileBrowserContext();
-  const { handleFavoriteChange } = usePreferencesContext();
+  const { updateFilesWithContextMenuClick } = useFileBrowserContext();
 
   function onClose() {
     setShowContextMenu(false);
@@ -58,43 +55,20 @@ export default function useContextMenu() {
 
   function handleContextMenuClick(
     e: React.MouseEvent<HTMLDivElement>,
-    file: FileOrFolder,
-    selectedFiles: FileOrFolder[],
-    setSelectedFiles: React.Dispatch<React.SetStateAction<FileOrFolder[]>>
+    file: FileOrFolder
   ) {
     e.preventDefault();
     e.stopPropagation();
-    setPropertiesTarget(file);
     setContextMenuCoords({ x: e.clientX, y: e.clientY });
     setShowContextMenu(true);
-    const currentIndex = selectedFiles.indexOf(file);
-    const newSelectedFiles = currentIndex === -1 ? [file] : [...selectedFiles];
-    setSelectedFiles(newSelectedFiles);
+    updateFilesWithContextMenuClick(file);
   }
-
-  const handleContextMenuFavorite = async (
-    selectedFiles: FileOrFolder[]
-  ): Promise<Result<boolean>> => {
-    if (currentFileSharePath) {
-      return await handleFavoriteChange(
-        {
-          type: 'folder',
-          folderPath: selectedFiles[0].path,
-          fsp: currentFileSharePath
-        },
-        'folder'
-      );
-    } else {
-      return handleError(new Error('No file share path selected'));
-    }
-  };
 
   return {
     contextMenuCoords,
     showContextMenu,
     setShowContextMenu,
     menuRef,
-    handleContextMenuClick,
-    handleContextMenuFavorite
+    handleContextMenuClick
   };
 }
