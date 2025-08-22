@@ -44,7 +44,10 @@ type PreferencesContextType = {
     type: 'zone' | 'fileSharePath' | 'folder'
   ) => Promise<Result<boolean>>;
   recentlyViewedFolders: FolderPreference[];
+  layout: string;
+  handleUpdateLayout: (layout: string) => Promise<void>;
   loadingRecentlyViewedFolders: boolean;
+  isLayoutLoadedFromDB: boolean;
 };
 
 const PreferencesContext = React.createContext<PreferencesContextType | null>(
@@ -93,6 +96,8 @@ export const PreferencesProvider = ({
     React.useState(false);
   const [isFileSharePathFavoritesReady, setIsFileSharePathFavoritesReady] =
     React.useState(false);
+  const [layout, setLayout] = React.useState<string>('');
+  const [isLayoutLoadedFromDB, setIsLayoutLoadedFromDB] = React.useState(false);
 
   const { cookies } = useCookiesContext();
   const { isZonesMapReady, zonesAndFileSharePathsMap } =
@@ -196,6 +201,11 @@ export const PreferencesProvider = ({
     },
     [cookies]
   );
+
+  const handleUpdateLayout = async (layout: string): Promise<void> => {
+    await savePreferencesToBackend('layout', layout);
+    setLayout(layout);
+  };
 
   const handlePathPreferenceSubmit = React.useCallback(
     async (
@@ -402,6 +412,20 @@ export const PreferencesProvider = ({
 
   React.useEffect(() => {
     (async function () {
+      if (isLayoutLoadedFromDB) {
+        return; // Avoid re-fetching if already loaded
+      }
+      const rawLayoutPref = await fetchPreferences('layout');
+      if (rawLayoutPref) {
+        log.debug('setting layout:', rawLayoutPref);
+        setLayout(rawLayoutPref);
+      }
+      setIsLayoutLoadedFromDB(true);
+    })();
+  }, [fetchPreferences, isLayoutLoadedFromDB]);
+
+  React.useEffect(() => {
+    (async function () {
       const rawPathPreference = await fetchPreferences('path');
       if (rawPathPreference) {
         log.debug('setting initial path preference:', rawPathPreference);
@@ -566,7 +590,10 @@ export const PreferencesProvider = ({
         isFileSharePathFavoritesReady,
         handleFavoriteChange,
         recentlyViewedFolders,
-        loadingRecentlyViewedFolders
+        layout,
+        handleUpdateLayout,
+        loadingRecentlyViewedFolders,
+        isLayoutLoadedFromDB
       }}
     >
       {children}
