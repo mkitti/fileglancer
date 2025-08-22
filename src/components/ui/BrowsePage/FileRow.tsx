@@ -9,6 +9,7 @@ import {
 import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import useHandleLeftClick from '@/hooks/useHandleLeftClick';
+import { useHandleDownload } from '@/hooks/useHandleDownload';
 import {
   formatUnixTimestamp,
   formatFileSize,
@@ -37,12 +38,12 @@ export default function FileRow({
   index,
   selectedFiles,
   setSelectedFiles,
-  // displayFiles,
   showPropertiesDrawer,
   handleContextMenuClick
 }: FileRowProps): ReactNode {
   const { currentFileSharePath } = useFileBrowserContext();
   const { handleLeftClick } = useHandleLeftClick();
+  const { handleDownload } = useHandleDownload(file);
 
   const isSelected = selectedFiles.some(
     selectedFile => selectedFile.name === file.name
@@ -70,13 +71,22 @@ export default function FileRow({
     >
       {/* Name column */}
       <div className="flex items-center pl-3 py-1">
-        <FgTooltip label={file.name} triggerClasses="max-w-full truncate">
+        <FgTooltip
+          label={file.is_dir ? file.name : 'Click to download'}
+          triggerClasses="max-w-full truncate"
+        >
           {file.is_dir ? (
             <Typography as={FgStyledLink} to={link}>
               {file.name}
             </Typography>
           ) : (
-            <Typography className="font-medium text-primary-default truncate">
+            <Typography
+              className="text-primary-default truncate cursor-pointer hover:underline"
+              onClick={(e: React.MouseEvent) => {
+                handleDownload();
+                e.stopPropagation();
+              }}
+            >
               {file.name}
             </Typography>
           )}
