@@ -1,9 +1,45 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import { render, screen } from '@/__tests__/test-utils';
 import toast from 'react-hot-toast';
+
+// Define mock value for propertiesTarget using vi.hoisted
+const mockPropertiesTarget = vi.hoisted(() => {
+  return {
+    name: 'target_file',
+    path: '/my_folder/target_file',
+    size: 1024,
+    is_dir: false,
+    permissions: 'drwxr-xr-x',
+    owner: 'testuser',
+    group: 'testgroup',
+    last_modified: 1647855213
+  };
+});
+
+// Mock the FileBrowserContext module
+vi.mock(import('../../contexts/FileBrowserContext'), async importOriginal => {
+  const originalModule = await importOriginal();
+  const { useFileBrowserContext } = originalModule;
+
+  return {
+    ...originalModule,
+    useFileBrowserContext: () => {
+      const originalContext = useFileBrowserContext();
+      return {
+        ...originalContext,
+        fileBrowserState: {
+          ...originalContext.fileBrowserState,
+          propertiesTarget: mockPropertiesTarget
+        },
+        propertiesTarget: mockPropertiesTarget
+      };
+    }
+  };
+});
+
 import DeleteDialog from '@/components/ui/Dialogs/Delete';
+import { render, screen } from '@/__tests__/test-utils';
 
 describe('Delete dialog', () => {
   beforeEach(async () => {
@@ -12,16 +48,6 @@ describe('Delete dialog', () => {
 
     render(
       <DeleteDialog
-        targetItem={{
-          name: 'target_file',
-          path: '/my_folder/target_file',
-          size: 1024,
-          is_dir: false,
-          permissions: 'drwxr-xr-x',
-          owner: 'testuser',
-          group: 'testgroup',
-          last_modified: 1647855213
-        }}
         showDeleteDialog={true}
         setShowDeleteDialog={setShowDeleteDialog}
       />,

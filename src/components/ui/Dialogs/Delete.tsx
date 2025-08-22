@@ -5,34 +5,35 @@ import toast from 'react-hot-toast';
 import FgDialog from '@/components/ui/Dialogs/FgDialog';
 import TextWithFilePath from '@/components/ui/Dialogs/TextWithFilePath';
 import useDeleteDialog from '@/hooks/useDeleteDialog';
-import type { FileOrFolder } from '@/shared.types';
 import { getPreferredPathForDisplay } from '@/utils';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 
 type DeleteDialogProps = {
-  targetItem: FileOrFolder;
   showDeleteDialog: boolean;
   setShowDeleteDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function DeleteDialog({
-  targetItem,
   showDeleteDialog,
   setShowDeleteDialog
 }: DeleteDialogProps): JSX.Element {
   const { handleDelete } = useDeleteDialog();
-  const { fileBrowserState } = useFileBrowserContext();
+  const { fileBrowserState, propertiesTarget } = useFileBrowserContext();
   const { pathPreference } = usePreferencesContext();
 
   if (!fileBrowserState.currentFileSharePath) {
     return <>{toast.error('No file share path selected')}</>; // No file share path available
   }
 
+  if (!propertiesTarget) {
+    return <>{toast.error('No target file selected')}</>; // No target file available
+  }
+
   const displayPath = getPreferredPathForDisplay(
     pathPreference,
     fileBrowserState.currentFileSharePath,
-    targetItem.path
+    propertiesTarget.path
   );
 
   return (
@@ -48,7 +49,7 @@ export default function DeleteDialog({
         color="error"
         className="!rounded-md"
         onClick={async () => {
-          const result = await handleDelete(targetItem);
+          const result = await handleDelete(propertiesTarget);
           if (!result.success) {
             toast.error(`Error deleting item: ${result.error}`);
           } else {
