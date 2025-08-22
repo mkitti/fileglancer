@@ -12,6 +12,7 @@ type ContextMenuProps = {
   x: number;
   y: number;
   menuRef: React.RefObject<HTMLDivElement | null>;
+  showPropertiesDrawer: boolean;
   togglePropertiesDrawer: () => void;
   setShowContextMenu: React.Dispatch<React.SetStateAction<boolean>>;
   setShowRenameDialog: React.Dispatch<React.SetStateAction<boolean>>;
@@ -34,6 +35,7 @@ export default function ContextMenu({
   x,
   y,
   menuRef,
+  showPropertiesDrawer,
   togglePropertiesDrawer,
   setShowContextMenu,
   setShowRenameDialog,
@@ -61,7 +63,7 @@ export default function ContextMenu({
         props.togglePropertiesDrawer();
         props.setShowContextMenu(false);
       },
-      shouldShow: true
+      shouldShow: !showPropertiesDrawer
     },
     {
       name: isFavorite ? 'Unset favorite' : 'Set favorite',

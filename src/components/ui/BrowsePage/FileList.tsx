@@ -133,6 +133,7 @@ export default function FileList({
           x={contextMenuCoords.x}
           y={contextMenuCoords.y}
           menuRef={menuRef}
+          showPropertiesDrawer={showPropertiesDrawer}
           togglePropertiesDrawer={togglePropertiesDrawer}
           setShowContextMenu={setShowContextMenu}
           setShowRenameDialog={setShowRenameDialog}
