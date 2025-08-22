@@ -1,5 +1,6 @@
 import React from 'react';
 import { useOutletContext } from 'react-router';
+import type { OutletContextType } from '@/layouts/BrowseLayout';
 
 import useHideDotFiles from '@/hooks/useHideDotFiles';
 import useSelectedFiles from '@/hooks/useSelectedFiles';
@@ -15,22 +16,11 @@ import RecentDataLinksCard from './ui/BrowsePage/Dashboard/RecentDataLinksCard';
 import RecentlyViewedCard from './ui/BrowsePage/Dashboard/RecentlyViewedCard';
 import NavigationInput from './ui/BrowsePage/NavigateInput';
 
-type OutletContextType = {
-  setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
-  setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
-  setShowSidebar: React.Dispatch<React.SetStateAction<boolean>>;
-  setShowConvertFileDialog: React.Dispatch<React.SetStateAction<boolean>>;
-  showPermissionsDialog: boolean;
-  showPropertiesDrawer: boolean;
-  showSidebar: boolean;
-  showConvertFileDialog: boolean;
-};
-
 export default function Browse() {
   const {
     setShowPermissionsDialog,
-    setShowPropertiesDrawer,
-    setShowSidebar,
+    togglePropertiesDrawer,
+    toggleSidebar,
     setShowConvertFileDialog,
     showPermissionsDialog,
     showPropertiesDrawer,
@@ -51,9 +41,9 @@ export default function Browse() {
         hideDotFiles={hideDotFiles}
         setHideDotFiles={setHideDotFiles}
         showPropertiesDrawer={showPropertiesDrawer}
-        setShowPropertiesDrawer={setShowPropertiesDrawer}
+        togglePropertiesDrawer={togglePropertiesDrawer}
         showSidebar={showSidebar}
-        setShowSidebar={setShowSidebar}
+        toggleSidebar={toggleSidebar}
       />
       <div
         className={`relative grow max-h-full flex flex-col overflow-y-auto ${!currentFileSharePath ? 'grid grid-cols-2 grid-rows-2 grid-rows-[60px_1fr] bg-surface-light gap-6 p-6' : ''}`}
@@ -70,7 +60,7 @@ export default function Browse() {
             setSelectedFiles={setSelectedFiles}
             showPropertiesDrawer={showPropertiesDrawer}
             hideDotFiles={hideDotFiles}
-            setShowPropertiesDrawer={setShowPropertiesDrawer}
+            togglePropertiesDrawer={togglePropertiesDrawer}
             setShowRenameDialog={setShowRenameDialog}
             setShowDeleteDialog={setShowDeleteDialog}
             setShowPermissionsDialog={setShowPermissionsDialog}

@@ -28,18 +28,18 @@ type ToolbarProps = {
   hideDotFiles: boolean;
   setHideDotFiles: React.Dispatch<React.SetStateAction<boolean>>;
   showPropertiesDrawer: boolean;
-  setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
+  togglePropertiesDrawer: () => void;
   showSidebar: boolean;
-  setShowSidebar: React.Dispatch<React.SetStateAction<boolean>>;
+  toggleSidebar: () => void;
 };
 
 export default function Toolbar({
   hideDotFiles,
   setHideDotFiles,
   showPropertiesDrawer,
-  setShowPropertiesDrawer,
+  togglePropertiesDrawer,
   showSidebar,
-  setShowSidebar
+  toggleSidebar
 }: ToolbarProps): JSX.Element {
   const { currentFolder, currentFileSharePath, refreshFiles } =
     useFileBrowserContext();
@@ -96,7 +96,7 @@ export default function Toolbar({
             }
             icon={showSidebar ? GoSidebarExpand : GoSidebarCollapse}
             onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-              setShowSidebar((prev: boolean) => !prev);
+              toggleSidebar();
               e.currentTarget.blur();
             }}
             triggerClasses={triggerClasses}
@@ -201,7 +201,7 @@ export default function Toolbar({
               : 'View file properties'
           }
           onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-            setShowPropertiesDrawer((prev: boolean) => !prev);
+            togglePropertiesDrawer();
             e.currentTarget.blur();
           }}
           triggerClasses={triggerClasses}
