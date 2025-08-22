@@ -16,7 +16,7 @@ type ContextMenuProps = {
   handleContextMenuFavorite: (
     selectedFiles: FileOrFolder[]
   ) => Promise<Result<boolean>>;
-  setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
+  togglePropertiesDrawer: () => void;
   setShowContextMenu: React.Dispatch<React.SetStateAction<boolean>>;
   setShowRenameDialog: React.Dispatch<React.SetStateAction<boolean>>;
   setShowDeleteDialog: React.Dispatch<React.SetStateAction<boolean>>;
@@ -29,7 +29,7 @@ type ContextMenuActionProps = {
   handleContextMenuFavorite: (
     selectedFiles: FileOrFolder[]
   ) => Promise<Result<boolean>>;
-  setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
+  togglePropertiesDrawer: () => void;
   setShowContextMenu: React.Dispatch<React.SetStateAction<boolean>>;
   setShowRenameDialog: React.Dispatch<React.SetStateAction<boolean>>;
   setShowDeleteDialog: React.Dispatch<React.SetStateAction<boolean>>;
@@ -43,7 +43,7 @@ export default function ContextMenu({
   menuRef,
   selectedFiles,
   handleContextMenuFavorite,
-  setShowPropertiesDrawer,
+  togglePropertiesDrawer,
   setShowContextMenu,
   setShowRenameDialog,
   setShowDeleteDialog,
@@ -66,7 +66,7 @@ export default function ContextMenu({
     {
       name: 'View file properties',
       action: (props: ContextMenuActionProps) => {
-        props.setShowPropertiesDrawer(true);
+        props.togglePropertiesDrawer();
         props.setShowContextMenu(false);
       },
       shouldShow: true
@@ -121,7 +121,7 @@ export default function ContextMenu({
   const actionProps = {
     selectedFiles,
     handleContextMenuFavorite,
-    setShowPropertiesDrawer,
+    togglePropertiesDrawer,
     setShowContextMenu,
     setShowRenameDialog,
     setShowDeleteDialog,

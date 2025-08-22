@@ -16,7 +16,7 @@ export default function Sidebar() {
     filteredFolderFavorites
   } = useSearchFilter();
   return (
-    <Card className="min-w-full h-full overflow-hidden rounded-none bg-surface shadow-lg flex flex-col px-3">
+    <Card className="min-w-full h-full overflow-hidden rounded-none bg-surface shadow-lg flex flex-col pl-3">
       <div className="my-3 short:my-1">
         <Input
           className="bg-background text-foreground short:text-xs"
