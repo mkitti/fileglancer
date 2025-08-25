@@ -5,7 +5,7 @@ import type { OutletContextType } from '@/layouts/BrowseLayout';
 import useHideDotFiles from '@/hooks/useHideDotFiles';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
-import FileList from './ui/BrowsePage/FileList';
+import FileBrowser from './ui/BrowsePage/FileBrowser';
 import Toolbar from './ui/BrowsePage/Toolbar';
 import RenameDialog from './ui/Dialogs/Rename';
 import Delete from './ui/Dialogs/Delete';
@@ -53,7 +53,7 @@ export default function Browse() {
             <RecentDataLinksCard />
           </>
         ) : (
-          <FileList
+          <FileBrowser
             showPropertiesDrawer={showPropertiesDrawer}
             hideDotFiles={hideDotFiles}
             togglePropertiesDrawer={togglePropertiesDrawer}
