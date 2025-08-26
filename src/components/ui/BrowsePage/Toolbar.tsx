@@ -6,7 +6,6 @@ import {
   HiRefresh,
   HiEye,
   HiEyeOff,
-  HiFolderAdd,
   HiOutlineClipboardCopy,
   HiHome,
   HiOutlineStar,
@@ -15,6 +14,8 @@ import {
 import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
 
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
+import NavigationButton from './NavigationButton';
+import NewFolderButton from './NewFolderButton';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useProfileContext } from '@/contexts/ProfileContext';
@@ -30,7 +31,6 @@ type ToolbarProps = {
   togglePropertiesDrawer: () => void;
   showSidebar: boolean;
   toggleSidebar: () => void;
-  setShowNewFolderDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function Toolbar({
@@ -39,8 +39,7 @@ export default function Toolbar({
   showPropertiesDrawer,
   togglePropertiesDrawer,
   showSidebar,
-  toggleSidebar,
-  setShowNewFolderDialog
+  toggleSidebar
 }: ToolbarProps): JSX.Element {
   const { currentFolder, currentFileSharePath, refreshFiles } =
     useFileBrowserContext();
@@ -112,6 +111,9 @@ export default function Toolbar({
             triggerClasses={triggerClasses}
           />
 
+          {/* Open navigate dialog */}
+          <NavigationButton triggerClasses={triggerClasses} />
+
           {/* Refresh browser contents */}
           <FgTooltip
             icon={HiRefresh}
@@ -134,16 +136,7 @@ export default function Toolbar({
           />
 
           {/* Make new folder */}
-          <FgTooltip
-            icon={HiFolderAdd}
-            label="New folder"
-            disabledCondition={!currentFileSharePath}
-            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-              setShowNewFolderDialog(true);
-              e.currentTarget.blur();
-            }}
-            triggerClasses={triggerClasses}
-          />
+          <NewFolderButton triggerClasses={triggerClasses} />
 
           {/* Show/hide dot files and folders */}
           <FgTooltip

@@ -3,18 +3,17 @@ import { useOutletContext } from 'react-router';
 import type { OutletContextType } from '@/layouts/BrowseLayout';
 
 import useHideDotFiles from '@/hooks/useHideDotFiles';
-import useSelectedFiles from '@/hooks/useSelectedFiles';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
-import FileList from './ui/BrowsePage/FileList';
+import FileBrowser from './ui/BrowsePage/FileBrowser';
 import Toolbar from './ui/BrowsePage/Toolbar';
 import RenameDialog from './ui/Dialogs/Rename';
-import NewFolderDialog from './ui/Dialogs/NewFolder';
 import Delete from './ui/Dialogs/Delete';
 import ChangePermissions from './ui/Dialogs/ChangePermissions';
 import ConvertFileDialog from './ui/Dialogs/ConvertFile';
 import RecentDataLinksCard from './ui/BrowsePage/Dashboard/RecentDataLinksCard';
 import RecentlyViewedCard from './ui/BrowsePage/Dashboard/RecentlyViewedCard';
+import NavigationInput from './ui/BrowsePage/NavigateInput';
 
 export default function Browse() {
   const {
@@ -29,11 +28,9 @@ export default function Browse() {
   } = useOutletContext<OutletContextType>();
 
   const { hideDotFiles, setHideDotFiles } = useHideDotFiles();
-  const { selectedFiles, setSelectedFiles } = useSelectedFiles();
   const { currentFileSharePath } = useFileBrowserContext();
 
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
-  const [showNewFolderDialog, setShowNewFolderDialog] = React.useState(false);
   const [showRenameDialog, setShowRenameDialog] = React.useState(false);
 
   return (
@@ -45,20 +42,18 @@ export default function Browse() {
         togglePropertiesDrawer={togglePropertiesDrawer}
         showSidebar={showSidebar}
         toggleSidebar={toggleSidebar}
-        setShowNewFolderDialog={setShowNewFolderDialog}
       />
       <div
-        className={`relative grow max-h-full flex flex-col overflow-y-auto ${!currentFileSharePath ? 'grid grid-cols-2 bg-surface-light gap-6 p-6' : ''}`}
+        className={`relative grow max-h-full flex flex-col overflow-y-auto ${!currentFileSharePath ? 'grid grid-cols-2 grid-rows-2 grid-rows-[60px_1fr] bg-surface-light gap-6 p-6' : ''}`}
       >
         {!currentFileSharePath ? (
           <>
+            <NavigationInput location="dashboard" />
             <RecentlyViewedCard />
             <RecentDataLinksCard />
           </>
         ) : (
-          <FileList
-            selectedFiles={selectedFiles}
-            setSelectedFiles={setSelectedFiles}
+          <FileBrowser
             showPropertiesDrawer={showPropertiesDrawer}
             hideDotFiles={hideDotFiles}
             togglePropertiesDrawer={togglePropertiesDrawer}
@@ -75,15 +70,8 @@ export default function Browse() {
           setShowRenameDialog={setShowRenameDialog}
         />
       ) : null}
-      {showNewFolderDialog ? (
-        <NewFolderDialog
-          showNewFolderDialog={showNewFolderDialog}
-          setShowNewFolderDialog={setShowNewFolderDialog}
-        />
-      ) : null}
       {showDeleteDialog ? (
         <Delete
-          targetItem={selectedFiles[0]}
           showDeleteDialog={showDeleteDialog}
           setShowDeleteDialog={setShowDeleteDialog}
         />

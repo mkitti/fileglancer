@@ -26,12 +26,9 @@ export type FolderPreference = {
 
 type PreferencesContextType = {
   pathPreference: ['linux_path'] | ['windows_path'] | ['mac_path'];
-  showPathPrefAlert: boolean;
-  setShowPathPrefAlert: React.Dispatch<React.SetStateAction<boolean>>;
   handlePathPreferenceSubmit: (
-    event: React.FormEvent<HTMLFormElement>,
     localPathPreference: PreferencesContextType['pathPreference']
-  ) => void;
+  ) => Promise<Result<void>>;
   zonePreferenceMap: Record<string, ZonePreference>;
   zoneFavorites: Zone[];
   fileSharePathPreferenceMap: Record<string, FileSharePathPreference>;
@@ -48,6 +45,7 @@ type PreferencesContextType = {
   handleUpdateLayout: (layout: string) => Promise<void>;
   loadingRecentlyViewedFolders: boolean;
   isLayoutLoadedFromDB: boolean;
+  handleContextMenuFavorite: () => Promise<Result<boolean>>;
 };
 
 const PreferencesContext = React.createContext<PreferencesContextType | null>(
@@ -72,8 +70,6 @@ export const PreferencesProvider = ({
   const [pathPreference, setPathPreference] = React.useState<
     ['linux_path'] | ['windows_path'] | ['mac_path']
   >(['linux_path']);
-  const [showPathPrefAlert, setShowPathPrefAlert] = React.useState(false);
-
   const [zonePreferenceMap, setZonePreferenceMap] = React.useState<
     Record<string, ZonePreference>
   >({});
@@ -209,10 +205,8 @@ export const PreferencesProvider = ({
 
   const handlePathPreferenceSubmit = React.useCallback(
     async (
-      event: React.FormEvent<HTMLFormElement>,
       localPathPreference: ['linux_path'] | ['windows_path'] | ['mac_path']
     ): Promise<Result<void>> => {
-      event.preventDefault();
       try {
         await savePreferencesToBackend('path', localPathPreference);
         setPathPreference(localPathPreference);
@@ -357,6 +351,21 @@ export const PreferencesProvider = ({
       handleFolderFavoriteChange
     ]
   );
+
+  const handleContextMenuFavorite = async (): Promise<Result<boolean>> => {
+    if (fileBrowserState.currentFileSharePath) {
+      return await handleFavoriteChange(
+        {
+          type: 'folder',
+          folderPath: fileBrowserState.selectedFiles[0].path,
+          fsp: fileBrowserState.currentFileSharePath
+        },
+        'folder'
+      );
+    } else {
+      return handleError(new Error('No file share path selected'));
+    }
+  };
 
   const updateRecentlyViewedFolders = React.useCallback(
     (folderPath: string, fspName: string): FolderPreference[] => {
@@ -578,8 +587,6 @@ export const PreferencesProvider = ({
     <PreferencesContext.Provider
       value={{
         pathPreference,
-        showPathPrefAlert,
-        setShowPathPrefAlert,
         handlePathPreferenceSubmit,
         zonePreferenceMap,
         zoneFavorites,
@@ -593,7 +600,8 @@ export const PreferencesProvider = ({
         layout,
         handleUpdateLayout,
         loadingRecentlyViewedFolders,
-        isLayoutLoadedFromDB
+        isLayoutLoadedFromDB,
+        handleContextMenuFavorite
       }}
     >
       {children}
