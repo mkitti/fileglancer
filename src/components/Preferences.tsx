@@ -6,8 +6,12 @@ import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import useLocalPathPreference from '@/hooks/useLocalPathPreference';
 
 export default function Preferences() {
-  const { pathPreference, handlePathPreferenceSubmit } =
-    usePreferencesContext();
+  const {
+    pathPreference,
+    handlePathPreferenceSubmit,
+    hideDotFiles,
+    toggleHideDotFiles
+  } = usePreferencesContext();
   const { localPathPreference, handleLocalChange } = useLocalPathPreference();
 
   return (
@@ -116,6 +120,43 @@ export default function Preferences() {
           </Card.Footer>
         </Card>
       </form>
+
+      <Card className="mt-6">
+        <Card.Header>
+          <Typography className="font-semibold">
+            File Visibility Options:
+          </Typography>
+        </Card.Header>
+        <Card.Body className="flex flex-col gap-4 pb-4">
+          <div className="flex items-center gap-2">
+            <input
+              className="icon-small checked:accent-secondary-light"
+              type="checkbox"
+              id="hide_dot_files"
+              checked={hideDotFiles}
+              onChange={async () => {
+                const result = await toggleHideDotFiles();
+                if (result.success) {
+                  toast.success(
+                    hideDotFiles
+                      ? 'Dot files are now visible'
+                      : 'Dot files are now hidden'
+                  );
+                } else {
+                  toast.error(result.error);
+                }
+              }}
+            />
+            <Typography
+              as="label"
+              htmlFor="hide_dot_files"
+              className="text-foreground"
+            >
+              Hide dot files (files and folders starting with ".")
+            </Typography>
+          </div>
+        </Card.Body>
+      </Card>
     </>
   );
 }
