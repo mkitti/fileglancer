@@ -84,13 +84,7 @@ export default function FileRow({
               {file.name}
             </Typography>
           ) : (
-            <Typography
-              className="text-primary-default truncate cursor-pointer hover:underline focus:underline block py-2"
-              onClick={(e: React.MouseEvent) => {
-                handleDownload();
-                e.stopPropagation();
-              }}
-            >
+            <Typography className="text-primary-default truncate block py-2">
               {file.name}
             </Typography>
           )}
