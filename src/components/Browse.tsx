@@ -1,11 +1,9 @@
 import React from 'react';
 import { useOutletContext } from 'react-router';
+
 import type { OutletContextType } from '@/layouts/BrowseLayout';
-
-import useSelectedFiles from '@/hooks/useSelectedFiles';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-
-import FileList from './ui/BrowsePage/FileList';
+import FileBrowser from './ui/BrowsePage/FileBrowser';
 import Toolbar from './ui/BrowsePage/Toolbar';
 import RenameDialog from './ui/Dialogs/Rename';
 import Delete from './ui/Dialogs/Delete';
@@ -27,7 +25,6 @@ export default function Browse() {
     showConvertFileDialog
   } = useOutletContext<OutletContextType>();
 
-  const { selectedFiles, setSelectedFiles } = useSelectedFiles();
   const { currentFileSharePath } = useFileBrowserContext();
 
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
@@ -51,9 +48,7 @@ export default function Browse() {
             <RecentDataLinksCard />
           </>
         ) : (
-          <FileList
-            selectedFiles={selectedFiles}
-            setSelectedFiles={setSelectedFiles}
+          <FileBrowser
             showPropertiesDrawer={showPropertiesDrawer}
             togglePropertiesDrawer={togglePropertiesDrawer}
             setShowRenameDialog={setShowRenameDialog}

@@ -24,6 +24,7 @@ interface FileBrowserState {
   currentFolder: FileOrFolder | null;
   files: FileOrFolder[];
   propertiesTarget: FileOrFolder | null;
+  selectedFiles: FileOrFolder[];
   uiErrorMsg: string | null;
 }
 
@@ -40,9 +41,11 @@ type FileBrowserContextType = {
   // END DUPLICATES
   areFileDataLoading: boolean;
   refreshFiles: () => Promise<Result<void>>;
-  setPropertiesTarget: React.Dispatch<
-    React.SetStateAction<FileOrFolder | null>
-  >;
+  handleLeftClick: (
+    file: FileOrFolder,
+    showFilePropertiesDrawer: boolean
+  ) => void;
+  updateFilesWithContextMenuClick: (file: FileOrFolder) => void;
   setCurrentFileSharePath: React.Dispatch<
     React.SetStateAction<FileSharePath | null>
   >;
@@ -75,6 +78,7 @@ export const FileBrowserContextProvider = ({
       currentFolder: null,
       files: [],
       propertiesTarget: null,
+      selectedFiles: [],
       uiErrorMsg: null
     });
   const [areFileDataLoading, setAreFileDataLoading] = React.useState(false);
@@ -110,6 +114,7 @@ export const FileBrowserContextProvider = ({
       folder: FileOrFolder | null,
       fileList: FileOrFolder[],
       targetItem: FileOrFolder | null,
+      selectedItems: FileOrFolder[] = [],
       msg: string | null
     ) => {
       // Update fileBrowserState with complete, consistent data
@@ -118,6 +123,7 @@ export const FileBrowserContextProvider = ({
         currentFolder: folder,
         files: fileList,
         propertiesTarget: targetItem,
+        selectedFiles: selectedItems,
         uiErrorMsg: msg
       });
 
@@ -133,6 +139,95 @@ export const FileBrowserContextProvider = ({
   const { cookies } = useCookiesContext();
   const { zonesAndFileSharePathsMap, isZonesMapReady } =
     useZoneAndFspMapContext();
+
+  const handleLeftClick = (
+    // e: React.MouseEvent<HTMLDivElement>,
+    file: FileOrFolder,
+    // displayFiles: FileOrFolder[],
+    showFilePropertiesDrawer: boolean
+  ) => {
+    // if (e.shiftKey) {
+    //   // If shift key held down while clicking,
+    //   // add all files between the last selected and the current file
+    //   const lastSelectedIndex = selectedFiles.length
+    //     ? displayFiles.findIndex(
+    //         f => f === selectedFiles[selectedFiles.length - 1]
+    //       )
+    //     : -1;
+    //   const currentIndex = displayFiles.findIndex(f => f.name === file.name);
+    //   const start = Math.min(lastSelectedIndex, currentIndex);
+    //   const end = Math.max(lastSelectedIndex, currentIndex);
+    //   const newSelectedFiles = displayFiles.slice(start, end + 1);
+    //   setSelectedFiles(newSelectedFiles);
+    //   setPropertiesTarget(file);
+    // } else if (e.metaKey) {
+    //   // If  "Windows/Cmd" is held down while clicking,
+    //   // toggle the current file in the selection
+    //   // and set it as the properties target
+    //   const currentIndex = selectedFiles.indexOf(file);
+    //   const newSelectedFiles = [...selectedFiles];
+
+    //   if (currentIndex === -1) {
+    //     newSelectedFiles.push(file);
+    //   } else {
+    //     newSelectedFiles.splice(currentIndex, 1);
+    //   }
+
+    //   setSelectedFiles(newSelectedFiles);
+    //   setPropertiesTarget(file);
+    // } else {
+    // If no modifier keys are held down, select the current file
+    const currentIndex = fileBrowserState.selectedFiles.indexOf(file);
+    const newSelectedFiles =
+      currentIndex === -1 ||
+      fileBrowserState.selectedFiles.length > 1 ||
+      showFilePropertiesDrawer
+        ? [file]
+        : [];
+    const newPropertiesTarget =
+      currentIndex === -1 ||
+      fileBrowserState.selectedFiles.length > 1 ||
+      showFilePropertiesDrawer
+        ? file
+        : null;
+
+    updateAllStates(
+      fileBrowserState.currentFileSharePath,
+      fileBrowserState.currentFolder,
+      fileBrowserState.files,
+      newPropertiesTarget,
+      newSelectedFiles,
+      fileBrowserState.uiErrorMsg
+    );
+  };
+
+  const updateFilesWithContextMenuClick = (file: FileOrFolder) => {
+    // Update file selection - if file is not already selected, select it; otherwise keep current selection
+    // if (fileBrowserState.selectedFiles.length === 0) {
+    //   updateAllStates(
+    //     fileBrowserState.currentFileSharePath,
+    //     fileBrowserState.currentFolder,
+    //     fileBrowserState.files,
+    //     file, // Set as properties target
+    //     [file], // Select the clicked file
+    //     fileBrowserState.uiErrorMsg
+    //   );
+    //   return;
+    // }
+
+    const currentIndex = fileBrowserState.selectedFiles.indexOf(file);
+    const newSelectedFiles =
+      currentIndex === -1 ? [file] : [...fileBrowserState.selectedFiles];
+
+    updateAllStates(
+      fileBrowserState.currentFileSharePath,
+      fileBrowserState.currentFolder,
+      fileBrowserState.files,
+      file, // Set as properties target
+      newSelectedFiles,
+      fileBrowserState.uiErrorMsg
+    );
+  };
 
   // Function to fetch files for the current FSP and current folder
   const fetchFileInfo = React.useCallback(
@@ -198,13 +293,20 @@ export const FileBrowserContextProvider = ({
         });
 
         // Update all states consistently
-        updateAllStates(fsp, folder, files, folder, null);
+        updateAllStates(fsp, folder, files, folder, [], null);
       } catch (error) {
         log.error(error);
         if (error instanceof Error) {
-          updateAllStates(fsp, folder, [], folder, error.message);
+          updateAllStates(fsp, folder, [], folder, [], error.message);
         } else {
-          updateAllStates(fsp, folder, [], folder, 'An unknown error occurred');
+          updateAllStates(
+            fsp,
+            folder,
+            [],
+            folder,
+            [],
+            'An unknown error occurred'
+          );
         }
       } finally {
         setAreFileDataLoading(false);
@@ -244,7 +346,14 @@ export const FileBrowserContextProvider = ({
         if (cancelled) {
           return;
         }
-        updateAllStates(null, null, [], null, 'Invalid file share path name');
+        updateAllStates(
+          null,
+          null,
+          [],
+          null,
+          [],
+          'Invalid file share path name'
+        );
         return;
       }
 
@@ -255,7 +364,14 @@ export const FileBrowserContextProvider = ({
         if (cancelled) {
           return;
         }
-        updateAllStates(null, null, [], null, 'Invalid file share path name');
+        updateAllStates(
+          null,
+          null,
+          [],
+          null,
+          [],
+          'Invalid file share path name'
+        );
         return;
       }
 
@@ -290,9 +406,10 @@ export const FileBrowserContextProvider = ({
         currentFolder,
         currentFileSharePath,
         refreshFiles,
+        handleLeftClick,
+        updateFilesWithContextMenuClick,
         areFileDataLoading,
         propertiesTarget,
-        setPropertiesTarget,
         setCurrentFileSharePath
       }}
     >
