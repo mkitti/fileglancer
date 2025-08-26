@@ -144,8 +144,17 @@ export default function Toolbar({
             icon={hideDotFiles ? HiEyeOff : HiEye}
             label={hideDotFiles ? 'Show dot files' : 'Hide dot files'}
             disabledCondition={!currentFileSharePath}
-            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-              setHideDotFiles((prev: boolean) => !prev);
+            onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
+              const result = await toggleHideDotFiles();
+              if (result.success) {
+                toast.success(
+                  hideDotFiles
+                    ? 'Dot files are now visible'
+                    : 'Dot files are now hidden'
+                );
+              } else {
+                toast.error(result.error);
+              }
               e.currentTarget.blur();
             }}
             triggerClasses={triggerClasses}
