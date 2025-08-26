@@ -7,6 +7,7 @@ import type { Result } from '@/shared.types';
 import { makeMapKey } from '@/utils';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { useHandleDownload } from '@/hooks/useHandleDownload';
 
 type ContextMenuProps = {
   x: number;
@@ -23,6 +24,7 @@ type ContextMenuProps = {
 
 type ContextMenuActionProps = {
   handleContextMenuFavorite: () => Promise<Result<boolean>>;
+  handleDownload: () => Result<void>;
   togglePropertiesDrawer: () => void;
   setShowContextMenu: React.Dispatch<React.SetStateAction<boolean>>;
   setShowRenameDialog: React.Dispatch<React.SetStateAction<boolean>>;
@@ -46,12 +48,17 @@ export default function ContextMenu({
   const { fileBrowserState } = useFileBrowserContext();
   const { folderPreferenceMap, handleContextMenuFavorite } =
     usePreferencesContext();
+  const { handleDownload } = useHandleDownload();
+
+  if (!fileBrowserState.propertiesTarget) {
+    return <>{toast.error('No target file selected')}</>; // No target file available
+  }
 
   const isFavorite: boolean = Boolean(
     folderPreferenceMap[
       makeMapKey(
         'folder',
-        `${fileBrowserState.currentFileSharePath?.name}_${fileBrowserState.selectedFiles[0].path}`
+        `${fileBrowserState.currentFileSharePath?.name}_${fileBrowserState.propertiesTarget.path}`
       )
     ]
   );
@@ -64,6 +71,17 @@ export default function ContextMenu({
         props.setShowContextMenu(false);
       },
       shouldShow: !showPropertiesDrawer
+    },
+    {
+      name: 'Download',
+      action: (props: ContextMenuActionProps) => {
+        const result = props.handleDownload();
+        if (!result.success) {
+          toast.error(`Error downloading file: ${result.error}`);
+        }
+        props.setShowContextMenu(false);
+      },
+      shouldShow: !fileBrowserState.propertiesTarget.is_dir
     },
     {
       name: isFavorite ? 'Unset favorite' : 'Set favorite',
@@ -99,7 +117,7 @@ export default function ContextMenu({
         props.setShowPermissionsDialog(true);
         props.setShowContextMenu(false);
       },
-      shouldShow: !fileBrowserState.selectedFiles[0].is_dir
+      shouldShow: !fileBrowserState.propertiesTarget.is_dir
     },
     {
       name: 'Delete',
@@ -114,6 +132,7 @@ export default function ContextMenu({
 
   const actionProps = {
     fileBrowserState,
+    handleDownload,
     handleContextMenuFavorite,
     togglePropertiesDrawer,
     setShowContextMenu,

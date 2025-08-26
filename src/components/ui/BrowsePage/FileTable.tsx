@@ -77,9 +77,7 @@ export default function Table({
                     {name}
                   </Typography>
                 ) : (
-                  <Typography className="text-primary truncate">
-                    {name}
-                  </Typography>
+                  <Typography className="truncate">{name}</Typography>
                 )}
               </FgTooltip>
             </div>
