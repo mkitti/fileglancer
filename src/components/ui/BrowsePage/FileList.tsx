@@ -10,12 +10,12 @@ import { FileRowSkeleton } from '@/components/ui/widgets/Loaders';
 import useContextMenu from '@/hooks/useContextMenu';
 import useZarrMetadata from '@/hooks/useZarrMetadata';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import useHideDotFiles from '@/hooks/useHideDotFiles';
 
 type FileListProps = {
   selectedFiles: FileOrFolder[];
   setSelectedFiles: React.Dispatch<React.SetStateAction<FileOrFolder[]>>;
   showPropertiesDrawer: boolean;
-  hideDotFiles: boolean;
   togglePropertiesDrawer: () => void;
   setShowRenameDialog: React.Dispatch<React.SetStateAction<boolean>>;
   setShowDeleteDialog: React.Dispatch<React.SetStateAction<boolean>>;
@@ -27,7 +27,6 @@ export default function FileList({
   selectedFiles,
   setSelectedFiles,
   showPropertiesDrawer,
-  hideDotFiles,
   togglePropertiesDrawer,
   setShowRenameDialog,
   setShowDeleteDialog,
@@ -35,6 +34,7 @@ export default function FileList({
   setShowConvertFileDialog
 }: FileListProps): React.ReactNode {
   const { fileBrowserState, areFileDataLoading } = useFileBrowserContext();
+  const { displayFiles } = useHideDotFiles();
 
   const {
     contextMenuCoords,
@@ -52,12 +52,6 @@ export default function FileList({
     loadingThumbnail,
     thumbnailError
   } = useZarrMetadata();
-
-  const displayFiles = React.useMemo(() => {
-    return hideDotFiles
-      ? fileBrowserState.files.filter(file => !file.name.startsWith('.'))
-      : fileBrowserState.files;
-  }, [fileBrowserState.files, hideDotFiles]);
 
   return (
     <div className="px-2 transition-all duration-300 flex flex-col h-full overflow-hidden">

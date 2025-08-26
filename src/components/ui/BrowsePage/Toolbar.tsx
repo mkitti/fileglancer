@@ -25,8 +25,6 @@ import { copyToClipboard } from '@/utils/copyText';
 import useFavoriteToggle from '@/hooks/useFavoriteToggle';
 
 type ToolbarProps = {
-  hideDotFiles: boolean;
-  setHideDotFiles: React.Dispatch<React.SetStateAction<boolean>>;
   showPropertiesDrawer: boolean;
   togglePropertiesDrawer: () => void;
   showSidebar: boolean;
@@ -34,8 +32,6 @@ type ToolbarProps = {
 };
 
 export default function Toolbar({
-  hideDotFiles,
-  setHideDotFiles,
   showPropertiesDrawer,
   togglePropertiesDrawer,
   showSidebar,
@@ -44,8 +40,13 @@ export default function Toolbar({
   const { currentFolder, currentFileSharePath, refreshFiles } =
     useFileBrowserContext();
   const { profile } = useProfileContext();
-  const { folderPreferenceMap, fileSharePathPreferenceMap, pathPreference } =
-    usePreferencesContext();
+  const {
+    folderPreferenceMap,
+    fileSharePathPreferenceMap,
+    pathPreference,
+    hideDotFiles,
+    toggleHideDotFiles
+  } = usePreferencesContext();
   const { handleFavoriteToggle } = useFavoriteToggle();
   const { openFavoritesSection } = useOpenFavoritesContext();
 
