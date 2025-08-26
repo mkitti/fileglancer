@@ -123,7 +123,13 @@ export default function useZarrMetadata() {
         }
       }
     },
-    [areFileDataLoading, fileBrowserState, cookies]
+    [
+      areFileDataLoading,
+      fileBrowserState.currentFileSharePath,
+      fileBrowserState.currentFolder,
+      fileBrowserState.files,
+      cookies
+    ]
   );
 
   // When the file browser state changes, check for Zarr metadata

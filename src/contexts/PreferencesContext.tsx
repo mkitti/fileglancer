@@ -45,6 +45,7 @@ type PreferencesContextType = {
   handleUpdateLayout: (layout: string) => Promise<void>;
   loadingRecentlyViewedFolders: boolean;
   isLayoutLoadedFromDB: boolean;
+  handleContextMenuFavorite: () => Promise<Result<boolean>>;
 };
 
 const PreferencesContext = React.createContext<PreferencesContextType | null>(
@@ -351,6 +352,21 @@ export const PreferencesProvider = ({
     ]
   );
 
+  const handleContextMenuFavorite = async (): Promise<Result<boolean>> => {
+    if (fileBrowserState.currentFileSharePath) {
+      return await handleFavoriteChange(
+        {
+          type: 'folder',
+          folderPath: fileBrowserState.selectedFiles[0].path,
+          fsp: fileBrowserState.currentFileSharePath
+        },
+        'folder'
+      );
+    } else {
+      return handleError(new Error('No file share path selected'));
+    }
+  };
+
   const updateRecentlyViewedFolders = React.useCallback(
     (folderPath: string, fspName: string): FolderPreference[] => {
       const updatedFolders = [...recentlyViewedFolders];
@@ -584,7 +600,8 @@ export const PreferencesProvider = ({
         layout,
         handleUpdateLayout,
         loadingRecentlyViewedFolders,
-        isLayoutLoadedFromDB
+        isLayoutLoadedFromDB,
+        handleContextMenuFavorite
       }}
     >
       {children}
