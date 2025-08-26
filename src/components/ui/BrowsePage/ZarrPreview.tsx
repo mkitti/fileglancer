@@ -143,10 +143,9 @@ export default function ZarrPreview({
                 type="small"
                 className="text-foreground whitespace-normal max-w-[300px]"
               >
-                {externalBucket 
-                  ? "Public data link already exists since this data is on s3.janelia.org."
-                  : "Creating a data link for this image allows you to open it in external viewers like Neuroglancer."
-                }
+                {externalBucket
+                  ? 'Public data link already exists since this data is on s3.janelia.org.'
+                  : 'Creating a data link for this image allows you to open it in external viewers like Neuroglancer.'}
               </Typography>
             </label>
           </div>
