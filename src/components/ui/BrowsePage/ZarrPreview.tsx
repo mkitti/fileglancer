@@ -125,7 +125,8 @@ export default function ZarrPreview({
               onChange={() => {
                 setShowDataLinkDialog(true);
               }}
-              checked={isImageShared}
+              checked={externalBucket ? true : isImageShared}
+              disabled={externalBucket ? true : false}
             />
             <label
               htmlFor="share-switch"
@@ -134,7 +135,7 @@ export default function ZarrPreview({
               <Typography
                 as="label"
                 htmlFor="share-switch"
-                className="cursor-pointer text-foreground font-semibold"
+                className={`${externalBucket ? 'cursor-default' : 'cursor-pointer'} text-foreground font-semibold`}
               >
                 Data Link
               </Typography>
@@ -142,8 +143,9 @@ export default function ZarrPreview({
                 type="small"
                 className="text-foreground whitespace-normal max-w-[300px]"
               >
-                Creating a data link for this image allows you to open it in
-                external viewers like Neuroglancer.
+                {externalBucket
+                  ? 'Public data link already exists since this data is on s3.janelia.org.'
+                  : 'Creating a data link for this image allows you to open it in external viewers like Neuroglancer.'}
               </Typography>
             </label>
           </div>
@@ -158,15 +160,10 @@ export default function ZarrPreview({
             />
           ) : null}
 
-          {openWithToolUrls && isImageShared ? (
+          {externalBucket && externalToolUrls ? (
+            <DataToolLinks title="Open with:" urls={externalToolUrls} />
+          ) : openWithToolUrls && isImageShared ? (
             <DataToolLinks title="Open with:" urls={openWithToolUrls} />
-          ) : null}
-
-          {externalToolUrls && externalBucket ? (
-            <DataToolLinks
-              title="Open with (External):"
-              urls={externalToolUrls}
-            />
           ) : null}
         </div>
         {metadata && 'arr' in metadata && (
