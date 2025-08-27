@@ -22,7 +22,7 @@ export type OpenWithToolUrls = {
 };
 
 export type ZarrArray = zarr.Array<any>;
-export type ZarrMetadata = Metadata | ZarrArray | null;
+export type ZarrMetadata = Metadata | null;
 
 export default function useZarrMetadata() {
   const [thumbnailSrc, setThumbnailSrc] = React.useState<string | null>(null);
@@ -72,7 +72,8 @@ export default function useZarrMetadata() {
               if (cancelRef.cancel) {
                 return;
               }
-              setMetadata(arr);
+              const shapes = [arr.shape];
+              setMetadata({ arr, shapes, multiscale: undefined, omero: undefined, scales: undefined, zarr_version: 2 });
             } catch (error) {
               log.error('Error fetching Zarr array:', error);
               if (cancelRef.cancel) {
@@ -185,13 +186,7 @@ export default function useZarrMetadata() {
       const openWithToolUrls = {
         copy: dataUrl
       } as OpenWithToolUrls;
-      if (metadata instanceof zarr.Array) {
-        openWithToolUrls.validator = '';
-        openWithToolUrls.vole = '';
-        openWithToolUrls.neuroglancer =
-          neuroglancerBaseUrl +
-          generateNeuroglancerStateForZarrArray(dataUrl, 2);
-      } else {
+      if (metadata && metadata?.multiscale) {
         openWithToolUrls.validator = validatorBaseUrl + dataUrl;
         openWithToolUrls.vole = voleBaseUrl + dataUrl;
         try {
@@ -211,6 +206,13 @@ export default function useZarrMetadata() {
             neuroglancerBaseUrl +
             generateNeuroglancerStateForZarrArray(dataUrl, 2);
         }
+      }
+      else {
+        openWithToolUrls.validator = '';
+        openWithToolUrls.vole = '';
+        openWithToolUrls.neuroglancer =
+          neuroglancerBaseUrl +
+          generateNeuroglancerStateForZarrArray(dataUrl, 2);
       }
       setOpenWithToolUrls(openWithToolUrls);
     }

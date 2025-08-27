@@ -192,6 +192,9 @@ function generateNeuroglancerStateForOmeZarr(
   arr: zarr.Array<any>,
   omero?: omezarr.Omero | null
 ): string | null {
+  if (!multiscale || !arr) {
+    throw new Error('Missing required metadata for Neuroglancer state generation: multiscale=' + multiscale + ', arr=' + arr + ', omero=' + omero);
+  }
   log.debug('Generating Neuroglancer state for OME-Zarr:', dataUrl);
 
   // Convert axes array to a map for easier access
