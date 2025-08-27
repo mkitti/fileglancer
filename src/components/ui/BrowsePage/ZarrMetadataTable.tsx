@@ -1,4 +1,7 @@
-import { Axis, Metadata, Multiscale } from '../../../omezarr-helper';
+import * as zarr from 'zarrita';
+import { Axis, Multiscale } from 'ome-zarr.js';
+import { Metadata } from '../../../omezarr-helper';
+
 
 type ZarrMetadataTableProps = {
   metadata: Metadata;
@@ -12,8 +15,12 @@ function getSizeString(shapes: number[][] | undefined) {
   return shapes?.[0]?.join(', ') || 'Unknown';
 }
 
-function getChunkSizeString(metadata: Metadata) {
-  return metadata.arr.chunks.join(', ');
+function getChunkSizeString(arr: zarr.Array<any>) {
+  return arr.chunks.join(', ');
+}
+
+function getDataTypeString(arr: zarr.Array<any>) {
+  return arr.dtype;
 }
 
 export default function ZarrMetadataTable({
@@ -25,12 +32,13 @@ export default function ZarrMetadataTable({
       <table className="bg-background/90">
         <tbody className="text-sm">
           <tr className="border-y border-surface-dark">
+            <td className="p-3 font-semibold" colSpan={2}>
+              {multiscale ? 'OME-Zarr Metadata' : 'Zarr Array Metadata'}
+            </td>
+          </tr>
+          <tr className="border-y border-surface-dark">
             <td className="p-3 font-semibold">Zarr Version</td>
             <td className="p-3">{zarr_version}</td>
-          </tr>
-          <tr className="border-b border-surface-dark">
-            <td className="p-3 font-semibold">OMERO Metadata?</td>
-            <td className="p-3">{omero ? 'Yes' : 'No'}</td>
           </tr>
           {multiscale?.axes ? (
             <tr className="border-b border-surface-dark">
@@ -40,14 +48,26 @@ export default function ZarrMetadataTable({
           ) : null}
           {shapes ? (
             <tr className="border-b border-surface-dark">
-              <td className="p-3 font-semibold">Shapes</td>
+              <td className="p-3 font-semibold">Shape</td>
               <td className="p-3">{getSizeString(shapes)}</td>
             </tr>
           ) : null}
           {metadata.arr ? (
+            <> 
             <tr className="border-b border-surface-dark">
               <td className="p-3 font-semibold">Chunk Size</td>
-              <td className="p-3">{getChunkSizeString(metadata)}</td>
+              <td className="p-3">{getChunkSizeString(metadata.arr)}</td>
+            </tr>
+            <tr className="border-b border-surface-dark">
+              <td className="p-3 font-semibold">Data Type</td>
+              <td className="p-3">{getDataTypeString(metadata.arr)}</td>
+            </tr>
+            </>
+          ) : null}
+          {multiscale && shapes ? (
+            <tr className="border-b border-surface-dark">
+              <td className="p-3 font-semibold">Mutliscale Levels</td>
+              <td className="p-3">{shapes.length}</td>
             </tr>
           ) : null}
         </tbody>
