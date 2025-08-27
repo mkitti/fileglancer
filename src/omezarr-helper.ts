@@ -372,7 +372,7 @@ function generateNeuroglancerStateForOmeZarr(
 
       const layer: Record<string, any> = {
         type: 'image',
-        source: { 
+        source: {
           url: getNeuroglancerSource(dataUrl, zarr_version),
           transform
         },
