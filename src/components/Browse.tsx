@@ -44,11 +44,13 @@ export default function Browse() {
         toggleSidebar={toggleSidebar}
       />
       <div
-        className={`relative grow max-h-full flex flex-col overflow-y-auto ${!currentFileSharePath ? 'grid grid-cols-2 grid-rows-2 grid-rows-[60px_1fr] bg-surface-light gap-6 p-6' : ''}`}
+        className={`relative grow max-h-full flex flex-col overflow-y-auto ${!currentFileSharePath ? 'grid grid-cols-2 grid-rows-[60px_1fr] bg-surface-light gap-6 p-6' : ''}`}
       >
         {!currentFileSharePath ? (
           <>
-            <NavigationInput location="dashboard" />
+            <div className="col-span-2">
+              <NavigationInput location="dashboard" />
+            </div>
             <RecentlyViewedCard />
             <RecentDataLinksCard />
           </>
