@@ -193,7 +193,14 @@ function generateNeuroglancerStateForOmeZarr(
   omero?: omezarr.Omero | null
 ): string | null {
   if (!multiscale || !arr) {
-    throw new Error('Missing required metadata for Neuroglancer state generation: multiscale=' + multiscale + ', arr=' + arr + ', omero=' + omero);
+    throw new Error(
+      'Missing required metadata for Neuroglancer state generation: multiscale=' +
+        multiscale +
+        ', arr=' +
+        arr +
+        ', omero=' +
+        omero
+    );
   }
   log.debug('Generating Neuroglancer state for OME-Zarr:', dataUrl);
 
@@ -386,7 +393,7 @@ async function getOmeZarrMetadata(dataUrl: string): Promise<Metadata> {
   log.debug('Omero: ', omero);
   log.debug('Scales: ', scales);
   log.debug('Zarr version: ', zarr_version);
-  
+
   const metadata: Metadata = {
     arr,
     shapes,

@@ -73,7 +73,14 @@ export default function useZarrMetadata() {
                 return;
               }
               const shapes = [arr.shape];
-              setMetadata({ arr, shapes, multiscale: undefined, omero: undefined, scales: undefined, zarr_version: 2 });
+              setMetadata({
+                arr,
+                shapes,
+                multiscale: undefined,
+                omero: undefined,
+                scales: undefined,
+                zarr_version: 2
+              });
             } catch (error) {
               log.error('Error fetching Zarr array:', error);
               if (cancelRef.cancel) {
@@ -206,8 +213,7 @@ export default function useZarrMetadata() {
             neuroglancerBaseUrl +
             generateNeuroglancerStateForZarrArray(dataUrl, 2);
         }
-      }
-      else {
+      } else {
         openWithToolUrls.validator = '';
         openWithToolUrls.vole = '';
         openWithToolUrls.neuroglancer =

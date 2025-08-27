@@ -2,7 +2,6 @@ import * as zarr from 'zarrita';
 import { Axis, Multiscale } from 'ome-zarr.js';
 import { Metadata } from '../../../omezarr-helper';
 
-
 type ZarrMetadataTableProps = {
   metadata: Metadata;
 };
@@ -53,15 +52,15 @@ export default function ZarrMetadataTable({
             </tr>
           ) : null}
           {metadata.arr ? (
-            <> 
-            <tr className="border-b border-surface-dark">
-              <td className="p-3 font-semibold">Chunk Size</td>
-              <td className="p-3">{getChunkSizeString(metadata.arr)}</td>
-            </tr>
-            <tr className="border-b border-surface-dark">
-              <td className="p-3 font-semibold">Data Type</td>
-              <td className="p-3">{getDataTypeString(metadata.arr)}</td>
-            </tr>
+            <>
+              <tr className="border-b border-surface-dark">
+                <td className="p-3 font-semibold">Chunk Size</td>
+                <td className="p-3">{getChunkSizeString(metadata.arr)}</td>
+              </tr>
+              <tr className="border-b border-surface-dark">
+                <td className="p-3 font-semibold">Data Type</td>
+                <td className="p-3">{getDataTypeString(metadata.arr)}</td>
+              </tr>
             </>
           ) : null}
           {multiscale && shapes ? (

@@ -9,9 +9,7 @@ import type { OpenWithToolUrls, ZarrMetadata } from '@/hooks/useZarrMetadata';
 import useDataLinkDialog from '@/hooks/useDataLinkDialog';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useExternalBucketContext } from '@/contexts/ExternalBucketContext';
-import {
-  Metadata
-} from '@/omezarr-helper';
+import { Metadata } from '@/omezarr-helper';
 
 type ZarrPreviewProps = {
   thumbnailSrc: string | null;
@@ -29,8 +27,7 @@ export default function ZarrPreview({
   thumbnailError
 }: ZarrPreviewProps): React.ReactNode {
   const [isImageShared, setIsImageShared] = React.useState(false);
-  const [externalToolUrls] =
-    React.useState<OpenWithToolUrls | null>(null);
+  const [externalToolUrls] = React.useState<OpenWithToolUrls | null>(null);
 
   const { showDataLinkDialog, setShowDataLinkDialog } = useDataLinkDialog();
   const { proxiedPath } = useProxiedPathContext();
