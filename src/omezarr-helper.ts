@@ -2,56 +2,6 @@ import { default as log } from '@/logger';
 import * as zarr from 'zarrita';
 import * as omezarr from 'ome-zarr.js';
 
-// Copied since ome-zarr.js doesn't export the types
-// TODO: use the types from ome-zarr.js when they become available
-export interface Multiscale {
-  axes: Axis[];
-  /**
-   * @minItems 1
-   */
-  datasets: [Dataset, ...Dataset[]];
-  version?: '0.4' | null;
-  coordinateTransformations?: [unknown] | [unknown, unknown] | null;
-  metadata?: {
-    [k: string]: unknown;
-  };
-  name?: unknown;
-  type?: {
-    [k: string]: unknown;
-  };
-  [k: string]: unknown;
-}
-/**
- * Model for an element of `Multiscale.axes`.
- *
- * See https://ngff.openmicroscopy.org/0.4/#axes-md.
- */
-export interface Axis {
-  name: string;
-  type?: string | null;
-  unit?: unknown;
-  [k: string]: unknown;
-}
-/**
- * An element of Multiscale.datasets.
- */
-export interface Dataset {
-  path: string;
-  coordinateTransformations: [unknown] | [unknown, unknown];
-  [k: string]: unknown;
-}
-/**
- * omero model.
- */
-export interface Omero {
-  channels: Channel[];
-  rdefs: {
-    defaultT: number;
-    defaultZ: number;
-    model: 'greyscale' | 'color';
-  };
-  [k: string]: unknown;
-}
 /**
  * A single omero channel.
  */
@@ -77,9 +27,9 @@ export interface Window {
 export type Metadata = {
   arr: zarr.Array<any>;
   shapes: number[][] | undefined;
-  multiscale: Multiscale;
-  omero: Omero | null | undefined;
-  scales: number[][];
+  scales: number[][] | undefined;
+  multiscale: omezarr.Multiscale | null | undefined;
+  omero: omezarr.Omero | null | undefined;
   zarr_version: 2 | 3;
 };
 
@@ -182,7 +132,7 @@ void main(){emitRGBA(vec4(hue*normalized(),1));}`;
 /**
  * Get a map of axes names to their details.
  */
-function getAxesMap(multiscale: Multiscale): Record<string, any> {
+function getAxesMap(multiscale: omezarr.Multiscale): Record<string, any> {
   const axesMap: Record<string, any> = {};
   const axes = multiscale.axes;
   if (axes) {
@@ -238,9 +188,9 @@ function generateNeuroglancerStateForZarrArray(
 function generateNeuroglancerStateForOmeZarr(
   dataUrl: string,
   zarr_version: 2 | 3,
-  multiscale: Multiscale,
+  multiscale: omezarr.Multiscale,
   arr: zarr.Array<any>,
-  omero?: Omero | null
+  omero?: omezarr.Omero | null
 ): string | null {
   log.debug('Generating Neuroglancer state for OME-Zarr:', dataUrl);
 
@@ -427,18 +377,19 @@ async function getOmeZarrMetadata(dataUrl: string): Promise<Metadata> {
   const store = new zarr.FetchStore(dataUrl);
   const { arr, shapes, multiscale, omero, scales, zarr_version } =
     await omezarr.getMultiscaleWithArray(store, 0);
-  log.debug('Zarr version: ', zarr_version);
-  log.debug('Multiscale: ', multiscale);
-  log.debug('Omero: ', omero);
   log.debug('Array: ', arr);
   log.debug('Shapes: ', shapes);
-
+  log.debug('Multiscale: ', multiscale);
+  log.debug('Omero: ', omero);
+  log.debug('Scales: ', scales);
+  log.debug('Zarr version: ', zarr_version);
+  
   const metadata: Metadata = {
     arr,
     shapes,
+    scales,
     multiscale,
     omero,
-    scales,
     zarr_version
   };
 
