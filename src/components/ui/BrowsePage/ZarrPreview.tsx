@@ -9,12 +9,7 @@ import type { OpenWithToolUrls, ZarrMetadata } from '@/hooks/useZarrMetadata';
 import useDataLinkDialog from '@/hooks/useDataLinkDialog';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useExternalBucketContext } from '@/contexts/ExternalBucketContext';
-import {
-  Metadata,
-  generateNeuroglancerStateForZarrArray,
-  generateNeuroglancerStateForOmeZarr
-} from '@/omezarr-helper';
-import * as zarr from 'zarrita';
+import { Metadata } from '@/omezarr-helper';
 
 type ZarrPreviewProps = {
   thumbnailSrc: string | null;
@@ -32,58 +27,15 @@ export default function ZarrPreview({
   thumbnailError
 }: ZarrPreviewProps): React.ReactNode {
   const [isImageShared, setIsImageShared] = React.useState(false);
-  const [externalToolUrls, setExternalToolUrls] =
-    React.useState<OpenWithToolUrls | null>(null);
+  const [externalToolUrls] = React.useState<OpenWithToolUrls | null>(null);
 
   const { showDataLinkDialog, setShowDataLinkDialog } = useDataLinkDialog();
   const { proxiedPath } = useProxiedPathContext();
-  const { externalBucket, externalDataUrl } = useExternalBucketContext();
+  const { externalBucket } = useExternalBucketContext();
 
   React.useEffect(() => {
     setIsImageShared(proxiedPath !== null);
   }, [proxiedPath]);
-
-  // Generate external tool URLs when external data URL changes
-  React.useEffect(() => {
-    setExternalToolUrls(null);
-    if (metadata && externalDataUrl) {
-      const validatorBaseUrl =
-        'https://ome.github.io/ome-ngff-validator/?source=';
-      const neuroglancerBaseUrl = 'https://neuroglancer-demo.appspot.com/#!';
-      const voleBaseUrl = 'https://volumeviewer.allencell.org/viewer?url=';
-
-      const urls = {
-        copy: externalDataUrl
-      } as OpenWithToolUrls;
-
-      if (metadata instanceof zarr.Array) {
-        urls.validator = '';
-        urls.vole = '';
-        urls.neuroglancer =
-          neuroglancerBaseUrl +
-          generateNeuroglancerStateForZarrArray(externalDataUrl, 2);
-      } else {
-        urls.validator = validatorBaseUrl + externalDataUrl;
-        urls.vole = voleBaseUrl + externalDataUrl;
-        try {
-          urls.neuroglancer =
-            neuroglancerBaseUrl +
-            generateNeuroglancerStateForOmeZarr(
-              externalDataUrl,
-              (metadata as Metadata).zarr_version,
-              (metadata as Metadata).multiscale,
-              (metadata as Metadata).arr,
-              (metadata as Metadata).omero
-            );
-        } catch {
-          urls.neuroglancer =
-            neuroglancerBaseUrl +
-            generateNeuroglancerStateForZarrArray(externalDataUrl, 2);
-        }
-      }
-      setExternalToolUrls(urls);
-    }
-  }, [metadata, externalDataUrl]);
 
   return (
     <div className="my-4 p-4 shadow-sm rounded-md bg-primary-light/30">
