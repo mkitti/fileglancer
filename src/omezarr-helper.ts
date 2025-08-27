@@ -366,14 +366,21 @@ function generateNeuroglancerStateForOmeZarr(
         color = '#' + color;
       }
 
+      const channelUnit = translateUnitToNeuroglancer(axesMap['c'].unit);
+      const localDimensions = { "c'": [1, channelUnit] };
+      const transform = { outputDimensions: localDimensions };
+
       const layer: Record<string, any> = {
         type: 'image',
-        source: getNeuroglancerSource(dataUrl, zarr_version),
+        source: { 
+          url: getNeuroglancerSource(dataUrl, zarr_version),
+          transform
+        },
         tab: 'rendering',
         opacity: 1,
         blend: 'additive',
         shader: getShader(color, minValue, maxValue),
-        localDimensions: { "c'": [1, ''] },
+        localDimensions: localDimensions,
         localPosition: [i]
       };
 
@@ -397,6 +404,8 @@ function generateNeuroglancerStateForOmeZarr(
     // Fix the selected layer name
     state.selectedLayer.layer = channels[0].name;
   }
+
+  log.debug('Neuroglancer state: ', state);
 
   // Convert the state to a URL-friendly format
   const stateJson = JSON.stringify(state);
