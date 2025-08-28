@@ -117,9 +117,7 @@ export default function Preferences() {
 
       <Card className="mt-6">
         <Card.Header>
-          <Typography className="font-semibold">
-            Options:
-          </Typography>
+          <Typography className="font-semibold">Options:</Typography>
         </Card.Header>
         <Card.Body className="flex flex-col gap-4 pb-4">
           <div className="flex items-center gap-2">

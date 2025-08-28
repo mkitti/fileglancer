@@ -75,7 +75,10 @@ export const PreferencesProvider = ({
     ['linux_path'] | ['windows_path'] | ['mac_path']
   >(['linux_path']);
   const [hideDotFiles, setHideDotFiles] = React.useState<boolean>(false);
-  const [disableNeuroglancerStateGeneration, setDisableNeuroglancerStateGeneration] = React.useState<boolean>(false);
+  const [
+    disableNeuroglancerStateGeneration,
+    setDisableNeuroglancerStateGeneration
+  ] = React.useState<boolean>(false);
   const [zonePreferenceMap, setZonePreferenceMap] = React.useState<
     Record<string, ZonePreference>
   >({});
@@ -239,20 +242,24 @@ export const PreferencesProvider = ({
     return createSuccess(undefined);
   }, [savePreferencesToBackend]);
 
-  const toggleDisableNeuroglancerStateGeneration = React.useCallback(async (): Promise<
-    Result<void>
-  > => {
-    try {
-      setDisableNeuroglancerStateGeneration(prevDisableNeuroglancerStateGeneration => {
-        const newValue = !prevDisableNeuroglancerStateGeneration;
-        savePreferencesToBackend('disableNeuroglancerStateGeneration', newValue);
-        return newValue;
-      });
-    } catch (error) {
-      return handleError(error);
-    }
-    return createSuccess(undefined);
-  }, [savePreferencesToBackend]);
+  const toggleDisableNeuroglancerStateGeneration =
+    React.useCallback(async (): Promise<Result<void>> => {
+      try {
+        setDisableNeuroglancerStateGeneration(
+          prevDisableNeuroglancerStateGeneration => {
+            const newValue = !prevDisableNeuroglancerStateGeneration;
+            savePreferencesToBackend(
+              'disableNeuroglancerStateGeneration',
+              newValue
+            );
+            return newValue;
+          }
+        );
+      } catch (error) {
+        return handleError(error);
+      }
+      return createSuccess(undefined);
+    }, [savePreferencesToBackend]);
 
   function updatePreferenceList<T>(
     key: string,
@@ -491,10 +498,17 @@ export const PreferencesProvider = ({
 
   React.useEffect(() => {
     (async function () {
-      const rawDisableNeuroglancerStateGeneration = await fetchPreferences('disableNeuroglancerStateGeneration');
+      const rawDisableNeuroglancerStateGeneration = await fetchPreferences(
+        'disableNeuroglancerStateGeneration'
+      );
       if (rawDisableNeuroglancerStateGeneration !== null) {
-        log.debug('setting initial disableNeuroglancerStateGeneration preference:', rawDisableNeuroglancerStateGeneration);
-        setDisableNeuroglancerStateGeneration(rawDisableNeuroglancerStateGeneration);
+        log.debug(
+          'setting initial disableNeuroglancerStateGeneration preference:',
+          rawDisableNeuroglancerStateGeneration
+        );
+        setDisableNeuroglancerStateGeneration(
+          rawDisableNeuroglancerStateGeneration
+        );
       }
     })();
   }, [fetchPreferences]);

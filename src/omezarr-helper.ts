@@ -158,9 +158,7 @@ function getLayerName(dataUrl: string): string {
   return dataUrl.split('/').filter(Boolean).pop() || 'Default';
 }
 
-function generateNeuroglancerStateForDataURL(
-  dataUrl: string
-): string | null {
+function generateNeuroglancerStateForDataURL(dataUrl: string): string | null {
   log.debug('Generating Neuroglancer state for Zarr array:', dataUrl);
 
   const layer: Record<string, any> = {

@@ -201,8 +201,7 @@ export default function useZarrMetadata() {
         openWithToolUrls.vole = voleBaseUrl + dataUrl;
         if (disableNeuroglancerStateGeneration) {
           openWithToolUrls.neuroglancer =
-            neuroglancerBaseUrl + 
-            generateNeuroglancerStateForDataURL(dataUrl);
+            neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(dataUrl);
         } else {
           try {
             openWithToolUrls.neuroglancer =
@@ -215,9 +214,12 @@ export default function useZarrMetadata() {
                 metadata.omero
               );
           } catch (error) {
-            log.error('Error generating Neuroglancer state for OME-Zarr:', error);
+            log.error(
+              'Error generating Neuroglancer state for OME-Zarr:',
+              error
+            );
             openWithToolUrls.neuroglancer =
-              neuroglancerBaseUrl + 
+              neuroglancerBaseUrl +
               generateNeuroglancerStateForDataURL(dataUrl);
           }
         }
@@ -226,8 +228,7 @@ export default function useZarrMetadata() {
         openWithToolUrls.vole = '';
         if (disableNeuroglancerStateGeneration) {
           openWithToolUrls.neuroglancer =
-            neuroglancerBaseUrl + 
-            generateNeuroglancerStateForDataURL(dataUrl);
+            neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(dataUrl);
         } else {
           openWithToolUrls.neuroglancer =
             neuroglancerBaseUrl +
