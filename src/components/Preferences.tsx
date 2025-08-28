@@ -18,96 +18,100 @@ export default function Preferences() {
         Preferences
       </Typography>
 
-        <Card>
-          <Card.Header>
-            <Typography className="font-semibold">
-              Format to use for file paths:
+      <Card>
+        <Card.Header>
+          <Typography className="font-semibold">
+            Format to use for file paths:
+          </Typography>
+        </Card.Header>
+        <Card.Body className="flex flex-col gap-4 pb-4">
+          <div className="flex items-center gap-2">
+            <input
+              className="icon-small checked:accent-secondary-light"
+              type="radio"
+              id="linux_path"
+              value="linux_path"
+              checked={pathPreference[0] === 'linux_path'}
+              onChange={async (event: React.ChangeEvent<HTMLInputElement>) => {
+                if (event.target.checked) {
+                  const result = await handlePathPreferenceSubmit([
+                    'linux_path'
+                  ]);
+                  if (result.success) {
+                    toast.success('Path preference updated successfully!');
+                  } else {
+                    toast.error(result.error);
+                  }
+                }
+              }}
+            />
+
+            <Typography
+              as="label"
+              htmlFor="linux_path"
+              className="text-foreground"
+            >
+              Cluster/Linux (e.g., /misc/public)
             </Typography>
-          </Card.Header>
-          <Card.Body className="flex flex-col gap-4 pb-4">
-            <div className="flex items-center gap-2">
-              <input
-                className="icon-small checked:accent-secondary-light"
-                type="radio"
-                id="linux_path"
-                value="linux_path"
-                checked={pathPreference[0] === 'linux_path'}
-                onChange={async (event: React.ChangeEvent<HTMLInputElement>) => {
-                  if (event.target.checked) {
-                    const result = await handlePathPreferenceSubmit(['linux_path']);
-                    if (result.success) {
-                      toast.success('Path preference updated successfully!');
-                    } else {
-                      toast.error(result.error);
-                    }
-                  }
-                }}
-              />
+          </div>
 
-              <Typography
-                as="label"
-                htmlFor="linux_path"
-                className="text-foreground"
-              >
-                Cluster/Linux (e.g., /misc/public)
-              </Typography>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                className="icon-small checked:accent-secondary-light"
-                type="radio"
-                id="windows_path"
-                value="windows_path"
-                checked={pathPreference[0] === 'windows_path'}
-                onChange={async (event: React.ChangeEvent<HTMLInputElement>) => {
-                  if (event.target.checked) {
-                    const result = await handlePathPreferenceSubmit(['windows_path']);
-                    if (result.success) {
-                      toast.success('Path preference updated successfully!');
-                    } else {
-                      toast.error(result.error);
-                    }
+          <div className="flex items-center gap-2">
+            <input
+              className="icon-small checked:accent-secondary-light"
+              type="radio"
+              id="windows_path"
+              value="windows_path"
+              checked={pathPreference[0] === 'windows_path'}
+              onChange={async (event: React.ChangeEvent<HTMLInputElement>) => {
+                if (event.target.checked) {
+                  const result = await handlePathPreferenceSubmit([
+                    'windows_path'
+                  ]);
+                  if (result.success) {
+                    toast.success('Path preference updated successfully!');
+                  } else {
+                    toast.error(result.error);
                   }
-                }}
-              />
-              <Typography
-                as="label"
-                htmlFor="windows_path"
-                className="text-foreground"
-              >
-                Windows/Linux SMB (e.g. \\prfs.hhmi.org\public)
-              </Typography>
-            </div>
+                }
+              }}
+            />
+            <Typography
+              as="label"
+              htmlFor="windows_path"
+              className="text-foreground"
+            >
+              Windows/Linux SMB (e.g. \\prfs.hhmi.org\public)
+            </Typography>
+          </div>
 
-            <div className="flex items-center gap-2">
-              <input
-                className="icon-small checked:accent-secondary-light"
-                type="radio"
-                id="mac_path"
-                value="mac_path"
-                checked={pathPreference[0] === 'mac_path'}
-                onChange={async (event: React.ChangeEvent<HTMLInputElement>) => {
-                  if (event.target.checked) {
-                    const result = await handlePathPreferenceSubmit(['mac_path']);
-                    if (result.success) {
-                      toast.success('Path preference updated successfully!');
-                    } else {
-                      toast.error(result.error);
-                    }
+          <div className="flex items-center gap-2">
+            <input
+              className="icon-small checked:accent-secondary-light"
+              type="radio"
+              id="mac_path"
+              value="mac_path"
+              checked={pathPreference[0] === 'mac_path'}
+              onChange={async (event: React.ChangeEvent<HTMLInputElement>) => {
+                if (event.target.checked) {
+                  const result = await handlePathPreferenceSubmit(['mac_path']);
+                  if (result.success) {
+                    toast.success('Path preference updated successfully!');
+                  } else {
+                    toast.error(result.error);
                   }
-                }}
-              />
-              <Typography
-                as="label"
-                htmlFor="mac_path"
-                className="text-foreground"
-              >
-                macOS (e.g. smb://prfs.hhmi.org/public)
-              </Typography>
-            </div>
-          </Card.Body>
-        </Card>
+                }
+              }}
+            />
+            <Typography
+              as="label"
+              htmlFor="mac_path"
+              className="text-foreground"
+            >
+              macOS (e.g. smb://prfs.hhmi.org/public)
+            </Typography>
+          </div>
+        </Card.Body>
+      </Card>
 
       <Card className="mt-6">
         <Card.Header>
