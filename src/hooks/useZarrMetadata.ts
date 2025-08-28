@@ -1,10 +1,12 @@
 import React from 'react';
 import { default as log } from '@/logger';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import {
   getOmeZarrMetadata,
   getOmeZarrThumbnail,
   getZarrArray,
+  generateNeuroglancerStateForDataURL,
   generateNeuroglancerStateForZarrArray,
   generateNeuroglancerStateForOmeZarr
 } from '@/omezarr-helper';
@@ -40,6 +42,7 @@ export default function useZarrMetadata() {
   const voleBaseUrl = 'https://volumeviewer.allencell.org/viewer?url=';
   const { fileBrowserState, areFileDataLoading } = useFileBrowserContext();
   const { dataUrl } = useProxiedPathContext();
+  const { disableNeuroglancerStateGeneration } = usePreferencesContext();
   const [cookies] = useCookies(['_xsrf']);
 
   const checkZarrMetadata = React.useCallback(
@@ -196,33 +199,44 @@ export default function useZarrMetadata() {
       if (metadata && metadata?.multiscale) {
         openWithToolUrls.validator = validatorBaseUrl + dataUrl;
         openWithToolUrls.vole = voleBaseUrl + dataUrl;
-        try {
+        if (disableNeuroglancerStateGeneration) {
           openWithToolUrls.neuroglancer =
-            neuroglancerBaseUrl +
-            generateNeuroglancerStateForOmeZarr(
-              dataUrl,
-              metadata.zarr_version,
-              metadata.multiscale,
-              metadata.arr,
-              metadata.omero
-            );
-        } catch (error) {
-          log.error('Error generating Neuroglancer state for OME-Zarr:', error);
-          log.error('Falling back to Zarr array state');
-          openWithToolUrls.neuroglancer =
-            neuroglancerBaseUrl +
-            generateNeuroglancerStateForZarrArray(dataUrl, 2);
+            neuroglancerBaseUrl + 
+            generateNeuroglancerStateForDataURL(dataUrl);
+        } else {
+          try {
+            openWithToolUrls.neuroglancer =
+              neuroglancerBaseUrl +
+              generateNeuroglancerStateForOmeZarr(
+                dataUrl,
+                metadata.zarr_version,
+                metadata.multiscale,
+                metadata.arr,
+                metadata.omero
+              );
+          } catch (error) {
+            log.error('Error generating Neuroglancer state for OME-Zarr:', error);
+            openWithToolUrls.neuroglancer =
+              neuroglancerBaseUrl + 
+              generateNeuroglancerStateForDataURL(dataUrl);
+          }
         }
       } else {
         openWithToolUrls.validator = '';
         openWithToolUrls.vole = '';
-        openWithToolUrls.neuroglancer =
-          neuroglancerBaseUrl +
-          generateNeuroglancerStateForZarrArray(dataUrl, 2);
+        if (disableNeuroglancerStateGeneration) {
+          openWithToolUrls.neuroglancer =
+            neuroglancerBaseUrl + 
+            generateNeuroglancerStateForDataURL(dataUrl);
+        } else {
+          openWithToolUrls.neuroglancer =
+            neuroglancerBaseUrl +
+            generateNeuroglancerStateForZarrArray(dataUrl, 2);
+        }
       }
       setOpenWithToolUrls(openWithToolUrls);
     }
-  }, [metadata, dataUrl]);
+  }, [metadata, dataUrl, disableNeuroglancerStateGeneration]);
 
   return {
     thumbnailSrc,

@@ -154,6 +154,31 @@ function getNeuroglancerSource(dataUrl: string, zarr_version: 2 | 3): string {
   return dataUrl + '|zarr' + zarr_version + ':';
 }
 
+function getLayerName(dataUrl: string): string {
+  return dataUrl.split('/').filter(Boolean).pop() || 'Default';
+}
+
+function generateNeuroglancerStateForDataURL(
+  dataUrl: string
+): string | null {
+  log.debug('Generating Neuroglancer state for Zarr array:', dataUrl);
+
+  const layer: Record<string, any> = {
+    // Get the last component of the URL after the final slash (filter(Boolean) discards empty strings)
+    name: getLayerName(dataUrl),
+    source: dataUrl
+  };
+
+  // Create the scaffold for theNeuroglancer viewer state
+  const state: any = {
+    layers: [layer]
+  };
+
+  // Convert the state to a URL-friendly format
+  const stateJson = JSON.stringify(state);
+  return encodeURIComponent(stateJson);
+}
+
 function generateNeuroglancerStateForZarrArray(
   dataUrl: string,
   zarr_version: 2 | 3
@@ -161,7 +186,7 @@ function generateNeuroglancerStateForZarrArray(
   log.debug('Generating Neuroglancer state for Zarr array:', dataUrl);
 
   const layer: Record<string, any> = {
-    name: 'Default',
+    name: getLayerName(dataUrl),
     type: 'image',
     source: getNeuroglancerSource(dataUrl, zarr_version),
     tab: 'rendering'
@@ -170,11 +195,7 @@ function generateNeuroglancerStateForZarrArray(
   // Create the scaffold for theNeuroglancer viewer state
   const state: any = {
     layers: [layer],
-    layout: '4panel',
-    selectedLayer: {
-      visible: true,
-      layer: 'Default'
-    }
+    layout: '4panel'
   };
 
   // Convert the state to a URL-friendly format
@@ -211,6 +232,8 @@ function generateNeuroglancerStateForOmeZarr(
   const { min: dtypeMin, max: dtypeMax } = getMinMaxValues(arr);
   log.debug('Inferred min/max values:', dtypeMin, dtypeMax);
 
+  const defaultLayerName = getLayerName(dataUrl);
+
   // Create the scaffold for theNeuroglancer viewer state
   const state: any = {
     dimensions: {},
@@ -218,7 +241,7 @@ function generateNeuroglancerStateForOmeZarr(
     layout: '4panel',
     selectedLayer: {
       visible: true,
-      layer: 'Default'
+      layer: defaultLayerName
     }
   };
 
@@ -305,7 +328,7 @@ function generateNeuroglancerStateForOmeZarr(
       }
     };
     state.layers.push({
-      name: 'Default',
+      name: defaultLayerName,
       ...layer
     });
   } else {
@@ -441,6 +464,7 @@ export {
   getZarrArray,
   getOmeZarrMetadata,
   getOmeZarrThumbnail,
+  generateNeuroglancerStateForDataURL,
   generateNeuroglancerStateForZarrArray,
   generateNeuroglancerStateForOmeZarr
 };
