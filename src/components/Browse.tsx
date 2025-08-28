@@ -1,10 +1,8 @@
 import React from 'react';
 import { useOutletContext } from 'react-router';
+
 import type { OutletContextType } from '@/layouts/BrowseLayout';
-
-import useHideDotFiles from '@/hooks/useHideDotFiles';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-
 import FileBrowser from './ui/BrowsePage/FileBrowser';
 import Toolbar from './ui/BrowsePage/Toolbar';
 import RenameDialog from './ui/Dialogs/Rename';
@@ -27,7 +25,6 @@ export default function Browse() {
     showConvertFileDialog
   } = useOutletContext<OutletContextType>();
 
-  const { hideDotFiles, setHideDotFiles } = useHideDotFiles();
   const { currentFileSharePath } = useFileBrowserContext();
 
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
@@ -36,8 +33,6 @@ export default function Browse() {
   return (
     <div className="flex flex-col h-full max-h-full">
       <Toolbar
-        hideDotFiles={hideDotFiles}
-        setHideDotFiles={setHideDotFiles}
         showPropertiesDrawer={showPropertiesDrawer}
         togglePropertiesDrawer={togglePropertiesDrawer}
         showSidebar={showSidebar}
@@ -57,7 +52,6 @@ export default function Browse() {
         ) : (
           <FileBrowser
             showPropertiesDrawer={showPropertiesDrawer}
-            hideDotFiles={hideDotFiles}
             togglePropertiesDrawer={togglePropertiesDrawer}
             setShowRenameDialog={setShowRenameDialog}
             setShowDeleteDialog={setShowDeleteDialog}
