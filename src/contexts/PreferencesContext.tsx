@@ -31,6 +31,8 @@ type PreferencesContextType = {
   ) => Promise<Result<void>>;
   hideDotFiles: boolean;
   toggleHideDotFiles: () => Promise<Result<void>>;
+  disableNeuroglancerStateGeneration: boolean;
+  toggleDisableNeuroglancerStateGeneration: () => Promise<Result<void>>;
   zonePreferenceMap: Record<string, ZonePreference>;
   zoneFavorites: Zone[];
   fileSharePathPreferenceMap: Record<string, FileSharePathPreference>;
@@ -73,6 +75,10 @@ export const PreferencesProvider = ({
     ['linux_path'] | ['windows_path'] | ['mac_path']
   >(['linux_path']);
   const [hideDotFiles, setHideDotFiles] = React.useState<boolean>(false);
+  const [
+    disableNeuroglancerStateGeneration,
+    setDisableNeuroglancerStateGeneration
+  ] = React.useState<boolean>(false);
   const [zonePreferenceMap, setZonePreferenceMap] = React.useState<
     Record<string, ZonePreference>
   >({});
@@ -235,6 +241,25 @@ export const PreferencesProvider = ({
     }
     return createSuccess(undefined);
   }, [savePreferencesToBackend]);
+
+  const toggleDisableNeuroglancerStateGeneration =
+    React.useCallback(async (): Promise<Result<void>> => {
+      try {
+        setDisableNeuroglancerStateGeneration(
+          prevDisableNeuroglancerStateGeneration => {
+            const newValue = !prevDisableNeuroglancerStateGeneration;
+            savePreferencesToBackend(
+              'disableNeuroglancerStateGeneration',
+              newValue
+            );
+            return newValue;
+          }
+        );
+      } catch (error) {
+        return handleError(error);
+      }
+      return createSuccess(undefined);
+    }, [savePreferencesToBackend]);
 
   function updatePreferenceList<T>(
     key: string,
@@ -472,6 +497,23 @@ export const PreferencesProvider = ({
   }, [fetchPreferences]);
 
   React.useEffect(() => {
+    (async function () {
+      const rawDisableNeuroglancerStateGeneration = await fetchPreferences(
+        'disableNeuroglancerStateGeneration'
+      );
+      if (rawDisableNeuroglancerStateGeneration !== null) {
+        log.debug(
+          'setting initial disableNeuroglancerStateGeneration preference:',
+          rawDisableNeuroglancerStateGeneration
+        );
+        setDisableNeuroglancerStateGeneration(
+          rawDisableNeuroglancerStateGeneration
+        );
+      }
+    })();
+  }, [fetchPreferences]);
+
+  React.useEffect(() => {
     if (!isZonesMapReady) {
       return;
     }
@@ -618,6 +660,8 @@ export const PreferencesProvider = ({
         handlePathPreferenceSubmit,
         hideDotFiles,
         toggleHideDotFiles,
+        disableNeuroglancerStateGeneration,
+        toggleDisableNeuroglancerStateGeneration,
         zonePreferenceMap,
         zoneFavorites,
         fileSharePathPreferenceMap,

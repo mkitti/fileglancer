@@ -9,7 +9,9 @@ export default function Preferences() {
     pathPreference,
     handlePathPreferenceSubmit,
     hideDotFiles,
-    toggleHideDotFiles
+    toggleHideDotFiles,
+    disableNeuroglancerStateGeneration,
+    toggleDisableNeuroglancerStateGeneration
   } = usePreferencesContext();
 
   return (
@@ -115,9 +117,7 @@ export default function Preferences() {
 
       <Card className="mt-6">
         <Card.Header>
-          <Typography className="font-semibold">
-            File Visibility Options:
-          </Typography>
+          <Typography className="font-semibold">Options:</Typography>
         </Card.Header>
         <Card.Body className="flex flex-col gap-4 pb-4">
           <div className="flex items-center gap-2">
@@ -145,6 +145,34 @@ export default function Preferences() {
               className="text-foreground"
             >
               Hide dot files (files and folders starting with ".")
+            </Typography>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              className="icon-small checked:accent-secondary-light"
+              type="checkbox"
+              id="disable_neuroglancer_state_generation"
+              checked={disableNeuroglancerStateGeneration}
+              onChange={async () => {
+                const result = await toggleDisableNeuroglancerStateGeneration();
+                if (result.success) {
+                  toast.success(
+                    disableNeuroglancerStateGeneration
+                      ? 'Neuroglancer state generation is now enabled'
+                      : 'Neuroglancer state generation is now disabled'
+                  );
+                } else {
+                  toast.error(result.error);
+                }
+              }}
+            />
+            <Typography
+              as="label"
+              htmlFor="disable_neuroglancer_state_generation"
+              className="text-foreground"
+            >
+              Disable neuroglancer state generation
             </Typography>
           </div>
         </Card.Body>
