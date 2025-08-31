@@ -196,7 +196,14 @@ export default function useZarrMetadata() {
   // Run tool url generation when the proxied path url or metadata changes
   React.useEffect(() => {
     setOpenWithToolUrls(null);
-    console.log('Updating OpenWithToolUrls with metadata ', metadata, ' and dataUrl ', dataUrl, ' and externalDataUrl ', externalDataUrl);
+    console.log(
+      'Updating OpenWithToolUrls with metadata ',
+      metadata,
+      ' and dataUrl ',
+      dataUrl,
+      ' and externalDataUrl ',
+      externalDataUrl
+    );
     const url = externalDataUrl || dataUrl;
     if (metadata && url) {
       const openWithToolUrls = {
@@ -226,8 +233,7 @@ export default function useZarrMetadata() {
               error
             );
             openWithToolUrls.neuroglancer =
-              neuroglancerBaseUrl +
-              generateNeuroglancerStateForDataURL(url);
+              neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
           }
         }
       } else {
@@ -239,8 +245,7 @@ export default function useZarrMetadata() {
             neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
         } else {
           openWithToolUrls.neuroglancer =
-            neuroglancerBaseUrl +
-            generateNeuroglancerStateForZarrArray(url, 2);
+            neuroglancerBaseUrl + generateNeuroglancerStateForZarrArray(url, 2);
         }
       }
       setOpenWithToolUrls(openWithToolUrls);

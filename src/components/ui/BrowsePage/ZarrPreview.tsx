@@ -111,7 +111,10 @@ export default function ZarrPreview({
           ) : null}
 
           {openWithToolUrls && (externalDataUrl || isImageShared) ? (
-            <DataToolLinks title="Open with:" urls={openWithToolUrls as OpenWithToolUrls} />
+            <DataToolLinks
+              title="Open with:"
+              urls={openWithToolUrls as OpenWithToolUrls}
+            />
           ) : null}
         </div>
         {metadata && 'arr' in metadata && (

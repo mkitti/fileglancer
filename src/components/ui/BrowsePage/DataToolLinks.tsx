@@ -39,7 +39,6 @@ export default function DataToolLinks({
         {title}
       </Typography>
       <ButtonGroup className="relative">
-
         {urls.neuroglancer ? (
           <FgTooltip
             as={Button}
@@ -79,7 +78,6 @@ export default function DataToolLinks({
             </Link>
           </FgTooltip>
         ) : null}
-
 
         {urls.avivator ? (
           <FgTooltip

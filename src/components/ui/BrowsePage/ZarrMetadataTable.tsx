@@ -20,9 +20,9 @@ function getChunkSizeString(arr: zarr.Array<any>) {
  * @returns The first transform with type "scale", or undefined if no scale transform is found
  */
 function getScaleTransform(coordinateTransformations: any[]) {
-  return coordinateTransformations?.find(
-    (ct: any) => ct.type === "scale"
-  ) as { scale: number[] };
+  return coordinateTransformations?.find((ct: any) => ct.type === 'scale') as {
+    scale: number[];
+  };
 }
 
 /**
@@ -38,20 +38,24 @@ function getAxisData(metadata: Metadata) {
 
   try {
     // Get the root transform
-    const rct = getScaleTransform(multiscale.coordinateTransformations as any[]);
+    const rct = getScaleTransform(
+      multiscale.coordinateTransformations as any[]
+    );
     const rootScales = rct?.scale || [];
 
     // Get the transform for the full scale dataset
     const dataset = multiscale.datasets[0];
     const ct = getScaleTransform(dataset.coordinateTransformations);
     const scales = ct?.scale || [];
-    
+
     return multiscale.axes.map((axis: Axis, index: number) => {
       const shape = shapes[0][index] || 'Unknown';
       const chunkSize = arr.chunks[index] || 'Unknown';
-      const scale = scales[index] ? Number((scales[index] * (rootScales[index] || 1)).toFixed(4)) : 'Unknown';
+      const scale = scales[index]
+        ? Number((scales[index] * (rootScales[index] || 1)).toFixed(4))
+        : 'Unknown';
       const unit = translateUnitToNeuroglancer(axis.unit as string) || '';
-      
+
       return {
         name: axis.name.toUpperCase(),
         shape,
@@ -71,7 +75,7 @@ export default function ZarrMetadataTable({
 }: ZarrMetadataTableProps) {
   const { zarr_version, multiscale, omero, shapes } = metadata;
   const axisData = getAxisData(metadata);
-  
+
   return (
     <div className="flex flex-col gap-4 max-h-min">
       {/* First table - General metadata */}
