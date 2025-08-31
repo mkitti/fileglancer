@@ -22,6 +22,7 @@ export type OpenWithToolUrls = {
   validator: string;
   neuroglancer: string;
   vole: string;
+  avivator: string;
 };
 
 export type ZarrArray = zarr.Array<any>;
@@ -41,6 +42,7 @@ export default function useZarrMetadata() {
   const validatorBaseUrl = 'https://ome.github.io/ome-ngff-validator/?source=';
   const neuroglancerBaseUrl = 'https://neuroglancer-demo.appspot.com/#!';
   const voleBaseUrl = 'https://volumeviewer.allencell.org/viewer?url=';
+  const avivatorBaseUrl = 'https://avivator.gehlenborglab.org/?image_url=';
   const { fileBrowserState, areFileDataLoading } = useFileBrowserContext();
   const { dataUrl } = useProxiedPathContext();
   const { externalDataUrl } = useExternalBucketContext();
@@ -203,6 +205,7 @@ export default function useZarrMetadata() {
       if (metadata && metadata?.multiscale) {
         openWithToolUrls.validator = validatorBaseUrl + url;
         openWithToolUrls.vole = voleBaseUrl + url;
+        openWithToolUrls.avivator = avivatorBaseUrl + url;
         if (disableNeuroglancerStateGeneration) {
           openWithToolUrls.neuroglancer =
             neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
@@ -230,6 +233,7 @@ export default function useZarrMetadata() {
       } else {
         openWithToolUrls.validator = '';
         openWithToolUrls.vole = '';
+        openWithToolUrls.avivator = '';
         if (disableNeuroglancerStateGeneration) {
           openWithToolUrls.neuroglancer =
             neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
