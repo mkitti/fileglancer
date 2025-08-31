@@ -39,22 +39,6 @@ export default function DataToolLinks({
         {title}
       </Typography>
       <ButtonGroup className="relative">
-        {urls.validator ? (
-          <FgTooltip
-            as={Button}
-            variant="ghost"
-            triggerClasses={tooltipTriggerClasses}
-            label="View in OME-Zarr Validator"
-          >
-            <Link to={urls.validator} target="_blank" rel="noopener noreferrer">
-              <img
-                src={validator_logo}
-                alt="OME-Zarr Validator logo"
-                className="max-h-8 max-w-8 m-1 rounded-sm"
-              />
-            </Link>
-          </FgTooltip>
-        ) : null}
 
         {urls.neuroglancer ? (
           <FgTooltip
@@ -109,6 +93,23 @@ export default function DataToolLinks({
               <img
                 src={avivator_logo}
                 alt="Avivator logo"
+                className="max-h-8 max-w-8 m-1 rounded-sm"
+              />
+            </Link>
+          </FgTooltip>
+        ) : null}
+
+        {urls.validator ? (
+          <FgTooltip
+            as={Button}
+            variant="ghost"
+            triggerClasses={tooltipTriggerClasses}
+            label="View in OME-Zarr Validator"
+          >
+            <Link to={urls.validator} target="_blank" rel="noopener noreferrer">
+              <img
+                src={validator_logo}
+                alt="OME-Zarr Validator logo"
                 className="max-h-8 max-w-8 m-1 rounded-sm"
               />
             </Link>
