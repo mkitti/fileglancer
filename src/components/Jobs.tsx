@@ -12,8 +12,8 @@ export default function Jobs() {
         Tasks
       </Typography>
       <Typography className="mb-6 text-foreground">
-        A task is created in Jira when you request a file to be converted to a
-        different format. To start a file conversion task, select a file in the
+        A task is created when you request a file to be converted to a
+        different format. To request a file conversion, select a file in the
         file browser, open the <strong>Properties</strong> panel, and click the{' '}
         <strong>Convert</strong> button.
       </Typography>
@@ -23,7 +23,7 @@ export default function Jobs() {
         rowContent={TicketRow}
         items={allTickets}
         loadingState={loadingTickets}
-        emptyText="You have not opened any Jira tasks."
+        emptyText="You have not made any conversion requests."
       />
     </>
   );

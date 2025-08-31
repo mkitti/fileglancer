@@ -154,8 +154,7 @@ export default function PropertiesDrawer({
             ) : (
               <>
                 <Typography variant="small" className="font-medium">
-                  Open a task to request the conversion of this file to OME-Zarr
-                  format.
+                  Scientific Computing can help you convert images to OME-Zarr format, suitable for viewing in external viewers like Neuroglancer. 
                 </Typography>
                 <Button
                   variant="outline"

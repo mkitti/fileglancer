@@ -48,11 +48,11 @@ export default function ConvertFileDialog({
         variant="h4"
         className="mb-4 text-foreground font-bold text-2xl"
       >
-        Convert image to OME-Zarr format
+        Convert images to OME-Zarr format
       </Typography>
       <Typography className="my-4 text-large text-foreground">
-        This form will create a JIRA ticket to request conversion of the image
-        data to OME-Zarr format, suitable for viewing in external viewers like
+        This form will create a new request for Scientific Computing to convert the image
+        data at this path to OME-Zarr format, suitable for viewing in external viewers like
         Neuroglancer.
       </Typography>
       <form

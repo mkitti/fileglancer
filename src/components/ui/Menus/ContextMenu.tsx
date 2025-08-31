@@ -97,7 +97,7 @@ export default function ContextMenu({
       shouldShow: fileBrowserState.selectedFiles[0].is_dir
     },
     {
-      name: 'Convert to ZARR',
+      name: 'Convert images to OME-Zarr',
       action: (props: ContextMenuActionProps) => {
         setShowConvertFileDialog(true);
         props.setShowContextMenu(false);
