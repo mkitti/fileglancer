@@ -12,9 +12,9 @@ export default function Jobs() {
         Tasks
       </Typography>
       <Typography className="mb-6 text-foreground">
-        A task is created when you request a file to be converted to a
-        different format. To request a file conversion, select a file in the
-        file browser, open the <strong>Properties</strong> panel, and click the{' '}
+        A task is created when you request a file to be converted to a different
+        format. To request a file conversion, select a file in the file browser,
+        open the <strong>Properties</strong> panel, and click the{' '}
         <strong>Convert</strong> button.
       </Typography>
       <TableCard

@@ -51,9 +51,9 @@ export default function ConvertFileDialog({
         Convert images to OME-Zarr format
       </Typography>
       <Typography className="my-4 text-large text-foreground">
-        This form will create a new request for Scientific Computing to convert the image
-        data at this path to OME-Zarr format, suitable for viewing in external viewers like
-        Neuroglancer.
+        This form will create a new request for Scientific Computing to convert
+        the image data at this path to OME-Zarr format, suitable for viewing in
+        external viewers like Neuroglancer.
       </Typography>
       <form
         onSubmit={async event => {
