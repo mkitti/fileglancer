@@ -14,6 +14,7 @@ import type { Metadata } from '@/omezarr-helper';
 import { fetchFileAsJson, getFileURL } from '@/utils';
 import { useCookies } from 'react-cookie';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
+import { useExternalBucketContext } from '@/contexts/ExternalBucketContext';
 import * as zarr from 'zarrita';
 
 export type OpenWithToolUrls = {
@@ -42,6 +43,7 @@ export default function useZarrMetadata() {
   const voleBaseUrl = 'https://volumeviewer.allencell.org/viewer?url=';
   const { fileBrowserState, areFileDataLoading } = useFileBrowserContext();
   const { dataUrl } = useProxiedPathContext();
+  const { externalDataUrl } = useExternalBucketContext();
   const { disableNeuroglancerStateGeneration } = usePreferencesContext();
   const [cookies] = useCookies(['_xsrf']);
 
@@ -192,22 +194,24 @@ export default function useZarrMetadata() {
   // Run tool url generation when the proxied path url or metadata changes
   React.useEffect(() => {
     setOpenWithToolUrls(null);
-    if (metadata && dataUrl) {
+    console.log('Updating OpenWithToolUrls with metadata ', metadata, ' and dataUrl ', dataUrl, ' and externalDataUrl ', externalDataUrl);
+    const url = externalDataUrl || dataUrl;
+    if (metadata && url) {
       const openWithToolUrls = {
-        copy: dataUrl
+        copy: url
       } as OpenWithToolUrls;
       if (metadata && metadata?.multiscale) {
-        openWithToolUrls.validator = validatorBaseUrl + dataUrl;
-        openWithToolUrls.vole = voleBaseUrl + dataUrl;
+        openWithToolUrls.validator = validatorBaseUrl + url;
+        openWithToolUrls.vole = voleBaseUrl + url;
         if (disableNeuroglancerStateGeneration) {
           openWithToolUrls.neuroglancer =
-            neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(dataUrl);
+            neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
         } else {
           try {
             openWithToolUrls.neuroglancer =
               neuroglancerBaseUrl +
               generateNeuroglancerStateForOmeZarr(
-                dataUrl,
+                url,
                 metadata.zarr_version,
                 metadata.multiscale,
                 metadata.arr,
@@ -220,7 +224,7 @@ export default function useZarrMetadata() {
             );
             openWithToolUrls.neuroglancer =
               neuroglancerBaseUrl +
-              generateNeuroglancerStateForDataURL(dataUrl);
+              generateNeuroglancerStateForDataURL(url);
           }
         }
       } else {
@@ -228,16 +232,16 @@ export default function useZarrMetadata() {
         openWithToolUrls.vole = '';
         if (disableNeuroglancerStateGeneration) {
           openWithToolUrls.neuroglancer =
-            neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(dataUrl);
+            neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
         } else {
           openWithToolUrls.neuroglancer =
             neuroglancerBaseUrl +
-            generateNeuroglancerStateForZarrArray(dataUrl, 2);
+            generateNeuroglancerStateForZarrArray(url, 2);
         }
       }
       setOpenWithToolUrls(openWithToolUrls);
     }
-  }, [metadata, dataUrl, disableNeuroglancerStateGeneration]);
+  }, [metadata, dataUrl, externalDataUrl, disableNeuroglancerStateGeneration]);
 
   return {
     thumbnailSrc,

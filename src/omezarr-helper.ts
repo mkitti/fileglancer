@@ -464,5 +464,6 @@ export {
   getOmeZarrThumbnail,
   generateNeuroglancerStateForDataURL,
   generateNeuroglancerStateForZarrArray,
-  generateNeuroglancerStateForOmeZarr
+  generateNeuroglancerStateForOmeZarr,
+  translateUnitToNeuroglancer
 };

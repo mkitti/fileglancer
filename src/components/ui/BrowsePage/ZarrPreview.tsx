@@ -27,11 +27,9 @@ export default function ZarrPreview({
   thumbnailError
 }: ZarrPreviewProps): React.ReactNode {
   const [isImageShared, setIsImageShared] = React.useState(false);
-  const [externalToolUrls] = React.useState<OpenWithToolUrls | null>(null);
-
   const { showDataLinkDialog, setShowDataLinkDialog } = useDataLinkDialog();
   const { proxiedPath } = useProxiedPathContext();
-  const { externalBucket } = useExternalBucketContext();
+  const { externalDataUrl } = useExternalBucketContext();
 
   React.useEffect(() => {
     setIsImageShared(proxiedPath !== null);
@@ -77,8 +75,8 @@ export default function ZarrPreview({
               onChange={() => {
                 setShowDataLinkDialog(true);
               }}
-              checked={externalBucket ? true : isImageShared}
-              disabled={externalBucket ? true : false}
+              checked={externalDataUrl ? true : isImageShared}
+              disabled={externalDataUrl ? true : false}
             />
             <label
               htmlFor="share-switch"
@@ -87,7 +85,7 @@ export default function ZarrPreview({
               <Typography
                 as="label"
                 htmlFor="share-switch"
-                className={`${externalBucket ? 'cursor-default' : 'cursor-pointer'} text-foreground font-semibold`}
+                className={`${externalDataUrl ? 'cursor-default' : 'cursor-pointer'} text-foreground font-semibold`}
               >
                 Data Link
               </Typography>
@@ -95,7 +93,7 @@ export default function ZarrPreview({
                 type="small"
                 className="text-foreground whitespace-normal max-w-[300px]"
               >
-                {externalBucket
+                {externalDataUrl
                   ? 'Public data link already exists since this data is on s3.janelia.org.'
                   : 'Creating a data link for this image allows you to open it in external viewers like Neuroglancer.'}
               </Typography>
@@ -112,10 +110,8 @@ export default function ZarrPreview({
             />
           ) : null}
 
-          {externalBucket && externalToolUrls ? (
-            <DataToolLinks title="Open with:" urls={externalToolUrls} />
-          ) : openWithToolUrls && isImageShared ? (
-            <DataToolLinks title="Open with:" urls={openWithToolUrls} />
+          {openWithToolUrls && (externalDataUrl || isImageShared) ? (
+            <DataToolLinks title="Open with:" urls={openWithToolUrls as OpenWithToolUrls} />
           ) : null}
         </div>
         {metadata && 'arr' in metadata && (
