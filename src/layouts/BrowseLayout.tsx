@@ -78,7 +78,7 @@ export const BrowsePageLayout = () => {
               </PanelResizeHandle>
             </>
           ) : null}
-          <Panel id="main" order={2}>
+          <Panel id="main" order={2} style={{ overflowX: 'auto' }}>
             <Outlet context={outletContextValue} />
           </Panel>
           {showPropertiesDrawer ? (

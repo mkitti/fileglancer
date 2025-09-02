@@ -31,7 +31,7 @@ export default function Browse() {
   const [showRenameDialog, setShowRenameDialog] = React.useState(false);
 
   return (
-    <div className="flex flex-col h-full max-h-full">
+    <div className="flex flex-col h-full min-w-fit max-h-full">
       <Toolbar
         showPropertiesDrawer={showPropertiesDrawer}
         togglePropertiesDrawer={togglePropertiesDrawer}
