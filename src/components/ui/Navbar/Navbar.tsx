@@ -88,7 +88,7 @@ export default function FileglancerNavbar() {
 
   return (
     <>
-      <Navbar className="flex items-center justify-between p-2 sm:p-4 mx-auto w-fullrounded-none bg-background dark:shadow-surface h-[61px]">
+      <Navbar className="flex items-center justify-between p-2 sm:p-4 mx-auto w-full rounded-none bg-background dark:shadow-surface h-[61px]">
         {/* Logo */}
         <div className="flex items-center gap-1">
           <Link to="/browse">
