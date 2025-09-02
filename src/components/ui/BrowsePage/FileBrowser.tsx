@@ -4,6 +4,7 @@ import { Typography } from '@material-tailwind/react';
 import Crumbs from './Crumbs';
 import ZarrPreview from './ZarrPreview';
 import Table from './FileTable';
+import FileViewer from './FileViewer';
 import ContextMenu from '@/components/ui/Menus/ContextMenu';
 import { FileRowSkeleton } from '@/components/ui/widgets/Loaders';
 import useContextMenu from '@/hooks/useContextMenu';
@@ -28,7 +29,8 @@ export default function FileBrowser({
   setShowPermissionsDialog,
   setShowConvertFileDialog
 }: FileBrowserProps): React.ReactNode {
-  const { fileBrowserState, areFileDataLoading } = useFileBrowserContext();
+  const { fileBrowserState, areFileDataLoading, setViewingFile } =
+    useFileBrowserContext();
   const { displayFiles } = useHideDotFiles();
 
   const {
@@ -46,6 +48,16 @@ export default function FileBrowser({
     loadingThumbnail,
     thumbnailError
   } = useZarrMetadata();
+
+  // If viewing a file, render the FileViewer instead of the file browser
+  if (fileBrowserState.viewingFile) {
+    return (
+      <FileViewer
+        file={fileBrowserState.viewingFile}
+        onBack={() => setViewingFile(null)}
+      />
+    );
+  }
 
   return (
     <div className="px-2 transition-all duration-300 flex flex-col h-full overflow-hidden">

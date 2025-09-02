@@ -26,6 +26,7 @@ interface FileBrowserState {
   propertiesTarget: FileOrFolder | null;
   selectedFiles: FileOrFolder[];
   uiErrorMsg: string | null;
+  viewingFile: FileOrFolder | null;
 }
 
 type FileBrowserContextType = {
@@ -49,6 +50,7 @@ type FileBrowserContextType = {
   setCurrentFileSharePath: React.Dispatch<
     React.SetStateAction<FileSharePath | null>
   >;
+  setViewingFile: (file: FileOrFolder | null) => void;
 };
 
 const FileBrowserContext = React.createContext<FileBrowserContextType | null>(
@@ -79,7 +81,8 @@ export const FileBrowserContextProvider = ({
       files: [],
       propertiesTarget: null,
       selectedFiles: [],
-      uiErrorMsg: null
+      uiErrorMsg: null,
+      viewingFile: null
     });
   const [areFileDataLoading, setAreFileDataLoading] = React.useState(false);
 
@@ -115,7 +118,8 @@ export const FileBrowserContextProvider = ({
       fileList: FileOrFolder[],
       targetItem: FileOrFolder | null,
       selectedItems: FileOrFolder[] = [],
-      msg: string | null
+      msg: string | null,
+      viewingFileItem: FileOrFolder | null = null
     ) => {
       // Update fileBrowserState with complete, consistent data
       updateFileBrowserState({
@@ -124,7 +128,8 @@ export const FileBrowserContextProvider = ({
         files: fileList,
         propertiesTarget: targetItem,
         selectedFiles: selectedItems,
-        uiErrorMsg: msg
+        uiErrorMsg: msg,
+        viewingFile: viewingFileItem
       });
 
       // Update local states for individual parts
@@ -132,6 +137,15 @@ export const FileBrowserContextProvider = ({
       setCurrentFolder(folder);
       setFiles(fileList);
       setPropertiesTarget(targetItem);
+    },
+    [updateFileBrowserState]
+  );
+
+  const setViewingFile = React.useCallback(
+    (file: FileOrFolder | null) => {
+      updateFileBrowserState({
+        viewingFile: file
+      });
     },
     [updateFileBrowserState]
   );
@@ -146,6 +160,13 @@ export const FileBrowserContextProvider = ({
     // displayFiles: FileOrFolder[],
     showFilePropertiesDrawer: boolean
   ) => {
+    // If clicking on a file (not directory), open it for viewing
+    if (!file.is_dir) {
+      setViewingFile(file);
+      return;
+    }
+
+    // For directories, handle selection as before
     // if (e.shiftKey) {
     //   // If shift key held down while clicking,
     //   // add all files between the last selected and the current file
@@ -410,7 +431,8 @@ export const FileBrowserContextProvider = ({
         updateFilesWithContextMenuClick,
         areFileDataLoading,
         propertiesTarget,
-        setCurrentFileSharePath
+        setCurrentFileSharePath,
+        setViewingFile
       }}
     >
       {children}

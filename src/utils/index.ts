@@ -152,6 +152,7 @@ export {
   formatDateString,
   formatUnixTimestamp,
   formatFileSize,
+  getFileContentPath,
   getFileBrowsePath,
   getFileURL,
   getLastSegmentFromPath,
