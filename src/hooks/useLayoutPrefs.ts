@@ -17,6 +17,8 @@ const LAYOUT_NAME = 'react-resizable-panels:layout';
 // in the respective Panel components
 const DEFAULT_LAYOUT =
   '{"main,properties,sidebar":{"expandToSizes":{},"layout":[24,50,24]}}';
+const DEFAULT_LAYOUT_SMALL_SCREENS =
+  '{"main":{"expandToSizes":{},"layout":[100]}}';
 
 // Layout keys for the two possible panel combinations
 const WITH_PROPERTIES_AND_SIDEBAR = 'main,properties,sidebar';
@@ -61,8 +63,15 @@ export default function useLayoutPrefs() {
     if (!isLayoutLoadedFromDB) {
       return;
     } else if (layout === '') {
-      // default layout includes properties drawer
-      setShowPropertiesDrawer(true);
+      // If screen is small, default to no sidebar or properties drawer
+      if (window.innerWidth < 640) {
+        setShowPropertiesDrawer(false);
+        setShowSidebar(false);
+        return;
+      } else {
+        // default layout for larger screens includes properties drawer
+        setShowPropertiesDrawer(true);
+      }
     } else {
       try {
         const parsedLayout = JSON.parse(layout);
@@ -97,13 +106,21 @@ export default function useLayoutPrefs() {
           logger.debug('Layout not loaded from DB yet, returning empty string');
           return '';
         }
-        // If layout is empty, return default layout
+        // If layout is empty, return default layout based on screen size
         if (layout === '') {
-          logger.debug(
-            'Layout is empty, returning default layout',
-            DEFAULT_LAYOUT
-          );
-          return DEFAULT_LAYOUT;
+          if (window.innerWidth < 640) {
+            logger.debug(
+              'Layout is empty and screen is small, returning default layout',
+              DEFAULT_LAYOUT_SMALL_SCREENS
+            );
+            return DEFAULT_LAYOUT_SMALL_SCREENS;
+          } else {
+            logger.debug(
+              'Layout is empty, returning default layout',
+              DEFAULT_LAYOUT
+            );
+            return DEFAULT_LAYOUT;
+          }
         }
 
         try {
