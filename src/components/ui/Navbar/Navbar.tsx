@@ -87,8 +87,8 @@ export default function FileglancerNavbar() {
   }, [setIsLightTheme]);
 
   return (
-    <Navbar className="mx-auto w-full rounded-none bg-background p-4 short:py-1 short:px-1 dark:shadow-surface min-h-[45px]">
-      <div className="flex items-center justify-between w-full ">
+    <>
+      <Navbar className="flex items-center justify-between p-2 sm:p-4 mx-auto w-full rounded-none bg-background dark:shadow-surface h-[61px]">
         {/* Logo */}
         <div className="flex items-center gap-1">
           <Link to="/browse">
@@ -181,10 +181,10 @@ export default function FileglancerNavbar() {
             )}
           </IconButton>
         </div>
-      </div>
-      <Collapse open={openNav}>
+      </Navbar>
+      <Collapse open={openNav} className="bg-background">
         <NavList />
       </Collapse>
-    </Navbar>
+    </>
   );
 }

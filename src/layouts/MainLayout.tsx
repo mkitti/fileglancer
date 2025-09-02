@@ -37,12 +37,16 @@ export const MainLayout = () => {
                           success: { duration: 4000 }
                         }}
                       />
-                      <div className="flex flex-col items-center h-full w-full overflow-y-hidden bg-background text-foreground box-border">
-                        <FileglancerNavbar />
-                        <BetaBanner />
-                        <ErrorBoundary FallbackComponent={ErrorFallback}>
-                          <Outlet />
-                        </ErrorBoundary>
+                      <div className="flex flex-col h-full w-full overflow-y-hidden bg-background text-foreground box-border">
+                        <div className="flex-shrink-0 w-full">
+                          <FileglancerNavbar />
+                          <BetaBanner />
+                        </div>
+                        <div className="flex flex-col items-center flex-1 w-full overflow-hidden">
+                          <ErrorBoundary FallbackComponent={ErrorFallback}>
+                            <Outlet />
+                          </ErrorBoundary>
+                        </div>
                       </div>
                     </TicketProvider>
                   </ProfileContextProvider>
