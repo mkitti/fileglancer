@@ -48,51 +48,45 @@ export default function FileBrowser({
   } = useZarrMetadata();
 
   return (
-    <div className="px-2 transition-all duration-300 flex flex-col h-full overflow-hidden">
+    <>
       <Crumbs />
-      <div className="overflow-y-auto">
-        {metadata ? (
-          <ZarrPreview
-            metadata={metadata}
-            thumbnailSrc={thumbnailSrc}
-            loadingThumbnail={loadingThumbnail}
-            openWithToolUrls={openWithToolUrls}
-            thumbnailError={thumbnailError}
-          />
-        ) : null}
+      {metadata ? (
+        <ZarrPreview
+          metadata={metadata}
+          thumbnailSrc={thumbnailSrc}
+          loadingThumbnail={loadingThumbnail}
+          openWithToolUrls={openWithToolUrls}
+          thumbnailError={thumbnailError}
+        />
+      ) : null}
 
-        {/* Loading state */}
-        {areFileDataLoading ? (
-          <div className="min-w-full bg-background select-none">
-            {Array.from({ length: 10 }, (_, index) => (
-              <FileRowSkeleton key={index} />
-            ))}
-          </div>
-        ) : !areFileDataLoading && displayFiles.length > 0 ? (
-          <Table
-            data={displayFiles}
-            showPropertiesDrawer={showPropertiesDrawer}
-            handleContextMenuClick={handleContextMenuClick}
-          />
-        ) : !areFileDataLoading &&
-          displayFiles.length === 0 &&
-          !fileBrowserState.uiErrorMsg ? (
-          <div className="flex items-center pl-3 py-1">
-            <Typography className="text-primary-default">
-              No files available for display.
-            </Typography>
-          </div>
-        ) : !areFileDataLoading &&
-          displayFiles.length === 0 &&
-          fileBrowserState.uiErrorMsg ? (
-          /* Error state */
-          <div className="flex items-center pl-3 py-1">
-            <Typography className="text-primary-default">
-              {fileBrowserState.uiErrorMsg}
-            </Typography>
-          </div>
-        ) : null}
-      </div>
+      {/* Loading state */}
+      {areFileDataLoading ? (
+        <div className="min-w-full bg-background select-none">
+          {Array.from({ length: 10 }, (_, index) => (
+            <FileRowSkeleton key={index} />
+          ))}
+        </div>
+      ) : !areFileDataLoading && displayFiles.length > 0 ? (
+        <Table
+          data={displayFiles}
+          showPropertiesDrawer={showPropertiesDrawer}
+          handleContextMenuClick={handleContextMenuClick}
+        />
+      ) : !areFileDataLoading &&
+        displayFiles.length === 0 &&
+        !fileBrowserState.uiErrorMsg ? (
+        <div className="flex items-center pl-3 py-1">
+          <Typography>No files available for display.</Typography>
+        </div>
+      ) : !areFileDataLoading &&
+        displayFiles.length === 0 &&
+        fileBrowserState.uiErrorMsg ? (
+        /* Error state */
+        <div className="flex items-center pl-3 py-1">
+          <Typography>{fileBrowserState.uiErrorMsg}</Typography>
+        </div>
+      ) : null}
       {showContextMenu ? (
         <ContextMenu
           x={contextMenuCoords.x}
@@ -107,6 +101,6 @@ export default function FileBrowser({
           setShowConvertFileDialog={setShowConvertFileDialog}
         />
       ) : null}
-    </div>
+    </>
   );
 }

@@ -39,7 +39,7 @@ export default function Browse() {
         toggleSidebar={toggleSidebar}
       />
       <div
-        className={`relative grow max-h-full flex flex-col overflow-y-auto ${!currentFileSharePath ? 'grid grid-cols-2 grid-rows-[60px_1fr] bg-surface-light gap-6 p-6' : ''}`}
+        className={`relative grow shrink-0 max-h-[calc(100%-55px)] flex flex-col overflow-y-auto px-2 ${!currentFileSharePath ? 'grid grid-cols-2 grid-rows-[60px_1fr] bg-surface-light gap-6 p-6' : ''}`}
       >
         {!currentFileSharePath ? (
           <>
