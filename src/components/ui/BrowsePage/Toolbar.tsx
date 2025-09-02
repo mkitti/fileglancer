@@ -76,8 +76,7 @@ export default function Toolbar({
     fileSharePathPreferenceMap
   ]);
 
-  // Don't show favorite button if not in a valid location
-  const showFavoriteButton: boolean = Boolean(
+  const isFolder: boolean = Boolean(
     currentFileSharePath && currentFileOrFolder && currentFileOrFolder.is_dir
   );
 
@@ -137,31 +136,35 @@ export default function Toolbar({
           />
 
           {/* Make new folder */}
-          <NewFolderButton triggerClasses={triggerClasses} />
+          {isFolder ? (
+            <NewFolderButton triggerClasses={triggerClasses} />
+          ) : null}
 
-          {/* Show/hide dot files and folders */}
-          <FgTooltip
-            icon={hideDotFiles ? HiEyeOff : HiEye}
-            label={hideDotFiles ? 'Show dot files' : 'Hide dot files'}
-            disabledCondition={!currentFileSharePath}
-            onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
-              const result = await toggleHideDotFiles();
-              if (result.success) {
-                toast.success(
-                  hideDotFiles
-                    ? 'Dot files are now visible'
-                    : 'Dot files are now hidden'
-                );
-              } else {
-                toast.error(result.error);
-              }
-              e.currentTarget.blur();
-            }}
-            triggerClasses={triggerClasses}
-          />
+          {/* Show/hide dot files */}
+          {isFolder ? (
+            <FgTooltip
+              icon={hideDotFiles ? HiEyeOff : HiEye}
+              label={hideDotFiles ? 'Show dot files' : 'Hide dot files'}
+              disabledCondition={!currentFileSharePath}
+              onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
+                const result = await toggleHideDotFiles();
+                if (result.success) {
+                  toast.success(
+                    hideDotFiles
+                      ? 'Dot files are now visible'
+                      : 'Dot files are now hidden'
+                  );
+                } else {
+                  toast.error(result.error);
+                }
+                e.currentTarget.blur();
+              }}
+              triggerClasses={triggerClasses}
+            />
+          ) : null}
 
           {/* Add/remove current folder from favorites */}
-          {showFavoriteButton ? (
+          {isFolder ? (
             <FgTooltip
               icon={isFavorited ? HiStar : HiOutlineStar}
               label={
