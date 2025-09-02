@@ -75,7 +75,7 @@ const getLanguageFromExtension = (filename: string): string => {
 // Heuristic to determine if a file is likely a text file
 const isLikelyTextFile = (buffer: ArrayBuffer) => {
   const view = new Uint8Array(buffer);
-  
+
   // Count control bytes that are typically not found in text
   let controlCount = 0;
   for (const b of view) {
@@ -83,7 +83,7 @@ const isLikelyTextFile = (buffer: ArrayBuffer) => {
       controlCount++;
     }
   }
-  
+
   // If control count is less than 1% of the file length, it is likely a text file
   return controlCount / view.length < 0.01;
 };
@@ -145,7 +145,9 @@ export default function FileViewer({ file }: FileViewerProps): React.ReactNode {
         const buffer = await response.arrayBuffer();
         if (isLikelyTextFile(buffer)) {
           // Likely text file
-          const text = new TextDecoder('utf-8', { fatal: false }).decode(buffer);
+          const text = new TextDecoder('utf-8', { fatal: false }).decode(
+            buffer
+          );
           setContent(text);
         } else {
           // Likely binary file if control count is greater than 1%

@@ -38,7 +38,7 @@ type FileBrowserContextType = {
   fileBrowserState: FileBrowserState;
   fspName: string | undefined;
   filePath: string | undefined;
-  
+
   areFileDataLoading: boolean;
   refreshFiles: () => Promise<Result<void>>;
   handleLeftClick: (

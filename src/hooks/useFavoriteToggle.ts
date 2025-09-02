@@ -11,10 +11,7 @@ export default function useFavoriteToggle() {
   async function handleFavoriteToggle(
     inContextMenu: boolean
   ): Promise<Result<boolean>> {
-    if (
-      !currentFileSharePath ||
-      !currentFileOrFolder
-    ) {
+    if (!currentFileSharePath || !currentFileOrFolder) {
       return handleError(
         new Error('A file share path must be set to favorite an item')
       );
@@ -31,10 +28,7 @@ export default function useFavoriteToggle() {
         );
       } else if (inContextMenu && !fileBrowserState.propertiesTarget) {
         throw new Error('Cannot add favorite - target folder not set');
-      } else if (
-        !currentFileOrFolder ||
-        currentFileOrFolder.path === '.'
-      ) {
+      } else if (!currentFileOrFolder || currentFileOrFolder.path === '.') {
         return await handleFavoriteChange(
           currentFileSharePath,
           'fileSharePath'

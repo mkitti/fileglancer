@@ -56,12 +56,15 @@ export const ExternalBucketProvider = ({
         // Check if current path is an ancestor of the bucket path
         if (
           fileBrowserState.currentFileSharePath.name === bucket.fsp_name &&
-          fileBrowserState.currentFileOrFolder.path.startsWith(bucket.relative_path)
+          fileBrowserState.currentFileOrFolder.path.startsWith(
+            bucket.relative_path
+          )
         ) {
           // Create data URL with relative path from bucket
-          const relativePath = fileBrowserState.currentFileOrFolder.path.substring(
-            bucket.relative_path.length
-          );
+          const relativePath =
+            fileBrowserState.currentFileOrFolder.path.substring(
+              bucket.relative_path.length
+            );
           const cleanRelativePath = relativePath.startsWith('/')
             ? relativePath.substring(1)
             : relativePath;
@@ -76,7 +79,10 @@ export const ExternalBucketProvider = ({
         setExternalDataUrl(null);
       }
     },
-    [fileBrowserState.currentFileOrFolder, fileBrowserState.currentFileSharePath]
+    [
+      fileBrowserState.currentFileOrFolder,
+      fileBrowserState.currentFileSharePath
+    ]
   );
 
   const fetchExternalBucket = React.useCallback(async () => {
