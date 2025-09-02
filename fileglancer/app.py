@@ -10,6 +10,7 @@ from fileglancer.handlers import (
     ExternalBucketHandler,
     ProfileHandler,
     TicketHandler,
+    NotificationsHandler,
 )
 from pathlib import Path, PurePath
 from traitlets import (
@@ -87,6 +88,7 @@ class Fileglancer(ExtensionApp):
             (r"/api/fileglancer/preference", PreferencesHandler),
             (r"/api/fileglancer/profile", ProfileHandler),
             (r"/api/fileglancer/ticket", TicketHandler),
+            (r"/api/fileglancer/notifications", NotificationsHandler),
             (r"/fg/(.*)", StaticHandler, {
                 "path": str(self.ui_path),
                 "default_filename": "index.html",

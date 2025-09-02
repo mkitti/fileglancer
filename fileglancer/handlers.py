@@ -759,6 +759,35 @@ class ExternalBucketHandler(BaseHandler):
             self.finish(json.dumps({"error": str(e)}))
 
 
+class NotificationsHandler(BaseHandler):
+    """
+    API handler for notifications
+    """
+
+    @web.authenticated
+    def get(self):
+        """Get all active notifications from the central server"""
+        try:
+            central_url = self.settings['fileglancer'].central_url
+
+            if not central_url:
+                self.log.error("Central server URL not configured")
+                self.set_status(500)
+                self.finish(json.dumps({"error": "Central server not configured"}))
+                return
+
+            response = requests.get(f"{central_url}/notifications")
+            response.raise_for_status()
+
+            self.set_status(200)
+            self.finish(response.json())
+
+        except Exception as e:
+            self.log.error(f"Error getting notifications: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": str(e)}))
+
+
 class ProfileHandler(BaseHandler):
     """
     API handler for user profile operations
