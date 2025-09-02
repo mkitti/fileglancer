@@ -1,6 +1,5 @@
 import React from 'react';
-import { Typography, Button } from '@material-tailwind/react';
-import { HiArrowLeft } from 'react-icons/hi2';
+import { Typography } from '@material-tailwind/react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import {
   materialDark,
@@ -15,7 +14,6 @@ import type { FileOrFolder } from '@/shared.types';
 
 type FileViewerProps = {
   file: FileOrFolder;
-  onBack: () => void;
 };
 
 // Map file extensions to syntax highlighter languages
@@ -74,92 +72,23 @@ const getLanguageFromExtension = (filename: string): string => {
   return languageMap[extension] || 'text';
 };
 
-// Check if file is likely to be a text file that can be syntax highlighted
-const isTextFile = (filename: string, content: string): boolean => {
-  const extension = filename.split('.').pop()?.toLowerCase() || '';
-
-  // Common text file extensions
-  const textExtensions = [
-    'txt',
-    'md',
-    'json',
-    'xml',
-    'html',
-    'css',
-    'js',
-    'jsx',
-    'ts',
-    'tsx',
-    'py',
-    'java',
-    'c',
-    'cpp',
-    'h',
-    'hpp',
-    'cs',
-    'php',
-    'rb',
-    'go',
-    'rs',
-    'swift',
-    'kt',
-    'scala',
-    'r',
-    'sql',
-    'sh',
-    'bash',
-    'zsh',
-    'fish',
-    'ps1',
-    'yml',
-    'yaml',
-    'toml',
-    'ini',
-    'cfg',
-    'conf',
-    'properties',
-    'gitignore',
-    'dockerfile',
-    'makefile',
-    'tex',
-    'scss',
-    'sass',
-    'less',
-    'vue',
-    'svelte',
-    'log',
-    'csv',
-    'tsv'
-  ];
-
-  // Also check for files without extensions that are commonly text
-  const textFilenames = [
-    'readme',
-    'license',
-    'dockerfile',
-    'makefile',
-    'changelog',
-    'authors',
-    'contributing',
-    'install',
-    'news',
-    'todo',
-    'version'
-  ];
-
-
-
-  return (
-    textExtensions.includes(extension) ||
-    textFilenames.includes(filename.toLowerCase()) ||
-    filename.toLowerCase().startsWith('.')
-  );
+// Heuristic to determine if a file is likely a text file
+const isLikelyTextFile = (buffer: ArrayBuffer) => {
+  const view = new Uint8Array(buffer);
+  
+  // Count control bytes that are typically not found in text
+  let controlCount = 0;
+  for (const b of view) {
+    if (b < 9 || (b > 13 && b < 32)) {
+      controlCount++;
+    }
+  }
+  
+  // If control count is less than 1% of the file length, it is likely a text file
+  return controlCount / view.length < 0.01;
 };
 
-export default function FileViewer({
-  file,
-  onBack
-}: FileViewerProps): React.ReactNode {
+export default function FileViewer({ file }: FileViewerProps): React.ReactNode {
   const { fileBrowserState } = useFileBrowserContext();
   const { cookies } = useCookiesContext();
 
@@ -212,27 +141,16 @@ export default function FileViewer({
         if (!response.ok) {
           throw new Error(`Failed to fetch file: ${response.statusText}`);
         }
-
         // Check if the file is binary
         const buffer = await response.arrayBuffer();
-        const view = new Uint8Array(buffer);
-
-        // Count control bytes that are typically not found in text
-        let controlCount = 0;
-        for (const b of view) {
-            if (b < 9 || (b > 13 && b < 32)) controlCount++;
-        }
-
-        if (controlCount / view.length > 0.01) {
-            console.log("Likely binary");
-            setContent("Binary file");
+        if (isLikelyTextFile(buffer)) {
+          // Likely text file
+          const text = new TextDecoder('utf-8', { fatal: false }).decode(buffer);
+          setContent(text);
         } else {
-            const text = new TextDecoder("utf-8", { fatal: false }).decode(view);
-            console.log("Likely text:", text.slice(0, 200));
-            //const text = await response.text();
-            setContent(text);
+          // Likely binary file if control count is greater than 1%
+          setContent('Binary file');
         }
-
       } catch (err) {
         console.error('Error fetching file content:', err);
         setError(
@@ -290,20 +208,9 @@ export default function FileViewer({
 
   return (
     <div className="flex flex-col h-full max-h-full overflow-hidden">
-      {/* Header with breadcrumbs and back button */}
-      <div className="flex items-center gap-2 px-2 py-2 border-b border-surface">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onBack}
-          className="flex items-center gap-2"
-        >
-          <HiArrowLeft className="icon-default" />
-          Back
-        </Button>
-        <div className="flex-1">
-          <Crumbs />
-        </div>
+      {/* Header with breadcrumbs */}
+      <div className="px-2 py-2 border-b border-surface">
+        <Crumbs />
       </div>
 
       {/* File info header */}
