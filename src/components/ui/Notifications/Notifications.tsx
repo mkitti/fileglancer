@@ -88,7 +88,7 @@ export default function Notifications() {
     notification => !dismissedNotifications.includes(notification.id)
   );
 
-  if (visibleNotifications.length === 0) {
+  if (visibleNotifications.length === 0 && dismissedNotifications.length === 0) {
     return null;
   }
 
