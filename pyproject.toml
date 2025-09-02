@@ -135,6 +135,9 @@ pip-install = { cmd = "pip install -e .", depends-on = ["ext-clean"] }
 pip-uninstall = "pip uninstall -y fileglancer"
 node-install = "npm install"
 node-build = "npm run build"
+node-lint = "npm run lint || echo 'Run `pixi run node-lint-write` to fix issues.'"
+node-lint-write = "npx prettier --write '**/*.{ts,tsx,js,jsx,json,md}'"
+node-check = "npx tsc --noEmit -p tsconfig.app.json"
 ext-overwrite = { cmd = "jupyter labextension develop . --overwrite" }
 ext-enable = { cmd = "jupyter server extension enable fileglancer", depends-on = ["ext-overwrite"] }
 dev-install = { depends-on = ["pip-install", "node-install", "ext-enable"] }
