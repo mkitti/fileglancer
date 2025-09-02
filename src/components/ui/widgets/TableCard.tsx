@@ -39,7 +39,7 @@ function TableCard({
   emptyText
 }: TableCardProps) {
   return (
-    <Card>
+    <Card className="min-h-32 overflow-y-auto">
       <div
         className={`grid ${gridColsClass} gap-4 px-4 py-2 border-b border-surface dark:border-foreground`}
       >

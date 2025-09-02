@@ -20,7 +20,7 @@ export default function Preferences() {
         Preferences
       </Typography>
 
-      <Card>
+      <Card className="min-h-max shrink-0">
         <Card.Header>
           <Typography className="font-semibold">
             Format to use for file paths:
@@ -115,7 +115,7 @@ export default function Preferences() {
         </Card.Body>
       </Card>
 
-      <Card className="mt-6">
+      <Card className="mt-6 min-h-max shrink-0">
         <Card.Header>
           <Typography className="font-semibold">Options:</Typography>
         </Card.Header>

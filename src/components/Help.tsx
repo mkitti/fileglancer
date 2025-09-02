@@ -43,7 +43,7 @@ export default function Help() {
           {`Fileglancer Version ${versionNo}`}
         </Typography>
       </div>
-      <Card>
+      <Card className="min-h-max shrink-0">
         <List className="w-fit gap-2 p-4">
           {helpLinks.map(({ icon: Icon, title, url }) => (
             <List.Item className="hover:bg-transparent focus:bg-transparent">
