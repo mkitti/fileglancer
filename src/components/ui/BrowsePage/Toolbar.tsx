@@ -37,8 +37,8 @@ export default function Toolbar({
   showSidebar,
   toggleSidebar
 }: ToolbarProps): JSX.Element {
-  const { currentFolder, currentFileSharePath, refreshFiles } =
-    useFileBrowserContext();
+  const { fileBrowserState, refreshFiles } = useFileBrowserContext();
+  const { currentFileSharePath, currentFileOrFolder } = fileBrowserState;
   const { profile } = useProfileContext();
   const {
     folderPreferenceMap,
@@ -53,32 +53,32 @@ export default function Toolbar({
   const fullPath = getPreferredPathForDisplay(
     pathPreference,
     currentFileSharePath,
-    currentFolder?.path
+    currentFileOrFolder?.path
   );
 
   const isFavorited = React.useMemo(() => {
     if (!currentFileSharePath) {
       return false;
     }
-    if (!currentFolder || currentFolder.path === '.') {
+    if (!currentFileOrFolder || currentFileOrFolder.path === '.') {
       const fspKey = makeMapKey('fsp', currentFileSharePath.name);
       return fspKey in fileSharePathPreferenceMap;
     }
     const folderKey = makeMapKey(
       'folder',
-      `${currentFileSharePath.name}_${currentFolder.path}`
+      `${currentFileSharePath.name}_${currentFileOrFolder.path}`
     );
     return folderKey in folderPreferenceMap;
   }, [
     currentFileSharePath,
-    currentFolder,
+    currentFileOrFolder,
     folderPreferenceMap,
     fileSharePathPreferenceMap
   ]);
 
   // Don't show favorite button if not in a valid location
   const showFavoriteButton: boolean = Boolean(
-    currentFileSharePath && currentFolder && currentFolder.is_dir
+    currentFileSharePath && currentFileOrFolder && currentFileOrFolder.is_dir
   );
 
   const triggerClasses =

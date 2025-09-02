@@ -120,20 +120,20 @@ export const ProxiedPathProvider = ({
   > => {
     if (
       !fileBrowserState.currentFileSharePath ||
-      !fileBrowserState.currentFolder
+      !fileBrowserState.currentFileOrFolder
     ) {
       log.warn('No current file share path or file/folder selected');
       return createSuccess(undefined);
     }
     try {
       const response = await sendFetchRequest(
-        `/api/fileglancer/proxied-path?fsp_name=${fileBrowserState.currentFileSharePath.name}&path=${fileBrowserState.currentFolder.path}`,
+        `/api/fileglancer/proxied-path?fsp_name=${fileBrowserState.currentFileSharePath.name}&path=${fileBrowserState.currentFileOrFolder.path}`,
         'GET',
         cookies['_xsrf']
       );
       if (!response.ok && response.status !== 404) {
         log.warn(
-          `No proxied path found for fsp ${fileBrowserState.currentFileSharePath.name} and path ${fileBrowserState.currentFolder.path}: ${response.status} ${response.statusText}`
+          `No proxied path found for fsp ${fileBrowserState.currentFileSharePath.name} and path ${fileBrowserState.currentFileOrFolder.path}: ${response.status} ${response.statusText}`
         );
         // This is not an error, just no proxied path found for this fsp/path
         return createSuccess(undefined);
@@ -151,14 +151,14 @@ export const ProxiedPathProvider = ({
     }
   }, [
     fileBrowserState.currentFileSharePath,
-    fileBrowserState.currentFolder,
+    fileBrowserState.currentFileOrFolder,
     cookies
   ]);
 
   async function createProxiedPath(): Promise<Result<ProxiedPath | void>> {
     if (!fileBrowserState.currentFileSharePath) {
       return handleError(new Error('No file share path selected'));
-    } else if (!fileBrowserState.currentFolder) {
+    } else if (!fileBrowserState.currentFileOrFolder) {
       return handleError(new Error('No folder selected'));
     }
 
@@ -169,7 +169,7 @@ export const ProxiedPathProvider = ({
         cookies['_xsrf'],
         {
           fsp_name: fileBrowserState.currentFileSharePath.name,
-          path: fileBrowserState.currentFolder.path
+          path: fileBrowserState.currentFileOrFolder.path
         }
       );
 
@@ -230,7 +230,7 @@ export const ProxiedPathProvider = ({
     })();
   }, [
     fileBrowserState.currentFileSharePath,
-    fileBrowserState.currentFolder,
+    fileBrowserState.currentFileOrFolder,
     fetchProxiedPath,
     updateProxiedPath
   ]);

@@ -9,22 +9,22 @@ import type { Result } from '@/shared.types';
 export default function useNewFolderDialog() {
   const [newName, setNewName] = React.useState<string>('');
 
-  const { currentFolder, refreshFiles } = useFileBrowserContext();
-  const { currentFileSharePath } = useFileBrowserContext();
+  const { fileBrowserState, refreshFiles } = useFileBrowserContext();
+  const { currentFileOrFolder, currentFileSharePath } = fileBrowserState;
   const { cookies } = useCookiesContext();
 
   async function handleNewFolderSubmit(): Promise<Result<void>> {
     if (!currentFileSharePath) {
       return handleError(new Error('No file share path selected.'));
     }
-    if (!currentFolder) {
+    if (!currentFileOrFolder) {
       return handleError(new Error('No current file or folder selected.'));
     }
     try {
       const response = await sendFetchRequest(
         getFileBrowsePath(
           currentFileSharePath.name,
-          joinPaths(currentFolder.path, newName)
+          joinPaths(currentFileOrFolder.path, newName)
         ),
         'POST',
         cookies['_xsrf'],

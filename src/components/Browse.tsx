@@ -25,7 +25,7 @@ export default function Browse() {
     showConvertFileDialog
   } = useOutletContext<OutletContextType>();
 
-  const { currentFileSharePath } = useFileBrowserContext();
+  const { fileBrowserState } = useFileBrowserContext();
 
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
   const [showRenameDialog, setShowRenameDialog] = React.useState(false);
@@ -39,9 +39,9 @@ export default function Browse() {
         toggleSidebar={toggleSidebar}
       />
       <div
-        className={`relative grow max-h-full flex flex-col overflow-y-auto ${!currentFileSharePath ? 'grid grid-cols-2 grid-rows-[60px_1fr] bg-surface-light gap-6 p-6' : ''}`}
+        className={`relative grow max-h-full flex flex-col overflow-y-auto ${!fileBrowserState.currentFileSharePath ? 'grid grid-cols-2 grid-rows-[60px_1fr] bg-surface-light gap-6 p-6' : ''}`}
       >
-        {!currentFileSharePath ? (
+        {!fileBrowserState.currentFileSharePath ? (
           <>
             <div className="col-span-2">
               <NavigationInput location="dashboard" />

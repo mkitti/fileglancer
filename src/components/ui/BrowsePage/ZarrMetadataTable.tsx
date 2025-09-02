@@ -73,7 +73,7 @@ function getAxisData(metadata: Metadata) {
 export default function ZarrMetadataTable({
   metadata
 }: ZarrMetadataTableProps) {
-  const { zarr_version, multiscale, omero, shapes } = metadata;
+  const { zarr_version, multiscale, shapes } = metadata;
   const axisData = getAxisData(metadata);
 
   return (

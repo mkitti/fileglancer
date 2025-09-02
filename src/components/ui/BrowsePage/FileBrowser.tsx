@@ -29,8 +29,7 @@ export default function FileBrowser({
   setShowPermissionsDialog,
   setShowConvertFileDialog
 }: FileBrowserProps): React.ReactNode {
-  const { fileBrowserState, areFileDataLoading, setViewingFile } =
-    useFileBrowserContext();
+  const { fileBrowserState, areFileDataLoading } = useFileBrowserContext();
   const { displayFiles } = useHideDotFiles();
 
   const {
@@ -49,14 +48,12 @@ export default function FileBrowser({
     thumbnailError
   } = useZarrMetadata();
 
-  // If viewing a file, render the FileViewer instead of the file browser
-  if (fileBrowserState.viewingFile) {
-    return (
-      <FileViewer
-        file={fileBrowserState.viewingFile}
-        onBack={() => setViewingFile(null)}
-      />
-    );
+  // If current item is a file, render the FileViewer instead of the file browser
+  if (
+    fileBrowserState.currentFileOrFolder &&
+    !fileBrowserState.currentFileOrFolder.is_dir
+  ) {
+    return <FileViewer file={fileBrowserState.currentFileOrFolder} />;
   }
 
   return (

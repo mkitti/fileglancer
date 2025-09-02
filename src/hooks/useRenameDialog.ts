@@ -14,7 +14,8 @@ import { Result } from '@/shared.types';
 export default function useRenameDialog() {
   const [newName, setNewName] = React.useState<string>('');
 
-  const { currentFileSharePath, refreshFiles } = useFileBrowserContext();
+  const { fileBrowserState, refreshFiles } = useFileBrowserContext();
+  const { currentFileSharePath } = fileBrowserState;
   const { cookies } = useCookiesContext();
 
   async function handleRenameSubmit(path: string): Promise<Result<void>> {
