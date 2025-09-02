@@ -3,8 +3,8 @@ import { Typography, Button } from '@material-tailwind/react';
 import { HiArrowLeft } from 'react-icons/hi2';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import {
-  vscDarkPlus,
-  vs
+  materialDark,
+  coy
 } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 import Crumbs from './Crumbs';
@@ -44,6 +44,7 @@ const getLanguageFromExtension = (filename: string): string => {
     ps1: 'powershell',
     sql: 'sql',
     java: 'java',
+    jl: 'julia',
     c: 'c',
     cpp: 'cpp',
     h: 'c',
@@ -74,7 +75,7 @@ const getLanguageFromExtension = (filename: string): string => {
 };
 
 // Check if file is likely to be a text file that can be syntax highlighted
-const isTextFile = (filename: string): boolean => {
+const isTextFile = (filename: string, content: string): boolean => {
   const extension = filename.split('.').pop()?.toLowerCase() || '';
 
   // Common text file extensions
@@ -146,6 +147,8 @@ const isTextFile = (filename: string): boolean => {
     'version'
   ];
 
+
+
   return (
     textExtensions.includes(extension) ||
     textFilenames.includes(filename.toLowerCase()) ||
@@ -210,9 +213,26 @@ export default function FileViewer({
           throw new Error(`Failed to fetch file: ${response.statusText}`);
         }
 
-        // Try to decode as text
-        const text = await response.text();
-        setContent(text);
+        // Check if the file is binary
+        const buffer = await response.arrayBuffer();
+        const view = new Uint8Array(buffer);
+
+        // Count control bytes that are typically not found in text
+        let controlCount = 0;
+        for (const b of view) {
+            if (b < 9 || (b > 13 && b < 32)) controlCount++;
+        }
+
+        if (controlCount / view.length > 0.01) {
+            console.log("Likely binary");
+            setContent("Binary file");
+        } else {
+            const text = new TextDecoder("utf-8", { fatal: false }).decode(view);
+            console.log("Likely text:", text.slice(0, 200));
+            //const text = await response.text();
+            setContent(text);
+        }
+
       } catch (err) {
         console.error('Error fetching file content:', err);
         setError(
@@ -245,46 +265,25 @@ export default function FileViewer({
       );
     }
 
-    if (isTextFile(file.name)) {
-      const language = getLanguageFromExtension(file.name);
+    const language = getLanguageFromExtension(file.name);
 
-      return (
-        <div className="h-full overflow-auto">
-          <SyntaxHighlighter
-            language={language}
-            style={isDarkMode ? vscDarkPlus : vs}
-            customStyle={{
-              margin: 0,
-              padding: '1rem',
-              backgroundColor: 'transparent',
-              fontSize: '14px',
-              lineHeight: '1.5'
-            }}
-            showLineNumbers={true}
-            wrapLines={true}
-            wrapLongLines={true}
-          >
-            {content}
-          </SyntaxHighlighter>
-        </div>
-      );
-    }
-
-    // For non-text files, show basic content or a message
     return (
-      <div className="p-4">
-        <Typography className="text-primary-default mb-4">
-          File type not supported for preview
-        </Typography>
-        <Typography variant="small" className="text-gray-600">
-          File: {file.name} ({file.size} bytes)
-        </Typography>
-        {content && (
-          <pre className="mt-4 p-4 bg-surface rounded text-sm overflow-auto max-h-96">
-            {content.slice(0, 1000)}
-            {content.length > 1000 ? '...' : ''}
-          </pre>
-        )}
+      <div className="h-full overflow-y-auto">
+        <SyntaxHighlighter
+          language={language}
+          style={isDarkMode ? materialDark : coy}
+          customStyle={{
+            margin: 0,
+            padding: '1rem',
+            fontSize: '14px',
+            lineHeight: '1.5'
+          }}
+          showLineNumbers={false}
+          wrapLines={true}
+          wrapLongLines={true}
+        >
+          {content}
+        </SyntaxHighlighter>
       </div>
     );
   };
@@ -312,7 +311,7 @@ export default function FileViewer({
         <Typography variant="h6" className="text-primary-default">
           {file.name}
         </Typography>
-        <Typography variant="small" className="text-gray-600">
+        <Typography variant="small" className="text-primary-default">
           {file.size} bytes • Last modified:{' '}
           {new Date(file.last_modified * 1000).toLocaleString()}
         </Typography>
