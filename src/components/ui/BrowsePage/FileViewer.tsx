@@ -15,6 +15,7 @@ import {
   fetchFileWithTextDetection
 } from '@/utils';
 import type { FileOrFolder } from '@/shared.types';
+import logger from '@/logger';
 
 type FileViewerProps = {
   file: FileOrFolder;
@@ -120,7 +121,7 @@ export default function FileViewer({ file }: FileViewerProps): React.ReactNode {
         );
         setContent(fileContent);
       } catch (err) {
-        console.error('Error fetching file content:', err);
+        logger.error('Error fetching file content:', err);
         setError(
           err instanceof Error ? err.message : 'Failed to fetch file content'
         );
