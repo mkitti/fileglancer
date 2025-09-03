@@ -16,7 +16,7 @@ export default function NewFolderButton({
   triggerClasses
 }: NewFolderButtonProps): JSX.Element {
   const [showNewFolderDialog, setShowNewFolderDialog] = React.useState(false);
-  const { currentFileSharePath } = useFileBrowserContext();
+  const { fileBrowserState } = useFileBrowserContext();
   const { handleNewFolderSubmit, newName, setNewName } = useNewFolderDialog();
 
   return (
@@ -24,7 +24,7 @@ export default function NewFolderButton({
       <FgTooltip
         icon={HiFolderAdd}
         label="New folder"
-        disabledCondition={!currentFileSharePath}
+        disabledCondition={!fileBrowserState.currentFileSharePath}
         onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
           setShowNewFolderDialog(true);
           e.currentTarget.blur();

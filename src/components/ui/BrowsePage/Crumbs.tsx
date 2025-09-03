@@ -22,10 +22,11 @@ import {
 import { copyToClipboard } from '@/utils/copyText';
 
 export default function Crumbs(): ReactNode {
-  const { currentFileSharePath, currentFolder } = useFileBrowserContext();
+  const { fileBrowserState } = useFileBrowserContext();
   const { pathPreference } = usePreferencesContext();
+  const { currentFileSharePath, currentFileOrFolder } = fileBrowserState;
+  const dirArray = makePathSegmentArray(currentFileOrFolder?.path || '');
 
-  const dirArray = makePathSegmentArray(currentFolder?.path || '');
   // Add the current file share path name as the first segment in the array
   if (currentFileSharePath) {
     dirArray.unshift(
@@ -38,7 +39,7 @@ export default function Crumbs(): ReactNode {
   const fullPath = getPreferredPathForDisplay(
     pathPreference,
     currentFileSharePath,
-    currentFolder?.path
+    currentFileOrFolder?.path
   );
 
   return (
@@ -52,7 +53,20 @@ export default function Crumbs(): ReactNode {
         {/* Path segments */}
         {dirArray.map((pathSegment, index) => {
           if (currentFileSharePath) {
-            const path = joinPaths(...dirArray.slice(1, index + 1));
+            const isFile =
+              currentFileOrFolder &&
+              !currentFileOrFolder.is_dir &&
+              index === dirDepth - 1;
+
+            // For file breadcrumbs, we need to calculate the path correctly
+            let path: string;
+            if (isFile) {
+              // If this is a file segment, link to the parent directory
+              path = joinPaths(...dirArray.slice(1, index));
+            } else {
+              path = joinPaths(...dirArray.slice(1, index + 1));
+            }
+
             const link = makeBrowseLink(currentFileSharePath.name, path);
 
             if (index < dirDepth - 1) {
@@ -79,9 +93,16 @@ export default function Crumbs(): ReactNode {
               );
             } else {
               // Render the last path component as text only
+              // If it's a file, make it visually distinct
               return (
                 <React.Fragment key={pathSegment + '-' + index}>
-                  <Typography className="font-medium text-primary-default">
+                  <Typography
+                    className={`font-medium ${
+                      isFile
+                        ? 'text-primary-default italic'
+                        : 'text-primary-default'
+                    }`}
+                  >
                     {pathSegment}
                   </Typography>
                 </React.Fragment>

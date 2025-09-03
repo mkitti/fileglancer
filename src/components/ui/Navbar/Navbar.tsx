@@ -21,6 +21,7 @@ import { TbBrandGithub } from 'react-icons/tb';
 import ProfileMenu from './ProfileMenu';
 import { BetaSticker } from '@/components/ui/Beta';
 import useTheme from '@/hooks/useTheme';
+import { trackEvent } from '@/utils/fathom';
 
 const LINKS = [
   {
@@ -54,6 +55,11 @@ function NavList() {
           key={title}
           as={Link}
           to={href}
+          onClick={() =>
+            trackEvent({
+              eventId: `navbar_${title.toLowerCase().replace(' ', '_')}_click`
+            })
+          }
           className="flex items-center dark:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark hover:!text-foreground focus:!text-foreground"
         >
           <List.ItemStart className="flex items-center mr-1.5">
@@ -91,7 +97,10 @@ export default function FileglancerNavbar() {
       <Navbar className="flex items-center justify-between p-2 sm:p-4 mx-auto w-full rounded-none bg-background dark:shadow-surface h-[61px]">
         {/* Logo */}
         <div className="flex items-center gap-1">
-          <Link to="/browse">
+          <Link
+            to="/browse"
+            onClick={() => trackEvent({ eventId: 'navbar_logo_click' })}
+          >
             <div className="bg-gradient-to-r from-primary to-secondary dark:to-secondary-light bg-clip-text text-transparent flex items-center">
               <svg
                 className="icon-large short:icon-small text-primary"
@@ -148,6 +157,7 @@ export default function FileglancerNavbar() {
             size="sm"
             variant="ghost"
             color="secondary"
+            onClick={() => trackEvent({ eventId: 'navbar_github_click' })}
             className="text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
           >
             <TbBrandGithub className="icon-large short:icon-default" />
@@ -157,7 +167,10 @@ export default function FileglancerNavbar() {
             variant="ghost"
             color="secondary"
             className="text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
-            onClick={toggleTheme}
+            onClick={() => {
+              trackEvent({ eventId: 'navbar_theme_toggle_click' });
+              toggleTheme();
+            }}
           >
             {isLightTheme ? (
               <HiOutlineSun className="stroke-2 icon-large short:icon-default" />
@@ -171,7 +184,10 @@ export default function FileglancerNavbar() {
             size="sm"
             variant="ghost"
             color="secondary"
-            onClick={() => setOpenNav(!openNav)}
+            onClick={() => {
+              trackEvent({ eventId: 'navbar_mobile_menu_toggle_click' });
+              setOpenNav(!openNav);
+            }}
             className="mr-2 text-foreground hover:!text-foreground focus:!text-foreground lg:hidden hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
           >
             {openNav ? (

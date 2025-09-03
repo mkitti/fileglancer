@@ -599,13 +599,13 @@ export const PreferencesProvider = ({
   React.useEffect(() => {
     if (
       !fileBrowserState.currentFileSharePath ||
-      !fileBrowserState.currentFolder
+      !fileBrowserState.currentFileOrFolder
     ) {
       return;
     }
 
     const fspName = fileBrowserState.currentFileSharePath.name;
-    const folderPath = fileBrowserState.currentFolder.path;
+    const folderPath = fileBrowserState.currentFileOrFolder.path;
 
     // Skip if this is the same folder we just processed
     if (

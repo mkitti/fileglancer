@@ -37,8 +37,9 @@ export default function Toolbar({
   showSidebar,
   toggleSidebar
 }: ToolbarProps): JSX.Element {
-  const { currentFolder, currentFileSharePath, refreshFiles } =
+  const { fileBrowserState, refreshFiles, triggerFileContentRefresh } =
     useFileBrowserContext();
+  const { currentFileSharePath, currentFileOrFolder } = fileBrowserState;
   const { profile } = useProfileContext();
   const {
     folderPreferenceMap,
@@ -53,32 +54,31 @@ export default function Toolbar({
   const fullPath = getPreferredPathForDisplay(
     pathPreference,
     currentFileSharePath,
-    currentFolder?.path
+    currentFileOrFolder?.path
   );
 
   const isFavorited = React.useMemo(() => {
     if (!currentFileSharePath) {
       return false;
     }
-    if (!currentFolder || currentFolder.path === '.') {
+    if (!currentFileOrFolder || currentFileOrFolder.path === '.') {
       const fspKey = makeMapKey('fsp', currentFileSharePath.name);
       return fspKey in fileSharePathPreferenceMap;
     }
     const folderKey = makeMapKey(
       'folder',
-      `${currentFileSharePath.name}_${currentFolder.path}`
+      `${currentFileSharePath.name}_${currentFileOrFolder.path}`
     );
     return folderKey in folderPreferenceMap;
   }, [
     currentFileSharePath,
-    currentFolder,
+    currentFileOrFolder,
     folderPreferenceMap,
     fileSharePathPreferenceMap
   ]);
 
-  // Don't show favorite button if not in a valid location
-  const showFavoriteButton: boolean = Boolean(
-    currentFileSharePath && currentFolder && currentFolder.is_dir
+  const isFolder: boolean = Boolean(
+    currentFileSharePath && currentFileOrFolder && currentFileOrFolder.is_dir
   );
 
   const triggerClasses =
@@ -125,43 +125,60 @@ export default function Toolbar({
                 toast.error(
                   'Cannot refresh files - no file share path selected.'
                 );
+                return;
               }
-              const result = await refreshFiles();
-              if (result.success) {
-                toast.success('File browser refreshed!');
+
+              // Check if we're viewing a file or a folder
+              const isViewingFile =
+                currentFileOrFolder && !currentFileOrFolder.is_dir;
+
+              if (isViewingFile) {
+                // If viewing a file, trigger file content refresh
+                triggerFileContentRefresh();
+                toast.success('File content refreshed!');
               } else {
-                toast.error(`Error refreshing file browser: ${result.error}`);
+                // If viewing a folder, refresh the file list
+                const result = await refreshFiles();
+                if (result.success) {
+                  toast.success('File browser refreshed!');
+                } else {
+                  toast.error(`Error refreshing file browser: ${result.error}`);
+                }
               }
             }}
             triggerClasses={triggerClasses}
           />
 
           {/* Make new folder */}
-          <NewFolderButton triggerClasses={triggerClasses} />
+          {isFolder ? (
+            <NewFolderButton triggerClasses={triggerClasses} />
+          ) : null}
 
-          {/* Show/hide dot files and folders */}
-          <FgTooltip
-            icon={hideDotFiles ? HiEyeOff : HiEye}
-            label={hideDotFiles ? 'Show dot files' : 'Hide dot files'}
-            disabledCondition={!currentFileSharePath}
-            onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
-              const result = await toggleHideDotFiles();
-              if (result.success) {
-                toast.success(
-                  hideDotFiles
-                    ? 'Dot files are now visible'
-                    : 'Dot files are now hidden'
-                );
-              } else {
-                toast.error(result.error);
-              }
-              e.currentTarget.blur();
-            }}
-            triggerClasses={triggerClasses}
-          />
+          {/* Show/hide dot files */}
+          {isFolder ? (
+            <FgTooltip
+              icon={hideDotFiles ? HiEyeOff : HiEye}
+              label={hideDotFiles ? 'Show dot files' : 'Hide dot files'}
+              disabledCondition={!currentFileSharePath}
+              onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
+                const result = await toggleHideDotFiles();
+                if (result.success) {
+                  toast.success(
+                    hideDotFiles
+                      ? 'Dot files are now visible'
+                      : 'Dot files are now hidden'
+                  );
+                } else {
+                  toast.error(result.error);
+                }
+                e.currentTarget.blur();
+              }}
+              triggerClasses={triggerClasses}
+            />
+          ) : null}
 
           {/* Add/remove current folder from favorites */}
-          {showFavoriteButton ? (
+          {isFolder ? (
             <FgTooltip
               icon={isFavorited ? HiStar : HiOutlineStar}
               label={

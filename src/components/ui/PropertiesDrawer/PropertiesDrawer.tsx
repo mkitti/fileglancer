@@ -31,14 +31,14 @@ export default function PropertiesDrawer({
   setShowPermissionsDialog,
   setShowConvertFileDialog
 }: PropertiesDrawerProps): JSX.Element {
-  const { currentFileSharePath, propertiesTarget } = useFileBrowserContext();
+  const { fileBrowserState } = useFileBrowserContext();
   const { pathPreference } = usePreferencesContext();
   const { ticket } = useTicketContext();
 
   const fullPath = getPreferredPathForDisplay(
     pathPreference,
-    currentFileSharePath,
-    propertiesTarget?.path
+    fileBrowserState.currentFileSharePath,
+    fileBrowserState.propertiesTarget?.path
   );
 
   const tooltipTriggerClasses = 'max-w-[calc(100%-2rem)] truncate';
@@ -60,19 +60,19 @@ export default function PropertiesDrawer({
         </IconButton>
       </div>
 
-      {propertiesTarget ? (
+      {fileBrowserState.propertiesTarget ? (
         <div className="shrink-0 flex items-center gap-2 mt-3 mb-4 max-h-min min-w-full">
-          {propertiesTarget.is_dir ? (
+          {fileBrowserState.propertiesTarget.is_dir ? (
             <HiOutlineFolder className="icon-default" />
           ) : (
             <HiOutlineDocument className="icon-default" />
           )}
           <FgTooltip
-            label={propertiesTarget.name}
+            label={fileBrowserState.propertiesTarget.name}
             triggerClasses={tooltipTriggerClasses}
           >
             <Typography className="font-semibold truncate max-w-full">
-              {propertiesTarget?.name}
+              {fileBrowserState.propertiesTarget?.name}
             </Typography>
           </FgTooltip>
         </div>
@@ -81,7 +81,7 @@ export default function PropertiesDrawer({
           Click on a file or folder to view its properties
         </Typography>
       )}
-      {propertiesTarget ? (
+      {fileBrowserState.propertiesTarget ? (
         <Tabs
           key="file-properties-tabs"
           defaultValue="overview"
@@ -122,7 +122,7 @@ export default function PropertiesDrawer({
                 isCircular
                 className="text-transparent group-hover:text-foreground"
                 onClick={() => {
-                  if (propertiesTarget) {
+                  if (fileBrowserState.propertiesTarget) {
                     try {
                       copyToClipboard(fullPath);
                       toast.success('Path copied to clipboard!');
@@ -136,14 +136,14 @@ export default function PropertiesDrawer({
               </IconButton>
             </div>
 
-            <OverviewTable file={propertiesTarget} />
+            <OverviewTable file={fileBrowserState.propertiesTarget} />
           </Tabs.Panel>
 
           <Tabs.Panel
             value="permissions"
             className="flex flex-col gap-2 min-w-full"
           >
-            <PermissionsTable file={propertiesTarget} />
+            <PermissionsTable file={fileBrowserState.propertiesTarget} />
             <Button
               variant="outline"
               onClick={() => {

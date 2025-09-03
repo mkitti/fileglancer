@@ -63,11 +63,11 @@ export default function useZarrMetadata() {
 
       if (
         fileBrowserState.currentFileSharePath &&
-        fileBrowserState.currentFolder
+        fileBrowserState.currentFileOrFolder
       ) {
         const imageUrl = getFileURL(
           fileBrowserState.currentFileSharePath.name,
-          fileBrowserState.currentFolder.path
+          fileBrowserState.currentFileOrFolder.path
         );
         const zarrayFile = fileBrowserState.files.find(
           file => file.name === '.zarray'
@@ -141,7 +141,7 @@ export default function useZarrMetadata() {
     [
       areFileDataLoading,
       fileBrowserState.currentFileSharePath,
-      fileBrowserState.currentFolder,
+      fileBrowserState.currentFileOrFolder,
       fileBrowserState.files,
       cookies
     ]

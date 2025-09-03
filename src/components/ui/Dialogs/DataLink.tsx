@@ -48,8 +48,8 @@ export default function DataLinkDialog({
   const pathFsp = zonesAndFileSharePathsMap[fspKey] as FileSharePath;
   const targetPath = proxiedPath
     ? proxiedPath.path
-    : fileBrowserState.currentFolder
-      ? fileBrowserState.currentFolder.path
+    : fileBrowserState.currentFileOrFolder
+      ? fileBrowserState.currentFileOrFolder.path
       : '';
 
   if (!targetPath) {

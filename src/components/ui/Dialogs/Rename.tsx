@@ -15,7 +15,7 @@ export default function RenameDialog({
   showRenameDialog,
   setShowRenameDialog
 }: ItemNamingDialogProps): JSX.Element {
-  const { propertiesTarget } = useFileBrowserContext();
+  const { fileBrowserState } = useFileBrowserContext();
   const { handleRenameSubmit, newName, setNewName } = useRenameDialog();
 
   return (
@@ -27,12 +27,14 @@ export default function RenameDialog({
         onSubmit={async event => {
           event.preventDefault();
 
-          if (!propertiesTarget) {
+          if (!fileBrowserState.propertiesTarget) {
             toast.error(`No target file selected`);
             return;
           }
 
-          const result = await handleRenameSubmit(`${propertiesTarget.path}`);
+          const result = await handleRenameSubmit(
+            `${fileBrowserState.propertiesTarget.path}`
+          );
           if (result.success) {
             toast.success('Item renamed successfully!');
           } else {
