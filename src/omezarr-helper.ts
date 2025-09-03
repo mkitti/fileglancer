@@ -2,56 +2,6 @@ import { default as log } from '@/logger';
 import * as zarr from 'zarrita';
 import * as omezarr from 'ome-zarr.js';
 
-// Copied since ome-zarr.js doesn't export the types
-// TODO: use the types from ome-zarr.js when they become available
-export interface Multiscale {
-  axes: Axis[];
-  /**
-   * @minItems 1
-   */
-  datasets: [Dataset, ...Dataset[]];
-  version?: '0.4' | null;
-  coordinateTransformations?: [unknown] | [unknown, unknown] | null;
-  metadata?: {
-    [k: string]: unknown;
-  };
-  name?: unknown;
-  type?: {
-    [k: string]: unknown;
-  };
-  [k: string]: unknown;
-}
-/**
- * Model for an element of `Multiscale.axes`.
- *
- * See https://ngff.openmicroscopy.org/0.4/#axes-md.
- */
-export interface Axis {
-  name: string;
-  type?: string | null;
-  unit?: unknown;
-  [k: string]: unknown;
-}
-/**
- * An element of Multiscale.datasets.
- */
-export interface Dataset {
-  path: string;
-  coordinateTransformations: [unknown] | [unknown, unknown];
-  [k: string]: unknown;
-}
-/**
- * omero model.
- */
-export interface Omero {
-  channels: Channel[];
-  rdefs: {
-    defaultT: number;
-    defaultZ: number;
-    model: 'greyscale' | 'color';
-  };
-  [k: string]: unknown;
-}
 /**
  * A single omero channel.
  */
@@ -77,9 +27,9 @@ export interface Window {
 export type Metadata = {
   arr: zarr.Array<any>;
   shapes: number[][] | undefined;
-  multiscale: Multiscale;
-  omero: Omero | null | undefined;
-  scales: number[][];
+  scales: number[][] | undefined;
+  multiscale: omezarr.Multiscale | null | undefined;
+  omero: omezarr.Omero | null | undefined;
   zarr_version: 2 | 3;
 };
 
@@ -182,7 +132,7 @@ void main(){emitRGBA(vec4(hue*normalized(),1));}`;
 /**
  * Get a map of axes names to their details.
  */
-function getAxesMap(multiscale: Multiscale): Record<string, any> {
+function getAxesMap(multiscale: omezarr.Multiscale): Record<string, any> {
   const axesMap: Record<string, any> = {};
   const axes = multiscale.axes;
   if (axes) {
@@ -204,6 +154,29 @@ function getNeuroglancerSource(dataUrl: string, zarr_version: 2 | 3): string {
   return dataUrl + '|zarr' + zarr_version + ':';
 }
 
+function getLayerName(dataUrl: string): string {
+  return dataUrl.split('/').filter(Boolean).pop() || 'Default';
+}
+
+function generateNeuroglancerStateForDataURL(dataUrl: string): string | null {
+  log.debug('Generating Neuroglancer state for Zarr array:', dataUrl);
+
+  const layer: Record<string, any> = {
+    // Get the last component of the URL after the final slash (filter(Boolean) discards empty strings)
+    name: getLayerName(dataUrl),
+    source: dataUrl
+  };
+
+  // Create the scaffold for theNeuroglancer viewer state
+  const state: any = {
+    layers: [layer]
+  };
+
+  // Convert the state to a URL-friendly format
+  const stateJson = JSON.stringify(state);
+  return encodeURIComponent(stateJson);
+}
+
 function generateNeuroglancerStateForZarrArray(
   dataUrl: string,
   zarr_version: 2 | 3
@@ -211,7 +184,7 @@ function generateNeuroglancerStateForZarrArray(
   log.debug('Generating Neuroglancer state for Zarr array:', dataUrl);
 
   const layer: Record<string, any> = {
-    name: 'Default',
+    name: getLayerName(dataUrl),
     type: 'image',
     source: getNeuroglancerSource(dataUrl, zarr_version),
     tab: 'rendering'
@@ -220,11 +193,7 @@ function generateNeuroglancerStateForZarrArray(
   // Create the scaffold for theNeuroglancer viewer state
   const state: any = {
     layers: [layer],
-    layout: '4panel',
-    selectedLayer: {
-      visible: true,
-      layer: 'Default'
-    }
+    layout: '4panel'
   };
 
   // Convert the state to a URL-friendly format
@@ -238,10 +207,20 @@ function generateNeuroglancerStateForZarrArray(
 function generateNeuroglancerStateForOmeZarr(
   dataUrl: string,
   zarr_version: 2 | 3,
-  multiscale: Multiscale,
+  multiscale: omezarr.Multiscale,
   arr: zarr.Array<any>,
-  omero?: Omero | null
+  omero?: omezarr.Omero | null
 ): string | null {
+  if (!multiscale || !arr) {
+    throw new Error(
+      'Missing required metadata for Neuroglancer state generation: multiscale=' +
+        multiscale +
+        ', arr=' +
+        arr +
+        ', omero=' +
+        omero
+    );
+  }
   log.debug('Generating Neuroglancer state for OME-Zarr:', dataUrl);
 
   // Convert axes array to a map for easier access
@@ -251,6 +230,8 @@ function generateNeuroglancerStateForOmeZarr(
   const { min: dtypeMin, max: dtypeMax } = getMinMaxValues(arr);
   log.debug('Inferred min/max values:', dtypeMin, dtypeMax);
 
+  const defaultLayerName = getLayerName(dataUrl);
+
   // Create the scaffold for theNeuroglancer viewer state
   const state: any = {
     dimensions: {},
@@ -258,7 +239,7 @@ function generateNeuroglancerStateForOmeZarr(
     layout: '4panel',
     selectedLayer: {
       visible: true,
-      layer: 'Default'
+      layer: defaultLayerName
     }
   };
 
@@ -345,7 +326,7 @@ function generateNeuroglancerStateForOmeZarr(
       }
     };
     state.layers.push({
-      name: 'Default',
+      name: defaultLayerName,
       ...layer
     });
   } else {
@@ -366,14 +347,21 @@ function generateNeuroglancerStateForOmeZarr(
         color = '#' + color;
       }
 
+      const channelUnit = translateUnitToNeuroglancer(axesMap['c'].unit);
+      const localDimensions = { "c'": [1, channelUnit] };
+      const transform = { outputDimensions: localDimensions };
+
       const layer: Record<string, any> = {
         type: 'image',
-        source: getNeuroglancerSource(dataUrl, zarr_version),
+        source: {
+          url: getNeuroglancerSource(dataUrl, zarr_version),
+          transform
+        },
         tab: 'rendering',
         opacity: 1,
         blend: 'additive',
         shader: getShader(color, minValue, maxValue),
-        localDimensions: { "c'": [1, ''] },
+        localDimensions: localDimensions,
         localPosition: [i]
       };
 
@@ -398,6 +386,8 @@ function generateNeuroglancerStateForOmeZarr(
     state.selectedLayer.layer = channels[0].name;
   }
 
+  log.debug('Neuroglancer state: ', state);
+
   // Convert the state to a URL-friendly format
   const stateJson = JSON.stringify(state);
   return encodeURIComponent(stateJson);
@@ -418,18 +408,19 @@ async function getOmeZarrMetadata(dataUrl: string): Promise<Metadata> {
   const store = new zarr.FetchStore(dataUrl);
   const { arr, shapes, multiscale, omero, scales, zarr_version } =
     await omezarr.getMultiscaleWithArray(store, 0);
-  log.debug('Zarr version: ', zarr_version);
-  log.debug('Multiscale: ', multiscale);
-  log.debug('Omero: ', omero);
   log.debug('Array: ', arr);
   log.debug('Shapes: ', shapes);
+  log.debug('Multiscale: ', multiscale);
+  log.debug('Omero: ', omero);
+  log.debug('Scales: ', scales);
+  log.debug('Zarr version: ', zarr_version);
 
   const metadata: Metadata = {
     arr,
     shapes,
+    scales,
     multiscale,
     omero,
-    scales,
     zarr_version
   };
 
@@ -471,6 +462,8 @@ export {
   getZarrArray,
   getOmeZarrMetadata,
   getOmeZarrThumbnail,
+  generateNeuroglancerStateForDataURL,
   generateNeuroglancerStateForZarrArray,
-  generateNeuroglancerStateForOmeZarr
+  generateNeuroglancerStateForOmeZarr,
+  translateUnitToNeuroglancer
 };

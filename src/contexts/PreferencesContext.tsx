@@ -26,12 +26,13 @@ export type FolderPreference = {
 
 type PreferencesContextType = {
   pathPreference: ['linux_path'] | ['windows_path'] | ['mac_path'];
-  showPathPrefAlert: boolean;
-  setShowPathPrefAlert: React.Dispatch<React.SetStateAction<boolean>>;
   handlePathPreferenceSubmit: (
-    event: React.FormEvent<HTMLFormElement>,
     localPathPreference: PreferencesContextType['pathPreference']
-  ) => void;
+  ) => Promise<Result<void>>;
+  hideDotFiles: boolean;
+  toggleHideDotFiles: () => Promise<Result<void>>;
+  disableNeuroglancerStateGeneration: boolean;
+  toggleDisableNeuroglancerStateGeneration: () => Promise<Result<void>>;
   zonePreferenceMap: Record<string, ZonePreference>;
   zoneFavorites: Zone[];
   fileSharePathPreferenceMap: Record<string, FileSharePathPreference>;
@@ -44,7 +45,11 @@ type PreferencesContextType = {
     type: 'zone' | 'fileSharePath' | 'folder'
   ) => Promise<Result<boolean>>;
   recentlyViewedFolders: FolderPreference[];
+  layout: string;
+  handleUpdateLayout: (layout: string) => Promise<void>;
   loadingRecentlyViewedFolders: boolean;
+  isLayoutLoadedFromDB: boolean;
+  handleContextMenuFavorite: () => Promise<Result<boolean>>;
 };
 
 const PreferencesContext = React.createContext<PreferencesContextType | null>(
@@ -69,8 +74,11 @@ export const PreferencesProvider = ({
   const [pathPreference, setPathPreference] = React.useState<
     ['linux_path'] | ['windows_path'] | ['mac_path']
   >(['linux_path']);
-  const [showPathPrefAlert, setShowPathPrefAlert] = React.useState(false);
-
+  const [hideDotFiles, setHideDotFiles] = React.useState<boolean>(false);
+  const [
+    disableNeuroglancerStateGeneration,
+    setDisableNeuroglancerStateGeneration
+  ] = React.useState<boolean>(false);
   const [zonePreferenceMap, setZonePreferenceMap] = React.useState<
     Record<string, ZonePreference>
   >({});
@@ -93,6 +101,8 @@ export const PreferencesProvider = ({
     React.useState(false);
   const [isFileSharePathFavoritesReady, setIsFileSharePathFavoritesReady] =
     React.useState(false);
+  const [layout, setLayout] = React.useState<string>('');
+  const [isLayoutLoadedFromDB, setIsLayoutLoadedFromDB] = React.useState(false);
 
   const { cookies } = useCookiesContext();
   const { isZonesMapReady, zonesAndFileSharePathsMap } =
@@ -197,12 +207,15 @@ export const PreferencesProvider = ({
     [cookies]
   );
 
+  const handleUpdateLayout = async (layout: string): Promise<void> => {
+    await savePreferencesToBackend('layout', layout);
+    setLayout(layout);
+  };
+
   const handlePathPreferenceSubmit = React.useCallback(
     async (
-      event: React.FormEvent<HTMLFormElement>,
       localPathPreference: ['linux_path'] | ['windows_path'] | ['mac_path']
     ): Promise<Result<void>> => {
-      event.preventDefault();
       try {
         await savePreferencesToBackend('path', localPathPreference);
         setPathPreference(localPathPreference);
@@ -213,6 +226,40 @@ export const PreferencesProvider = ({
     },
     [savePreferencesToBackend]
   );
+
+  const toggleHideDotFiles = React.useCallback(async (): Promise<
+    Result<void>
+  > => {
+    try {
+      setHideDotFiles(prevHideDotFiles => {
+        const newValue = !prevHideDotFiles;
+        savePreferencesToBackend('hideDotFiles', newValue);
+        return newValue;
+      });
+    } catch (error) {
+      return handleError(error);
+    }
+    return createSuccess(undefined);
+  }, [savePreferencesToBackend]);
+
+  const toggleDisableNeuroglancerStateGeneration =
+    React.useCallback(async (): Promise<Result<void>> => {
+      try {
+        setDisableNeuroglancerStateGeneration(
+          prevDisableNeuroglancerStateGeneration => {
+            const newValue = !prevDisableNeuroglancerStateGeneration;
+            savePreferencesToBackend(
+              'disableNeuroglancerStateGeneration',
+              newValue
+            );
+            return newValue;
+          }
+        );
+      } catch (error) {
+        return handleError(error);
+      }
+      return createSuccess(undefined);
+    }, [savePreferencesToBackend]);
 
   function updatePreferenceList<T>(
     key: string,
@@ -348,6 +395,21 @@ export const PreferencesProvider = ({
     ]
   );
 
+  const handleContextMenuFavorite = async (): Promise<Result<boolean>> => {
+    if (fileBrowserState.currentFileSharePath) {
+      return await handleFavoriteChange(
+        {
+          type: 'folder',
+          folderPath: fileBrowserState.selectedFiles[0].path,
+          fsp: fileBrowserState.currentFileSharePath
+        },
+        'folder'
+      );
+    } else {
+      return handleError(new Error('No file share path selected'));
+    }
+  };
+
   const updateRecentlyViewedFolders = React.useCallback(
     (folderPath: string, fspName: string): FolderPreference[] => {
       const updatedFolders = [...recentlyViewedFolders];
@@ -402,10 +464,51 @@ export const PreferencesProvider = ({
 
   React.useEffect(() => {
     (async function () {
+      if (isLayoutLoadedFromDB) {
+        return; // Avoid re-fetching if already loaded
+      }
+      const rawLayoutPref = await fetchPreferences('layout');
+      if (rawLayoutPref) {
+        log.debug('setting layout:', rawLayoutPref);
+        setLayout(rawLayoutPref);
+      }
+      setIsLayoutLoadedFromDB(true);
+    })();
+  }, [fetchPreferences, isLayoutLoadedFromDB]);
+
+  React.useEffect(() => {
+    (async function () {
       const rawPathPreference = await fetchPreferences('path');
       if (rawPathPreference) {
         log.debug('setting initial path preference:', rawPathPreference);
         setPathPreference(rawPathPreference);
+      }
+    })();
+  }, [fetchPreferences]);
+
+  React.useEffect(() => {
+    (async function () {
+      const rawHideDotFiles = await fetchPreferences('hideDotFiles');
+      if (rawHideDotFiles !== null) {
+        log.debug('setting initial hideDotFiles preference:', rawHideDotFiles);
+        setHideDotFiles(rawHideDotFiles);
+      }
+    })();
+  }, [fetchPreferences]);
+
+  React.useEffect(() => {
+    (async function () {
+      const rawDisableNeuroglancerStateGeneration = await fetchPreferences(
+        'disableNeuroglancerStateGeneration'
+      );
+      if (rawDisableNeuroglancerStateGeneration !== null) {
+        log.debug(
+          'setting initial disableNeuroglancerStateGeneration preference:',
+          rawDisableNeuroglancerStateGeneration
+        );
+        setDisableNeuroglancerStateGeneration(
+          rawDisableNeuroglancerStateGeneration
+        );
       }
     })();
   }, [fetchPreferences]);
@@ -554,9 +657,11 @@ export const PreferencesProvider = ({
     <PreferencesContext.Provider
       value={{
         pathPreference,
-        showPathPrefAlert,
-        setShowPathPrefAlert,
         handlePathPreferenceSubmit,
+        hideDotFiles,
+        toggleHideDotFiles,
+        disableNeuroglancerStateGeneration,
+        toggleDisableNeuroglancerStateGeneration,
         zonePreferenceMap,
         zoneFavorites,
         fileSharePathPreferenceMap,
@@ -566,7 +671,11 @@ export const PreferencesProvider = ({
         isFileSharePathFavoritesReady,
         handleFavoriteChange,
         recentlyViewedFolders,
-        loadingRecentlyViewedFolders
+        layout,
+        handleUpdateLayout,
+        loadingRecentlyViewedFolders,
+        isLayoutLoadedFromDB,
+        handleContextMenuFavorite
       }}
     >
       {children}

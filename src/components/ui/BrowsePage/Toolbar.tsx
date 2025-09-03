@@ -6,7 +6,6 @@ import {
   HiRefresh,
   HiEye,
   HiEyeOff,
-  HiFolderAdd,
   HiOutlineClipboardCopy,
   HiHome,
   HiOutlineStar,
@@ -15,6 +14,8 @@ import {
 import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
 
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
+import NavigationButton from './NavigationButton';
+import NewFolderButton from './NewFolderButton';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useProfileContext } from '@/contexts/ProfileContext';
@@ -24,29 +25,28 @@ import { copyToClipboard } from '@/utils/copyText';
 import useFavoriteToggle from '@/hooks/useFavoriteToggle';
 
 type ToolbarProps = {
-  hideDotFiles: boolean;
-  setHideDotFiles: React.Dispatch<React.SetStateAction<boolean>>;
   showPropertiesDrawer: boolean;
-  setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
+  togglePropertiesDrawer: () => void;
   showSidebar: boolean;
-  setShowSidebar: React.Dispatch<React.SetStateAction<boolean>>;
-  setShowNewFolderDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  toggleSidebar: () => void;
 };
 
 export default function Toolbar({
-  hideDotFiles,
-  setHideDotFiles,
   showPropertiesDrawer,
-  setShowPropertiesDrawer,
+  togglePropertiesDrawer,
   showSidebar,
-  setShowSidebar,
-  setShowNewFolderDialog
+  toggleSidebar
 }: ToolbarProps): JSX.Element {
   const { currentFolder, currentFileSharePath, refreshFiles } =
     useFileBrowserContext();
   const { profile } = useProfileContext();
-  const { folderPreferenceMap, fileSharePathPreferenceMap, pathPreference } =
-    usePreferencesContext();
+  const {
+    folderPreferenceMap,
+    fileSharePathPreferenceMap,
+    pathPreference,
+    hideDotFiles,
+    toggleHideDotFiles
+  } = usePreferencesContext();
   const { handleFavoriteToggle } = useFavoriteToggle();
   const { openFavoritesSection } = useOpenFavoritesContext();
 
@@ -97,7 +97,7 @@ export default function Toolbar({
             }
             icon={showSidebar ? GoSidebarExpand : GoSidebarCollapse}
             onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-              setShowSidebar((prev: boolean) => !prev);
+              toggleSidebar();
               e.currentTarget.blur();
             }}
             triggerClasses={triggerClasses}
@@ -111,6 +111,9 @@ export default function Toolbar({
             label="Go to home folder"
             triggerClasses={triggerClasses}
           />
+
+          {/* Open navigate dialog */}
+          <NavigationButton triggerClasses={triggerClasses} />
 
           {/* Refresh browser contents */}
           <FgTooltip
@@ -134,24 +137,24 @@ export default function Toolbar({
           />
 
           {/* Make new folder */}
-          <FgTooltip
-            icon={HiFolderAdd}
-            label="New folder"
-            disabledCondition={!currentFileSharePath}
-            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-              setShowNewFolderDialog(true);
-              e.currentTarget.blur();
-            }}
-            triggerClasses={triggerClasses}
-          />
+          <NewFolderButton triggerClasses={triggerClasses} />
 
           {/* Show/hide dot files and folders */}
           <FgTooltip
             icon={hideDotFiles ? HiEyeOff : HiEye}
             label={hideDotFiles ? 'Show dot files' : 'Hide dot files'}
             disabledCondition={!currentFileSharePath}
-            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-              setHideDotFiles((prev: boolean) => !prev);
+            onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
+              const result = await toggleHideDotFiles();
+              if (result.success) {
+                toast.success(
+                  hideDotFiles
+                    ? 'Dot files are now visible'
+                    : 'Dot files are now hidden'
+                );
+              } else {
+                toast.error(result.error);
+              }
               e.currentTarget.blur();
             }}
             triggerClasses={triggerClasses}
@@ -208,7 +211,7 @@ export default function Toolbar({
               : 'View file properties'
           }
           onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-            setShowPropertiesDrawer((prev: boolean) => !prev);
+            togglePropertiesDrawer();
             e.currentTarget.blur();
           }}
           triggerClasses={triggerClasses}

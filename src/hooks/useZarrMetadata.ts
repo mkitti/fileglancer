@@ -1,10 +1,12 @@
 import React from 'react';
 import { default as log } from '@/logger';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import {
   getOmeZarrMetadata,
   getOmeZarrThumbnail,
   getZarrArray,
+  generateNeuroglancerStateForDataURL,
   generateNeuroglancerStateForZarrArray,
   generateNeuroglancerStateForOmeZarr
 } from '@/omezarr-helper';
@@ -12,6 +14,7 @@ import type { Metadata } from '@/omezarr-helper';
 import { fetchFileAsJson, getFileURL } from '@/utils';
 import { useCookies } from 'react-cookie';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
+import { useExternalBucketContext } from '@/contexts/ExternalBucketContext';
 import * as zarr from 'zarrita';
 
 export type OpenWithToolUrls = {
@@ -19,10 +22,11 @@ export type OpenWithToolUrls = {
   validator: string;
   neuroglancer: string;
   vole: string;
+  avivator: string;
 };
 
 export type ZarrArray = zarr.Array<any>;
-export type ZarrMetadata = Metadata | ZarrArray | null;
+export type ZarrMetadata = Metadata | null;
 
 export default function useZarrMetadata() {
   const [thumbnailSrc, setThumbnailSrc] = React.useState<string | null>(null);
@@ -38,8 +42,11 @@ export default function useZarrMetadata() {
   const validatorBaseUrl = 'https://ome.github.io/ome-ngff-validator/?source=';
   const neuroglancerBaseUrl = 'https://neuroglancer-demo.appspot.com/#!';
   const voleBaseUrl = 'https://volumeviewer.allencell.org/viewer?url=';
+  const avivatorBaseUrl = 'https://avivator.gehlenborglab.org/?image_url=';
   const { fileBrowserState, areFileDataLoading } = useFileBrowserContext();
   const { dataUrl } = useProxiedPathContext();
+  const { externalDataUrl } = useExternalBucketContext();
+  const { disableNeuroglancerStateGeneration } = usePreferencesContext();
   const [cookies] = useCookies(['_xsrf']);
 
   const checkZarrMetadata = React.useCallback(
@@ -72,7 +79,15 @@ export default function useZarrMetadata() {
               if (cancelRef.cancel) {
                 return;
               }
-              setMetadata(arr);
+              const shapes = [arr.shape];
+              setMetadata({
+                arr,
+                shapes,
+                multiscale: undefined,
+                omero: undefined,
+                scales: undefined,
+                zarr_version: 2
+              });
             } catch (error) {
               log.error('Error fetching Zarr array:', error);
               if (cancelRef.cancel) {
@@ -123,7 +138,13 @@ export default function useZarrMetadata() {
         }
       }
     },
-    [areFileDataLoading, fileBrowserState, cookies]
+    [
+      areFileDataLoading,
+      fileBrowserState.currentFileSharePath,
+      fileBrowserState.currentFolder,
+      fileBrowserState.files,
+      cookies
+    ]
   );
 
   // When the file browser state changes, check for Zarr metadata
@@ -175,40 +196,61 @@ export default function useZarrMetadata() {
   // Run tool url generation when the proxied path url or metadata changes
   React.useEffect(() => {
     setOpenWithToolUrls(null);
-    if (metadata && dataUrl) {
+    console.log(
+      'Updating OpenWithToolUrls with metadata ',
+      metadata,
+      ' and dataUrl ',
+      dataUrl,
+      ' and externalDataUrl ',
+      externalDataUrl
+    );
+    const url = externalDataUrl || dataUrl;
+    if (metadata && url) {
       const openWithToolUrls = {
-        copy: dataUrl
+        copy: url
       } as OpenWithToolUrls;
-      if (metadata instanceof zarr.Array) {
+      if (metadata && metadata?.multiscale) {
+        openWithToolUrls.validator = validatorBaseUrl + url;
+        openWithToolUrls.vole = voleBaseUrl + url;
+        openWithToolUrls.avivator = avivatorBaseUrl + url;
+        if (disableNeuroglancerStateGeneration) {
+          openWithToolUrls.neuroglancer =
+            neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
+        } else {
+          try {
+            openWithToolUrls.neuroglancer =
+              neuroglancerBaseUrl +
+              generateNeuroglancerStateForOmeZarr(
+                url,
+                metadata.zarr_version,
+                metadata.multiscale,
+                metadata.arr,
+                metadata.omero
+              );
+          } catch (error) {
+            log.error(
+              'Error generating Neuroglancer state for OME-Zarr:',
+              error
+            );
+            openWithToolUrls.neuroglancer =
+              neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
+          }
+        }
+      } else {
         openWithToolUrls.validator = '';
         openWithToolUrls.vole = '';
-        openWithToolUrls.neuroglancer =
-          neuroglancerBaseUrl +
-          generateNeuroglancerStateForZarrArray(dataUrl, 2);
-      } else {
-        openWithToolUrls.validator = validatorBaseUrl + dataUrl;
-        openWithToolUrls.vole = voleBaseUrl + dataUrl;
-        try {
+        openWithToolUrls.avivator = '';
+        if (disableNeuroglancerStateGeneration) {
           openWithToolUrls.neuroglancer =
-            neuroglancerBaseUrl +
-            generateNeuroglancerStateForOmeZarr(
-              dataUrl,
-              metadata.zarr_version,
-              metadata.multiscale,
-              metadata.arr,
-              metadata.omero
-            );
-        } catch (error) {
-          log.error('Error generating Neuroglancer state for OME-Zarr:', error);
-          log.error('Falling back to Zarr array state');
+            neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
+        } else {
           openWithToolUrls.neuroglancer =
-            neuroglancerBaseUrl +
-            generateNeuroglancerStateForZarrArray(dataUrl, 2);
+            neuroglancerBaseUrl + generateNeuroglancerStateForZarrArray(url, 2);
         }
       }
       setOpenWithToolUrls(openWithToolUrls);
     }
-  }, [metadata, dataUrl]);
+  }, [metadata, dataUrl, externalDataUrl, disableNeuroglancerStateGeneration]);
 
   return {
     thumbnailSrc,

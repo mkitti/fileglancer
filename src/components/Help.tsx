@@ -18,17 +18,17 @@ export default function Help() {
   const helpLinks: HelpLink[] = [
     {
       icon: TbBrandGithub,
-      title: `View release notes for Fileglancer version ${versionNo}`,
+      title: `View ${versionNo} release notes`,
       url: `https://github.com/JaneliaSciComp/fileglancer/releases/tag/${versionNo}`
     },
     {
       icon: SiClickup,
-      title: 'Submit a bug report or feature request via ClickUp',
+      title: 'Submit feedback, bug reports, or feature requests',
       url: `https://forms.clickup.com/10502797/f/a0gmd-713/NBUCBCIN78SI2BE71G?Version=${versionNo}&URL=${window.location}`
     },
     {
       icon: SiSlack,
-      title: 'Get help on Slack',
+      title: 'Get help on the #fileglancer-support Slack channel',
       url: 'https://hhmi.enterprise.slack.com/archives/C0938N06YN8'
     }
   ];
@@ -40,7 +40,7 @@ export default function Help() {
           Help
         </Typography>
         <Typography type="lead" className="text-foreground font-bold">
-          {`Fileglancer version ${versionNo}`}
+          {`Fileglancer Version ${versionNo}`}
         </Typography>
       </div>
       <Card>

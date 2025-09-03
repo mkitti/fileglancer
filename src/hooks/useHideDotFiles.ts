@@ -1,8 +1,9 @@
 import React from 'react';
 import { useFileBrowserContext } from '../contexts/FileBrowserContext';
+import { usePreferencesContext } from '../contexts/PreferencesContext';
 
 export default function useHideDotFiles() {
-  const [hideDotFiles, setHideDotFiles] = React.useState<boolean>(true);
+  const { hideDotFiles } = usePreferencesContext();
   const { files } = useFileBrowserContext();
 
   const displayFiles = React.useMemo(() => {
@@ -12,8 +13,6 @@ export default function useHideDotFiles() {
   }, [files, hideDotFiles]);
 
   return {
-    displayFiles,
-    hideDotFiles,
-    setHideDotFiles
+    displayFiles
   };
 }

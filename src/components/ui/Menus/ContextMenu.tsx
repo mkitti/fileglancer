@@ -3,20 +3,18 @@ import ReactDOM from 'react-dom';
 import toast from 'react-hot-toast';
 
 import FgMenuItems, { MenuItem } from './FgMenuItems';
-import type { FileOrFolder, Result } from '@/shared.types';
+import type { Result } from '@/shared.types';
 import { makeMapKey } from '@/utils';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { useHandleDownload } from '@/hooks/useHandleDownload';
 
 type ContextMenuProps = {
   x: number;
   y: number;
   menuRef: React.RefObject<HTMLDivElement | null>;
-  selectedFiles: FileOrFolder[];
-  handleContextMenuFavorite: (
-    selectedFiles: FileOrFolder[]
-  ) => Promise<Result<boolean>>;
-  setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
+  showPropertiesDrawer: boolean;
+  togglePropertiesDrawer: () => void;
   setShowContextMenu: React.Dispatch<React.SetStateAction<boolean>>;
   setShowRenameDialog: React.Dispatch<React.SetStateAction<boolean>>;
   setShowDeleteDialog: React.Dispatch<React.SetStateAction<boolean>>;
@@ -25,11 +23,9 @@ type ContextMenuProps = {
 };
 
 type ContextMenuActionProps = {
-  selectedFiles: FileOrFolder[];
-  handleContextMenuFavorite: (
-    selectedFiles: FileOrFolder[]
-  ) => Promise<Result<boolean>>;
-  setShowPropertiesDrawer: React.Dispatch<React.SetStateAction<boolean>>;
+  handleContextMenuFavorite: () => Promise<Result<boolean>>;
+  handleDownload: () => Result<void>;
+  togglePropertiesDrawer: () => void;
   setShowContextMenu: React.Dispatch<React.SetStateAction<boolean>>;
   setShowRenameDialog: React.Dispatch<React.SetStateAction<boolean>>;
   setShowDeleteDialog: React.Dispatch<React.SetStateAction<boolean>>;
@@ -41,9 +37,8 @@ export default function ContextMenu({
   x,
   y,
   menuRef,
-  selectedFiles,
-  handleContextMenuFavorite,
-  setShowPropertiesDrawer,
+  showPropertiesDrawer,
+  togglePropertiesDrawer,
   setShowContextMenu,
   setShowRenameDialog,
   setShowDeleteDialog,
@@ -51,13 +46,19 @@ export default function ContextMenu({
   setShowConvertFileDialog
 }: ContextMenuProps): React.ReactNode {
   const { fileBrowserState } = useFileBrowserContext();
-  const { folderPreferenceMap } = usePreferencesContext();
+  const { folderPreferenceMap, handleContextMenuFavorite } =
+    usePreferencesContext();
+  const { handleDownload } = useHandleDownload();
+
+  if (!fileBrowserState.propertiesTarget) {
+    return <>{toast.error('No target file selected')}</>; // No target file available
+  }
 
   const isFavorite: boolean = Boolean(
     folderPreferenceMap[
       makeMapKey(
         'folder',
-        `${fileBrowserState.currentFileSharePath?.name}_${selectedFiles[0].path}`
+        `${fileBrowserState.currentFileSharePath?.name}_${fileBrowserState.propertiesTarget.path}`
       )
     ]
   );
@@ -66,15 +67,26 @@ export default function ContextMenu({
     {
       name: 'View file properties',
       action: (props: ContextMenuActionProps) => {
-        props.setShowPropertiesDrawer(true);
+        props.togglePropertiesDrawer();
         props.setShowContextMenu(false);
       },
-      shouldShow: true
+      shouldShow: !showPropertiesDrawer
+    },
+    {
+      name: 'Download',
+      action: (props: ContextMenuActionProps) => {
+        const result = props.handleDownload();
+        if (!result.success) {
+          toast.error(`Error downloading file: ${result.error}`);
+        }
+        props.setShowContextMenu(false);
+      },
+      shouldShow: !fileBrowserState.propertiesTarget.is_dir
     },
     {
       name: isFavorite ? 'Unset favorite' : 'Set favorite',
       action: async (props: ContextMenuActionProps) => {
-        const result = await props.handleContextMenuFavorite(selectedFiles);
+        const result = await props.handleContextMenuFavorite();
         if (!result.success) {
           toast.error(`Error toggling favorite: ${result.error}`);
         } else {
@@ -82,10 +94,10 @@ export default function ContextMenu({
         }
         setShowContextMenu(false);
       },
-      shouldShow: selectedFiles[0].is_dir
+      shouldShow: fileBrowserState.selectedFiles[0].is_dir
     },
     {
-      name: 'Convert to ZARR',
+      name: 'Convert images to OME-Zarr',
       action: (props: ContextMenuActionProps) => {
         setShowConvertFileDialog(true);
         props.setShowContextMenu(false);
@@ -105,7 +117,7 @@ export default function ContextMenu({
         props.setShowPermissionsDialog(true);
         props.setShowContextMenu(false);
       },
-      shouldShow: !selectedFiles[0].is_dir
+      shouldShow: !fileBrowserState.propertiesTarget.is_dir
     },
     {
       name: 'Delete',
@@ -119,9 +131,10 @@ export default function ContextMenu({
   ];
 
   const actionProps = {
-    selectedFiles,
+    fileBrowserState,
+    handleDownload,
     handleContextMenuFavorite,
-    setShowPropertiesDrawer,
+    togglePropertiesDrawer,
     setShowContextMenu,
     setShowRenameDialog,
     setShowDeleteDialog,
