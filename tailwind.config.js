@@ -43,28 +43,28 @@ const config = {
           foreground: '#FFFFFF'
         },
         success: {
-          default: '#00a450', // HHMI primary brand color
-          dark: '#008f44',
-          light: '#33b473',
-          foreground: '#FFFFFF'
+          default: '#00a450', // HHMI primary brand color - icon color
+          dark: '#bbf7d0', // border color (green-200 equivalent)
+          light: '#f0fdf4', // background color (green-50 equivalent)
+          foreground: '#15803d' // text color (green-700 equivalent)
         },
         info: {
-          default: '#2563EB',
-          dark: '#1D4ED8',
-          light: '#3B82F6',
-          foreground: '#FFFFFF'
+          default: '#2563EB', // icon color
+          dark: '#bfdbfe', // border color (blue-200 equivalent)
+          light: '#eff6ff', // background color (blue-50 equivalent)
+          foreground: '#1d4ed8' // text color (blue-700 equivalent)
         },
         warning: {
-          default: '#EEDC11', // HHMI accent brand color
-          dark: '#B66F2B',
-          light: '#F2A860',
-          foreground: '#030712'
+          default: '#d97706', // icon color (amber-600)
+          dark: '#fed7aa', // border color (amber-200 equivalent)
+          light: '#fffbeb', // background color (amber-50 equivalent)
+          foreground: '#92400e' // text color (amber-800 equivalent)
         },
         error: {
-          default: '#DC2626',
-          dark: '#B91C1C',
-          light: '#EF4444',
-          foreground: '#FFFFFF'
+          default: '#dc2626', // icon color
+          dark: '#fecaca', // border color (red-200 equivalent)
+          light: '#fef2f2', // background color (red-50 equivalent)
+          foreground: '#991b1b' // text color (red-800 equivalent)
         }
       },
       darkColors: {
@@ -89,28 +89,28 @@ const config = {
           foreground: '#FFFFFF'
         },
         success: {
-          default: '#33b473',
-          dark: '#00a450',
-          light: '#66cba2',
-          foreground: '#030712'
+          default: '#33b473', // icon color (lighter green for dark theme)
+          dark: '#166534', // border color (green-800 equivalent)
+          light: '#052e16', // background color (green-950 equivalent)
+          foreground: '#bbf7d0' // text color (green-200 equivalent)
         },
         info: {
-          default: '#3B82F6',
-          dark: '#2563EB',
-          light: '#60A5FA',
-          foreground: '#FFFFFF'
+          default: '#3B82F6', // icon color
+          dark: '#1e40af', // border color (blue-800 equivalent)
+          light: '#172554', // background color (blue-950 equivalent)
+          foreground: '#bfdbfe' // text color (blue-200 equivalent)
         },
         warning: {
-          default: '#EEDC11', // HHMI accent brand color
-          dark: '#DD8235',
-          light: '#FFBF70',
-          foreground: '#030712'
+          default: '#f59e0b', // icon color (amber-500)
+          dark: '#92400e', // border color (amber-800 equivalent)
+          light: '#451a03', // background color (amber-950 equivalent)
+          foreground: '#fed7aa' // text color (amber-200 equivalent)
         },
         error: {
-          default: '#EF4444',
-          dark: '#DC2626',
-          light: '#F87171',
-          foreground: '#FFFFFF'
+          default: '#ef4444', // icon color
+          dark: '#991b1b', // border color (red-800 equivalent)
+          light: '#450a0a', // background color (red-950 equivalent)
+          foreground: '#fecaca' // text color (red-200 equivalent)
         }
       }
     })
