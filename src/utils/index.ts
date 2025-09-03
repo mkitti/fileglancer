@@ -164,7 +164,7 @@ async function fetchFileWithTextDetection(
 ): Promise<{ isText: boolean; content: string; rawData: Uint8Array }> {
   const rawData = await fetchFileContent(fspName, path, cookies);
   const isText = isLikelyTextFile(rawData);
-  
+
   let content: string;
   if (isText) {
     content = new TextDecoder('utf-8', { fatal: false }).decode(rawData);
