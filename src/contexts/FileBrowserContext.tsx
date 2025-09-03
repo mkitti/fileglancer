@@ -32,6 +32,7 @@ interface FileBrowserState {
   propertiesTarget: FileOrFolder | null;
   selectedFiles: FileOrFolder[];
   uiErrorMsg: string | null;
+  fileContentRefreshTrigger: number;
 }
 
 type FileBrowserContextType = {
@@ -41,6 +42,7 @@ type FileBrowserContextType = {
 
   areFileDataLoading: boolean;
   refreshFiles: () => Promise<Result<void>>;
+  triggerFileContentRefresh: () => void;
   handleLeftClick: (
     file: FileOrFolder,
     showFilePropertiesDrawer: boolean
@@ -77,7 +79,8 @@ export const FileBrowserContextProvider = ({
       files: [],
       propertiesTarget: null,
       selectedFiles: [],
-      uiErrorMsg: null
+      uiErrorMsg: null,
+      fileContentRefreshTrigger: 0
     });
   const [areFileDataLoading, setAreFileDataLoading] = React.useState(false);
 
@@ -366,6 +369,15 @@ export const FileBrowserContextProvider = ({
     }
   };
 
+  // Function to trigger a refresh of file content in FileViewer
+  const triggerFileContentRefresh = React.useCallback(() => {
+    log.debug('Triggering file content refresh');
+    setFileBrowserState(prev => ({
+      ...prev,
+      fileContentRefreshTrigger: prev.fileContentRefreshTrigger + 1
+    }));
+  }, []);
+
   // Effect to update currentFolder and propertiesTarget when URL params change
   React.useEffect(() => {
     log.debug('URL changed: fspName=', fspName, 'filePath=', filePath);
@@ -432,6 +444,7 @@ export const FileBrowserContextProvider = ({
         fspName,
         filePath,
         refreshFiles,
+        triggerFileContentRefresh,
         handleLeftClick,
         updateFilesWithContextMenuClick,
         areFileDataLoading,

@@ -37,7 +37,8 @@ export default function Toolbar({
   showSidebar,
   toggleSidebar
 }: ToolbarProps): JSX.Element {
-  const { fileBrowserState, refreshFiles } = useFileBrowserContext();
+  const { fileBrowserState, refreshFiles, triggerFileContentRefresh } =
+    useFileBrowserContext();
   const { currentFileSharePath, currentFileOrFolder } = fileBrowserState;
   const { profile } = useProfileContext();
   const {
@@ -124,12 +125,25 @@ export default function Toolbar({
                 toast.error(
                   'Cannot refresh files - no file share path selected.'
                 );
+                return;
               }
-              const result = await refreshFiles();
-              if (result.success) {
-                toast.success('File browser refreshed!');
+
+              // Check if we're viewing a file or a folder
+              const isViewingFile =
+                currentFileOrFolder && !currentFileOrFolder.is_dir;
+
+              if (isViewingFile) {
+                // If viewing a file, trigger file content refresh
+                triggerFileContentRefresh();
+                toast.success('File content refreshed!');
               } else {
-                toast.error(`Error refreshing file browser: ${result.error}`);
+                // If viewing a folder, refresh the file list
+                const result = await refreshFiles();
+                if (result.success) {
+                  toast.success('File browser refreshed!');
+                } else {
+                  toast.error(`Error refreshing file browser: ${result.error}`);
+                }
               }
             }}
             triggerClasses={triggerClasses}

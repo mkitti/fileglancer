@@ -164,7 +164,12 @@ export default function FileViewer({ file }: FileViewerProps): React.ReactNode {
     };
 
     fetchFileContent();
-  }, [file.path, fileBrowserState.currentFileSharePath, cookies._xsrf]);
+  }, [
+    file.path,
+    fileBrowserState.currentFileSharePath,
+    fileBrowserState.fileContentRefreshTrigger,
+    cookies._xsrf
+  ]);
 
   const renderViewer = () => {
     if (loading) {
