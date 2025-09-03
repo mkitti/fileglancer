@@ -31,7 +31,7 @@ export default function Browse() {
   const [showRenameDialog, setShowRenameDialog] = React.useState(false);
 
   return (
-    <div className="flex flex-col h-full max-h-full">
+    <div className="flex flex-col h-full min-w-fit max-h-full">
       <Toolbar
         showPropertiesDrawer={showPropertiesDrawer}
         togglePropertiesDrawer={togglePropertiesDrawer}
@@ -39,7 +39,7 @@ export default function Browse() {
         toggleSidebar={toggleSidebar}
       />
       <div
-        className={`relative grow max-h-full flex flex-col overflow-y-auto ${!fileBrowserState.currentFileSharePath ? 'grid grid-cols-2 grid-rows-[60px_1fr] bg-surface-light gap-6 p-6' : ''}`}
+        className={`relative grow shrink-0 max-h-[calc(100%-55px)] flex flex-col overflow-y-auto px-2 ${!fileBrowserState.currentFileSharePath ? 'grid grid-cols-2 grid-rows-[60px_1fr] bg-surface-light gap-6 p-6' : ''}`}
       >
         {!fileBrowserState.currentFileSharePath ? (
           <>
