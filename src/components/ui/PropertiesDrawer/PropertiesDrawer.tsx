@@ -44,8 +44,8 @@ export default function PropertiesDrawer({
   const tooltipTriggerClasses = 'max-w-[calc(100%-2rem)] truncate';
 
   return (
-    <Card className="min-w-full h-full max-h-full overflow-y-auto overflow-x-hidden p-3 rounded-none shadow-lg flex flex-col">
-      <div className="flex items-center justify-between gap-4 mb-1">
+    <Card className="w-fit max-w-fit h-full max-h-full overflow-auto p-3 rounded-none shadow-lg flex flex-col">
+      <div className="flex items-center justify-between gap-4 mb-1 min-w-full">
         <Typography type="h6">Properties</Typography>
         <IconButton
           size="sm"
@@ -61,7 +61,7 @@ export default function PropertiesDrawer({
       </div>
 
       {propertiesTarget ? (
-        <div className="flex items-center gap-2 mt-3 mb-4 max-h-min overflow-hidden">
+        <div className="shrink-0 flex items-center gap-2 mt-3 mb-4 max-h-min min-w-full">
           {propertiesTarget.is_dir ? (
             <HiOutlineFolder className="icon-default" />
           ) : (
@@ -82,8 +82,12 @@ export default function PropertiesDrawer({
         </Typography>
       )}
       {propertiesTarget ? (
-        <Tabs key="file-properties-tabs" defaultValue="overview">
-          <Tabs.List className="w-full rounded-none border-b border-secondary-dark  bg-transparent dark:bg-transparent py-0">
+        <Tabs
+          key="file-properties-tabs"
+          defaultValue="overview"
+          className="min-w-full"
+        >
+          <Tabs.List className="min-w-full rounded-none border-b border-secondary-dark  bg-transparent dark:bg-transparent py-0">
             <Tabs.Trigger className="w-full !text-foreground" value="overview">
               Overview
             </Tabs.Trigger>
@@ -101,7 +105,7 @@ export default function PropertiesDrawer({
             <Tabs.TriggerIndicator className="rounded-none border-b-2 border-secondary bg-transparent dark:bg-transparent shadow-none" />
           </Tabs.List>
 
-          <Tabs.Panel value="overview">
+          <Tabs.Panel value="overview" className="min-w-full">
             <div className="group flex justify-between items-center overflow-x-hidden">
               <FgTooltip
                 label={fullPath}
@@ -135,7 +139,10 @@ export default function PropertiesDrawer({
             <OverviewTable file={propertiesTarget} />
           </Tabs.Panel>
 
-          <Tabs.Panel value="permissions" className="flex flex-col gap-2">
+          <Tabs.Panel
+            value="permissions"
+            className="flex flex-col gap-2 min-w-full"
+          >
             <PermissionsTable file={propertiesTarget} />
             <Button
               variant="outline"
@@ -148,7 +155,10 @@ export default function PropertiesDrawer({
             </Button>
           </Tabs.Panel>
 
-          <Tabs.Panel value="convert" className="flex flex-col gap-2">
+          <Tabs.Panel
+            value="convert"
+            className="flex flex-col gap-2 min-w-full"
+          >
             {ticket ? (
               <TicketDetails />
             ) : (

@@ -64,13 +64,7 @@ export const BrowsePageLayout = () => {
         >
           {showSidebar ? (
             <>
-              <Panel
-                id="sidebar"
-                order={1}
-                minSize={10}
-                maxSize={50}
-                defaultSize={24}
-              >
+              <Panel id="sidebar" order={1} minSize={10} defaultSize={24}>
                 <Sidebar />
               </Panel>
               <PanelResizeHandle className="group relative w-3 bg-surface border-r border-surface hover:border-secondary/60">
@@ -90,8 +84,8 @@ export const BrowsePageLayout = () => {
                 id="properties"
                 order={3}
                 minSize={15}
-                maxSize={50}
                 defaultSize={24}
+                style={{ overflowX: 'auto' }}
               >
                 <PropertiesDrawer
                   togglePropertiesDrawer={togglePropertiesDrawer}
