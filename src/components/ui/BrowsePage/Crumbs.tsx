@@ -58,18 +58,9 @@ export default function Crumbs(): ReactNode {
               !currentFileOrFolder.is_dir &&
               index === dirDepth - 1;
 
-            // For file breadcrumbs, we need to calculate the path correctly
-            let path: string;
-            if (isFile) {
-              // If this is a file segment, link to the parent directory
-              path = joinPaths(...dirArray.slice(1, index));
-            } else {
-              path = joinPaths(...dirArray.slice(1, index + 1));
-            }
-
-            const link = makeBrowseLink(currentFileSharePath.name, path);
-
             if (index < dirDepth - 1) {
+              const path = joinPaths(...dirArray.slice(1, index + 1));
+              const link = makeBrowseLink(currentFileSharePath.name, path);
               // Render a breadcrumb link for each segment in the parent path
               return (
                 <React.Fragment key={pathSegment + '-' + index}>

@@ -116,38 +116,34 @@ export default function Toolbar({
           <NavigationButton triggerClasses={triggerClasses} />
 
           {/* Refresh browser contents */}
-          <FgTooltip
-            icon={HiRefresh}
-            label="Refresh file browser"
-            disabledCondition={!currentFileSharePath}
-            onClick={async () => {
-              if (!currentFileSharePath) {
-                toast.error(
-                  'Cannot refresh files - no file share path selected.'
-                );
-                return;
-              }
+          {currentFileSharePath ? (
+            <FgTooltip
+              icon={HiRefresh}
+              label="Refresh file browser"
+              onClick={async () => {
+                // Check if we're viewing a file or a folder
+                const isViewingFile =
+                  currentFileOrFolder && !currentFileOrFolder.is_dir;
 
-              // Check if we're viewing a file or a folder
-              const isViewingFile =
-                currentFileOrFolder && !currentFileOrFolder.is_dir;
-
-              if (isViewingFile) {
-                // If viewing a file, trigger file content refresh
-                triggerFileContentRefresh();
-                toast.success('File content refreshed!');
-              } else {
-                // If viewing a folder, refresh the file list
-                const result = await refreshFiles();
-                if (result.success) {
-                  toast.success('File browser refreshed!');
+                if (isViewingFile) {
+                  // If viewing a file, trigger file content refresh
+                  triggerFileContentRefresh();
+                  toast.success('File content refreshed!');
                 } else {
-                  toast.error(`Error refreshing file browser: ${result.error}`);
+                  // If viewing a folder, refresh the file list
+                  const result = await refreshFiles();
+                  if (result.success) {
+                    toast.success('File browser refreshed!');
+                  } else {
+                    toast.error(
+                      `Error refreshing file browser: ${result.error}`
+                    );
+                  }
                 }
-              }
-            }}
-            triggerClasses={triggerClasses}
-          />
+              }}
+              triggerClasses={triggerClasses}
+            />
+          ) : null}
 
           {/* Make new folder */}
           {isFolder ? (
@@ -159,7 +155,6 @@ export default function Toolbar({
             <FgTooltip
               icon={hideDotFiles ? HiEyeOff : HiEye}
               label={hideDotFiles ? 'Show dot files' : 'Hide dot files'}
-              disabledCondition={!currentFileSharePath}
               onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
                 const result = await toggleHideDotFiles();
                 if (result.success) {
@@ -186,7 +181,6 @@ export default function Toolbar({
                   ? 'Remove current directory from favorites'
                   : 'Add current directory to favorites'
               }
-              disabledCondition={!currentFileSharePath}
               onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
                 const result = await handleFavoriteToggle(false);
                 if (!result.success) {
@@ -203,20 +197,21 @@ export default function Toolbar({
           ) : null}
 
           {/* Copy path */}
-          <FgTooltip
-            icon={HiOutlineClipboardCopy}
-            label="Copy current path"
-            disabledCondition={!currentFileSharePath}
-            onClick={() => {
-              try {
-                copyToClipboard(fullPath);
-                toast.success('Path copied to clipboard!');
-              } catch (error) {
-                toast.error(`Failed to copy path. Error: ${error}`);
-              }
-            }}
-            triggerClasses={triggerClasses}
-          />
+          {currentFileSharePath ? (
+            <FgTooltip
+              icon={HiOutlineClipboardCopy}
+              label="Copy current path"
+              onClick={() => {
+                try {
+                  copyToClipboard(fullPath);
+                  toast.success('Path copied to clipboard!');
+                } catch (error) {
+                  toast.error(`Failed to copy path. Error: ${error}`);
+                }
+              }}
+              triggerClasses={triggerClasses}
+            />
+          ) : null}
         </ButtonGroup>
 
         {/* Show/hide properties drawer */}
