@@ -142,7 +142,7 @@ export default function FileViewer({ file }: FileViewerProps): React.ReactNode {
     if (loading) {
       return (
         <div className="flex items-center justify-center h-64">
-          <Typography className="text-primary-default">
+          <Typography className="text-foreground">
             Loading file content...
           </Typography>
         </div>
@@ -152,7 +152,7 @@ export default function FileViewer({ file }: FileViewerProps): React.ReactNode {
     if (error) {
       return (
         <div className="flex items-center justify-center h-64">
-          <Typography className="text-red-500">Error: {error}</Typography>
+          <Typography className="text-error">Error: {error}</Typography>
         </div>
       );
     }
@@ -189,7 +189,7 @@ export default function FileViewer({ file }: FileViewerProps): React.ReactNode {
 
       {/* File info header */}
       <div className="px-4 py-2 bg-surface-light border-b border-surface">
-        <Typography variant="h6" className="text-primary-default">
+        <Typography type="h6" className="text-foreground">
           {file.name}
         </Typography>
         <Typography className="text-foreground">
