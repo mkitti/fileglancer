@@ -3,6 +3,7 @@ import { useCookiesContext } from '@/contexts/CookiesContext';
 import { sendFetchRequest } from '@/utils';
 import type { Result } from '@/shared.types';
 import { createSuccess, handleError, toHttpError } from '@/utils/errorHandling';
+import logger from '@/logger';
 
 export type Notification = {
   id: number;
@@ -58,7 +59,7 @@ export const NotificationProvider = ({
       try {
         setDismissedNotifications(JSON.parse(dismissed));
       } catch {
-        console.warn(
+        logger.warn(
           'Failed to parse dismissed notifications from localStorage'
         );
         localStorage.removeItem('dismissedNotifications');

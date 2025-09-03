@@ -6,6 +6,7 @@ import {
 } from 'react-icons/hi';
 import { HiOutlineExclamationTriangle } from 'react-icons/hi2';
 import { useNotificationContext } from '@/contexts/NotificationsContext';
+import logger from '@/logger';
 
 const NotificationIcon = ({ type }: { type: string }) => {
   const iconClass = 'h-5 w-5';
@@ -80,7 +81,7 @@ export default function Notifications() {
   }
 
   if (error) {
-    console.error('Notification error:', error);
+    logger.error('Notification error:', error);
     return null; // Don't show error to user, just log it
   }
 
