@@ -4,13 +4,13 @@ import { usePreferencesContext } from '../contexts/PreferencesContext';
 
 export default function useHideDotFiles() {
   const { hideDotFiles } = usePreferencesContext();
-  const { files } = useFileBrowserContext();
+  const { fileBrowserState } = useFileBrowserContext();
 
   const displayFiles = React.useMemo(() => {
     return hideDotFiles
-      ? files.filter(file => !file.name.startsWith('.'))
-      : files;
-  }, [files, hideDotFiles]);
+      ? fileBrowserState.files.filter(file => !file.name.startsWith('.'))
+      : fileBrowserState.files;
+  }, [fileBrowserState.files, hideDotFiles]);
 
   return {
     displayFiles

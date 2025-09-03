@@ -7,7 +7,7 @@ export default function useOpenZones() {
     all: true
   });
 
-  const { currentFileSharePath } = useFileBrowserContext();
+  const { fileBrowserState } = useFileBrowserContext();
 
   const toggleOpenZones = React.useCallback(
     (zone: string) => {
@@ -20,13 +20,13 @@ export default function useOpenZones() {
   );
 
   React.useEffect(() => {
-    if (currentFileSharePath) {
+    if (fileBrowserState.currentFileSharePath) {
       setOpenZones(prev => ({
         ...prev,
-        [currentFileSharePath.zone]: true
+        [fileBrowserState.currentFileSharePath!.zone]: true
       }));
     }
-  }, [currentFileSharePath]);
+  }, [fileBrowserState.currentFileSharePath]);
 
   return {
     openZones,

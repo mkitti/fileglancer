@@ -4,6 +4,7 @@ import { Typography } from '@material-tailwind/react';
 import Crumbs from './Crumbs';
 import ZarrPreview from './ZarrPreview';
 import Table from './FileTable';
+import FileViewer from './FileViewer';
 import ContextMenu from '@/components/ui/Menus/ContextMenu';
 import { FileRowSkeleton } from '@/components/ui/widgets/Loaders';
 import useContextMenu from '@/hooks/useContextMenu';
@@ -46,6 +47,14 @@ export default function FileBrowser({
     loadingThumbnail,
     thumbnailError
   } = useZarrMetadata();
+
+  // If current item is a file, render the FileViewer instead of the file browser
+  if (
+    fileBrowserState.currentFileOrFolder &&
+    !fileBrowserState.currentFileOrFolder.is_dir
+  ) {
+    return <FileViewer file={fileBrowserState.currentFileOrFolder} />;
+  }
 
   return (
     <div className="px-2 transition-all duration-300 flex flex-col h-full overflow-hidden">

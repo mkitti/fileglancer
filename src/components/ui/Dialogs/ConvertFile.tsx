@@ -25,7 +25,7 @@ export default function ConvertFileDialog({
   const { destinationFolder, setDestinationFolder, handleTicketSubmit } =
     useConvertFileDialog();
   const { pathPreference } = usePreferencesContext();
-  const { propertiesTarget, currentFileSharePath } = useFileBrowserContext();
+  const { fileBrowserState } = useFileBrowserContext();
   const { refreshTickets } = useTicketContext();
 
   const placeholderText =
@@ -35,8 +35,8 @@ export default function ConvertFileDialog({
 
   const displayPath = getPreferredPathForDisplay(
     pathPreference,
-    currentFileSharePath,
-    propertiesTarget?.path
+    fileBrowserState.currentFileSharePath,
+    fileBrowserState.propertiesTarget?.path
   );
 
   return (

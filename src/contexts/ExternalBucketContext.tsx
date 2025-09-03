@@ -50,18 +50,21 @@ export const ExternalBucketProvider = ({
         if (!fileBrowserState.currentFileSharePath) {
           throw new Error('No file share path selected');
         }
-        if (!fileBrowserState.currentFolder) {
+        if (!fileBrowserState.currentFileOrFolder) {
           throw new Error('No folder selected');
         }
         // Check if current path is an ancestor of the bucket path
         if (
           fileBrowserState.currentFileSharePath.name === bucket.fsp_name &&
-          fileBrowserState.currentFolder.path.startsWith(bucket.relative_path)
+          fileBrowserState.currentFileOrFolder.path.startsWith(
+            bucket.relative_path
+          )
         ) {
           // Create data URL with relative path from bucket
-          const relativePath = fileBrowserState.currentFolder.path.substring(
-            bucket.relative_path.length
-          );
+          const relativePath =
+            fileBrowserState.currentFileOrFolder.path.substring(
+              bucket.relative_path.length
+            );
           const cleanRelativePath = relativePath.startsWith('/')
             ? relativePath.substring(1)
             : relativePath;
@@ -76,7 +79,10 @@ export const ExternalBucketProvider = ({
         setExternalDataUrl(null);
       }
     },
-    [fileBrowserState.currentFolder, fileBrowserState.currentFileSharePath]
+    [
+      fileBrowserState.currentFileOrFolder,
+      fileBrowserState.currentFileSharePath
+    ]
   );
 
   const fetchExternalBucket = React.useCallback(async () => {
@@ -125,7 +131,7 @@ export const ExternalBucketProvider = ({
     })();
   }, [
     fileBrowserState.currentFileSharePath,
-    fileBrowserState.currentFolder,
+    fileBrowserState.currentFileOrFolder,
     fetchExternalBucket,
     updateExternalBucket
   ]);
