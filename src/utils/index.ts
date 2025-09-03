@@ -144,10 +144,42 @@ async function fetchFileAsJson(
   return JSON.parse(fileText);
 }
 
+function isLikelyTextFile(buffer: ArrayBuffer | Uint8Array): boolean {
+  const view = buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : buffer;
+
+  let controlCount = 0;
+  for (const b of view) {
+    if (b < 9 || (b > 13 && b < 32)) {
+      controlCount++;
+    }
+  }
+
+  return controlCount / view.length < 0.01;
+}
+
+async function fetchFileWithTextDetection(
+  fspName: string,
+  path: string,
+  cookies: Record<string, string>
+): Promise<{ isText: boolean; content: string; rawData: Uint8Array }> {
+  const rawData = await fetchFileContent(fspName, path, cookies);
+  const isText = isLikelyTextFile(rawData);
+  
+  let content: string;
+  if (isText) {
+    content = new TextDecoder('utf-8', { fatal: false }).decode(rawData);
+  } else {
+    content = 'Binary file';
+  }
+
+  return { isText, content, rawData };
+}
+
 export {
   fetchFileAsJson,
   fetchFileAsText,
   fetchFileContent,
+  fetchFileWithTextDetection,
   getFullPath,
   formatDateString,
   formatUnixTimestamp,
@@ -158,6 +190,7 @@ export {
   getLastSegmentFromPath,
   getPreferredPathForDisplay,
   HTTPError,
+  isLikelyTextFile,
   joinPaths,
   makeBrowseLink,
   makeMapKey,

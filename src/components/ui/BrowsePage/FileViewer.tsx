@@ -9,7 +9,11 @@ import {
 import Crumbs from './Crumbs';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { useCookiesContext } from '@/contexts/CookiesContext';
-import { getFileContentPath } from '@/utils';
+import {
+  formatFileSize,
+  formatUnixTimestamp,
+  fetchFileWithTextDetection
+} from '@/utils';
 import type { FileOrFolder } from '@/shared.types';
 
 type FileViewerProps = {
@@ -72,22 +76,6 @@ const getLanguageFromExtension = (filename: string): string => {
   return languageMap[extension] || 'text';
 };
 
-// Heuristic to determine if a file is likely a text file
-const isLikelyTextFile = (buffer: ArrayBuffer) => {
-  const view = new Uint8Array(buffer);
-
-  // Count control bytes that are typically not found in text
-  let controlCount = 0;
-  for (const b of view) {
-    if (b < 9 || (b > 13 && b < 32)) {
-      controlCount++;
-    }
-  }
-
-  // If control count is less than 1% of the file length, it is likely a text file
-  return controlCount / view.length < 0.01;
-};
-
 export default function FileViewer({ file }: FileViewerProps): React.ReactNode {
   const { fileBrowserState } = useFileBrowserContext();
   const { cookies } = useCookiesContext();
@@ -125,34 +113,12 @@ export default function FileViewer({ file }: FileViewerProps): React.ReactNode {
         setLoading(true);
         setError(null);
 
-        const url = getFileContentPath(
+        const { content: fileContent } = await fetchFileWithTextDetection(
           fileBrowserState.currentFileSharePath.name,
-          file.path
+          file.path,
+          cookies
         );
-
-        const response = await fetch(url, {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'X-XSRFToken': cookies._xsrf
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch file: ${response.statusText}`);
-        }
-        // Check if the file is binary
-        const buffer = await response.arrayBuffer();
-        if (isLikelyTextFile(buffer)) {
-          // Likely text file
-          const text = new TextDecoder('utf-8', { fatal: false }).decode(
-            buffer
-          );
-          setContent(text);
-        } else {
-          // Likely binary file if control count is greater than 1%
-          setContent('Binary file');
-        }
+        setContent(fileContent);
       } catch (err) {
         console.error('Error fetching file content:', err);
         setError(
@@ -168,7 +134,7 @@ export default function FileViewer({ file }: FileViewerProps): React.ReactNode {
     file.path,
     fileBrowserState.currentFileSharePath,
     fileBrowserState.fileContentRefreshTrigger,
-    cookies._xsrf
+    cookies
   ]);
 
   const renderViewer = () => {
@@ -225,9 +191,9 @@ export default function FileViewer({ file }: FileViewerProps): React.ReactNode {
         <Typography variant="h6" className="text-primary-default">
           {file.name}
         </Typography>
-        <Typography variant="small" className="text-primary-default">
-          {file.size} bytes • Last modified:{' '}
-          {new Date(file.last_modified * 1000).toLocaleString()}
+        <Typography className="text-foreground">
+          {formatFileSize(file.size)} • Last modified:{' '}
+          {formatUnixTimestamp(file.last_modified)}
         </Typography>
       </div>
 
