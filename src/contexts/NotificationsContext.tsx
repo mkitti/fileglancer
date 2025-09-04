@@ -114,16 +114,25 @@ export const NotificationProvider = ({
     localStorage.removeItem('dismissedNotifications');
   }, []);
 
-  // Fetch notifications on mount
+  // Fetch notifications on mount and then every minute
   React.useEffect(() => {
-    (async function () {
+    const fetchAndSetNotifications = async () => {
       const result = await fetchNotifications();
       if (result.success) {
         setNotifications(result.data || []);
       } else {
         setError('Failed to load notifications');
       }
-    })();
+    };
+
+    // Initial fetch
+    fetchAndSetNotifications();
+
+    // Set up interval to fetch every minute (60000ms)
+    const interval = setInterval(fetchAndSetNotifications, 60000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
   }, [fetchNotifications]);
 
   return (
