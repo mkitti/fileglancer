@@ -44,7 +44,7 @@ export default function PropertiesDrawer({
   const tooltipTriggerClasses = 'max-w-[calc(100%-2rem)] truncate';
 
   return (
-    <Card className="w-fit max-w-fit h-full max-h-full overflow-auto p-3 rounded-none shadow-lg flex flex-col">
+    <Card className="min-w-fit w-full h-full max-h-full overflow-auto p-3 rounded-none shadow-lg flex flex-col">
       <div className="flex items-center justify-between gap-4 mb-1 min-w-full">
         <Typography type="h6">Properties</Typography>
         <IconButton
