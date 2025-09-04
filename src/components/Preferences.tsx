@@ -172,7 +172,7 @@ export default function Preferences() {
               htmlFor="disable_neuroglancer_state_generation"
               className="text-foreground"
             >
-              Disable neuroglancer state generation
+              Disable Neuroglancer state generation
             </Typography>
           </div>
         </Card.Body>
