@@ -36,7 +36,6 @@
         "watch": "run-p watch:src watch:labextension",
         "watch:src": "vite build --watch",
         "watch:labextension": "jupyter labextension watch .",
-        "lint": "eslint .",
         "test": "vitest"
     },
     "dependencies": {
