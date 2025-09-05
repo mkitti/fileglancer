@@ -135,7 +135,7 @@ pip-install = { cmd = "pip install -e .", depends-on = ["ext-clean"] }
 pip-uninstall = "pip uninstall -y fileglancer"
 node-install = "npm install"
 node-build = "npm run tsc -p tsconfig.extension.json && npm run vite build"
-node-eslint-check = "eslint . --cache --ext .ts,.tsx"
+node-eslint-check = "npx eslint . --cache --ext .ts,.tsx"
 node-prettier-check =  "npx prettier \"**/*{.ts,.tsx,.js,.jsx,.css,.json,.md}\" --check"
 node-prettier-write = "npx prettier --write '**/*.{ts,tsx,js,jsx,json,md}'"
 node-check = "npx tsc --noEmit -p tsconfig.app.json"
