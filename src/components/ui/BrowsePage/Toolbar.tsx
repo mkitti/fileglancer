@@ -153,7 +153,7 @@ export default function Toolbar({
           {/* Show/hide dot files */}
           {isFolder ? (
             <FgTooltip
-icon={hideDotFiles ? HiEyeOff : HiEye}
+              icon={hideDotFiles ? HiEyeOff : HiEye}
               label={hideDotFiles ? 'Show dot files' : 'Hide dot files'}
               onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
                 const result = await toggleHideDotFiles();
