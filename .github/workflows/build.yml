@@ -54,7 +54,7 @@ jobs:
       run: |
         set -eux
         # up to this point jupyter has not been installed
-        pixi run ext-build-dev
+        pixi run node-build
 
         pixi run jupyter server extension list
         pixi run jupyter server extension list 2>&1 | grep -ie "fileglancer.*OK"
