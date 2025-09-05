@@ -134,9 +134,10 @@ ext-clean = "rm -rf fileglancer/labextension && rm -rf .pixi/envs/default/share/
 pip-install = { cmd = "pip install -e .", depends-on = ["ext-clean"] }
 pip-uninstall = "pip uninstall -y fileglancer"
 node-install = "npm install"
-node-build = "npm run build"
-node-lint = "npm run lint || echo 'Run `pixi run node-lint-write` to fix issues.'"
-node-lint-write = "npx prettier --write '**/*.{ts,tsx,js,jsx,json,md}'"
+node-build = "npm run tsc -p tsconfig.extension.json && npm run vite build"
+node-eslint-check = "npm run eslint . --cache --ext .ts,.tsx"
+node-prettier-check =  "npx prettier \"**/*{.ts,.tsx,.js,.jsx,.css,.json,.md}\" --check"
+node-prettier-write = "npx prettier --write '**/*.{ts,tsx,js,jsx,json,md}'"
 node-check = "npx tsc --noEmit -p tsconfig.app.json"
 ext-overwrite = { cmd = "jupyter labextension develop . --overwrite" }
 ext-enable = { cmd = "jupyter server extension enable fileglancer", depends-on = ["ext-overwrite"] }
