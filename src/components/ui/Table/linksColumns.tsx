@@ -1,4 +1,5 @@
 import { Typography } from '@material-tailwind/react';
+import { type ColumnDef } from '@tanstack/react-table';
 import toast from 'react-hot-toast';
 
 import DataLinkDialog from '@/components/ui/Dialogs/DataLink';
@@ -19,10 +20,6 @@ import type { MenuItem } from '@/components/ui/Menus/FgMenuItems';
 import { FgStyledLink } from '../widgets/FgLink';
 import FgTooltip from '../widgets/FgTooltip';
 
-type ProxiedPathRowProps = {
-  item: ProxiedPath;
-};
-
 type ProxiedPathRowActionProps = {
   handleCopyPath: (path: string) => Promise<Result<void>>;
   handleCopyUrl: (item: ProxiedPath) => Promise<Result<void>>;
@@ -32,7 +29,39 @@ type ProxiedPathRowActionProps = {
   pathFsp: FileSharePath | undefined;
 };
 
-export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
+function PathCell({ item }: { item: ProxiedPath }) {
+  const { pathPreference } = usePreferencesContext();
+  const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
+  const tooltipTriggerClasses = 'max-w-full truncate';
+
+  const pathFsp = zonesAndFileSharePathsMap[
+    makeMapKey('fsp', item.fsp_name)
+  ] as FileSharePath;
+
+  const displayPath = getPreferredPathForDisplay(
+    pathPreference,
+    pathFsp,
+    item.path
+  );
+
+  const browseLink = makeBrowseLink(item.fsp_name, item.path);
+
+  return (
+    <div className="min-w-0 max-w-full">
+      <FgTooltip label={displayPath} triggerClasses={tooltipTriggerClasses}>
+        <Typography
+          as={FgStyledLink}
+          to={browseLink}
+          className="text-left truncate block"
+        >
+          {displayPath}
+        </Typography>
+      </FgTooltip>
+    </div>
+  );
+}
+
+function ActionsCell({ item }: { item: ProxiedPath }) {
   const { showDataLinkDialog, setShowDataLinkDialog } = useDataLinkDialog();
   const { pathPreference } = usePreferencesContext();
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
@@ -90,47 +119,8 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
     pathFsp
   };
 
-  const browseLink = makeBrowseLink(item.fsp_name, item.path);
-
-  const tooltipTriggerClasses = 'max-w-full truncate';
-
   return (
-    <>
-      {/* Sharing name */}
-      <FgTooltip
-        label={item.sharing_name}
-        triggerClasses={tooltipTriggerClasses}
-      >
-        <Typography className="text-foreground truncate">
-          {item.sharing_name}
-        </Typography>
-      </FgTooltip>
-
-      {/* Mount path */}
-      <FgTooltip label={displayPath} triggerClasses={tooltipTriggerClasses}>
-        <Typography
-          as={FgStyledLink}
-          to={browseLink}
-          className="text-left truncate"
-        >
-          {displayPath}
-        </Typography>
-      </FgTooltip>
-
-      {/* Date shared */}
-      <FgTooltip
-        label={formatDateString(item.created_at)}
-        triggerClasses={tooltipTriggerClasses}
-      >
-        <Typography
-          variant="small"
-          className="text-left text-foreground truncate"
-        >
-          {formatDateString(item.created_at)}
-        </Typography>
-      </FgTooltip>
-
-      {/* Actions */}
+    <div className="min-w-0">
       <div onClick={e => e.stopPropagation()}>
         <DataLinksActionsMenu<ProxiedPathRowActionProps>
           menuItems={menuItems}
@@ -146,6 +136,81 @@ export default function ProxiedPathRow({ item }: ProxiedPathRowProps) {
           proxiedPath={item}
         />
       ) : null}
-    </>
+    </div>
   );
 }
+
+const tooltipTriggerClasses = 'max-w-full truncate';
+
+export const linksColumns: ColumnDef<ProxiedPath>[] = [
+  {
+    accessorKey: 'sharing_name',
+    header: 'Name',
+    cell: ({ row }) => {
+      const item = row.original;
+      return (
+        <div className="min-w-0 max-w-full">
+          <FgTooltip
+            label={item.sharing_name}
+            triggerClasses={tooltipTriggerClasses}
+          >
+            <Typography className="text-foreground truncate">
+              {item.sharing_name}
+            </Typography>
+          </FgTooltip>
+        </div>
+      );
+    },
+    enableSorting: true
+  },
+  {
+    accessorKey: 'path',
+    header: 'File Path',
+    cell: ({ row }) => <PathCell item={row.original} />,
+    enableSorting: true
+  },
+  {
+    accessorKey: 'created_at',
+    header: 'Date Created',
+    cell: ({ getValue }) => {
+      const dateString = getValue() as string;
+      return (
+        <div className="min-w-0 max-w-full">
+          <FgTooltip
+            label={formatDateString(dateString)}
+            triggerClasses={tooltipTriggerClasses}
+          >
+            <Typography
+              variant="small"
+              className="text-left text-foreground truncate"
+            >
+              {formatDateString(dateString)}
+            </Typography>
+          </FgTooltip>
+        </div>
+      );
+    },
+    enableSorting: true
+  },
+  {
+    accessorKey: 'sharing_key',
+    header: 'Key',
+    cell: ({ getValue }) => {
+      const key = getValue() as string;
+      return (
+        <div className="min-w-0 max-w-full">
+          <FgTooltip label={key} triggerClasses={tooltipTriggerClasses}>
+            <Typography className="text-foreground truncate">{key}</Typography>
+          </FgTooltip>
+        </div>
+      );
+    },
+    enableSorting: true
+  },
+  {
+    id: 'actions',
+    header: 'Actions',
+    cell: ({ row }) => <ActionsCell item={row.original} />,
+    enableSorting: false
+  }
+];
