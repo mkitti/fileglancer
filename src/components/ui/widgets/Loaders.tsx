@@ -20,7 +20,8 @@ function Spinner({
 
 function FileRowSkeleton(): JSX.Element {
   return (
-    <div className="grid grid-cols-[minmax(170px,2fr)_minmax(80px,1fr)_minmax(95px,1fr)_minmax(75px,1fr)_minmax(40px,1fr)] gap-6 animate-pulse">
+    <div className="grid grid-cols-[minmax(170px,2fr)_minmax(80px,1fr)_minmax(95px,1fr)_minmax(75px,1fr)_minmax(40px,1fr)] gap-6 animate-appear animate-pulse animate-delay-150 opacity-0">
+      {/* For div above, after specified delay, executes animate-appear to convert opacity to 1 and then let animate-pulse take over */}
       {/* Name column */}
       <div className="flex items-center pl-3 py-2">
         <div className="w-40 h-4 bg-surface rounded "></div>
