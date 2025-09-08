@@ -154,22 +154,32 @@ function getNeuroglancerSource(dataUrl: string, zarr_version: 2 | 3): string {
   return dataUrl + '|zarr' + zarr_version + ':';
 }
 
+/**
+ * Get the layer name for a given URL, the same way that Neuroglancer does it.
+ */
 function getLayerName(dataUrl: string): string {
+  // Get the last component of the URL after the final slash (filter(Boolean) discards empty strings)
   return dataUrl.split('/').filter(Boolean).pop() || 'Default';
 }
 
 function generateNeuroglancerStateForDataURL(dataUrl: string): string | null {
   log.debug('Generating Neuroglancer state for Zarr array:', dataUrl);
-
+  const layerName = getLayerName(dataUrl);
   const layer: Record<string, any> = {
-    // Get the last component of the URL after the final slash (filter(Boolean) discards empty strings)
-    name: getLayerName(dataUrl),
-    source: dataUrl
+    name: layerName,
+    source: dataUrl,
+    type: 'new'
   };
 
-  // Create the scaffold for theNeuroglancer viewer state
+  // The intent of this state is to reproduce the behavior of the Neuroglancer viewer 
+  // when a URL is pasted into source input.
   const state: any = {
-    layers: [layer]
+    layers: [layer],
+    selectedLayer: {
+      visible: true,
+      layer: layerName
+    },
+    layout: '4panel-alt'
   };
 
   // Convert the state to a URL-friendly format
