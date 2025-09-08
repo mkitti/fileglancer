@@ -161,13 +161,15 @@ export const linksColumns: ColumnDef<ProxiedPath>[] = [
         </div>
       );
     },
-    enableSorting: true
+    enableSorting: true,
+    enableColumnFilter: false
   },
   {
     accessorKey: 'path',
     header: 'File Path',
     cell: ({ row }) => <PathCell item={row.original} />,
-    enableSorting: true
+    enableSorting: true,
+    enableColumnFilter: false
   },
   {
     accessorKey: 'created_at',
@@ -190,7 +192,8 @@ export const linksColumns: ColumnDef<ProxiedPath>[] = [
         </div>
       );
     },
-    enableSorting: true
+    enableSorting: true,
+    enableColumnFilter: false
   },
   {
     accessorKey: 'sharing_key',
@@ -205,12 +208,15 @@ export const linksColumns: ColumnDef<ProxiedPath>[] = [
         </div>
       );
     },
-    enableSorting: true
+    enableSorting: true,
+    enableColumnFilter: true,
+    filterFn: 'includesString'
   },
   {
     id: 'actions',
     header: 'Actions',
     cell: ({ row }) => <ActionsCell item={row.original} />,
-    enableSorting: false
+    enableSorting: false,
+    enableColumnFilter: false
   }
 ];

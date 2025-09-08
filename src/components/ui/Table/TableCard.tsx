@@ -1,14 +1,21 @@
 import React from 'react';
 import {
+  ColumnFiltersState,
   flexRender,
   getCoreRowModel,
+  getFilteredRowModel,
   getSortedRowModel,
   useReactTable,
+  type Column,
   type ColumnDef,
   type SortingState
 } from '@tanstack/react-table';
-import { Card } from '@material-tailwind/react';
-import { HiSortAscending, HiSortDescending } from 'react-icons/hi';
+import { Card, Input } from '@material-tailwind/react';
+import {
+  HiSortAscending,
+  HiSortDescending,
+  HiOutlineSwitchVertical
+} from 'react-icons/hi';
 
 import { TableRowSkeleton } from '@/components/ui/widgets/Loaders';
 
@@ -18,6 +25,7 @@ type TableProps<TData> = {
   gridColsClass: string;
   loadingState?: boolean;
   emptyText?: string;
+  enableColumnSearch?: boolean;
 };
 
 function TableRow({
@@ -36,24 +44,68 @@ function TableRow({
   );
 }
 
+// Follows example here: https://tanstack.com/table/latest/docs/framework/react/examples/filters
+function DebouncedInput({
+  column,
+  debounce = 500
+}: {
+  column: Column<any, unknown>;
+  debounce?: number;
+}) {
+  const initialValue = (column.getFilterValue() as string) || '';
+  const [value, setValue] = React.useState(initialValue);
+
+  React.useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
+
+  React.useEffect(() => {
+    const timeout = setTimeout(() => {
+      column.setFilterValue(value);
+    }, debounce);
+
+    return () => clearTimeout(timeout);
+  }, [value, debounce, column]);
+
+  return (
+    <div onClick={e => e.stopPropagation()}>
+      <Input
+        type="search"
+        placeholder="Search..."
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        className={`w-36 border shadow rounded hidden hover:block focus:block group-hover/filter:block group-focus/filter:block ${value ? 'block' : ''}`}
+      />
+    </div>
+  );
+}
+
 function Table<TData>({
   columns,
   data,
   gridColsClass,
   loadingState,
-  emptyText
+  emptyText,
+  enableColumnSearch
 }: TableProps<TData>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    []
+  );
 
   const table = useReactTable({
     data,
     columns,
     state: {
-      sorting
+      sorting,
+      columnFilters
     },
+    enableColumnFilters: enableColumnSearch || false,
     onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel()
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel()
   });
 
   return (
@@ -65,25 +117,35 @@ function Table<TData>({
           headerGroup.headers.map(header =>
             header.isPlaceholder ? null : (
               <div
-                className={
-                  header.column.getCanSort()
-                    ? 'cursor-pointer select-none flex items-center gap-2 font-bold'
-                    : 'flex items-center gap-2 font-semibold'
-                }
+                className={`flex flex-col
+                    ${
+                      header.column.getCanSort()
+                        ? 'cursor-pointer group/sort'
+                        : ''
+                    } ${header.column.getCanFilter() ? 'group/filter' : ''}`}
+                key={header.id}
                 onClick={header.column.getToggleSortingHandler()}
               >
-                {flexRender(
-                  header.column.columnDef.header,
-                  header.getContext()
-                )}
-                {{
-                  asc: (
-                    <HiSortAscending className="icon-default text-foreground" />
-                  ),
-                  desc: (
-                    <HiSortDescending className="icon-default text-foreground" />
-                  )
-                }[header.column.getIsSorted() as string] ?? null}
+                <div className="flex items-center gap-2 font-semibold select-none">
+                  {flexRender(
+                    header.column.columnDef.header,
+                    header.getContext()
+                  )}
+                  {{
+                    asc: (
+                      <HiSortAscending className="icon-default text-foreground" />
+                    ),
+                    desc: (
+                      <HiSortDescending className="icon-default text-foreground" />
+                    )
+                  }[header.column.getIsSorted() as string] ?? null}
+                  <HiOutlineSwitchVertical
+                    className={`icon-default text-foreground opacity-0 group-hover/sort:opacity-60 group-focus/sort:opacity-80 ${(header.column.getIsSorted() as string) ? 'hidden' : ''}`}
+                  />
+                </div>
+                {header.column.getCanFilter() ? (
+                  <DebouncedInput column={header.column} />
+                ) : null}
               </div>
             )
           )
@@ -121,7 +183,8 @@ function TableCard<TData>({
   data,
   gridColsClass,
   loadingState,
-  emptyText
+  emptyText,
+  enableColumnSearch
 }: TableProps<TData>) {
   return (
     <Card className="min-h-32 overflow-y-auto">
@@ -131,6 +194,7 @@ function TableCard<TData>({
         gridColsClass={gridColsClass}
         loadingState={loadingState}
         emptyText={emptyText}
+        enableColumnSearch={enableColumnSearch}
       />
     </Card>
   );
