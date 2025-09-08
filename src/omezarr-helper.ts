@@ -30,7 +30,7 @@ export type Metadata = {
   scales: number[][] | undefined;
   multiscale: omezarr.Multiscale | null | undefined;
   omero: omezarr.Omero | null | undefined;
-  zarr_version: 2 | 3;
+  zarrVersion: 2 | 3;
 };
 
 const COLORS = ['magenta', 'green', 'cyan', 'white', 'red', 'green', 'blue'];
@@ -80,9 +80,7 @@ function getScaleTransform(coordinateTransformations: any[]) {
  */
 function getResolvedScales(multiscale: omezarr.Multiscale): number[] {
   // Get the root transform
-  const rct = getScaleTransform(
-    multiscale.coordinateTransformations as any[]
-  );
+  const rct = getScaleTransform(multiscale.coordinateTransformations as any[]);
   const rootScales = rct?.scale || [];
 
   // Get the transform for the full scale dataset
@@ -179,12 +177,12 @@ function getAxesMap(multiscale: omezarr.Multiscale): Record<string, any> {
 /**
  * Get the Neuroglancer source for a given Zarr array.
  */
-function getNeuroglancerSource(dataUrl: string, zarr_version: 2 | 3): string {
+function getNeuroglancerSource(dataUrl: string, zarrVersion: 2 | 3): string {
   // Neuroglancer expects a trailing slash
   if (!dataUrl.endsWith('/')) {
     dataUrl = dataUrl + '/';
   }
-  return dataUrl + '|zarr' + zarr_version + ':';
+  return dataUrl + '|zarr' + zarrVersion + ':';
 }
 
 /**
@@ -221,14 +219,15 @@ function generateNeuroglancerStateForDataURL(dataUrl: string): string | null {
 
 function generateNeuroglancerStateForZarrArray(
   dataUrl: string,
-  zarr_version: 2 | 3
+  zarrVersion: 2 | 3,
+  layerType: 'image' | 'seg'
 ): string | null {
   log.debug('Generating Neuroglancer state for Zarr array:', dataUrl);
 
   const layer: Record<string, any> = {
     name: getLayerName(dataUrl),
-    type: 'image',
-    source: getNeuroglancerSource(dataUrl, zarr_version),
+    type: layerType,
+    source: getNeuroglancerSource(dataUrl, zarrVersion),
     tab: 'rendering'
   };
 
@@ -252,7 +251,8 @@ function generateNeuroglancerStateForZarrArray(
  */
 function generateNeuroglancerStateForOmeZarr(
   dataUrl: string,
-  zarr_version: 2 | 3,
+  zarrVersion: 2 | 3,
+  layerType: 'image' | 'seg',
   multiscale: omezarr.Multiscale,
   arr: zarr.Array<any>,
   omero?: omezarr.Omero | null
@@ -278,11 +278,11 @@ function generateNeuroglancerStateForOmeZarr(
 
   const defaultLayerName = getLayerName(dataUrl);
 
-  // Create the scaffold for theNeuroglancer viewer state
+  // Create the scaffold for the Neuroglancer viewer state
   const state: any = {
     dimensions: {},
     layers: [],
-    layout: '4panel',
+    layout: '4panel-alt',
     selectedLayer: {
       visible: true,
       layer: defaultLayerName
@@ -301,7 +301,7 @@ function generateNeuroglancerStateForOmeZarr(
       state.dimensions[name] = [scales[axis.index], unit];
       imageDimensions.delete(name);
     } else {
-      log.debug('Dimension not found in axes map: ', name);
+      log.trace('Dimension not found in axes map: ', name);
     }
   }
 
@@ -351,8 +351,8 @@ function generateNeuroglancerStateForOmeZarr(
   if (channels.length === 0) {
     log.debug('No channels found in metadata, using default shader');
     const layer: Record<string, any> = {
-      type: 'image',
-      source: getNeuroglancerSource(dataUrl, zarr_version),
+      type: layerType,
+      source: getNeuroglancerSource(dataUrl, zarrVersion),
       tab: 'rendering',
       opacity: 1,
       blend: 'additive',
@@ -389,9 +389,9 @@ function generateNeuroglancerStateForOmeZarr(
       const transform = { outputDimensions: localDimensions };
 
       const layer: Record<string, any> = {
-        type: 'image',
+        type: layerType,
         source: {
-          url: getNeuroglancerSource(dataUrl, zarr_version),
+          url: getNeuroglancerSource(dataUrl, zarrVersion),
           transform
         },
         tab: 'rendering',
@@ -432,9 +432,9 @@ function generateNeuroglancerStateForOmeZarr(
 
 async function getZarrArray(dataUrl: string): Promise<zarr.Array<any>> {
   log.debug('Getting Zarr array for', dataUrl);
-  const zarr_version = 2;
+  const zarrVersion = 2;
   const store = new zarr.FetchStore(dataUrl);
-  return await omezarr.getArray(store, '/', zarr_version);
+  return await omezarr.getArray(store, '/', zarrVersion);
 }
 
 /**
@@ -458,7 +458,7 @@ async function getOmeZarrMetadata(dataUrl: string): Promise<Metadata> {
     scales,
     multiscale,
     omero,
-    zarr_version
+    zarrVersion: zarr_version
   };
 
   return metadata;
@@ -495,6 +495,102 @@ async function getOmeZarrThumbnail(
   }
 }
 
+/**
+ * Fetches the centermost chunk from a zarr array and analyzes approximately 10,000 evenly
+ * distributed sample values to compute the percentage of unique values.
+ *
+ * @param dataUrl - The URL of the zarr array
+ * @returns Promise<number> - The percentage of unique values in the sampled data
+ */
+async function getPercentUniqueValues(metadata: Metadata, dataUrl: string): Promise<number> {
+  log.debug(
+    'Fetching centermost chunk for percentage unique values analysis from',
+    dataUrl
+  );
+
+  try {
+    const arr = metadata.arr;
+
+    // Calculate the centermost chunk index for each dimension
+    const chunkShape = arr.chunks;
+    const arrayShape = arr.shape;
+    const chunkIndex = arrayShape.map((dimSize, i) => {
+      const numChunks = Math.ceil(dimSize / chunkShape[i]);
+      return Math.floor(numChunks / 2);
+    });
+
+    log.debug('Calculated centermost chunk index:', chunkIndex);
+
+    // Calculate chunk boundaries based on the array's chunk size
+    const startIndices = chunkIndex.map((idx, i) => idx * chunkShape[i]);
+    const endIndices = startIndices.map((start, i) =>
+      Math.min(start + chunkShape[i], arrayShape[i])
+    );
+
+    // Create selection slice for the chunk
+    const selection = startIndices.map((start, i) => [start, endIndices[i]]);
+
+    log.debug('Fetching chunk with selection:', selection);
+
+    // Fetch the chunk data using zarrita's get API
+    const chunkSelection = selection.map(([start, end]) =>
+      zarr.slice(start, end)
+    );
+    const chunkData = await zarr.get(arr, chunkSelection);
+
+    // Convert to typed array for easier processing
+    let flatData: ArrayLike<number>;
+    if (
+      chunkData.data instanceof ArrayBuffer ||
+      ArrayBuffer.isView(chunkData.data)
+    ) {
+      flatData = new Float32Array(chunkData.data as ArrayBuffer);
+    } else if (Array.isArray(chunkData.data)) {
+      flatData = chunkData.data as number[];
+    } else {
+      // Handle TypedArray case
+      flatData = chunkData.data as ArrayLike<number>;
+    }
+    const totalValues = flatData.length;
+
+    log.debug('Total values in chunk:', totalValues);
+
+    // Sample approximately 10,000 values evenly distributed
+    const targetSamples = Math.min(10000, totalValues);
+    const uniqueValues = new Set<number>();
+
+    if (totalValues <= targetSamples) {
+      // If chunk is small, analyze all values
+      for (let i = 0; i < totalValues; i++) {
+        const value = flatData[i];
+        if (!isNaN(value)) {
+          uniqueValues.add(value);
+        }
+      }
+    } else {
+      // Sample evenly distributed values
+      const step = totalValues / targetSamples;
+      for (let i = 0; i < targetSamples; i++) {
+        const index = Math.floor(i * step);
+        const value = flatData[index];
+        if (!isNaN(value)) {
+          uniqueValues.add(value);
+        }
+      }
+    }
+
+    const uniqueCount = uniqueValues.size;
+    log.debug(
+      `Sampled ${targetSamples} values, found ${uniqueCount} unique values`
+    );
+
+    return uniqueCount / targetSamples;
+  } catch (error) {
+    log.error('Error fetching chunk for unique value analysis:', error);
+    throw error;
+  }
+}
+
 export {
   getScaleTransform,
   getResolvedScales,
@@ -504,5 +600,6 @@ export {
   generateNeuroglancerStateForDataURL,
   generateNeuroglancerStateForZarrArray,
   generateNeuroglancerStateForOmeZarr,
-  translateUnitToNeuroglancer
+  translateUnitToNeuroglancer,
+  getPercentUniqueValues
 };

@@ -30,7 +30,7 @@ function getAxisData(metadata: Metadata) {
     return multiscale.axes.map((axis: Axis, index: number) => {
       const shape = shapes[0][index] || 'Unknown';
       const chunkSize = arr.chunks[index] || 'Unknown';
-      
+
       const scale = resolvedScales?.[index] != null ? 
         (Number.isInteger(resolvedScales[index]) ? 
           resolvedScales[index].toString() : 
@@ -54,7 +54,7 @@ function getAxisData(metadata: Metadata) {
 export default function ZarrMetadataTable({
   metadata
 }: ZarrMetadataTableProps) {
-  const { zarr_version, multiscale, shapes } = metadata;
+  const { zarrVersion, multiscale, shapes } = metadata;
   const axisData = getAxisData(metadata);
 
   return (
@@ -69,7 +69,7 @@ export default function ZarrMetadataTable({
           </tr>
           <tr className="border-y border-surface-dark">
             <td className="p-3 font-semibold">Zarr Version</td>
-            <td className="p-3">{zarr_version}</td>
+            <td className="p-3">{zarrVersion}</td>
           </tr>
           {metadata.arr ? (
             <tr className="border-b border-surface-dark">
