@@ -62,6 +62,39 @@ function translateUnitToNeuroglancer(unit: string): string {
 }
 
 /**
+ * Find and return the first scale transform from the given coordinate transformations.
+ * @param coordinateTransformations - List of coordinate transformations
+ * @returns The first transform with type "scale", or undefined if no scale transform is found
+ */
+function getScaleTransform(coordinateTransformations: any[]) {
+  return coordinateTransformations?.find((ct: any) => ct.type === 'scale') as {
+    scale: number[];
+  };
+}
+
+/**
+ * Calculate resolved scales by multiplying root scales with full scale dataset scales
+ * @param multiscale - The multiscale object
+ * @param scales - Array of full scale dataset scale values
+ * @returns Array of resolved scale values
+ */
+function getResolvedScales(multiscale: omezarr.Multiscale): number[] {
+  // Get the root transform
+  const rct = getScaleTransform(
+    multiscale.coordinateTransformations as any[]
+  );
+  const rootScales = rct?.scale || [];
+
+  // Get the transform for the full scale dataset
+  const dataset = multiscale.datasets[0];
+  const ct = getScaleTransform(dataset.coordinateTransformations);
+  const scales = ct?.scale || [];
+
+  // Calculate the resolved scales
+  return scales.map((scale, index) => scale * (rootScales[index] || 1));
+}
+
+/**
  * Get the min and max values for a given Zarr array, based on the dtype:
  * https://zarr-specs.readthedocs.io/en/latest/v2/v2.0.html#data-type-encoding
  */
@@ -164,20 +197,19 @@ function getLayerName(dataUrl: string): string {
 
 function generateNeuroglancerStateForDataURL(dataUrl: string): string | null {
   log.debug('Generating Neuroglancer state for Zarr array:', dataUrl);
-  const layerName = getLayerName(dataUrl);
   const layer: Record<string, any> = {
-    name: layerName,
+    name: getLayerName(dataUrl),
     source: dataUrl,
     type: 'new'
   };
 
-  // The intent of this state is to reproduce the behavior of the Neuroglancer viewer 
+  // The intent of this state is to reproduce the behavior of the Neuroglancer viewer
   // when a URL is pasted into source input.
   const state: any = {
     layers: [layer],
     selectedLayer: {
       visible: true,
-      layer: layerName
+      layer: layer.name
     },
     layout: '4panel-alt'
   };
@@ -203,7 +235,11 @@ function generateNeuroglancerStateForZarrArray(
   // Create the scaffold for theNeuroglancer viewer state
   const state: any = {
     layers: [layer],
-    layout: '4panel'
+    selectedLayer: {
+      visible: true,
+      layer: layer.name
+    },
+    layout: '4panel-alt'
   };
 
   // Convert the state to a URL-friendly format
@@ -253,16 +289,7 @@ function generateNeuroglancerStateForOmeZarr(
     }
   };
 
-  const fullres = multiscale.datasets[0];
-  // TODO: handle multiple scale transformations
-  const scaleTransform: any = fullres.coordinateTransformations?.find(
-    (t: any) => t.type === 'scale'
-  );
-  if (!scaleTransform) {
-    log.error('No scale transformation found in the full scale dataset');
-    return null;
-  }
-  const scale = scaleTransform.scale;
+  const scales = getResolvedScales(multiscale);
 
   // Set up Neuroglancer dimensions with the expected order
   const dimensionNames = ['x', 'y', 'z', 't'];
@@ -271,7 +298,7 @@ function generateNeuroglancerStateForOmeZarr(
     if (axesMap[name]) {
       const axis = axesMap[name];
       const unit = translateUnitToNeuroglancer(axis.unit);
-      state.dimensions[name] = [scale[axis.index], unit];
+      state.dimensions[name] = [scales[axis.index], unit];
       imageDimensions.delete(name);
     } else {
       log.debug('Dimension not found in axes map: ', name);
@@ -469,6 +496,8 @@ async function getOmeZarrThumbnail(
 }
 
 export {
+  getScaleTransform,
+  getResolvedScales,
   getZarrArray,
   getOmeZarrMetadata,
   getOmeZarrThumbnail,
