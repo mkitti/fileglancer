@@ -3,7 +3,6 @@ import { Axis } from 'ome-zarr.js';
 import {
   Metadata,
   translateUnitToNeuroglancer,
-  getScaleTransform,
   getResolvedScales
 } from '../../../omezarr-helper';
 
@@ -37,7 +36,7 @@ function getAxisData(metadata: Metadata) {
       const chunkSize = arr.chunks[index] || 'Unknown';
 
       const scale =
-        resolvedScales?.[index] != null
+        resolvedScales?.[index] !== null
           ? Number.isInteger(resolvedScales[index])
             ? resolvedScales[index].toString()
             : resolvedScales[index].toFixed(4)
