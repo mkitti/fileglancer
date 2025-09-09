@@ -13,26 +13,29 @@ import { getPreferredPathForDisplay, makeMapKey } from '@/utils';
 import type { FileSharePath } from '@/shared.types';
 import FgDialog from './FgDialog';
 import TextWithFilePath from './TextWithFilePath';
+import AutomaticLinksToggle from '@/components/ui/PreferencesPage/AutomaticLinksToggle';
 
 type DataLinkDialogProps = {
-  isImageShared: boolean;
-  setIsImageShared?: React.Dispatch<React.SetStateAction<boolean>>;
+  action: 'create' | 'delete';
   showDataLinkDialog: boolean;
   setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
   proxiedPath: ProxiedPath | null;
+  pendingNavigationUrl?: string | null;
+  setPendingNavigationUrl?: React.Dispatch<React.SetStateAction<string | null>>;
 };
 
 export default function DataLinkDialog({
-  isImageShared,
-  setIsImageShared,
+  action,
   showDataLinkDialog,
   setShowDataLinkDialog,
-  proxiedPath
+  proxiedPath,
+  pendingNavigationUrl,
+  setPendingNavigationUrl
 }: DataLinkDialogProps): JSX.Element {
   const { createProxiedPath, deleteProxiedPath, refreshProxiedPaths } =
     useProxiedPathContext();
   const { fileBrowserState } = useFileBrowserContext();
-  const { pathPreference } = usePreferencesContext();
+  const { pathPreference, automaticDataLinks } = usePreferencesContext();
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
 
   const fspKey = proxiedPath
@@ -65,21 +68,50 @@ export default function DataLinkDialog({
   return (
     <FgDialog
       open={showDataLinkDialog}
-      onClose={() => setShowDataLinkDialog(false)}
+      onClose={() => {
+        if (setPendingNavigationUrl) {
+          setPendingNavigationUrl(null);
+        }
+        setShowDataLinkDialog(false);
+      }}
     >
       {/* TODO: Move Janelia-specific text elsewhere */}
-      {isImageShared ? (
+      {action === 'delete' ? (
         <div className="my-8 text-foreground">
           <TextWithFilePath
             text="Are you sure you want to delete the data link for this path?"
             path={displayPath}
           />
-          <Typography className="mt-4">
-            Warning: The existing data link to this data will be deleted.
-            Collaborators who previously received the link will no longer be
-            able to access it. You can create a new data link at any time if
-            needed.
-          </Typography>
+          {automaticDataLinks ? (
+            <div className="flex flex-col gap-4 mt-4">
+              <Typography className="mt-4">
+                <span className="font-semibold">Warning:</span> The existing
+                data link to this data will be deleted. Collaborators who
+                previously received the link will no longer be able to access
+                it.
+              </Typography>
+              <Typography>
+                However, you currently have automatic data links enabled, so a
+                new data link will be created automatically the next time you
+                navigate to this file path in Fileglancer.
+              </Typography>
+              <Typography>
+                <span className="font-semibold">
+                  If you do NOT want new data links to be created automatically
+                </span>
+                , disable this feature below, and then delete the link.
+              </Typography>
+              <AutomaticLinksToggle />
+            </div>
+          ) : (
+            <Typography className="mt-4">
+              <span className="font-semibold">Warning:</span> The existing data
+              link to this data will be deleted. Collaborators who previously
+              received the link will no longer be able to access it. You can
+              create a new data link at any time by navigating to the file path
+              and clicking on one of the data viewers.
+            </Typography>
+          )}
         </div>
       ) : (
         <div className="my-8 text-foreground">
@@ -93,9 +125,17 @@ export default function DataLinkDialog({
           </Typography>
         </div>
       )}
+      {!proxiedPath && action === 'create' ? (
+        <div className="mb-8">
+          <Typography className="mb-2 font-semibold text-foreground">
+            Don't ask me this again:
+          </Typography>
+          <AutomaticLinksToggle />
+        </div>
+      ) : null}
 
       <div className="flex gap-2">
-        {!isImageShared ? (
+        {!proxiedPath && action === 'create' ? (
           <Button
             variant="outline"
             color="error"
@@ -113,27 +153,33 @@ export default function DataLinkDialog({
                   );
                   return;
                 }
+
+                if (pendingNavigationUrl) {
+                  window.open(
+                    pendingNavigationUrl,
+                    '_blank',
+                    'noopener,noreferrer'
+                  );
+                  if (setPendingNavigationUrl) {
+                    setPendingNavigationUrl(null);
+                  }
+                }
               } else {
                 toast.error(
                   `Error creating data link: ${createProxiedPathResult.error}`
                 );
               }
               setShowDataLinkDialog(false);
-              if (setIsImageShared) {
-                // setIsImageShared does not exist in props for proxied path row,
-                // where the image is always shared
-                setIsImageShared(true);
-              }
             }}
           >
             Create Data Link
           </Button>
         ) : null}
-        {isImageShared ? (
+        {action === 'delete' ? (
           <Button
             variant="outline"
             color="error"
-            className="!rounded-md flex items-center gap-2"
+            className="!rounded-md flex items-center gap-2 hover:text-background focus:text-background"
             onClick={async () => {
               if (!proxiedPath) {
                 toast.error('Proxied path not found');
@@ -159,9 +205,6 @@ export default function DataLinkDialog({
               }
 
               setShowDataLinkDialog(false);
-              if (setIsImageShared) {
-                setIsImageShared(false);
-              }
             }}
           >
             Delete Data Link
@@ -171,6 +214,9 @@ export default function DataLinkDialog({
           variant="outline"
           className="!rounded-md flex items-center gap-2"
           onClick={() => {
+            if (setPendingNavigationUrl) {
+              setPendingNavigationUrl(null);
+            }
             setShowDataLinkDialog(false);
           }}
         >
