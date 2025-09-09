@@ -2,6 +2,8 @@ import { default as log } from '@/logger';
 import * as zarr from 'zarrita';
 import * as omezarr from 'ome-zarr.js';
 
+export type LayerType = 'auto' | 'image' | 'segmentation';
+
 /**
  * A single omero channel.
  */
@@ -220,7 +222,7 @@ function generateNeuroglancerStateForDataURL(dataUrl: string): string | null {
 function generateNeuroglancerStateForZarrArray(
   dataUrl: string,
   zarrVersion: 2 | 3,
-  layerType: 'auto' | 'image' | 'segmentation'
+  layerType: LayerType
 ): string | null {
   log.debug('Generating Neuroglancer state for Zarr array:', dataUrl);
 
@@ -252,7 +254,7 @@ function generateNeuroglancerStateForZarrArray(
 function generateNeuroglancerStateForOmeZarr(
   dataUrl: string,
   zarrVersion: 2 | 3,
-  layerType: 'auto' | 'image' | 'segmentation',
+  layerType: LayerType,
   multiscale: omezarr.Multiscale,
   arr: zarr.Array<any>,
   omero?: omezarr.Omero | null
@@ -592,18 +594,29 @@ async function getPercentUniqueValues(
 
 /**
  * Determines the layer type for the given metadata.
- * If the image has multiple timepoints or multiple channels, 
+ * If heuristical detection is disabled, returns "image".
+ * If the image has multiple timepoints or multiple channels,
  * returns "image" without counting unique values.
- * 
+ *
  * Otherwise, analyzes unique values to determine if it's a segmentation or image.
  *
  * @param metadata - The metadata object containing the zarr array and multiscale info
- * @returns Promise<'image' | 'segmentation'> - The determined layer type
+ * @param useHeuristicalDetection - If true, skip heuristical detection and return "auto"
+ * @returns Promise<LayerType> - The determined layer type
  */
 async function getLayerType(
-  metadata: Metadata
-): Promise<'auto' | 'image' | 'segmentation'> {
+  metadata: Metadata,
+  useHeuristicalDetection = true
+): Promise<LayerType> {
   try {
+    // If heuristical detection is disabled, return "auto"
+    if (!useHeuristicalDetection) {
+      log.debug(
+        'Heuristical layer type detection is disabled, assuming image'
+      );
+      return 'image';
+    }
+
     // Check if we have multiscale metadata with axes information
     if (metadata.multiscale && metadata.multiscale.axes) {
       const axesMap = getAxesMap(metadata.multiscale);

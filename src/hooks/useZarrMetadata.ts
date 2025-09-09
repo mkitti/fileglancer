@@ -39,6 +39,9 @@ export default function useZarrMetadata() {
   const [thumbnailError, setThumbnailError] = React.useState<string | null>(
     null
   );
+  const [layerType, setLayerType] = React.useState<
+    'auto' | 'image' | 'segmentation' | null
+  >(null);
 
   const validatorBaseUrl = 'https://ome.github.io/ome-ngff-validator/?source=';
   const neuroglancerBaseUrl = 'https://neuroglancer-demo.appspot.com/#!';
@@ -47,7 +50,10 @@ export default function useZarrMetadata() {
   const { fileBrowserState, areFileDataLoading } = useFileBrowserContext();
   const { dataUrl } = useProxiedPathContext();
   const { externalDataUrl } = useExternalBucketContext();
-  const { disableNeuroglancerStateGeneration } = usePreferencesContext();
+  const {
+    disableNeuroglancerStateGeneration,
+    disableHeuristicalLayerTypeDetection
+  } = usePreferencesContext();
   const [cookies] = useCookies(['_xsrf']);
 
   const checkZarrMetadata = React.useCallback(
@@ -61,6 +67,7 @@ export default function useZarrMetadata() {
       setThumbnailError(null);
       setLoadingThumbnail(false);
       setOpenWithToolUrls(null);
+      setLayerType(null);
 
       if (
         fileBrowserState.currentFileSharePath &&
@@ -209,9 +216,12 @@ export default function useZarrMetadata() {
 
     if (metadata && url) {
       (async () => {
-        const determinedLayerType = await getLayerType(metadata);
+        const determinedLayerType = await getLayerType(
+          metadata,
+          !disableHeuristicalLayerTypeDetection
+        );
         console.log('Determined layer type:', determinedLayerType);
-        
+        setLayerType(determinedLayerType);
 
         const openWithToolUrls = {
           copy: url
@@ -264,13 +274,20 @@ export default function useZarrMetadata() {
         setOpenWithToolUrls(openWithToolUrls);
       })();
     }
-  }, [metadata, dataUrl, externalDataUrl, disableNeuroglancerStateGeneration]);
+  }, [
+    metadata,
+    dataUrl,
+    externalDataUrl,
+    disableNeuroglancerStateGeneration,
+    disableHeuristicalLayerTypeDetection
+  ]);
 
   return {
     thumbnailSrc,
     openWithToolUrls,
     metadata,
     loadingThumbnail,
-    thumbnailError
+    thumbnailError,
+    layerType
   };
 }
