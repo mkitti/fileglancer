@@ -220,7 +220,7 @@ function generateNeuroglancerStateForDataURL(dataUrl: string): string | null {
 function generateNeuroglancerStateForZarrArray(
   dataUrl: string,
   zarrVersion: 2 | 3,
-  layerType: 'image' | 'seg'
+  layerType: 'image' | 'segmentation'
 ): string | null {
   log.debug('Generating Neuroglancer state for Zarr array:', dataUrl);
 
@@ -252,7 +252,7 @@ function generateNeuroglancerStateForZarrArray(
 function generateNeuroglancerStateForOmeZarr(
   dataUrl: string,
   zarrVersion: 2 | 3,
-  layerType: 'image' | 'seg',
+  layerType: 'image' | 'segmentation',
   multiscale: omezarr.Multiscale,
   arr: zarr.Array<any>,
   omero?: omezarr.Omero | null
@@ -496,8 +496,9 @@ async function getOmeZarrThumbnail(
 }
 
 /**
- * Fetches a fixed-size crop (32x32x32 by default) from the center of a zarr array 
- * and analyzes all values in the crop to compute the percentage of unique values.
+ * Fetches a chunk-aligned crop from a zarr array and analyzes all values
+ * in the crop to compute the percentage of unique values. If the crop size
+ * is smaller than the chunk size, only a single chunk is fetched.
  *
  * @param metadata - The metadata object containing the zarr array
  * @param cropSize - The size of the crop to take (default: 64)
@@ -507,30 +508,57 @@ async function getPercentUniqueValues(
   metadata: Metadata,
   cropSize: number = 32
 ): Promise<number> {
-
   try {
     const arr = metadata.arr;
     const arrayShape = arr.shape;
+    const chunks = arr.chunks;
+
+    log.debug('Array shape:', arrayShape);
+    log.debug('Chunk sizes:', chunks);
 
     // Calculate the center point of the array
     const centerPoint = arrayShape.map(dimSize => Math.floor(dimSize / 2));
-    
-    // Calculate crop boundaries centered around the center point
-    const startIndices = centerPoint.map((center, i) => {
-      const halfCrop = Math.floor(cropSize / 2);
-      const start = Math.max(0, center - halfCrop);
-      return start;
-    });
-    
-    const endIndices = startIndices.map((start, i) => {
-      const end = Math.min(start + cropSize, arrayShape[i]);
-      return end;
-    });
+
+    // Align crop to chunk boundaries
+    const startIndices: number[] = [];
+    const endIndices: number[] = [];
+
+    for (let i = 0; i < arrayShape.length; i++) {
+      const chunkSize = chunks[i];
+      const center = centerPoint[i];
+
+      // Find which chunk contains the center point
+      const centerChunkIndex = Math.floor(center / chunkSize);
+
+      // Check if crop size is smaller than chunk size
+      if (cropSize <= chunkSize) {
+        // Use single chunk aligned boundaries
+        startIndices[i] = centerChunkIndex * chunkSize;
+        endIndices[i] = Math.min(startIndices[i] + chunkSize, arrayShape[i]);
+      } else {
+        // For larger crops, align to chunk boundaries but may span multiple chunks
+        const halfCrop = Math.floor(cropSize / 2);
+        const desiredStart = Math.max(0, center - halfCrop);
+        const desiredEnd = Math.min(center + halfCrop, arrayShape[i]);
+
+        // Align start to chunk boundary (round down)
+        const startChunkIndex = Math.floor(desiredStart / chunkSize);
+        startIndices[i] = startChunkIndex * chunkSize;
+
+        // Align end to chunk boundary (round up)
+        const endChunkIndex = Math.ceil(desiredEnd / chunkSize);
+        endIndices[i] = Math.min(endChunkIndex * chunkSize, arrayShape[i]);
+      }
+    }
 
     // Create selection slice for the crop
     const selection = startIndices.map((start, i) => [start, endIndices[i]]);
 
-    log.debug('Fetching crop with selection:', selection);
+    log.debug('Chunk-aligned crop selection:', selection);
+    log.debug(
+      'Crop dimensions:',
+      selection.map(([start, end]) => end - start)
+    );
 
     // Fetch the crop data using zarrita's get API
     const cropSelection = selection.map(([start, end]) =>
@@ -553,7 +581,7 @@ async function getPercentUniqueValues(
     }
     const totalValues = flatData.length;
 
-    log.debug('Total values in crop:', totalValues);
+    log.debug('Total values in chunk-aligned crop:', totalValues);
 
     // Analyze all values in the crop
     const uniqueValues = new Set<number>();
@@ -571,7 +599,10 @@ async function getPercentUniqueValues(
 
     return uniqueCount / totalValues;
   } catch (error) {
-    log.error('Error fetching crop for unique value analysis:', error);
+    log.error(
+      'Error fetching chunk-aligned crop for unique value analysis:',
+      error
+    );
     throw error;
   }
 }
