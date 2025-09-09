@@ -77,7 +77,8 @@ export const PreferencesProvider = ({
     ['linux_path'] | ['windows_path'] | ['mac_path']
   >(['linux_path']);
   const [hideDotFiles, setHideDotFiles] = React.useState<boolean>(false);
-  const [automaticDataLinks, setAutomaticDataLinks] = React.useState<boolean>(false);
+  const [automaticDataLinks, setAutomaticDataLinks] =
+    React.useState<boolean>(false);
   const [
     disableNeuroglancerStateGeneration,
     setDisableNeuroglancerStateGeneration
