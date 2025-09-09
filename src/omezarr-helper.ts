@@ -220,7 +220,7 @@ function generateNeuroglancerStateForDataURL(dataUrl: string): string | null {
 function generateNeuroglancerStateForZarrArray(
   dataUrl: string,
   zarrVersion: 2 | 3,
-  layerType: 'image' | 'segmentation'
+  layerType: 'auto' | 'image' | 'segmentation'
 ): string | null {
   log.debug('Generating Neuroglancer state for Zarr array:', dataUrl);
 
@@ -252,7 +252,7 @@ function generateNeuroglancerStateForZarrArray(
 function generateNeuroglancerStateForOmeZarr(
   dataUrl: string,
   zarrVersion: 2 | 3,
-  layerType: 'image' | 'segmentation',
+  layerType: 'auto' | 'image' | 'segmentation',
   multiscale: omezarr.Multiscale,
   arr: zarr.Array<any>,
   omero?: omezarr.Omero | null
@@ -530,31 +530,14 @@ async function getPercentUniqueValues(
       // Find which chunk contains the center point
       const centerChunkIndex = Math.floor(center / chunkSize);
 
-      // Check if crop size is smaller than chunk size
-      if (cropSize <= chunkSize) {
-        // Use single chunk aligned boundaries
-        startIndices[i] = centerChunkIndex * chunkSize;
-        endIndices[i] = Math.min(startIndices[i] + chunkSize, arrayShape[i]);
-      } else {
-        // For larger crops, align to chunk boundaries but may span multiple chunks
-        const halfCrop = Math.floor(cropSize / 2);
-        const desiredStart = Math.max(0, center - halfCrop);
-        const desiredEnd = Math.min(center + halfCrop, arrayShape[i]);
-
-        // Align start to chunk boundary (round down)
-        const startChunkIndex = Math.floor(desiredStart / chunkSize);
-        startIndices[i] = startChunkIndex * chunkSize;
-
-        // Align end to chunk boundary (round up)
-        const endChunkIndex = Math.ceil(desiredEnd / chunkSize);
-        endIndices[i] = Math.min(endChunkIndex * chunkSize, arrayShape[i]);
-      }
+      // Calculate the start and end indices
+      startIndices[i] = centerChunkIndex * cropSize;
+      endIndices[i] = startIndices[i] + cropSize;
     }
 
     // Create selection slice for the crop
     const selection = startIndices.map((start, i) => [start, endIndices[i]]);
 
-    log.debug('Chunk-aligned crop selection:', selection);
     log.debug(
       'Crop dimensions:',
       selection.map(([start, end]) => end - start)
@@ -607,6 +590,52 @@ async function getPercentUniqueValues(
   }
 }
 
+/**
+ * Determines the layer type for the given metadata.
+ * If the image has multiple timepoints or multiple channels, 
+ * returns "image" without counting unique values.
+ * 
+ * Otherwise, analyzes unique values to determine if it's a segmentation or image.
+ *
+ * @param metadata - The metadata object containing the zarr array and multiscale info
+ * @returns Promise<'image' | 'segmentation'> - The determined layer type
+ */
+async function getLayerType(
+  metadata: Metadata
+): Promise<'auto' | 'image' | 'segmentation'> {
+  try {
+    // Check if we have multiscale metadata with axes information
+    if (metadata.multiscale && metadata.multiscale.axes) {
+      const axesMap = getAxesMap(metadata.multiscale);
+
+      // // Check for multiple timepoints
+      // if (axesMap.t && metadata.arr.shape[axesMap.t.index] > 1) {
+      //   log.debug('Multiple timepoints detected, assuming image');
+      //   return 'image';
+      // }
+
+      // // Check for multiple channels
+      // if (axesMap.c && metadata.arr.shape[axesMap.c.index] > 1) {
+      //   log.debug('Multiple channels detected, assuming image');
+      //   return 'image';
+      // }
+    }
+
+    // If no multiple timepoints or channels, analyze unique values
+    const uniqueValuePercent = await getPercentUniqueValues(metadata);
+    log.debug('Percentage unique values:', uniqueValuePercent);
+
+    const layerType = uniqueValuePercent < 0.001 ? 'segmentation' : 'image';
+    log.debug('Determined layer type based on unique values:', layerType);
+
+    return layerType;
+  } catch (error) {
+    log.error('Error determining layer type:', error);
+    // Default to 'image' if we can't determine the type
+    return 'image';
+  }
+}
+
 export {
   getScaleTransform,
   getResolvedScales,
@@ -617,5 +646,5 @@ export {
   generateNeuroglancerStateForZarrArray,
   generateNeuroglancerStateForOmeZarr,
   translateUnitToNeuroglancer,
-  getPercentUniqueValues
+  getLayerType
 };

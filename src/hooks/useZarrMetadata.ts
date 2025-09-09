@@ -9,7 +9,7 @@ import {
   generateNeuroglancerStateForDataURL,
   generateNeuroglancerStateForZarrArray,
   generateNeuroglancerStateForOmeZarr,
-  getPercentUniqueValues
+  getLayerType
 } from '@/omezarr-helper';
 import type { Metadata } from '@/omezarr-helper';
 import { fetchFileAsJson, getFileURL } from '@/utils';
@@ -209,10 +209,9 @@ export default function useZarrMetadata() {
 
     if (metadata && url) {
       (async () => {
-        const uniqueValueCount = await getPercentUniqueValues(metadata);
-        console.log('Percentage unique values:', uniqueValueCount);
-        const layerType = uniqueValueCount < 0.001 ? 'segmentation' : 'image';
-        console.log('Assuming layer type:', layerType);
+        const determinedLayerType = await getLayerType(metadata);
+        console.log('Determined layer type:', determinedLayerType);
+        
 
         const openWithToolUrls = {
           copy: url
@@ -231,7 +230,7 @@ export default function useZarrMetadata() {
                 generateNeuroglancerStateForOmeZarr(
                   url,
                   metadata.zarrVersion,
-                  layerType,
+                  determinedLayerType,
                   metadata.multiscale,
                   metadata.arr,
                   metadata.omero
@@ -255,7 +254,11 @@ export default function useZarrMetadata() {
           } else {
             openWithToolUrls.neuroglancer =
               neuroglancerBaseUrl +
-              generateNeuroglancerStateForZarrArray(url, 2, layerType);
+              generateNeuroglancerStateForZarrArray(
+                url,
+                2,
+                determinedLayerType
+              );
           }
         }
         setOpenWithToolUrls(openWithToolUrls);
