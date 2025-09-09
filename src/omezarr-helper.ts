@@ -608,17 +608,17 @@ async function getLayerType(
     if (metadata.multiscale && metadata.multiscale.axes) {
       const axesMap = getAxesMap(metadata.multiscale);
 
-      // // Check for multiple timepoints
-      // if (axesMap.t && metadata.arr.shape[axesMap.t.index] > 1) {
-      //   log.debug('Multiple timepoints detected, assuming image');
-      //   return 'image';
-      // }
+      // Check for multiple timepoints
+      if (axesMap.t && metadata.arr.shape[axesMap.t.index] > 1) {
+        log.debug('Multiple timepoints detected, assuming image');
+        return 'image';
+      }
 
-      // // Check for multiple channels
-      // if (axesMap.c && metadata.arr.shape[axesMap.c.index] > 1) {
-      //   log.debug('Multiple channels detected, assuming image');
-      //   return 'image';
-      // }
+      // Check for multiple channels
+      if (axesMap.c && metadata.arr.shape[axesMap.c.index] > 1) {
+        log.debug('Multiple channels detected, assuming image');
+        return 'image';
+      }
     }
 
     // If no multiple timepoints or channels, analyze unique values
