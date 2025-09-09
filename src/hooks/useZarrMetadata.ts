@@ -209,7 +209,7 @@ export default function useZarrMetadata() {
 
     if (metadata && url) {
       (async () => {
-        const uniqueValueCount = await getPercentUniqueValues(metadata, url);
+        const uniqueValueCount = await getPercentUniqueValues(metadata);
         console.log('Percentage unique values:', uniqueValueCount);
         const layerType = uniqueValueCount < 0.001 ? 'segmentation' : 'image';
         console.log('Assuming layer type:', layerType);

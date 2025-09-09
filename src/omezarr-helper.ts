@@ -496,100 +496,82 @@ async function getOmeZarrThumbnail(
 }
 
 /**
- * Fetches the centermost chunk from a zarr array and analyzes approximately 10,000 evenly
- * distributed sample values to compute the percentage of unique values.
+ * Fetches a fixed-size crop (32x32x32 by default) from the center of a zarr array 
+ * and analyzes all values in the crop to compute the percentage of unique values.
  *
- * @param dataUrl - The URL of the zarr array
- * @returns Promise<number> - The percentage of unique values in the sampled data
+ * @param metadata - The metadata object containing the zarr array
+ * @param cropSize - The size of the crop to take (default: 64)
+ * @returns Promise<number> - The percentage of unique values in the cropped data
  */
 async function getPercentUniqueValues(
   metadata: Metadata,
-  dataUrl: string
+  cropSize: number = 32
 ): Promise<number> {
-  log.debug(
-    'Fetching centermost chunk for percentage unique values analysis from',
-    dataUrl
-  );
 
   try {
     const arr = metadata.arr;
-
-    // Calculate the centermost chunk index for each dimension
-    const chunkShape = arr.chunks;
     const arrayShape = arr.shape;
-    const chunkIndex = arrayShape.map((dimSize, i) => {
-      const numChunks = Math.ceil(dimSize / chunkShape[i]);
-      return Math.floor(numChunks / 2);
+
+    // Calculate the center point of the array
+    const centerPoint = arrayShape.map(dimSize => Math.floor(dimSize / 2));
+    
+    // Calculate crop boundaries centered around the center point
+    const startIndices = centerPoint.map((center, i) => {
+      const halfCrop = Math.floor(cropSize / 2);
+      const start = Math.max(0, center - halfCrop);
+      return start;
+    });
+    
+    const endIndices = startIndices.map((start, i) => {
+      const end = Math.min(start + cropSize, arrayShape[i]);
+      return end;
     });
 
-    log.debug('Calculated centermost chunk index:', chunkIndex);
-
-    // Calculate chunk boundaries based on the array's chunk size
-    const startIndices = chunkIndex.map((idx, i) => idx * chunkShape[i]);
-    const endIndices = startIndices.map((start, i) =>
-      Math.min(start + chunkShape[i], arrayShape[i])
-    );
-
-    // Create selection slice for the chunk
+    // Create selection slice for the crop
     const selection = startIndices.map((start, i) => [start, endIndices[i]]);
 
-    log.debug('Fetching chunk with selection:', selection);
+    log.debug('Fetching crop with selection:', selection);
 
-    // Fetch the chunk data using zarrita's get API
-    const chunkSelection = selection.map(([start, end]) =>
+    // Fetch the crop data using zarrita's get API
+    const cropSelection = selection.map(([start, end]) =>
       zarr.slice(start, end)
     );
-    const chunkData = await zarr.get(arr, chunkSelection);
+    const cropData = await zarr.get(arr, cropSelection);
 
     // Convert to typed array for easier processing
     let flatData: ArrayLike<number>;
     if (
-      chunkData.data instanceof ArrayBuffer ||
-      ArrayBuffer.isView(chunkData.data)
+      cropData.data instanceof ArrayBuffer ||
+      ArrayBuffer.isView(cropData.data)
     ) {
-      flatData = new Float32Array(chunkData.data as ArrayBuffer);
-    } else if (Array.isArray(chunkData.data)) {
-      flatData = chunkData.data as number[];
+      flatData = new Float32Array(cropData.data as ArrayBuffer);
+    } else if (Array.isArray(cropData.data)) {
+      flatData = cropData.data as number[];
     } else {
       // Handle TypedArray case
-      flatData = chunkData.data as ArrayLike<number>;
+      flatData = cropData.data as ArrayLike<number>;
     }
     const totalValues = flatData.length;
 
-    log.debug('Total values in chunk:', totalValues);
+    log.debug('Total values in crop:', totalValues);
 
-    // Sample approximately 10,000 values evenly distributed
-    const targetSamples = Math.min(10000, totalValues);
+    // Analyze all values in the crop
     const uniqueValues = new Set<number>();
-
-    if (totalValues <= targetSamples) {
-      // If chunk is small, analyze all values
-      for (let i = 0; i < totalValues; i++) {
-        const value = flatData[i];
-        if (!isNaN(value)) {
-          uniqueValues.add(value);
-        }
-      }
-    } else {
-      // Sample evenly distributed values
-      const step = totalValues / targetSamples;
-      for (let i = 0; i < targetSamples; i++) {
-        const index = Math.floor(i * step);
-        const value = flatData[index];
-        if (!isNaN(value)) {
-          uniqueValues.add(value);
-        }
+    for (let i = 0; i < totalValues; i++) {
+      const value = flatData[i];
+      if (!isNaN(value)) {
+        uniqueValues.add(value);
       }
     }
 
     const uniqueCount = uniqueValues.size;
     log.debug(
-      `Sampled ${targetSamples} values, found ${uniqueCount} unique values`
+      `Analyzed ${totalValues} values, found ${uniqueCount} unique values`
     );
 
-    return uniqueCount / targetSamples;
+    return uniqueCount / totalValues;
   } catch (error) {
-    log.error('Error fetching chunk for unique value analysis:', error);
+    log.error('Error fetching crop for unique value analysis:', error);
     throw error;
   }
 }
