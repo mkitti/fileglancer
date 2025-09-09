@@ -514,12 +514,12 @@ async function getPercentUniqueValues(
     const arr = metadata.arr;
     const arrayShape = arr.shape;
     const chunks = arr.chunks;
-
-    log.debug('Array shape:', arrayShape);
-    log.debug('Chunk sizes:', chunks);
+    log.trace('Array shape:', arrayShape);
+    log.trace('Chunk sizes:', chunks);
 
     // Calculate the center point of the array
     const centerPoint = arrayShape.map(dimSize => Math.floor(dimSize / 2));
+    log.trace('Center point:', centerPoint);
 
     // Align crop to chunk boundaries
     const startIndices: number[] = [];
@@ -527,14 +527,19 @@ async function getPercentUniqueValues(
 
     for (let i = 0; i < arrayShape.length; i++) {
       const chunkSize = chunks[i];
+      log.trace('Chunk size:', chunkSize);
       const center = centerPoint[i];
+      log.trace('Center:', center);
 
       // Find which chunk contains the center point
       const centerChunkIndex = Math.floor(center / chunkSize);
+      log.trace('Center chunk index:', centerChunkIndex);
 
       // Calculate the start and end indices
-      startIndices[i] = centerChunkIndex * cropSize;
-      endIndices[i] = startIndices[i] + cropSize;
+      startIndices[i] = centerChunkIndex * chunkSize;
+      log.trace('Start index:', startIndices[i]);
+      endIndices[i] = Math.min(startIndices[i] + cropSize, arrayShape[i]);
+      log.trace('End index:', endIndices[i]);
     }
 
     // Create selection slice for the crop
