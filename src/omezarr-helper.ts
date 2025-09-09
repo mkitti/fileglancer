@@ -502,7 +502,10 @@ async function getOmeZarrThumbnail(
  * @param dataUrl - The URL of the zarr array
  * @returns Promise<number> - The percentage of unique values in the sampled data
  */
-async function getPercentUniqueValues(metadata: Metadata, dataUrl: string): Promise<number> {
+async function getPercentUniqueValues(
+  metadata: Metadata,
+  dataUrl: string
+): Promise<number> {
   log.debug(
     'Fetching centermost chunk for percentage unique values analysis from',
     dataUrl

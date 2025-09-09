@@ -207,10 +207,7 @@ export default function useZarrMetadata() {
     );
     const url = externalDataUrl || dataUrl;
 
-
-
     if (metadata && url) {
-
       (async () => {
         const uniqueValueCount = await getPercentUniqueValues(metadata, url);
         console.log('Percentage unique values:', uniqueValueCount);
@@ -257,12 +254,12 @@ export default function useZarrMetadata() {
               neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
           } else {
             openWithToolUrls.neuroglancer =
-              neuroglancerBaseUrl + generateNeuroglancerStateForZarrArray(url, 2, layerType);
+              neuroglancerBaseUrl +
+              generateNeuroglancerStateForZarrArray(url, 2, layerType);
           }
         }
         setOpenWithToolUrls(openWithToolUrls);
       })();
-      
     }
   }, [metadata, dataUrl, externalDataUrl, disableNeuroglancerStateGeneration]);
 

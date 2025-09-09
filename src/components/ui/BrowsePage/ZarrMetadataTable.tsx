@@ -1,6 +1,11 @@
 import * as zarr from 'zarrita';
 import { Axis } from 'ome-zarr.js';
-import { Metadata, translateUnitToNeuroglancer, getScaleTransform, getResolvedScales } from '../../../omezarr-helper';
+import {
+  Metadata,
+  translateUnitToNeuroglancer,
+  getScaleTransform,
+  getResolvedScales
+} from '../../../omezarr-helper';
 
 type ZarrMetadataTableProps = {
   metadata: Metadata;
@@ -31,10 +36,12 @@ function getAxisData(metadata: Metadata) {
       const shape = shapes[0][index] || 'Unknown';
       const chunkSize = arr.chunks[index] || 'Unknown';
 
-      const scale = resolvedScales?.[index] != null ? 
-        (Number.isInteger(resolvedScales[index]) ? 
-          resolvedScales[index].toString() : 
-          resolvedScales[index].toFixed(4)) : 'Unknown';
+      const scale =
+        resolvedScales?.[index] != null
+          ? Number.isInteger(resolvedScales[index])
+            ? resolvedScales[index].toString()
+            : resolvedScales[index].toFixed(4)
+          : 'Unknown';
       const unit = translateUnitToNeuroglancer(axis.unit as string) || '';
 
       return {
