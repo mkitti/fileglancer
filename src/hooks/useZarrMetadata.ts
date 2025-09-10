@@ -219,48 +219,71 @@ export default function useZarrMetadata() {
       ' and externalDataUrl ',
       externalDataUrl
     );
-    const url = externalDataUrl || dataUrl;
-    if (metadata && url) {
+    // Always create openWithToolUrls data structure when metadata is available
+    if (metadata) {
+      const url = externalDataUrl || dataUrl;
       const openWithToolUrls = {
-        copy: url
+        copy: url || ''
       } as OpenWithToolUrls;
+
+      // Determine which tools should be available based on metadata type
       if (metadata && metadata?.multiscale) {
-        openWithToolUrls.validator = validatorBaseUrl + url;
-        openWithToolUrls.vole = voleBaseUrl + url;
-        openWithToolUrls.avivator = avivatorBaseUrl + url;
-        if (disableNeuroglancerStateGeneration) {
-          openWithToolUrls.neuroglancer =
-            neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
-        } else {
-          try {
-            openWithToolUrls.neuroglancer =
-              neuroglancerBaseUrl +
-              generateNeuroglancerStateForOmeZarr(
-                url,
-                metadata.zarr_version,
-                metadata.multiscale,
-                metadata.arr,
-                metadata.omero
-              );
-          } catch (error) {
-            log.error(
-              'Error generating Neuroglancer state for OME-Zarr:',
-              error
-            );
+        // OME-Zarr - all tools available
+        if (url) {
+          // Populate with actual URLs when proxied path is available
+          openWithToolUrls.validator = validatorBaseUrl + url;
+          openWithToolUrls.vole = voleBaseUrl + url;
+          openWithToolUrls.avivator = avivatorBaseUrl + url;
+          if (disableNeuroglancerStateGeneration) {
             openWithToolUrls.neuroglancer =
               neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
+          } else {
+            try {
+              openWithToolUrls.neuroglancer =
+                neuroglancerBaseUrl +
+                generateNeuroglancerStateForOmeZarr(
+                  url,
+                  metadata.zarr_version,
+                  metadata.multiscale,
+                  metadata.arr,
+                  metadata.omero
+                );
+            } catch (error) {
+              log.error(
+                'Error generating Neuroglancer state for OME-Zarr:',
+                error
+              );
+              openWithToolUrls.neuroglancer =
+                neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
+            }
           }
+        } else {
+          // No proxied URL - show all tools as available but empty
+          openWithToolUrls.validator = '';
+          openWithToolUrls.vole = '';
+          openWithToolUrls.avivator = '';
+          openWithToolUrls.neuroglancer = '';
         }
       } else {
-        openWithToolUrls.validator = '';
-        openWithToolUrls.vole = '';
-        openWithToolUrls.avivator = '';
-        if (disableNeuroglancerStateGeneration) {
-          openWithToolUrls.neuroglancer =
-            neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
+        // Non-OME Zarr - only Neuroglancer available
+        if (url) {
+          openWithToolUrls.validator = '';
+          openWithToolUrls.vole = '';
+          openWithToolUrls.avivator = '';
+          if (disableNeuroglancerStateGeneration) {
+            openWithToolUrls.neuroglancer =
+              neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
+          } else {
+            openWithToolUrls.neuroglancer =
+              neuroglancerBaseUrl +
+              generateNeuroglancerStateForZarrArray(url, 2);
+          }
         } else {
-          openWithToolUrls.neuroglancer =
-            neuroglancerBaseUrl + generateNeuroglancerStateForZarrArray(url, 2);
+          // No proxied URL - only show Neuroglancer as available but empty
+          openWithToolUrls.validator = '';
+          openWithToolUrls.vole = '';
+          openWithToolUrls.avivator = '';
+          openWithToolUrls.neuroglancer = '';
         }
       }
       setOpenWithToolUrls(openWithToolUrls);

@@ -56,7 +56,7 @@ export default function DataToolLinks({
         {title}
       </Typography>
       <ButtonGroup className="relative">
-        {urls?.neuroglancer ? (
+        {urls?.neuroglancer !== undefined ? (
           <FgTooltip
             as={Button}
             variant="ghost"
@@ -79,7 +79,7 @@ export default function DataToolLinks({
           </FgTooltip>
         ) : null}
 
-        {urls?.vole ? (
+        {urls?.vole !== undefined ? (
           <FgTooltip
             as={Button}
             variant="ghost"
@@ -102,7 +102,7 @@ export default function DataToolLinks({
           </FgTooltip>
         ) : null}
 
-        {urls?.avivator ? (
+        {urls?.avivator !== undefined ? (
           <FgTooltip
             as={Button}
             variant="ghost"
@@ -125,7 +125,7 @@ export default function DataToolLinks({
           </FgTooltip>
         ) : null}
 
-        {urls?.validator ? (
+        {urls?.validator !== undefined ? (
           <FgTooltip
             as={Button}
             variant="ghost"
@@ -147,7 +147,7 @@ export default function DataToolLinks({
           </FgTooltip>
         ) : null}
 
-        {urls?.copy ? (
+        {urls?.copy !== undefined ? (
           <FgTooltip
             as={Button}
             variant="ghost"
