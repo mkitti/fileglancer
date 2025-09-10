@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { IconButton, Menu, Typography } from '@material-tailwind/react';
-import { HiOutlineLogout, HiOutlineUserCircle, HiOutlineBell } from 'react-icons/hi';
+import {
+  HiOutlineLogout,
+  HiOutlineUserCircle,
+  HiOutlineBell
+} from 'react-icons/hi';
 import { HiOutlineAdjustmentsHorizontal } from 'react-icons/hi2';
 import { Link } from 'react-router-dom';
 
