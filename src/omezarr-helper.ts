@@ -2,6 +2,8 @@ import { default as log } from '@/logger';
 import * as zarr from 'zarrita';
 import * as omezarr from 'ome-zarr.js';
 
+export type LayerType = 'auto' | 'image' | 'segmentation';
+
 /**
  * A single omero channel.
  */
@@ -30,7 +32,7 @@ export type Metadata = {
   scales: number[][] | undefined;
   multiscale: omezarr.Multiscale | null | undefined;
   omero: omezarr.Omero | null | undefined;
-  zarr_version: 2 | 3;
+  zarrVersion: 2 | 3;
 };
 
 const COLORS = ['magenta', 'green', 'cyan', 'white', 'red', 'green', 'blue'];
@@ -59,6 +61,37 @@ function translateUnitToNeuroglancer(unit: string): string {
     return UNIT_CONVERSIONS[unit];
   }
   return unit;
+}
+
+/**
+ * Find and return the first scale transform from the given coordinate transformations.
+ * @param coordinateTransformations - List of coordinate transformations
+ * @returns The first transform with type "scale", or undefined if no scale transform is found
+ */
+function getScaleTransform(coordinateTransformations: any[]) {
+  return coordinateTransformations?.find((ct: any) => ct.type === 'scale') as {
+    scale: number[];
+  };
+}
+
+/**
+ * Calculate resolved scales by multiplying root scales with full scale dataset scales
+ * @param multiscale - The multiscale object
+ * @param scales - Array of full scale dataset scale values
+ * @returns Array of resolved scale values
+ */
+function getResolvedScales(multiscale: omezarr.Multiscale): number[] {
+  // Get the root transform
+  const rct = getScaleTransform(multiscale.coordinateTransformations as any[]);
+  const rootScales = rct?.scale || [];
+
+  // Get the transform for the full scale dataset
+  const dataset = multiscale.datasets[0];
+  const ct = getScaleTransform(dataset.coordinateTransformations);
+  const scales = ct?.scale || [];
+
+  // Calculate the resolved scales
+  return scales.map((scale, index) => scale * (rootScales[index] || 1));
 }
 
 /**
@@ -146,30 +179,39 @@ function getAxesMap(multiscale: omezarr.Multiscale): Record<string, any> {
 /**
  * Get the Neuroglancer source for a given Zarr array.
  */
-function getNeuroglancerSource(dataUrl: string, zarr_version: 2 | 3): string {
+function getNeuroglancerSource(dataUrl: string, zarrVersion: 2 | 3): string {
   // Neuroglancer expects a trailing slash
   if (!dataUrl.endsWith('/')) {
     dataUrl = dataUrl + '/';
   }
-  return dataUrl + '|zarr' + zarr_version + ':';
+  return dataUrl + '|zarr' + zarrVersion + ':';
 }
 
+/**
+ * Get the layer name for a given URL, the same way that Neuroglancer does it.
+ */
 function getLayerName(dataUrl: string): string {
+  // Get the last component of the URL after the final slash (filter(Boolean) discards empty strings)
   return dataUrl.split('/').filter(Boolean).pop() || 'Default';
 }
 
 function generateNeuroglancerStateForDataURL(dataUrl: string): string | null {
   log.debug('Generating Neuroglancer state for Zarr array:', dataUrl);
-
   const layer: Record<string, any> = {
-    // Get the last component of the URL after the final slash (filter(Boolean) discards empty strings)
     name: getLayerName(dataUrl),
-    source: dataUrl
+    source: dataUrl,
+    type: 'new'
   };
 
-  // Create the scaffold for theNeuroglancer viewer state
+  // The intent of this state is to reproduce the behavior of the Neuroglancer viewer
+  // when a URL is pasted into source input.
   const state: any = {
-    layers: [layer]
+    layers: [layer],
+    selectedLayer: {
+      visible: true,
+      layer: layer.name
+    },
+    layout: '4panel-alt'
   };
 
   // Convert the state to a URL-friendly format
@@ -179,21 +221,26 @@ function generateNeuroglancerStateForDataURL(dataUrl: string): string | null {
 
 function generateNeuroglancerStateForZarrArray(
   dataUrl: string,
-  zarr_version: 2 | 3
+  zarrVersion: 2 | 3,
+  layerType: LayerType
 ): string | null {
   log.debug('Generating Neuroglancer state for Zarr array:', dataUrl);
 
   const layer: Record<string, any> = {
     name: getLayerName(dataUrl),
-    type: 'image',
-    source: getNeuroglancerSource(dataUrl, zarr_version),
+    type: layerType,
+    source: getNeuroglancerSource(dataUrl, zarrVersion),
     tab: 'rendering'
   };
 
   // Create the scaffold for theNeuroglancer viewer state
   const state: any = {
     layers: [layer],
-    layout: '4panel'
+    selectedLayer: {
+      visible: true,
+      layer: layer.name
+    },
+    layout: '4panel-alt'
   };
 
   // Convert the state to a URL-friendly format
@@ -206,7 +253,8 @@ function generateNeuroglancerStateForZarrArray(
  */
 function generateNeuroglancerStateForOmeZarr(
   dataUrl: string,
-  zarr_version: 2 | 3,
+  zarrVersion: 2 | 3,
+  layerType: LayerType,
   multiscale: omezarr.Multiscale,
   arr: zarr.Array<any>,
   omero?: omezarr.Omero | null
@@ -232,27 +280,18 @@ function generateNeuroglancerStateForOmeZarr(
 
   const defaultLayerName = getLayerName(dataUrl);
 
-  // Create the scaffold for theNeuroglancer viewer state
+  // Create the scaffold for the Neuroglancer viewer state
   const state: any = {
     dimensions: {},
     layers: [],
-    layout: '4panel',
+    layout: '4panel-alt',
     selectedLayer: {
       visible: true,
       layer: defaultLayerName
     }
   };
 
-  const fullres = multiscale.datasets[0];
-  // TODO: handle multiple scale transformations
-  const scaleTransform: any = fullres.coordinateTransformations?.find(
-    (t: any) => t.type === 'scale'
-  );
-  if (!scaleTransform) {
-    log.error('No scale transformation found in the full scale dataset');
-    return null;
-  }
-  const scale = scaleTransform.scale;
+  const scales = getResolvedScales(multiscale);
 
   // Set up Neuroglancer dimensions with the expected order
   const dimensionNames = ['x', 'y', 'z', 't'];
@@ -261,10 +300,10 @@ function generateNeuroglancerStateForOmeZarr(
     if (axesMap[name]) {
       const axis = axesMap[name];
       const unit = translateUnitToNeuroglancer(axis.unit);
-      state.dimensions[name] = [scale[axis.index], unit];
+      state.dimensions[name] = [scales[axis.index], unit];
       imageDimensions.delete(name);
     } else {
-      log.debug('Dimension not found in axes map: ', name);
+      log.trace('Dimension not found in axes map: ', name);
     }
   }
 
@@ -314,8 +353,8 @@ function generateNeuroglancerStateForOmeZarr(
   if (channels.length === 0) {
     log.debug('No channels found in metadata, using default shader');
     const layer: Record<string, any> = {
-      type: 'image',
-      source: getNeuroglancerSource(dataUrl, zarr_version),
+      type: layerType,
+      source: getNeuroglancerSource(dataUrl, zarrVersion),
       tab: 'rendering',
       opacity: 1,
       blend: 'additive',
@@ -352,9 +391,9 @@ function generateNeuroglancerStateForOmeZarr(
       const transform = { outputDimensions: localDimensions };
 
       const layer: Record<string, any> = {
-        type: 'image',
+        type: layerType,
         source: {
-          url: getNeuroglancerSource(dataUrl, zarr_version),
+          url: getNeuroglancerSource(dataUrl, zarrVersion),
           transform
         },
         tab: 'rendering',
@@ -395,9 +434,9 @@ function generateNeuroglancerStateForOmeZarr(
 
 async function getZarrArray(dataUrl: string): Promise<zarr.Array<any>> {
   log.debug('Getting Zarr array for', dataUrl);
-  const zarr_version = 2;
+  const zarrVersion = 2;
   const store = new zarr.FetchStore(dataUrl);
-  return await omezarr.getArray(store, '/', zarr_version);
+  return await omezarr.getArray(store, '/', zarrVersion);
 }
 
 /**
@@ -421,7 +460,7 @@ async function getOmeZarrMetadata(dataUrl: string): Promise<Metadata> {
     scales,
     multiscale,
     omero,
-    zarr_version
+    zarrVersion: zarr_version
   };
 
   return metadata;
@@ -458,12 +497,153 @@ async function getOmeZarrThumbnail(
   }
 }
 
+/**
+ * Fetches a chunk-aligned crop from a zarr array and analyzes all values
+ * in the crop to compute the percentage of unique values. If the crop size
+ * is smaller than the chunk size, only a single chunk is fetched.
+ *
+ * @param metadata - The metadata object containing the zarr array
+ * @param cropSize - The size of the crop to take (default: 64)
+ * @returns Promise<number> - The percentage of unique values in the cropped data
+ */
+async function getPercentUniqueValues(
+  metadata: Metadata,
+  cropSize: number = 32
+): Promise<number> {
+  try {
+    const arr = metadata.arr;
+    const arrayShape = arr.shape;
+    const chunks = arr.chunks;
+    log.trace('Array shape:', arrayShape);
+    log.trace('Chunk sizes:', chunks);
+
+    // Calculate the center point of the array
+    const centerPoint = arrayShape.map(dimSize => Math.floor(dimSize / 2));
+    log.trace('Center point:', centerPoint);
+
+    // Align crop to chunk boundaries
+    const startIndices: number[] = [];
+    const endIndices: number[] = [];
+
+    for (let i = 0; i < arrayShape.length; i++) {
+      const chunkSize = chunks[i];
+      log.trace('Chunk size:', chunkSize);
+      const center = centerPoint[i];
+      log.trace('Center:', center);
+
+      // Find which chunk contains the center point
+      const centerChunkIndex = Math.floor(center / chunkSize);
+      log.trace('Center chunk index:', centerChunkIndex);
+
+      // Calculate the start and end indices
+      startIndices[i] = centerChunkIndex * chunkSize;
+      log.trace('Start index:', startIndices[i]);
+      endIndices[i] = Math.min(startIndices[i] + cropSize, arrayShape[i]);
+      log.trace('End index:', endIndices[i]);
+    }
+
+    // Create selection slice for the crop
+    const selection = startIndices.map((start, i) => [start, endIndices[i]]);
+
+    log.debug(
+      'Crop dimensions:',
+      selection.map(([start, end]) => end - start)
+    );
+
+    // Fetch the crop data using zarrita's get API
+    const cropSelection = selection.map(([start, end]) =>
+      zarr.slice(start, end)
+    );
+    const cropData = await zarr.get(arr, cropSelection);
+
+    // Convert to typed array for easier processing
+    let flatData: ArrayLike<number>;
+    if (
+      cropData.data instanceof ArrayBuffer ||
+      ArrayBuffer.isView(cropData.data)
+    ) {
+      flatData = new Float32Array(cropData.data as ArrayBuffer);
+    } else if (Array.isArray(cropData.data)) {
+      flatData = cropData.data as number[];
+    } else {
+      // Handle TypedArray case
+      flatData = cropData.data as ArrayLike<number>;
+    }
+    const totalValues = flatData.length;
+
+    log.debug('Total values in chunk-aligned crop:', totalValues);
+
+    // Analyze all values in the crop
+    const uniqueValues = new Set<number>();
+    for (let i = 0; i < totalValues; i++) {
+      const value = flatData[i];
+      if (!isNaN(value)) {
+        uniqueValues.add(value);
+      }
+    }
+
+    const uniqueCount = uniqueValues.size;
+    log.debug(
+      `Analyzed ${totalValues} values, found ${uniqueCount} unique values`
+    );
+
+    return uniqueCount / totalValues;
+  } catch (error) {
+    log.error(
+      'Error fetching chunk-aligned crop for unique value analysis:',
+      error
+    );
+    throw error;
+  }
+}
+
+/**
+ * Determines the layer type for the given metadata.
+ * If heuristical detection is disabled, returns "image".
+ * If the image has multiple timepoints or multiple channels,
+ * returns "image" without counting unique values.
+ *
+ * Otherwise, analyzes unique values to determine if it's a segmentation or image.
+ *
+ * @param metadata - The metadata object containing the zarr array and multiscale info
+ * @param useHeuristicalDetection - If true, skip heuristical detection and return "auto"
+ * @returns Promise<LayerType> - The determined layer type
+ */
+async function getLayerType(
+  metadata: Metadata,
+  useHeuristicalDetection = true
+): Promise<LayerType> {
+  try {
+    // If heuristical detection is disabled, return "auto"
+    if (!useHeuristicalDetection) {
+      log.debug('Heuristical layer type detection is disabled, assuming image');
+      return 'image';
+    }
+
+    // If no multiple timepoints or channels, analyze unique values
+    const uniqueValuePercent = await getPercentUniqueValues(metadata);
+    log.debug('Percentage unique values:', uniqueValuePercent);
+
+    const layerType = uniqueValuePercent < 0.001 ? 'segmentation' : 'image';
+    log.debug('Determined layer type based on unique values:', layerType);
+
+    return layerType;
+  } catch (error) {
+    log.error('Error determining layer type:', error);
+    // Default to 'image' if we can't determine the type
+    return 'image';
+  }
+}
+
 export {
+  getScaleTransform,
+  getResolvedScales,
   getZarrArray,
   getOmeZarrMetadata,
   getOmeZarrThumbnail,
   generateNeuroglancerStateForDataURL,
   generateNeuroglancerStateForZarrArray,
   generateNeuroglancerStateForOmeZarr,
-  translateUnitToNeuroglancer
+  translateUnitToNeuroglancer,
+  getLayerType
 };

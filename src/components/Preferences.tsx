@@ -11,7 +11,9 @@ export default function Preferences() {
     hideDotFiles,
     toggleHideDotFiles,
     disableNeuroglancerStateGeneration,
-    toggleDisableNeuroglancerStateGeneration
+    toggleDisableNeuroglancerStateGeneration,
+    disableHeuristicalLayerTypeDetection,
+    toggleDisableHeuristicalLayerTypeDetection
   } = usePreferencesContext();
 
   return (
@@ -173,6 +175,35 @@ export default function Preferences() {
               className="text-foreground"
             >
               Disable Neuroglancer state generation
+            </Typography>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              className="icon-small checked:accent-secondary-light"
+              type="checkbox"
+              id="disable_heuristical_layer_type_detection"
+              checked={disableHeuristicalLayerTypeDetection ?? false}
+              onChange={async () => {
+                const result =
+                  await toggleDisableHeuristicalLayerTypeDetection();
+                if (result.success) {
+                  toast.success(
+                    disableHeuristicalLayerTypeDetection
+                      ? 'Heuristical layer type determination is now enabled'
+                      : 'Heuristical layer type determination is now disabled'
+                  );
+                } else {
+                  toast.error(result.error);
+                }
+              }}
+            />
+            <Typography
+              as="label"
+              htmlFor="disable_heuristical_layer_type_detection"
+              className="text-foreground"
+            >
+              Disable heuristical layer type determination
             </Typography>
           </div>
         </Card.Body>
