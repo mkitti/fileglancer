@@ -166,8 +166,53 @@ class FileContentHandler(FileShareHandler):
     API handler for file content
     """
 
-    # TODO: Uncomment this when we have a way to use authenticated endpoints in fileglancer-hub
-    #@web.authenticated
+    @web.authenticated
+    def head(self, path=""):
+        """
+        Handle HEAD requests to get file metadata without content
+        """
+        subpath = self.get_argument("subpath", '')
+        if subpath:
+            self.log.info(f"HEAD /api/fileglancer/content/{path} subpath={subpath}")
+            filestore_name = path
+        else:
+            self.log.info(f"HEAD /api/fileglancer/content/{path}")
+            filestore_name, _, subpath = path.partition('/')
+
+        filestore = self._get_filestore(filestore_name)
+        if filestore is None:
+            return
+        
+        # Get file metadata
+        file_name = subpath.split('/')[-1]
+        content_type = _guess_content_type(file_name)
+        
+        try:
+            # Check if file exists and get its size
+            file_info = filestore.get_file_info(subpath)
+            
+            self.set_status(200)
+            self.set_header('Content-Type', content_type)
+            
+            # Set Content-Length if available
+            if hasattr(file_info, 'size') and file_info.size is not None:
+                self.set_header('Content-Length', str(file_info.size))
+            
+            # Only add download header for binary/unknown files
+            if content_type == 'application/octet-stream':
+                self.set_header('Content-Disposition', f'attachment; filename="{file_name}"')
+            
+            self.finish()
+            
+        except FileNotFoundError:
+            self.log.error(f"File not found in {filestore_name}: {subpath}")
+            self.set_status(404)
+            self.finish()
+        except PermissionError:
+            self.set_status(403)
+            self.finish()
+
+    @web.authenticated
     def get(self, path=""):
         """
         Handle GET requests to get file content
