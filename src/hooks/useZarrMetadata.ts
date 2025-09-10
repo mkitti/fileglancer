@@ -70,7 +70,7 @@ export default function useZarrMetadata() {
           fileBrowserState.currentFileOrFolder.path
         );
         const zarrayFile = fileBrowserState.files.find(
-          file => file.name === '.zarray'
+          file => file.name === 'zarr.json' || file.name === '.zarray'
         );
         if (zarrayFile) {
           try {
