@@ -185,6 +185,39 @@ class Filestore:
                     break
                 yield chunk
 
+    def stream_file_range(self, path: str, start: int, end: int, buffer_size: int = DEFAULT_BUFFER_SIZE) -> Generator[bytes, None, None]:
+        """
+        Stream a specific byte range of a file at the given path.
+
+        Args:
+            path (str): The path to the file to stream.
+            start (int): The starting byte position (inclusive).
+            end (int): The ending byte position (inclusive).
+            buffer_size (int): The size of the buffer to use when reading the file.
+                
+        Raises:
+            ValueError: If path attempts to escape root directory or if range is invalid
+        """
+        if path is None or path == "":
+            raise ValueError("Path cannot be None or empty")
+        if start < 0:
+            raise ValueError("Start position cannot be negative")
+        if end < start:
+            raise ValueError("End position cannot be less than start position")
+        
+        full_path = self._check_path_in_root(path)
+        with open(full_path, 'rb') as file:
+            file.seek(start)
+            remaining = end - start + 1
+            
+            while remaining > 0:
+                chunk_size = min(buffer_size, remaining)
+                chunk = file.read(chunk_size)
+                if not chunk:
+                    break
+                yield chunk
+                remaining -= len(chunk)
+
 
     def rename_file_or_dir(self, old_path: str, new_path: str):
         """
