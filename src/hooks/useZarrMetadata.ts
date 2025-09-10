@@ -38,13 +38,14 @@ export default function useZarrMetadata() {
   const [thumbnailError, setThumbnailError] = React.useState<string | null>(
     null
   );
+  const notifiedPathRef = React.useRef<string | null>(null);
 
   const validatorBaseUrl = 'https://ome.github.io/ome-ngff-validator/?source=';
   const neuroglancerBaseUrl = 'https://neuroglancer-demo.appspot.com/#!';
   const voleBaseUrl = 'https://volumeviewer.allencell.org/viewer?url=';
   const avivatorBaseUrl = 'https://avivator.gehlenborglab.org/?image_url=';
   const { fileBrowserState, areFileDataLoading } = useFileBrowserContext();
-  const { dataUrl } = useProxiedPathContext();
+  const { dataUrl, notifyZarrDetected } = useProxiedPathContext();
   const { externalDataUrl } = useExternalBucketContext();
   const { disableNeuroglancerStateGeneration } = usePreferencesContext();
   const [cookies] = useCookies(['_xsrf']);
@@ -60,6 +61,7 @@ export default function useZarrMetadata() {
       setThumbnailError(null);
       setLoadingThumbnail(false);
       setOpenWithToolUrls(null);
+      notifiedPathRef.current = null;
 
       if (
         fileBrowserState.currentFileSharePath &&
@@ -88,6 +90,12 @@ export default function useZarrMetadata() {
                 scales: undefined,
                 zarr_version: 2
               });
+              // Notify proxied path context that Zarr has been detected - but only once per path
+              const currentPath = fileBrowserState.currentFileOrFolder.path;
+              if (notifiedPathRef.current !== currentPath) {
+                notifyZarrDetected();
+                notifiedPathRef.current = currentPath;
+              }
             } catch (error) {
               log.error('Error fetching Zarr array:', error);
               if (cancelRef.cancel) {
@@ -119,6 +127,12 @@ export default function useZarrMetadata() {
                   }
                   setMetadata(metadata);
                   setLoadingThumbnail(true);
+                  // Notify proxied path context that Zarr has been detected - but only once per path
+                  const currentPath = fileBrowserState.currentFileOrFolder.path;
+                  if (notifiedPathRef.current !== currentPath) {
+                    notifyZarrDetected();
+                    notifiedPathRef.current = currentPath;
+                  }
                 } catch (error) {
                   log.error(
                     'Exception fetching OME-Zarr metadata:',
@@ -143,7 +157,8 @@ export default function useZarrMetadata() {
       fileBrowserState.currentFileSharePath,
       fileBrowserState.currentFileOrFolder,
       fileBrowserState.files,
-      cookies
+      cookies,
+      notifyZarrDetected
     ]
   );
 

@@ -104,7 +104,9 @@ export const ProxiedPathProvider = ({
     }
   }, [cookies]);
 
-  const refreshProxiedPaths = async (): Promise<Result<void>> => {
+  const refreshProxiedPaths = React.useCallback(async (): Promise<
+    Result<void>
+  > => {
     setLoadingProxiedPaths(true);
     try {
       const result = await fetchAllProxiedPaths();
@@ -117,7 +119,7 @@ export const ProxiedPathProvider = ({
     } finally {
       setLoadingProxiedPaths(false);
     }
-  };
+  }, [fetchAllProxiedPaths]);
 
   const fetchProxiedPath = React.useCallback(async (): Promise<
     Result<ProxiedPath | void>
@@ -254,21 +256,32 @@ export const ProxiedPathProvider = ({
 
   // Automatically create proxied path when Zarr is detected and automaticDataLinks is enabled
   React.useEffect(() => {
-    if (
-      zarrDetected &&
-      automaticDataLinks &&
-      !proxiedPath &&
-      fileBrowserState.currentFileSharePath &&
-      fileBrowserState.currentFileOrFolder
-    ) {
-      log.debug('Auto-creating proxied path for Zarr file');
-      createProxiedPath();
-    }
+    (async function () {
+      if (
+        zarrDetected &&
+        automaticDataLinks &&
+        !proxiedPath &&
+        fileBrowserState.currentFileSharePath &&
+        fileBrowserState.currentFileOrFolder
+      ) {
+        log.debug('Auto-creating proxied path for Zarr file');
+        const result = await createProxiedPath();
+        if (result.success) {
+          await refreshProxiedPaths();
+        } else {
+          log.error(
+            'Error auto-creating proxied path for Zarr file',
+            result.error
+          );
+        }
+      }
+    })();
   }, [
     zarrDetected,
     automaticDataLinks,
     proxiedPath,
     createProxiedPath,
+    refreshProxiedPaths,
     fileBrowserState.currentFileSharePath,
     fileBrowserState.currentFileOrFolder
   ]);
