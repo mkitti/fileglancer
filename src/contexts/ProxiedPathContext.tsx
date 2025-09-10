@@ -27,6 +27,7 @@ type ProxiedPathContextType = {
   createProxiedPath: () => Promise<Result<ProxiedPath | void>>;
   deleteProxiedPath: (proxiedPath: ProxiedPath) => Promise<Result<void>>;
   refreshProxiedPaths: () => Promise<Result<ProxiedPath[] | void>>;
+  fetchProxiedPath: () => Promise<Result<ProxiedPath | void>>;
   notifyZarrDetected: () => void;
 };
 
@@ -296,6 +297,7 @@ export const ProxiedPathProvider = ({
         createProxiedPath,
         deleteProxiedPath,
         refreshProxiedPaths,
+        fetchProxiedPath,
         notifyZarrDetected
       }}
     >

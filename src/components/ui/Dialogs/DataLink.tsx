@@ -24,6 +24,153 @@ type DataLinkDialogProps = {
   setPendingNavigationUrl?: React.Dispatch<React.SetStateAction<string | null>>;
 };
 
+function CreateLinkBtn({
+  displayPath,
+  pendingNavigationUrl,
+  setPendingNavigationUrl,
+  setShowDataLinkDialog
+}: {
+  displayPath: string;
+  pendingNavigationUrl?: string | null;
+  setPendingNavigationUrl?: React.Dispatch<React.SetStateAction<string | null>>;
+  setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
+}): JSX.Element {
+  const { createProxiedPath, fetchProxiedPath, refreshProxiedPaths } =
+    useProxiedPathContext();
+
+  async function refreshLinks() {
+    const refreshResult = await refreshProxiedPaths();
+    if (!refreshResult.success) {
+      toast.error(`Error refreshing proxied paths: ${refreshResult.error}`);
+      return;
+    }
+  }
+
+  function navigateToPendingUrl() {
+    if (pendingNavigationUrl && setPendingNavigationUrl) {
+      window.open(pendingNavigationUrl, '_blank', 'noopener,noreferrer');
+      setPendingNavigationUrl(null);
+    }
+  }
+
+  return (
+    <Button
+      variant="outline"
+      color="error"
+      className="!rounded-md flex items-center gap-2"
+      onClick={async () => {
+        // Check if proxied path already exists
+        const fetchResult = await fetchProxiedPath();
+        if (!fetchResult.success) {
+          toast.error(
+            `Error checking for existing data link: ${fetchResult.error}`
+          );
+          return;
+        }
+
+        if (fetchResult.data) {
+          // Proxied path already exists
+          toast.success(`Data link exists for ${displayPath}`);
+          await refreshLinks();
+          navigateToPendingUrl();
+        } else {
+          // No existing proxied path, create one
+          const createProxiedPathResult = await createProxiedPath();
+          if (createProxiedPathResult.success) {
+            toast.success(`Successfully created data link for ${displayPath}`);
+            await refreshLinks();
+            navigateToPendingUrl();
+          } else {
+            toast.error(
+              `Error creating data link: ${createProxiedPathResult.error}`
+            );
+          }
+        }
+        setShowDataLinkDialog(false);
+      }}
+    >
+      Create Data Link
+    </Button>
+  );
+}
+
+function DeleteLinkBtn({
+  proxiedPath,
+  displayPath,
+  setShowDataLinkDialog
+}: {
+  proxiedPath: ProxiedPath | null;
+  displayPath: string;
+  setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
+}): JSX.Element {
+  const { deleteProxiedPath, refreshProxiedPaths } = useProxiedPathContext();
+
+  return (
+    <Button
+      variant="outline"
+      color="error"
+      className="!rounded-md flex items-center gap-2 hover:text-background focus:text-background"
+      onClick={async () => {
+        if (!proxiedPath) {
+          toast.error('Proxied path not found');
+          return;
+        }
+
+        const deleteResult = await deleteProxiedPath(proxiedPath);
+        if (!deleteResult.success) {
+          toast.error(`Error deleting data link: ${deleteResult.error}`);
+          return;
+        } else {
+          toast.success(`Successfully deleted data link for ${displayPath}`);
+
+          const refreshResult = await refreshProxiedPaths();
+          if (!refreshResult.success) {
+            toast.error(
+              `Error refreshing proxied paths: ${refreshResult.error}`
+            );
+            return;
+          }
+        }
+
+        setShowDataLinkDialog(false);
+      }}
+    >
+      Delete Data Link
+    </Button>
+  );
+}
+
+function CancelBtn({
+  setPendingNavigationUrl,
+  setShowDataLinkDialog
+}: {
+  setPendingNavigationUrl?: React.Dispatch<React.SetStateAction<string | null>>;
+  setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
+}): JSX.Element {
+  return (
+    <Button
+      variant="outline"
+      className="!rounded-md flex items-center gap-2"
+      onClick={() => {
+        if (setPendingNavigationUrl) {
+          setPendingNavigationUrl(null);
+        }
+        setShowDataLinkDialog(false);
+      }}
+    >
+      Cancel
+    </Button>
+  );
+}
+
+function BtnContainer({
+  children
+}: {
+  children: React.ReactNode;
+}): JSX.Element {
+  return <div className="flex gap-4">{children}</div>;
+}
+
 export default function DataLinkDialog({
   action,
   showDataLinkDialog,
@@ -32,11 +179,11 @@ export default function DataLinkDialog({
   pendingNavigationUrl,
   setPendingNavigationUrl
 }: DataLinkDialogProps): JSX.Element {
-  const { createProxiedPath, deleteProxiedPath, refreshProxiedPaths } =
-    useProxiedPathContext();
   const { fileBrowserState } = useFileBrowserContext();
   const { pathPreference, automaticDataLinks } = usePreferencesContext();
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
+
+  const [localAutomaticDataLinks] = React.useState(automaticDataLinks);
 
   const fspKey = proxiedPath
     ? makeMapKey('fsp', proxiedPath.fsp_name)
@@ -65,6 +212,10 @@ export default function DataLinkDialog({
     targetPath
   );
 
+  if (action === 'create' && localAutomaticDataLinks) {
+    return <></>;
+  }
+
   return (
     <FgDialog
       open={showDataLinkDialog}
@@ -75,153 +226,91 @@ export default function DataLinkDialog({
         setShowDataLinkDialog(false);
       }}
     >
-      {/* TODO: Move Janelia-specific text elsewhere */}
-      {action === 'delete' ? (
-        <div className="my-8 text-foreground">
-          <TextWithFilePath
-            text="Are you sure you want to delete the data link for this path?"
-            path={displayPath}
-          />
-          {automaticDataLinks ? (
-            <div className="flex flex-col gap-4 mt-4">
-              <Typography className="mt-4">
-                <span className="font-semibold">Warning:</span> The existing
-                data link to this data will be deleted. Collaborators who
-                previously received the link will no longer be able to access
-                it.
-              </Typography>
-              <Typography>
-                However, you currently have automatic data links enabled, so a
-                new data link will be created automatically the next time you
-                navigate to this file path in Fileglancer.
-              </Typography>
-              <Typography>
-                <span className="font-semibold">
-                  If you do NOT want new data links to be created automatically
-                </span>
-                , disable this feature below, and then delete the link.
+      <div className="flex flex-col gap-4 my-4">
+        {action === 'create' && !localAutomaticDataLinks ? (
+          <>
+            <TextWithFilePath
+              text="Are you sure you want to create a data link for this path?"
+              path={displayPath}
+            />
+            <Typography className="text-foreground">
+              If you share the data link with internal collaborators, they will
+              be able to view this data.
+            </Typography>
+            <div className="flex flex-col gap-2">
+              <Typography className="font-semibold text-foreground">
+                Don't ask me this again:
               </Typography>
               <AutomaticLinksToggle />
             </div>
-          ) : (
-            <Typography className="mt-4">
+            <BtnContainer>
+              <CreateLinkBtn
+                displayPath={displayPath}
+                pendingNavigationUrl={pendingNavigationUrl}
+                setPendingNavigationUrl={setPendingNavigationUrl}
+                setShowDataLinkDialog={setShowDataLinkDialog}
+              />
+              <CancelBtn
+                setPendingNavigationUrl={setPendingNavigationUrl}
+                setShowDataLinkDialog={setShowDataLinkDialog}
+              />
+            </BtnContainer>
+          </>
+        ) : action === 'delete' && localAutomaticDataLinks ? (
+          <>
+            <TextWithFilePath
+              text="Are you sure you want to delete the data link for this path?"
+              path={displayPath}
+            />
+            <Typography className="text-foreground">
+              <span className="font-semibold">Warning:</span> The existing data
+              link to this data will be deleted. Collaborators who previously
+              received the link will no longer be able to access it.
+            </Typography>
+            <BtnContainer>
+              <DeleteLinkBtn
+                proxiedPath={proxiedPath}
+                displayPath={displayPath}
+                setShowDataLinkDialog={setShowDataLinkDialog}
+              />
+              <CancelBtn
+                setPendingNavigationUrl={setPendingNavigationUrl}
+                setShowDataLinkDialog={setShowDataLinkDialog}
+              />
+            </BtnContainer>
+            <Typography className="text-foreground">
+              <span className="font-semibold">Note:</span> Automatic data links
+              are currently enabled. To disable this feature, click the checkbox
+              below before deleting this data link.
+            </Typography>
+            <AutomaticLinksToggle />
+          </>
+        ) : action === 'delete' && !localAutomaticDataLinks ? (
+          <>
+            <TextWithFilePath
+              text="Are you sure you want to delete the data link for this path?"
+              path={displayPath}
+            />
+            <Typography className="text-foreground">
               <span className="font-semibold">Warning:</span> The existing data
               link to this data will be deleted. Collaborators who previously
               received the link will no longer be able to access it. You can
               create a new data link at any time by navigating to the file path
               and clicking on one of the data viewers.
             </Typography>
-          )}
-        </div>
-      ) : (
-        <div className="my-8 text-foreground">
-          <TextWithFilePath
-            text="Are you sure you want to create a data link for this path?"
-            path={displayPath}
-          />
-          <Typography className="mt-4">
-            If you share the data link with internal collaborators, they will be
-            able to view this data.
-          </Typography>
-        </div>
-      )}
-      {!proxiedPath && action === 'create' ? (
-        <div className="mb-8">
-          <Typography className="mb-2 font-semibold text-foreground">
-            Don't ask me this again:
-          </Typography>
-          <AutomaticLinksToggle />
-        </div>
-      ) : null}
-
-      <div className="flex gap-2">
-        {!proxiedPath && action === 'create' ? (
-          <Button
-            variant="outline"
-            color="error"
-            className="!rounded-md flex items-center gap-2"
-            onClick={async () => {
-              const createProxiedPathResult = await createProxiedPath();
-              if (createProxiedPathResult.success) {
-                toast.success(
-                  `Successfully created data link for ${displayPath}`
-                );
-                const refreshResult = await refreshProxiedPaths();
-                if (!refreshResult.success) {
-                  toast.error(
-                    `Error refreshing proxied paths: ${refreshResult.error}`
-                  );
-                  return;
-                }
-
-                if (pendingNavigationUrl) {
-                  window.open(
-                    pendingNavigationUrl,
-                    '_blank',
-                    'noopener,noreferrer'
-                  );
-                  if (setPendingNavigationUrl) {
-                    setPendingNavigationUrl(null);
-                  }
-                }
-              } else {
-                toast.error(
-                  `Error creating data link: ${createProxiedPathResult.error}`
-                );
-              }
-              setShowDataLinkDialog(false);
-            }}
-          >
-            Create Data Link
-          </Button>
+            <BtnContainer>
+              <DeleteLinkBtn
+                proxiedPath={proxiedPath}
+                displayPath={displayPath}
+                setShowDataLinkDialog={setShowDataLinkDialog}
+              />
+              <CancelBtn
+                setPendingNavigationUrl={setPendingNavigationUrl}
+                setShowDataLinkDialog={setShowDataLinkDialog}
+              />
+            </BtnContainer>
+          </>
         ) : null}
-        {action === 'delete' ? (
-          <Button
-            variant="outline"
-            color="error"
-            className="!rounded-md flex items-center gap-2 hover:text-background focus:text-background"
-            onClick={async () => {
-              if (!proxiedPath) {
-                toast.error('Proxied path not found');
-                return;
-              }
-
-              const deleteResult = await deleteProxiedPath(proxiedPath);
-              if (!deleteResult.success) {
-                toast.error(`Error deleting data link: ${deleteResult.error}`);
-                return;
-              } else {
-                toast.success(
-                  `Successfully deleted data link for ${displayPath}`
-                );
-
-                const refreshResult = await refreshProxiedPaths();
-                if (!refreshResult.success) {
-                  toast.error(
-                    `Error refreshing proxied paths: ${refreshResult.error}`
-                  );
-                  return;
-                }
-              }
-
-              setShowDataLinkDialog(false);
-            }}
-          >
-            Delete Data Link
-          </Button>
-        ) : null}
-        <Button
-          variant="outline"
-          className="!rounded-md flex items-center gap-2"
-          onClick={() => {
-            if (setPendingNavigationUrl) {
-              setPendingNavigationUrl(null);
-            }
-            setShowDataLinkDialog(false);
-          }}
-        >
-          Cancel
-        </Button>
       </div>
     </FgDialog>
   );
