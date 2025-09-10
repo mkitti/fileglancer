@@ -1,6 +1,10 @@
 import * as zarr from 'zarrita';
 import { Axis } from 'ome-zarr.js';
-import { Metadata, translateUnitToNeuroglancer } from '../../../omezarr-helper';
+import {
+  Metadata,
+  translateUnitToNeuroglancer,
+  getResolvedScales
+} from '../../../omezarr-helper';
 
 type ZarrMetadataTableProps = {
   metadata: Metadata;
@@ -15,17 +19,6 @@ function getChunkSizeString(arr: zarr.Array<any>) {
 }
 
 /**
- * Find and return the first scale transform from the given coordinate transformations.
- * @param coordinateTransformations - List of coordinate transformations
- * @returns The first transform with type "scale", or undefined if no scale transform is found
- */
-function getScaleTransform(coordinateTransformations: any[]) {
-  return coordinateTransformations?.find((ct: any) => ct.type === 'scale') as {
-    scale: number[];
-  };
-}
-
-/**
  * Get axis-specific metadata for creating the second table
  * @param metadata - The Zarr metadata
  * @returns Array of axis data with name, shape, chunk size, scale, and unit
@@ -35,25 +28,19 @@ function getAxisData(metadata: Metadata) {
   if (!multiscale?.axes || !shapes?.[0] || !arr) {
     return [];
   }
-
   try {
-    // Get the root transform
-    const rct = getScaleTransform(
-      multiscale.coordinateTransformations as any[]
-    );
-    const rootScales = rct?.scale || [];
-
-    // Get the transform for the full scale dataset
-    const dataset = multiscale.datasets[0];
-    const ct = getScaleTransform(dataset.coordinateTransformations);
-    const scales = ct?.scale || [];
+    const resolvedScales = getResolvedScales(multiscale);
 
     return multiscale.axes.map((axis: Axis, index: number) => {
       const shape = shapes[0][index] || 'Unknown';
       const chunkSize = arr.chunks[index] || 'Unknown';
-      const scale = scales[index]
-        ? Number((scales[index] * (rootScales[index] || 1)).toFixed(4))
-        : 'Unknown';
+
+      const scale =
+        resolvedScales?.[index] !== null
+          ? Number.isInteger(resolvedScales[index])
+            ? resolvedScales[index].toString()
+            : resolvedScales[index].toFixed(4)
+          : 'Unknown';
       const unit = translateUnitToNeuroglancer(axis.unit as string) || '';
 
       return {
@@ -73,7 +60,7 @@ function getAxisData(metadata: Metadata) {
 export default function ZarrMetadataTable({
   metadata
 }: ZarrMetadataTableProps) {
-  const { zarr_version, multiscale, shapes } = metadata;
+  const { zarrVersion, multiscale, shapes } = metadata;
   const axisData = getAxisData(metadata);
 
   return (
@@ -88,7 +75,7 @@ export default function ZarrMetadataTable({
           </tr>
           <tr className="border-y border-surface-dark">
             <td className="p-3 font-semibold">Zarr Version</td>
-            <td className="p-3">{zarr_version}</td>
+            <td className="p-3">{zarrVersion}</td>
           </tr>
           {metadata.arr ? (
             <tr className="border-b border-surface-dark">
@@ -120,7 +107,7 @@ export default function ZarrMetadataTable({
       </table>
 
       {/* Second table - Axis-specific metadata */}
-      {axisData.length > 0 && (
+      {axisData?.length > 0 && (
         <table className="bg-background/90">
           <thead className="text-sm">
             <tr className="border-y border-surface-dark">

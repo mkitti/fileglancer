@@ -481,9 +481,11 @@ class ProxiedPathHandler(BaseHandler):
                 self.set_status(404)
                 self.finish(json.dumps({"error": "Proxied path not found"}))
             else:
-                self.log.error(f"Error getting proxied paths: {str(e)}")    
+                remote_error = e.response.json().get("error", "")
+                error_message = f"Remote error {e.response.status_code} getting proxied paths: {remote_error}" 
+                self.log.error(error_message)    
                 self.set_status(500)
-                self.finish(json.dumps({"error": str(e)}))
+                self.finish(json.dumps({"error": error_message}))
         except Exception as e:
             self.log.error(f"Error getting proxied paths: {str(e)}")
             self.set_status(500)
@@ -513,18 +515,19 @@ class ProxiedPathHandler(BaseHandler):
             proxied_path_manager = get_proxiedpath_manager(self.settings)
             response = proxied_path_manager.create_proxied_path(username, fsp_name, path)
             response.raise_for_status()
-            rjson = response.json()
             self.set_status(201)
-            self.finish(rjson)
+            self.finish(response.json())
         except HTTPError as e:
             if e.response.status_code == 404:
                 self.log.warning(f"Proxied path not found: {str(e)}")
                 self.set_status(404)
                 self.finish(json.dumps({"error": "Proxied path not found"}))
             else:   
-                self.log.error(f"Error creating proxied path: {str(e)}")
+                remote_error = e.response.json().get("error", "")
+                error_message = f"Remote error {e.response.status_code} creating proxied path: {remote_error}"
+                self.log.error(error_message)
                 self.set_status(500)
-                self.finish(json.dumps({"error": str(e)}))
+                self.finish(json.dumps({"error": error_message}))
         except Exception as e:
             self.log.error(f"Error creating proxied path: {str(e)}")
             self.set_status(500)
@@ -567,9 +570,11 @@ class ProxiedPathHandler(BaseHandler):
                 self.set_status(404)
                 self.finish(json.dumps({"error": "Proxied path not found"}))
             else:
-                self.log.error(f"Error updating proxied path: {str(e)}")
+                remote_error = e.response.json().get("error", "")
+                error_message = f"Remote error {e.response.status_code} updating proxied path: {remote_error}"
+                self.log.error(error_message)
                 self.set_status(500)
-                self.finish(json.dumps({"error": str(e)}))
+                self.finish(json.dumps({"error": error_message}))
         except Exception as e:
             self.log.error(f"Error updating proxied path: {str(e)}")
             self.set_status(500)
@@ -601,9 +606,11 @@ class ProxiedPathHandler(BaseHandler):
                 self.set_status(404)
                 self.finish(json.dumps({"error": "Proxied path not found"}))
             else:
-                self.log.error(f"Error deleting proxied path: {str(e)}")
+                remote_error = e.response.json().get("error", "")
+                error_message = f"Remote error {e.response.status_code} deleting proxied path: {remote_error}"
+                self.log.error(error_message)
                 self.set_status(500)
-                self.finish(json.dumps({"error": str(e)}))
+                self.finish(json.dumps({"error": error_message}))
         except Exception as e:
             self.log.error(f"Error deleting proxied path: {str(e)}")
             self.set_status(500)
@@ -750,9 +757,11 @@ class ExternalBucketHandler(BaseHandler):
             self.set_status(200)
             self.finish(response.json())
         except HTTPError as e:
-            self.log.error(f"Error getting external buckets: {str(e)}")    
+            remote_error = e.response.json().get("error", "")
+            error_message = f"Remote error {e.response.status_code} getting external buckets: {remote_error}"
+            self.log.error(error_message)
             self.set_status(500)
-            self.finish(json.dumps({"error": str(e)}))
+            self.finish(json.dumps({"error": error_message}))
         except Exception as e:
             self.log.error(f"Error getting external buckets: {str(e)}")
             self.set_status(500)

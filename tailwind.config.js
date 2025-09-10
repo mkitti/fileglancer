@@ -1,3 +1,4 @@
+import plugin from 'tailwindcss';
 import { mtConfig } from '@material-tailwind/react';
 
 /** @type {import('tailwindcss').Config} */
@@ -16,10 +17,41 @@ const config = {
       },
       screens: {
         short: { raw: '(min-height: 0px) and (max-height: 420px)' }
+      },
+      // Animation to make elements immediately appear (used for file browser skeleton loader)
+      //https://stackoverflow.com/questions/73802482/tailwind-css-transition-on-load
+      keyframes: {
+        appear: {
+          '0%': {
+            opacity: '0'
+          },
+          '100%': {
+            opacity: '1'
+          }
+        }
+      },
+      animation: {
+        appear: 'appear 0.01s ease-in-out backwards'
       }
     }
   },
   plugins: [
+    // Custom plugin to add animation delay utility
+    // https://github.com/tailwindlabs/tailwindcss/discussions/3378#discussioncomment-4177286
+    plugin(({ matchUtilities, theme }) => {
+      matchUtilities(
+        {
+          'animation-delay': value => {
+            return {
+              'animation-delay': value
+            };
+          }
+        },
+        {
+          values: theme('transitionDelay')
+        }
+      );
+    }),
     mtConfig({
       colors: {
         background: '#FFFFFF',
