@@ -252,7 +252,6 @@ class FileContentHandler(FileShareHandler):
             
             self.set_status(200)
             self.set_header('Accept-Ranges', 'bytes')
-            self.set_header('Content-Type', content_type)
             
             # Only add download header for binary/unknown files
             if content_type == 'application/octet-stream':
@@ -266,7 +265,7 @@ class FileContentHandler(FileShareHandler):
             if hasattr(file_info, 'last_modified') and file_info.last_modified is not None:
                 self.set_header('Last-Modified', _format_timestamp(file_info.last_modified))
 
-            self.finish()
+            self.finish(set_content_type=content_type)
             
         except FileNotFoundError:
             self.log.error(f"File not found in {filestore_name}: {subpath}")
@@ -323,7 +322,6 @@ class FileContentHandler(FileShareHandler):
                 
                 # Set partial content response headers
                 self.set_status(206)  # Partial Content
-                self.set_header('Content-Type', content_type)
                 self.set_header('Accept-Ranges', 'bytes')
                 self.set_header('Content-Length', str(content_length))
                 self.set_header('Content-Range', f'bytes {start}-{end}/{file_size}')
@@ -339,7 +337,6 @@ class FileContentHandler(FileShareHandler):
             else:
                 # No range request - stream entire file
                 self.set_status(200)
-                self.set_header('Content-Type', content_type)
                 self.set_header('Accept-Ranges', 'bytes')
                 self.set_header('Content-Length', str(file_size))
                 
@@ -349,7 +346,7 @@ class FileContentHandler(FileShareHandler):
 
                 for chunk in filestore.stream_file_contents(subpath):
                     self.write(chunk)
-                self.finish()
+                self.finish(set_content_type=content_type)
                 
         except FileNotFoundError:
             self.log.error(f"File not found in {filestore_name}: {subpath}")
