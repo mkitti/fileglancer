@@ -174,56 +174,60 @@ class FileContentHandler(FileShareHandler):
     API handler for file content
     """
 
+    # This function is copied from x2s3, we should export it there and use it here directly
     def _parse_range_header(self, range_header: str, file_size: int):
-        """
-        Parse HTTP Range header and return start/end byte positions.
+        """Parse HTTP Range header and return start and end byte positions.
         
         Args:
-            range_header (str): The Range header value (e.g., "bytes=0-1023")
-            file_size (int): The total size of the file
+            range_header: HTTP Range header value (e.g., "bytes=0-499")
+            file_size: Total size of the file
             
         Returns:
-            tuple: (start, end) byte positions, or None if invalid/unsatisfiable
+            Tuple of (start, end) byte positions, or None if invalid
         """
-        if not range_header.startswith('bytes='):
+        if not range_header or not range_header.startswith('bytes='):
             return None
             
-        ranges_spec = range_header[6:]  # Remove 'bytes=' prefix
-        
-        # Support only single range for simplicity (most common case)
-        if ',' in ranges_spec:
-            ranges_spec = ranges_spec.split(',')[0].strip()
-        
-        # Parse range specification
-        match = re.match(r'^(\d*)-(\d*)$', ranges_spec.strip())
-        if not match:
-            return None
+        try:
+            range_spec = range_header[6:]  # Remove 'bytes=' prefix
             
-        start_str, end_str = match.groups()
-        
-        # Handle different range formats
-        if start_str and end_str:
-            # Range: bytes=start-end
-            start = int(start_str)
-            end = int(end_str)
-        elif start_str and not end_str:
-            # Range: bytes=start- (from start to end of file)
-            start = int(start_str)
-            end = file_size - 1
-        elif not start_str and end_str:
-            # Range: bytes=-suffix (last suffix bytes)
-            suffix = int(end_str)
-            start = max(0, file_size - suffix)
-            end = file_size - 1
-        else:
-            # Invalid range
-            return None
-        
-        # Validate range
-        if start < 0 or end >= file_size or start > end:
-            return None
+            if ',' in range_spec:
+                # Multiple ranges not supported, use first range
+                range_spec = range_spec.split(',')[0].strip()
             
-        return (start, end)
+            if '-' not in range_spec:
+                return None
+                
+            start_str, end_str = range_spec.split('-', 1)
+                    
+            if start_str and end_str:
+                # Both start and end specified: "bytes=0-499"
+                start = int(start_str)
+                end = int(end_str)
+            elif start_str and not end_str:
+                # Start specified, no end: "bytes=500-"
+                start = int(start_str)
+                end = file_size - 1
+            elif not start_str and end_str:
+                # End specified, no start (suffix range): "bytes=-500"
+                suffix_length = int(end_str)
+                start = max(0, file_size - suffix_length)
+                end = file_size - 1
+            else:
+                return None
+                
+            # Validate range
+            if start < 0 or end < 0 or start >= file_size or start > end:
+                return None
+                
+            # Clamp end to file size
+            end = min(end, file_size - 1)
+            
+            return (start, end)
+            
+        except (ValueError, IndexError):
+            return None
+
 
     @web.authenticated
     def head(self, path=""):
@@ -309,15 +313,15 @@ class FileContentHandler(FileShareHandler):
             range_header = self.request.headers.get('Range')
             if range_header:
                 # Parse range request
-                range_spec = self._parse_range_header(range_header, file_size)
-                if range_spec is None:
+                range_result = self._parse_range_header(range_header, file_size)
+                if range_result is None:
                     # Invalid range - return 416 Range Not Satisfiable
                     self.set_status(416)
                     self.set_header('Content-Range', f'bytes */{file_size}')
                     self.finish()
                     return
                 
-                start, end = range_spec
+                start, end = range_result
                 content_length = end - start + 1
                 
                 # Set partial content response headers
