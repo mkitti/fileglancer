@@ -56,8 +56,17 @@ export default function useZarrMetadata() {
   } = usePreferencesContext();
   const [cookies] = useCookies(['_xsrf']);
 
-  const checkZarrArray = async (imageUrl: string, zarrVersion: 2 | 3, cancelRef: { cancel: boolean }) => {
-    log.info('Getting Zarr array for', imageUrl, 'with Zarr version', zarrVersion);
+  const checkZarrArray = async (
+    imageUrl: string,
+    zarrVersion: 2 | 3,
+    cancelRef: { cancel: boolean }
+  ) => {
+    log.info(
+      'Getting Zarr array for',
+      imageUrl,
+      'with Zarr version',
+      zarrVersion
+    );
     setThumbnailError(null);
     try {
       const arr = await getZarrArray(imageUrl, zarrVersion);
@@ -82,8 +91,17 @@ export default function useZarrMetadata() {
     }
   };
 
-  const checkOmeZarrMetadata = async (imageUrl: string, zarrVersion: 2 | 3, cancelRef: { cancel: boolean }) => {
-    log.info('Getting OME-Zarr metadata for', imageUrl, 'with Zarr version', zarrVersion);
+  const checkOmeZarrMetadata = async (
+    imageUrl: string,
+    zarrVersion: 2 | 3,
+    cancelRef: { cancel: boolean }
+  ) => {
+    log.info(
+      'Getting OME-Zarr metadata for',
+      imageUrl,
+      'with Zarr version',
+      zarrVersion
+    );
     setThumbnailError(null);
     try {
       setOmeZarrUrl(imageUrl);
@@ -94,11 +112,7 @@ export default function useZarrMetadata() {
       setMetadata(metadata);
       setLoadingThumbnail(true);
     } catch (error) {
-      log.error(
-        'Exception fetching OME-Zarr metadata:',
-        imageUrl,
-        error
-      );
+      log.error('Exception fetching OME-Zarr metadata:', imageUrl, error);
       if (cancelRef.cancel) {
         return;
       }
@@ -107,10 +121,8 @@ export default function useZarrMetadata() {
   };
 
   const getFile = async (fileName: string) => {
-    return fileBrowserState.files.find(
-      file => file.name === fileName
-    );
-  }
+    return fileBrowserState.files.find(file => file.name === fileName);
+  };
 
   const checkZarrMetadata = React.useCallback(
     async (cancelRef: { cancel: boolean }) => {
@@ -148,8 +160,7 @@ export default function useZarrMetadata() {
             if (attrs.multiscales) {
               checkOmeZarrMetadata(imageUrl, 2, cancelRef);
             }
-          }
-          else {
+          } else {
             const zarrJsonFile = await getFile('zarr.json');
             if (zarrJsonFile) {
               const attrs = (await fetchFileAsJson(
@@ -159,16 +170,16 @@ export default function useZarrMetadata() {
               )) as any;
               if (attrs.node_type === 'array') {
                 checkZarrArray(imageUrl, 3, cancelRef);
-              }
-              else if (attrs.node_type === 'group') {
-                if (attrs.attributes?.multiscales || attrs.attributes?.ome?.multiscales) {
+              } else if (attrs.node_type === 'group') {
+                if (
+                  attrs.attributes?.multiscales ||
+                  attrs.attributes?.ome?.multiscales
+                ) {
                   checkOmeZarrMetadata(imageUrl, 3, cancelRef);
-                }
-                else {
+                } else {
                   log.info('Zarrv3 group has no multiscales', attrs.attributes);
                 }
-              }
-              else {
+              } else {
                 log.warn('Unknown Zarrv3 node type', attrs.node_type);
               }
             }
