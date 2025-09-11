@@ -46,7 +46,10 @@ export default function Help() {
       <Card className="min-h-max shrink-0">
         <List className="w-fit gap-2 p-4">
           {helpLinks.map(({ icon: Icon, title, url }) => (
-            <List.Item key={url} className="hover:bg-transparent focus:bg-transparent">
+            <List.Item
+              key={url}
+              className="hover:bg-transparent focus:bg-transparent"
+            >
               <List.ItemStart>
                 <Icon className="icon-large" />
               </List.ItemStart>

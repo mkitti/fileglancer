@@ -122,7 +122,9 @@ export const ProxiedPathProvider = ({
       !fileBrowserState.currentFileSharePath ||
       !fileBrowserState.currentFileOrFolder
     ) {
-      log.debug('fetchProxiedPath - no current file share path or file/folder selected');
+      log.debug(
+        'fetchProxiedPath - no current file share path or file/folder selected'
+      );
       return createSuccess(undefined);
     }
     try {
