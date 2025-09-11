@@ -56,6 +56,77 @@ export default function useZarrMetadata() {
   } = usePreferencesContext();
   const [cookies] = useCookies(['_xsrf']);
 
+  const checkZarrArray = async (
+    imageUrl: string,
+    zarrVersion: 2 | 3,
+    cancelRef: { cancel: boolean }
+  ) => {
+    log.info(
+      'Getting Zarr array for',
+      imageUrl,
+      'with Zarr version',
+      zarrVersion
+    );
+    setThumbnailError(null);
+    try {
+      const arr = await getZarrArray(imageUrl, zarrVersion);
+      if (cancelRef.cancel) {
+        return;
+      }
+      const shapes = [arr.shape];
+      setMetadata({
+        arr,
+        shapes,
+        multiscale: undefined,
+        omero: undefined,
+        scales: undefined,
+        zarrVersion: zarrVersion
+      });
+    } catch (error) {
+      log.error('Error fetching Zarr array:', error);
+      if (cancelRef.cancel) {
+        return;
+      }
+      setThumbnailError('Error fetching Zarr array');
+    }
+  };
+
+  const checkOmeZarrMetadata = async (
+    imageUrl: string,
+    zarrVersion: 2 | 3,
+    cancelRef: { cancel: boolean }
+  ) => {
+    log.info(
+      'Getting OME-Zarr metadata for',
+      imageUrl,
+      'with Zarr version',
+      zarrVersion
+    );
+    setThumbnailError(null);
+    try {
+      setOmeZarrUrl(imageUrl);
+      const metadata = await getOmeZarrMetadata(imageUrl);
+      if (cancelRef.cancel) {
+        return;
+      }
+      setMetadata(metadata);
+      setLoadingThumbnail(true);
+    } catch (error) {
+      log.error('Exception fetching OME-Zarr metadata:', imageUrl, error);
+      if (cancelRef.cancel) {
+        return;
+      }
+      setThumbnailError('Error fetching OME-Zarr metadata');
+    }
+  };
+
+  const getFile = React.useCallback(
+    async (fileName: string) => {
+      return fileBrowserState.files.find(file => file.name === fileName);
+    },
+    [fileBrowserState.files]
+  );
+
   const checkZarrMetadata = React.useCallback(
     async (cancelRef: { cancel: boolean }) => {
       if (areFileDataLoading) {
@@ -77,70 +148,40 @@ export default function useZarrMetadata() {
           fileBrowserState.currentFileSharePath.name,
           fileBrowserState.currentFileOrFolder.path
         );
-        const zarrayFile = fileBrowserState.files.find(
-          file => file.name === '.zarray'
-        );
+
+        const zarrayFile = await getFile('.zarray');
         if (zarrayFile) {
-          try {
-            try {
-              const arr = await getZarrArray(imageUrl);
-              if (cancelRef.cancel) {
-                return;
-              }
-              const shapes = [arr.shape];
-              setMetadata({
-                arr,
-                shapes,
-                multiscale: undefined,
-                omero: undefined,
-                scales: undefined,
-                zarrVersion: 2
-              });
-            } catch (error) {
-              log.error('Error fetching Zarr array:', error);
-              if (cancelRef.cancel) {
-                return;
-              }
-              setThumbnailError('Error fetching Zarr array');
-            }
-          } catch (error) {
-            log.error('Error fetching Zarr array metadata:', error);
-          }
+          checkZarrArray(imageUrl, 2, cancelRef);
         } else {
-          const zattrsFile = fileBrowserState.files.find(
-            file => file.name === '.zattrs'
-          );
+          const zattrsFile = await getFile('.zattrs');
           if (zattrsFile) {
-            try {
-              const zattrs = (await fetchFileAsJson(
+            const attrs = (await fetchFileAsJson(
+              fileBrowserState.currentFileSharePath.name,
+              zattrsFile.path,
+              cookies
+            )) as any;
+            if (attrs.multiscales) {
+              checkOmeZarrMetadata(imageUrl, 2, cancelRef);
+            }
+          } else {
+            const zarrJsonFile = await getFile('zarr.json');
+            if (zarrJsonFile) {
+              const attrs = (await fetchFileAsJson(
                 fileBrowserState.currentFileSharePath.name,
-                zattrsFile.path,
+                zarrJsonFile.path,
                 cookies
               )) as any;
-              if (zattrs.multiscales) {
-                setThumbnailError(null);
-                try {
-                  setOmeZarrUrl(imageUrl);
-                  const metadata = await getOmeZarrMetadata(imageUrl);
-                  if (cancelRef.cancel) {
-                    return;
-                  }
-                  setMetadata(metadata);
-                  setLoadingThumbnail(true);
-                } catch (error) {
-                  log.error(
-                    'Exception fetching OME-Zarr metadata:',
-                    imageUrl,
-                    error
-                  );
-                  if (cancelRef.cancel) {
-                    return;
-                  }
-                  setThumbnailError('Error fetching OME-Zarr metadata');
+              if (attrs.node_type === 'array') {
+                checkZarrArray(imageUrl, 3, cancelRef);
+              } else if (attrs.node_type === 'group') {
+                if (attrs.attributes?.ome?.multiscales) {
+                  checkOmeZarrMetadata(imageUrl, 3, cancelRef);
+                } else {
+                  log.info('Zarrv3 group has no multiscales', attrs.attributes);
                 }
+              } else {
+                log.warn('Unknown Zarrv3 node type', attrs.node_type);
               }
-            } catch (error) {
-              log.error('Error fetching OME-Zarr metadata:', error);
             }
           }
         }
@@ -150,7 +191,7 @@ export default function useZarrMetadata() {
       areFileDataLoading,
       fileBrowserState.currentFileSharePath,
       fileBrowserState.currentFileOrFolder,
-      fileBrowserState.files,
+      getFile,
       cookies
     ]
   );
@@ -266,7 +307,7 @@ export default function useZarrMetadata() {
               neuroglancerBaseUrl +
               generateNeuroglancerStateForZarrArray(
                 url,
-                2,
+                metadata.zarrVersion,
                 determinedLayerType
               );
           }
