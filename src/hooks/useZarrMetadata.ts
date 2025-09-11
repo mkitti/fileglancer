@@ -171,9 +171,7 @@ export default function useZarrMetadata() {
               if (attrs.node_type === 'array') {
                 checkZarrArray(imageUrl, 3, cancelRef);
               } else if (attrs.node_type === 'group') {
-                if (
-                  attrs.attributes?.ome?.multiscales
-                ) {
+                if (attrs.attributes?.ome?.multiscales) {
                   checkOmeZarrMetadata(imageUrl, 3, cancelRef);
                 } else {
                   log.info('Zarrv3 group has no multiscales', attrs.attributes);
