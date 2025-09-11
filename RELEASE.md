@@ -8,7 +8,7 @@ pixi run dev-install
 pixi run node-build
 ```
 
-Bump the version using `hatch`. See the docs on [hatch-nodejs-version](https://github.com/agoose77/hatch-nodejs-version#semver) for details.
+Bump the version using `hatch`. The current version is visible in `package.json`. See the docs on [hatch-nodejs-version](https://github.com/agoose77/hatch-nodejs-version#semver) for details.
 
 ```bash
 pixi run set-version <new-version>
