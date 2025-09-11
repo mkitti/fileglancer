@@ -11,7 +11,7 @@ export default function Notifications() {
     useNotificationContext();
 
   return (
-    <div className="p-4">
+    <>
       <div className="flex justify-between items-center mb-6">
         <Typography type="h5" className="text-foreground font-bold">
           Notifications ({notifications.length})
@@ -61,6 +61,6 @@ export default function Notifications() {
           </Typography>
         </Card>
       ) : null}
-    </div>
+    </>
   );
 }
