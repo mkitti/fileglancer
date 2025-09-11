@@ -1,7 +1,6 @@
 import { Card, Typography } from '@material-tailwind/react';
 import { HiOutlineInformationCircle } from 'react-icons/hi';
 import { useNotificationContext } from '@/contexts/NotificationsContext';
-import logger from '@/logger';
 import {
   getNotificationStyles,
   NotificationItem
@@ -65,15 +64,6 @@ export default function Notifications() {
               );
               const isInactive = !notification.active;
               const isDismissed = isClientDismissed || isInactive;
-
-              // Debug logging
-              console.log(`Notification ${notification.id}:`, {
-                active: notification.active,
-                isClientDismissed,
-                isInactive,
-                isDismissed,
-                showDismissButton: notification.active && !isClientDismissed
-              });
 
               return (
                 <Card

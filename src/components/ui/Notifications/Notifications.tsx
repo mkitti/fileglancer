@@ -1,27 +1,12 @@
 import { useNotificationContext } from '@/contexts/NotificationsContext';
-import logger from '@/logger';
 import {
   getNotificationStyles,
   NotificationItem
 } from '@/components/ui/Notifications/NotificationItem';
 
 export default function Notifications() {
-  const {
-    notifications,
-    dismissedNotifications,
-    loading,
-    error,
-    dismissNotification
-  } = useNotificationContext();
-
-  if (loading) {
-    return null; // Don't show anything while loading
-  }
-
-  if (error) {
-    logger.error('Notification error:', error);
-    return null; // Don't show error to user, just log it
-  }
+  const { notifications, dismissedNotifications, dismissNotification } =
+    useNotificationContext();
 
   const visibleNotifications = notifications.filter(
     notification => !dismissedNotifications.includes(notification.id)
