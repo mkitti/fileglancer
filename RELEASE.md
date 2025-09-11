@@ -14,7 +14,7 @@ Bump the version using `hatch`. The current version is visible in `package.json`
 pixi run set-version <new-version>
 ```
 
-To create a Python source package (`.tar.gz`) and the binary package (`.whl`) in the `dist/` directory, do:
+Build the distribution bundle:
 
 ```bash
 pixi run pypi-build
@@ -27,3 +27,5 @@ pixi run pypi-upload
 ```
 
 The new version should now be [available on PyPI](https://pypi.org/project/fileglancer/).
+
+Now [draft a new release](https://github.com/JaneliaSciComp/fileglancer/releases/new). Create a new tag that is the same as the version number, and set the release title to the same (e.g. "1.0.0". Click on "Generate release notes" and make any necessary edits. Ideally, you should include any release notes from the associated [fileglancer-central](https://github.com/JaneliaSciComp/fileglancer-central) release.
