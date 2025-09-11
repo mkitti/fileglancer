@@ -1,6 +1,7 @@
 import { Button, Input, Typography } from '@material-tailwind/react';
 import { HiChevronRight } from 'react-icons/hi';
 import toast from 'react-hot-toast';
+import { useEffect, useRef } from 'react';
 
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import useNavigationInput from '@/hooks/useNavigationInput';
@@ -15,6 +16,13 @@ export default function NavigationInput({
   const { inputValue, handleInputChange, handleNavigationInputSubmit } =
     useNavigationInput();
   const { pathPreference } = usePreferencesContext();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (location === 'dialog' && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [location]);
 
   const placeholderText =
     pathPreference[0] === 'windows_path'
@@ -49,6 +57,7 @@ export default function NavigationInput({
         id="navigation-input-form"
       >
         <Input
+          ref={inputRef}
           value={inputValue}
           onChange={handleInputChange}
           type="text"
