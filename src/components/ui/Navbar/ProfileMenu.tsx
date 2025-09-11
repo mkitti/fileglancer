@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { IconButton, Menu, Typography } from '@material-tailwind/react';
-import { HiOutlineLogout, HiOutlineUserCircle } from 'react-icons/hi';
+import {
+  HiOutlineLogout,
+  HiOutlineUserCircle,
+  HiOutlineBell
+} from 'react-icons/hi';
 import { HiOutlineAdjustmentsHorizontal } from 'react-icons/hi2';
 import { Link } from 'react-router-dom';
 
@@ -40,6 +44,14 @@ export default function ProfileMenu() {
         >
           <HiOutlineAdjustmentsHorizontal className="mr-2 icon-default" />
           Preferences
+        </Menu.Item>
+        <Menu.Item
+          as={Link}
+          to="/notifications"
+          className="text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
+        >
+          <HiOutlineBell className="mr-2 icon-default" />
+          Notifications
         </Menu.Item>
         <Menu.Item
           as={Link}

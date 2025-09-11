@@ -145,9 +145,6 @@ export const PreferencesProvider = ({
       const itemsArray = keys.map(key => {
         return zonesAndFileSharePathsMap[key];
       });
-      // To help with debugging edge cases
-      log.debug(`length of preference keys list: ${keys.length}`);
-      log.debug(`length of accessed items list: ${itemsArray.length}`);
       return itemsArray;
     },
     [zonesAndFileSharePathsMap]

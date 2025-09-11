@@ -11,6 +11,7 @@ import Help from '@/components/Help';
 import Jobs from '@/components/Jobs';
 import Preferences from '@/components/Preferences';
 import Links from '@/components/Links';
+import Notifications from '@/components/Notifications';
 import ErrorFallback from '@/components/ErrorFallback';
 
 function Login() {
@@ -54,6 +55,7 @@ const AppComponent = () => {
             <Route path="jobs" element={<Jobs />} />
             <Route path="help" element={<Help />} />
             <Route path="preferences" element={<Preferences />} />
+            <Route path="notifications" element={<Notifications />} />
           </Route>
           <Route element={<BrowsePageLayout />}>
             <Route path="browse" element={<Browse />} />

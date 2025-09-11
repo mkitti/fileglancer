@@ -102,8 +102,8 @@ export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
       !fileBrowserState.currentFileSharePath ||
       !fileBrowserState.propertiesTarget
     ) {
-      log.warn(
-        'Cannot fetch ticket; no current file share path or file/folder selected'
+      log.debug(
+        'fetchTicket - no current file share path or file/folder selected'
       );
       // This is probably not an error, just the state before the file browser is ready
       return createSuccess(undefined);
