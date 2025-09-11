@@ -172,7 +172,6 @@ export default function useZarrMetadata() {
                 checkZarrArray(imageUrl, 3, cancelRef);
               } else if (attrs.node_type === 'group') {
                 if (
-                  attrs.attributes?.multiscales ||
                   attrs.attributes?.ome?.multiscales
                 ) {
                   checkOmeZarrMetadata(imageUrl, 3, cancelRef);
