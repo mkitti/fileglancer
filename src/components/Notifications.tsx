@@ -7,44 +7,8 @@ import {
 } from '@/components/ui/Notifications/NotificationItem';
 
 export default function Notifications() {
-  const {
-    notifications,
-    dismissedNotifications,
-    loading,
-    error,
-    dismissNotification
-  } = useNotificationContext();
-
-  if (loading) {
-    return (
-      <div className="p-4">
-        <Typography type="h5" className="text-foreground font-bold mb-6">
-          Notifications
-        </Typography>
-        <div className="text-center py-8">
-          <Typography className="text-muted-foreground">
-            Loading notifications...
-          </Typography>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    logger.error('Notification error:', error);
-    return (
-      <div className="p-4">
-        <Typography type="h5" className="text-foreground font-bold mb-6">
-          Notifications
-        </Typography>
-        <Card className="p-6">
-          <Typography className="text-error">
-            Failed to load notifications. Please try refreshing the page.
-          </Typography>
-        </Card>
-      </div>
-    );
-  }
+  const { notifications, dismissedNotifications, error, dismissNotification } =
+    useNotificationContext();
 
   return (
     <div className="p-4">
@@ -53,8 +17,11 @@ export default function Notifications() {
           Notifications ({notifications.length})
         </Typography>
       </div>
-
-      {notifications.length > 0 && (
+      {error ? (
+        <Card className="p-6">
+          <Typography className="text-error">{error}</Typography>
+        </Card>
+      ) : notifications.length > 0 ? (
         <div className="mb-8">
           <div className="space-y-3">
             {notifications.map(notification => {
@@ -83,10 +50,7 @@ export default function Notifications() {
             })}
           </div>
         </div>
-      )}
-
-      {/* Empty State */}
-      {notifications.length === 0 && (
+      ) : notifications.length === 0 ? (
         <Card className="p-8 text-center">
           <HiOutlineInformationCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <Typography type="h6" className="text-foreground mb-2">
@@ -96,7 +60,7 @@ export default function Notifications() {
             You don't have any notifications at the moment.
           </Typography>
         </Card>
-      )}
+      ) : null}
     </div>
   );
 }
