@@ -109,7 +109,7 @@ export const NotificationProvider = ({
       if (result.success) {
         setNotifications(result.data || []);
       } else {
-        setError('Failed to load notifications');
+        setError(`Error fetching notifications: ${result.error}`);
       }
     };
 
