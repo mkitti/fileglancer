@@ -20,9 +20,7 @@ type NotificationContextType = {
   dismissedNotifications: number[];
   loading: boolean;
   error: string | null;
-  fetchNotifications: () => Promise<Result<Notification[] | null>>;
   dismissNotification: (id: number) => void;
-  restoreAllNotifications: () => void;
 };
 
 const NotificationContext = React.createContext<NotificationContextType | null>(
@@ -109,11 +107,6 @@ export const NotificationProvider = ({
     [dismissedNotifications]
   );
 
-  const restoreAllNotifications = React.useCallback(() => {
-    setDismissedNotifications([]);
-    localStorage.removeItem('dismissedNotifications');
-  }, []);
-
   // Fetch notifications on mount and then every minute
   React.useEffect(() => {
     const fetchAndSetNotifications = async () => {
@@ -142,9 +135,7 @@ export const NotificationProvider = ({
         dismissedNotifications,
         loading,
         error,
-        fetchNotifications,
-        dismissNotification,
-        restoreAllNotifications
+        dismissNotification
       }}
     >
       {children}
