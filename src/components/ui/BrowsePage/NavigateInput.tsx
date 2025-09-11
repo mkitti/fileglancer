@@ -8,13 +8,17 @@ import useNavigationInput from '@/hooks/useNavigationInput';
 
 export default function NavigationInput({
   location,
-  setShowNavigationDialog
+  setShowNavigationDialog,
+  initialValue = '',
+  onDialogClose
 }: {
   location: 'dashboard' | 'dialog';
   setShowNavigationDialog?: React.Dispatch<React.SetStateAction<boolean>>;
+  initialValue?: string;
+  onDialogClose?: () => void;
 }): JSX.Element {
   const { inputValue, handleInputChange, handleNavigationInputSubmit } =
-    useNavigationInput();
+    useNavigationInput(initialValue);
   const { pathPreference } = usePreferencesContext();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -51,6 +55,9 @@ export default function NavigationInput({
           }
           if (setShowNavigationDialog) {
             setShowNavigationDialog(false);
+          }
+          if (onDialogClose) {
+            onDialogClose();
           }
         }}
         className="flex items-center justify-center gap-2 bg-surface-light"

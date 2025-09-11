@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useOutletContext } from 'react-router';
 
 import type { OutletContextType } from '@/layouts/BrowseLayout';
@@ -12,6 +12,7 @@ import ConvertFileDialog from './ui/Dialogs/ConvertFile';
 import RecentDataLinksCard from './ui/BrowsePage/Dashboard/RecentDataLinksCard';
 import RecentlyViewedCard from './ui/BrowsePage/Dashboard/RecentlyViewedCard';
 import NavigationInput from './ui/BrowsePage/NavigateInput';
+import FgDialog from './ui/Dialogs/FgDialog';
 
 export default function Browse() {
   const {
@@ -29,9 +30,61 @@ export default function Browse() {
 
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
   const [showRenameDialog, setShowRenameDialog] = React.useState(false);
+  const [showNavigationDialog, setShowNavigationDialog] = React.useState(false);
+  const [pastedPath, setPastedPath] = React.useState<string>('');
+
+  // Auto-focus the container when component mounts so it can receive paste events
+  useEffect(() => {
+    const container = document.querySelector('[data-browse-container]') as HTMLElement;
+    if (container) {
+      container.focus();
+    }
+  }, []);
 
   return (
-    <div className="flex flex-col h-full min-w-fit max-h-full">
+    <div 
+      className="flex flex-col h-full min-w-fit max-h-full"
+      tabIndex={0}
+      data-browse-container
+      onPaste={async (event) => {
+        console.log('React paste event fired!', event);
+        
+        // Check if any input, textarea, or contenteditable element is focused
+        const activeElement = document.activeElement;
+        console.log('Active element:', activeElement);
+        
+        const isTextInputFocused = 
+          activeElement && (
+            activeElement.tagName === 'INPUT' ||
+            activeElement.tagName === 'TEXTAREA' ||
+            activeElement.getAttribute('contenteditable') === 'true'
+          );
+
+        console.log('Is text input focused:', isTextInputFocused);
+
+        // Only handle paste if no text input is focused
+        if (!isTextInputFocused) {
+          console.log('Handling paste event');
+          event.preventDefault();
+          
+          try {
+            const clipboardText = await navigator.clipboard.readText();
+            console.log('Clipboard text (API):', clipboardText);
+            setPastedPath(clipboardText);
+            setShowNavigationDialog(true);
+          } catch (error) {
+            console.log('Clipboard API failed, using fallback:', error);
+            // Fallback to event.clipboardData if clipboard API fails
+            const clipboardText = event.clipboardData?.getData('text') || '';
+            console.log('Clipboard text (fallback):', clipboardText);
+            setPastedPath(clipboardText);
+            setShowNavigationDialog(true);
+          }
+        } else {
+          console.log('Text input is focused, ignoring paste');
+        }
+      }}
+    >
       <Toolbar
         showPropertiesDrawer={showPropertiesDrawer}
         togglePropertiesDrawer={togglePropertiesDrawer}
@@ -83,6 +136,22 @@ export default function Browse() {
           showConvertFileDialog={showConvertFileDialog}
           setShowConvertFileDialog={setShowConvertFileDialog}
         />
+      ) : null}
+      {showNavigationDialog ? (
+        <FgDialog
+          open={showNavigationDialog}
+          onClose={() => {
+            setShowNavigationDialog(false);
+            setPastedPath('');
+          }}
+        >
+          <NavigationInput
+            location="dialog"
+            setShowNavigationDialog={setShowNavigationDialog}
+            initialValue={pastedPath}
+            onDialogClose={() => setPastedPath('')}
+          />
+        </FgDialog>
       ) : null}
     </div>
   );
