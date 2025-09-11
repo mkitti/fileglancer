@@ -1,6 +1,8 @@
 import os
 import json
 import requests
+import re
+from datetime import datetime, timezone
 from abc import ABC
 from mimetypes import guess_type
 
@@ -15,6 +17,12 @@ from fileglancer.preferences import get_preference_manager
 from fileglancer.proxiedpath import get_proxiedpath_manager
 from fileglancer.externalbucket import get_externalbucket_manager
 
+
+def _format_timestamp(timestamp):
+    """ Format the given timestamp to ISO date format compatible with HTTP.
+    """
+    dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+    return dt.isoformat()
 
 def _guess_content_type(filename):
     """
@@ -166,11 +174,115 @@ class FileContentHandler(FileShareHandler):
     API handler for file content
     """
 
-    # TODO: Uncomment this when we have a way to use authenticated endpoints in fileglancer-hub
-    #@web.authenticated
+    # This function is copied from x2s3, we should export it there and use it here directly
+    def _parse_range_header(self, range_header: str, file_size: int):
+        """Parse HTTP Range header and return start and end byte positions.
+        
+        Args:
+            range_header: HTTP Range header value (e.g., "bytes=0-499")
+            file_size: Total size of the file
+            
+        Returns:
+            Tuple of (start, end) byte positions, or None if invalid
+        """
+        if not range_header or not range_header.startswith('bytes='):
+            return None
+            
+        try:
+            range_spec = range_header[6:]  # Remove 'bytes=' prefix
+            
+            if ',' in range_spec:
+                # Multiple ranges not supported, use first range
+                range_spec = range_spec.split(',')[0].strip()
+            
+            if '-' not in range_spec:
+                return None
+                
+            start_str, end_str = range_spec.split('-', 1)
+                    
+            if start_str and end_str:
+                # Both start and end specified: "bytes=0-499"
+                start = int(start_str)
+                end = int(end_str)
+            elif start_str and not end_str:
+                # Start specified, no end: "bytes=500-"
+                start = int(start_str)
+                end = file_size - 1
+            elif not start_str and end_str:
+                # End specified, no start (suffix range): "bytes=-500"
+                suffix_length = int(end_str)
+                start = max(0, file_size - suffix_length)
+                end = file_size - 1
+            else:
+                return None
+                
+            # Validate range
+            if start < 0 or end < 0 or start >= file_size or start > end:
+                return None
+                
+            # Clamp end to file size
+            end = min(end, file_size - 1)
+            
+            return (start, end)
+            
+        except (ValueError, IndexError):
+            return None
+
+
+    @web.authenticated
+    def head(self, path=""):
+        """
+        Handle HEAD requests to get file metadata without content
+        """
+        subpath = self.get_argument("subpath", '')
+        if subpath:
+            self.log.info(f"HEAD /api/fileglancer/content/{path} subpath={subpath}")
+            filestore_name = path
+        else:
+            self.log.info(f"HEAD /api/fileglancer/content/{path}")
+            filestore_name, _, subpath = path.partition('/')
+
+        filestore = self._get_filestore(filestore_name)
+        if filestore is None:
+            return
+        
+        # Get file metadata
+        file_name = subpath.split('/')[-1]
+        content_type = _guess_content_type(file_name)
+        
+        try:
+            # Check if file exists and get its size
+            file_info = filestore.get_file_info(subpath)
+            
+            self.set_status(200)
+            self.set_header('Accept-Ranges', 'bytes')
+            
+            # Only add download header for binary/unknown files
+            if content_type == 'application/octet-stream':
+                self.set_header('Content-Disposition', f'attachment; filename="{file_name}"')
+            
+            # Set Content-Length if available
+            if hasattr(file_info, 'size') and file_info.size is not None:
+                self.set_header('Content-Length', str(file_info.size))
+            
+            # Set Last-Modified if available
+            if hasattr(file_info, 'last_modified') and file_info.last_modified is not None:
+                self.set_header('Last-Modified', _format_timestamp(file_info.last_modified))
+
+            self.finish(set_content_type=content_type)
+            
+        except FileNotFoundError:
+            self.log.error(f"File not found in {filestore_name}: {subpath}")
+            self.set_status(404)
+            self.finish()
+        except PermissionError:
+            self.set_status(403)
+            self.finish()
+
+    @web.authenticated
     def get(self, path=""):
         """
-        Handle GET requests to get file content
+        Handle GET requests to get file content, with HTTP Range header support
         """
         subpath = self.get_argument("subpath", '')
         if subpath:
@@ -184,22 +296,62 @@ class FileContentHandler(FileShareHandler):
         if filestore is None:
             return
         
-        # Stream file contents
+        # Get file metadata first
         file_name = subpath.split('/')[-1]
         content_type = _guess_content_type(file_name)
         
-        self.set_status(200)
-        self.set_header('Content-Type', content_type)
-        
-        # Only add download header for binary/unknown files
-        # See https://github.com/JaneliaSciComp/x2s3/blob/main/x2s3/client_file.py#L57
-        if content_type == 'application/octet-stream':
-            self.set_header('Content-Disposition', f'attachment; filename="{file_name}"')
-
         try:
-            for chunk in filestore.stream_file_contents(subpath):
-                self.write(chunk)
-            self.finish()
+            file_info = filestore.get_file_info(subpath)
+            if file_info.is_dir:
+                self.set_status(400)
+                self.finish(json.dumps({"error": "Cannot download directory content"}))
+                return
+                
+            file_size = file_info.size
+            
+            # Check for Range header
+            range_header = self.request.headers.get('Range')
+            if range_header:
+                # Parse range request
+                range_result = self._parse_range_header(range_header, file_size)
+                if range_result is None:
+                    # Invalid range - return 416 Range Not Satisfiable
+                    self.set_status(416)
+                    self.set_header('Content-Range', f'bytes */{file_size}')
+                    self.finish()
+                    return
+                
+                start, end = range_result
+                content_length = end - start + 1
+                
+                # Set partial content response headers
+                self.set_status(206)  # Partial Content
+                self.set_header('Accept-Ranges', 'bytes')
+                self.set_header('Content-Length', str(content_length))
+                self.set_header('Content-Range', f'bytes {start}-{end}/{file_size}')
+                
+                # Only add download header for binary/unknown files
+                if content_type == 'application/octet-stream':
+                    self.set_header('Content-Disposition', f'attachment; filename="{file_name}"')
+                
+                # Stream the requested range
+                for chunk in filestore.stream_file_range(subpath, start, end):
+                    self.write(chunk)
+                self.finish()
+            else:
+                # No range request - stream entire file
+                self.set_status(200)
+                self.set_header('Accept-Ranges', 'bytes')
+                self.set_header('Content-Length', str(file_size))
+                
+                # Only add download header for binary/unknown files
+                if content_type == 'application/octet-stream':
+                    self.set_header('Content-Disposition', f'attachment; filename="{file_name}"')
+
+                for chunk in filestore.stream_file_contents(subpath):
+                    self.write(chunk)
+                self.finish(set_content_type=content_type)
+                
         except FileNotFoundError:
             self.log.error(f"File not found in {filestore_name}: {subpath}")
             self.set_status(404)

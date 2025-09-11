@@ -6,10 +6,15 @@ import { FileSharePath, Result } from '@/shared.types';
 import { convertPathToPosixStyle, joinPaths } from '@/utils/pathHandling';
 import { createSuccess, handleError } from '@/utils/errorHandling';
 
-export default function useNavigationInput() {
-  const [inputValue, setInputValue] = React.useState<string>('');
+export default function useNavigationInput(initialValue: string = '') {
+  const [inputValue, setInputValue] = React.useState<string>(initialValue);
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
   const navigate = useNavigate();
+
+  // Update inputValue when initialValue changes
+  React.useEffect(() => {
+    setInputValue(initialValue);
+  }, [initialValue]);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(event.target.value);
