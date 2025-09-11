@@ -35,30 +35,31 @@ export default function Browse() {
 
   // Auto-focus the container when component mounts so it can receive paste events
   useEffect(() => {
-    const container = document.querySelector('[data-browse-container]') as HTMLElement;
+    const container = document.querySelector(
+      '[data-browse-container]'
+    ) as HTMLElement;
     if (container) {
       container.focus();
     }
   }, []);
 
   return (
-    <div 
+    <div
       className="flex flex-col h-full min-w-fit max-h-full"
       tabIndex={0}
       data-browse-container
-      onPaste={async (event) => {
+      onPaste={async event => {
         console.log('React paste event fired!', event);
-        
+
         // Check if any input, textarea, or contenteditable element is focused
         const activeElement = document.activeElement;
         console.log('Active element:', activeElement);
-        
-        const isTextInputFocused = 
-          activeElement && (
-            activeElement.tagName === 'INPUT' ||
+
+        const isTextInputFocused =
+          activeElement &&
+          (activeElement.tagName === 'INPUT' ||
             activeElement.tagName === 'TEXTAREA' ||
-            activeElement.getAttribute('contenteditable') === 'true'
-          );
+            activeElement.getAttribute('contenteditable') === 'true');
 
         console.log('Is text input focused:', isTextInputFocused);
 
@@ -66,7 +67,7 @@ export default function Browse() {
         if (!isTextInputFocused) {
           console.log('Handling paste event');
           event.preventDefault();
-          
+
           try {
             const clipboardText = await navigator.clipboard.readText();
             console.log('Clipboard text (API):', clipboardText);
