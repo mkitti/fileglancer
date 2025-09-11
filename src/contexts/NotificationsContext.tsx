@@ -18,7 +18,6 @@ export type Notification = {
 type NotificationContextType = {
   notifications: Notification[];
   dismissedNotifications: number[];
-  loading: boolean;
   error: string | null;
   dismissNotification: (id: number) => void;
 };
@@ -46,7 +45,6 @@ export const NotificationProvider = ({
   const [dismissedNotifications, setDismissedNotifications] = React.useState<
     number[]
   >([]);
-  const [loading, setLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<string | null>(null);
   const { cookies } = useCookiesContext();
 
@@ -68,7 +66,6 @@ export const NotificationProvider = ({
   const fetchNotifications = React.useCallback(async (): Promise<
     Result<Notification[] | null>
   > => {
-    setLoading(true);
     setError(null);
 
     try {
@@ -90,8 +87,6 @@ export const NotificationProvider = ({
       }
     } catch (error) {
       return handleError(error);
-    } finally {
-      setLoading(false);
     }
   }, [cookies]);
 
@@ -133,7 +128,6 @@ export const NotificationProvider = ({
       value={{
         notifications,
         dismissedNotifications,
-        loading,
         error,
         dismissNotification
       }}
