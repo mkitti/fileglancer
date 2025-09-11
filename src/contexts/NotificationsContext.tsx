@@ -18,11 +18,8 @@ export type Notification = {
 type NotificationContextType = {
   notifications: Notification[];
   dismissedNotifications: number[];
-  loading: boolean;
   error: string | null;
-  fetchNotifications: () => Promise<Result<Notification[] | null>>;
   dismissNotification: (id: number) => void;
-  restoreAllNotifications: () => void;
 };
 
 const NotificationContext = React.createContext<NotificationContextType | null>(
@@ -48,7 +45,6 @@ export const NotificationProvider = ({
   const [dismissedNotifications, setDismissedNotifications] = React.useState<
     number[]
   >([]);
-  const [loading, setLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<string | null>(null);
   const { cookies } = useCookiesContext();
 
@@ -70,7 +66,6 @@ export const NotificationProvider = ({
   const fetchNotifications = React.useCallback(async (): Promise<
     Result<Notification[] | null>
   > => {
-    setLoading(true);
     setError(null);
 
     try {
@@ -92,8 +87,6 @@ export const NotificationProvider = ({
       }
     } catch (error) {
       return handleError(error);
-    } finally {
-      setLoading(false);
     }
   }, [cookies]);
 
@@ -109,11 +102,6 @@ export const NotificationProvider = ({
     [dismissedNotifications]
   );
 
-  const restoreAllNotifications = React.useCallback(() => {
-    setDismissedNotifications([]);
-    localStorage.removeItem('dismissedNotifications');
-  }, []);
-
   // Fetch notifications on mount and then every minute
   React.useEffect(() => {
     const fetchAndSetNotifications = async () => {
@@ -121,7 +109,7 @@ export const NotificationProvider = ({
       if (result.success) {
         setNotifications(result.data || []);
       } else {
-        setError('Failed to load notifications');
+        setError(`Error fetching notifications: ${result.error}`);
       }
     };
 
@@ -140,11 +128,8 @@ export const NotificationProvider = ({
       value={{
         notifications,
         dismissedNotifications,
-        loading,
         error,
-        fetchNotifications,
-        dismissNotification,
-        restoreAllNotifications
+        dismissNotification
       }}
     >
       {children}

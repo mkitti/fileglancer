@@ -14,7 +14,7 @@ import { ProfileContextProvider } from '@/contexts/ProfileContext';
 import { NotificationProvider } from '@/contexts/NotificationsContext';
 import FileglancerNavbar from '@/components/ui/Navbar/Navbar';
 import { BetaBanner } from '@/components/ui/Beta';
-import Notifications from '@/components/ui/Notifications';
+import Notifications from '@/components/ui/Notifications/Notifications';
 import ErrorFallback from '@/components/ErrorFallback';
 
 export const MainLayout = () => {
