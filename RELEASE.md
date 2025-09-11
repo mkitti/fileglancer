@@ -1,10 +1,6 @@
-# Making a new release of fileglancer_server
+# Making a new release of Fileglancer
 
-This extension can be distributed as Python packages. All of the Python
-packaging instructions are in the `pyproject.toml` file to wrap your extension in a
-Python package.
-
-Make sure to do a clean build before building the package:
+Make sure to do a clean build before building the package for release:
 
 ```bash
 ./clean.sh
