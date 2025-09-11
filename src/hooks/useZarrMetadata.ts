@@ -120,9 +120,12 @@ export default function useZarrMetadata() {
     }
   };
 
-  const getFile = async (fileName: string) => {
-    return fileBrowserState.files.find(file => file.name === fileName);
-  };
+  const getFile = React.useCallback(
+    async (fileName: string) => {
+      return fileBrowserState.files.find(file => file.name === fileName);
+    },
+    [fileBrowserState.files]
+  );
 
   const checkZarrMetadata = React.useCallback(
     async (cancelRef: { cancel: boolean }) => {
@@ -188,7 +191,7 @@ export default function useZarrMetadata() {
       areFileDataLoading,
       fileBrowserState.currentFileSharePath,
       fileBrowserState.currentFileOrFolder,
-      fileBrowserState.files,
+      getFile,
       cookies
     ]
   );
