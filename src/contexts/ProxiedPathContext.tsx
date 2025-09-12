@@ -29,6 +29,7 @@ type ProxiedPathContextType = {
   refreshProxiedPaths: () => Promise<Result<ProxiedPath[] | void>>;
   fetchProxiedPath: () => Promise<Result<ProxiedPath | void>>;
   notifyZarrDetected: () => void;
+  automaticLinkError: string | null;
 };
 
 function sortProxiedPathsByDate(paths: ProxiedPath[]): ProxiedPath[] {
@@ -67,6 +68,9 @@ export const ProxiedPathProvider = ({
   );
   const [dataUrl, setDataUrl] = React.useState<string | null>(null);
   const [zarrDetected, setZarrDetected] = React.useState<boolean>(false);
+  const [automaticLinkError, setAutomaticLinkError] = React.useState<
+    string | null
+  >(null);
   const { cookies } = useCookiesContext();
   const { fileBrowserState } = useFileBrowserContext();
   const { automaticDataLinks } = usePreferencesContext();
@@ -248,8 +252,9 @@ export const ProxiedPathProvider = ({
         updateProxiedPath(null);
       }
     })();
-    // Reset zarrDetected when navigating to a new file/folder
+    // Reset zarrDetected and automaticLinkError when navigating to a new file/folder
     setZarrDetected(false);
+    setAutomaticLinkError(null);
   }, [
     fileBrowserState.currentFileSharePath,
     fileBrowserState.currentFileOrFolder,
@@ -267,14 +272,13 @@ export const ProxiedPathProvider = ({
         fileBrowserState.currentFileSharePath &&
         fileBrowserState.currentFileOrFolder
       ) {
-        log.debug('Auto-creating proxied path for Zarr file');
         const result = await createProxiedPath();
         if (result.success) {
           await refreshProxiedPaths();
         } else {
-          log.error(
-            'Error auto-creating proxied path for Zarr file',
-            result.error
+          setAutomaticLinkError(
+            `Error automatically create data link:
+            ${result.error}`
           );
         }
       }
@@ -300,7 +304,8 @@ export const ProxiedPathProvider = ({
         deleteProxiedPath,
         refreshProxiedPaths,
         fetchProxiedPath,
-        notifyZarrDetected
+        notifyZarrDetected,
+        automaticLinkError
       }}
     >
       {children}

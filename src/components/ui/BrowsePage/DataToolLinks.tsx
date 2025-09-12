@@ -12,6 +12,7 @@ import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 import { copyToClipboard } from '@/utils/copyText';
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 
 export default function DataToolLinks({
   title,
@@ -28,6 +29,7 @@ export default function DataToolLinks({
 }): React.ReactNode {
   const [showCopiedTooltip, setShowCopiedTooltip] = React.useState(false);
   const { automaticDataLinks } = usePreferencesContext();
+  const { automaticLinkError } = useProxiedPathContext();
 
   const handleCopyUrl = async () => {
     if (urls?.copy) {
@@ -40,7 +42,16 @@ export default function DataToolLinks({
   };
 
   const handleLinkClick = (url: string, event: React.MouseEvent) => {
-    if (!proxiedPath && !automaticDataLinks && setPendingNavigationUrl) {
+    if (automaticLinkError) {
+      event.preventDefault();
+      return;
+    }
+    if (
+      !proxiedPath &&
+      !automaticDataLinks &&
+      setPendingNavigationUrl &&
+      !automaticLinkError
+    ) {
       event.preventDefault();
       setPendingNavigationUrl(url);
       setShowDataLinkDialog(true);
@@ -164,6 +175,9 @@ export default function DataToolLinks({
           </FgTooltip>
         ) : null}
       </ButtonGroup>
+      {automaticLinkError ? (
+        <Typography className="text-error text-xs pt-3">{`${automaticLinkError}`}</Typography>
+      ) : null}
     </div>
   );
 }
