@@ -382,10 +382,12 @@ export const FileBrowserContextProvider = ({
 
   // Effect to update currentFolder and propertiesTarget when URL params change
   React.useEffect(() => {
-    log.debug('URL changed: fspName=', fspName, 'filePath=', filePath);
     let cancelled = false;
     const updateCurrentFileSharePathAndFolder = async () => {
-      if (!isZonesMapReady || !zonesAndFileSharePathsMap || !fspName) {
+      if (!isZonesMapReady || !zonesAndFileSharePathsMap) {
+        return;
+      }
+      if (!fspName) {
         if (cancelled) {
           return;
         }
@@ -395,7 +397,7 @@ export const FileBrowserContextProvider = ({
           [],
           null,
           [],
-          'Invalid file share path name'
+          'No file share path name in URL'
         );
         return;
       }
