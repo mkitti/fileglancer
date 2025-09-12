@@ -8,13 +8,15 @@ import {
   useReactTable,
   type Column,
   type ColumnDef,
+  type Header,
   type SortingState
 } from '@tanstack/react-table';
 import { Card, Input } from '@material-tailwind/react';
 import {
   HiSortAscending,
   HiSortDescending,
-  HiOutlineSwitchVertical
+  HiOutlineSwitchVertical,
+  HiOutlineSearch
 } from 'react-icons/hi';
 
 import { TableRowSkeleton } from '@/components/ui/widgets/Loaders';
@@ -68,14 +70,37 @@ function DebouncedInput({
   }, [value, debounce, column]);
 
   return (
-    <div onClick={e => e.stopPropagation()}>
+    <div onClick={e => e.stopPropagation()} className="max-w-full">
       <Input
         type="search"
         placeholder="Search..."
         value={value}
         onChange={e => setValue(e.target.value)}
-        className={`w-36 border shadow rounded hidden hover:block focus:block group-hover/filter:block group-focus/filter:block ${value ? 'block' : ''}`}
+        className={`w-36 max-w-full border shadow rounded hidden hover:block focus:block group-hover/filter:block group-focus/filter:block ${value ? 'block' : ''}`}
       />
+    </div>
+  );
+}
+
+function HeaderIcons<TData, TValue>({
+  header
+}: {
+  header: Header<TData, TValue>;
+}) {
+  return (
+    <div className="flex items-center">
+      {{
+        asc: <HiSortAscending className="icon-default text-foreground" />,
+        desc: <HiSortDescending className="icon-default text-foreground" />
+      }[header.column.getIsSorted() as string] ?? null}
+      {header.column.getCanSort() ? (
+        <HiOutlineSwitchVertical
+          className={`icon-default text-foreground opacity-40 dark:opacity-60 ${(header.column.getIsSorted() as string) ? 'hidden' : ''}`}
+        />
+      ) : null}
+      {header.column.getCanFilter() ? (
+        <HiOutlineSearch className="icon-default text-foreground opacity-40 dark:opacity-60" />
+      ) : null}
     </div>
   );
 }
@@ -131,17 +156,7 @@ function Table<TData>({
                     header.column.columnDef.header,
                     header.getContext()
                   )}
-                  {{
-                    asc: (
-                      <HiSortAscending className="icon-default text-foreground" />
-                    ),
-                    desc: (
-                      <HiSortDescending className="icon-default text-foreground" />
-                    )
-                  }[header.column.getIsSorted() as string] ?? null}
-                  <HiOutlineSwitchVertical
-                    className={`icon-default text-foreground opacity-0 group-hover/sort:opacity-60 group-focus/sort:opacity-80 ${(header.column.getIsSorted() as string) ? 'hidden' : ''}`}
-                  />
+                  <HeaderIcons header={header} />
                 </div>
                 {header.column.getCanFilter() ? (
                   <DebouncedInput column={header.column} />
@@ -200,4 +215,4 @@ function TableCard<TData>({
   );
 }
 
-export { Table, TableRow, TableCard };
+export { Table, TableRow, TableCard, HeaderIcons };
