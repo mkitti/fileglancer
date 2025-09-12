@@ -14,15 +14,18 @@ const PATH_DELIMITER = '/';
  * escapePathForUrl('folder/subfolder/file 100%.txt') // Returns 'folder/subfolder/file%20100%25.txt'
  */
 function escapePathForUrl(path: string): string {
-  if (!path) return path;
+  if (!path) {
+    return path;
+  }
 
   // Split by forward slashes to preserve path separators
   return path
     .split('/')
     .map(segment => {
       // Don't escape empty segments (preserves leading/trailing slashes and double slashes)
-      if (segment === '') return segment;
-      // Use encodeURIComponent to escape each segment
+      if (segment === '') {
+        return segment;
+      }
       return encodeURIComponent(segment);
     })
     .join('/');
