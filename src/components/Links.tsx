@@ -1,8 +1,8 @@
 import { Typography } from '@material-tailwind/react';
 
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
-import { TableCard } from './ui/Table/TableCard';
-import { linksColumns } from './ui/Table/linksColumns';
+import { TableCard } from '@/components/ui/Table/TableCard';
+import { linksColumns } from '@/components/ui/Table/linksColumns';
 
 export default function Links() {
   const { allProxiedPaths, loadingProxiedPaths } = useProxiedPathContext();
