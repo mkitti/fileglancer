@@ -1,20 +1,32 @@
 import { Button, Input, Typography } from '@material-tailwind/react';
 import { HiChevronRight } from 'react-icons/hi';
 import toast from 'react-hot-toast';
+import { useEffect, useRef } from 'react';
 
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import useNavigationInput from '@/hooks/useNavigationInput';
 
 export default function NavigationInput({
   location,
-  setShowNavigationDialog
+  setShowNavigationDialog,
+  initialValue = '',
+  onDialogClose
 }: {
   location: 'dashboard' | 'dialog';
   setShowNavigationDialog?: React.Dispatch<React.SetStateAction<boolean>>;
+  initialValue?: string;
+  onDialogClose?: () => void;
 }): JSX.Element {
   const { inputValue, handleInputChange, handleNavigationInputSubmit } =
-    useNavigationInput();
+    useNavigationInput(initialValue);
   const { pathPreference } = usePreferencesContext();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (location === 'dialog' && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [location]);
 
   const placeholderText =
     pathPreference[0] === 'windows_path'
@@ -44,11 +56,15 @@ export default function NavigationInput({
           if (setShowNavigationDialog) {
             setShowNavigationDialog(false);
           }
+          if (onDialogClose) {
+            onDialogClose();
+          }
         }}
         className="flex items-center justify-center gap-2 bg-surface-light"
         id="navigation-input-form"
       >
         <Input
+          ref={inputRef}
           value={inputValue}
           onChange={handleInputChange}
           type="text"

@@ -33,6 +33,8 @@ type PreferencesContextType = {
   toggleHideDotFiles: () => Promise<Result<void>>;
   disableNeuroglancerStateGeneration: boolean;
   toggleDisableNeuroglancerStateGeneration: () => Promise<Result<void>>;
+  disableHeuristicalLayerTypeDetection: boolean;
+  toggleDisableHeuristicalLayerTypeDetection: () => Promise<Result<void>>;
   zonePreferenceMap: Record<string, ZonePreference>;
   zoneFavorites: Zone[];
   fileSharePathPreferenceMap: Record<string, FileSharePathPreference>;
@@ -78,6 +80,10 @@ export const PreferencesProvider = ({
   const [
     disableNeuroglancerStateGeneration,
     setDisableNeuroglancerStateGeneration
+  ] = React.useState<boolean>(false);
+  const [
+    disableHeuristicalLayerTypeDetection,
+    setDisableHeuristicalLayerTypeDetection
   ] = React.useState<boolean>(false);
   const [zonePreferenceMap, setZonePreferenceMap] = React.useState<
     Record<string, ZonePreference>
@@ -135,9 +141,6 @@ export const PreferencesProvider = ({
       const itemsArray = keys.map(key => {
         return zonesAndFileSharePathsMap[key];
       });
-      // To help with debugging edge cases
-      log.debug(`length of preference keys list: ${keys.length}`);
-      log.debug(`length of accessed items list: ${itemsArray.length}`);
       return itemsArray;
     },
     [zonesAndFileSharePathsMap]
@@ -250,6 +253,25 @@ export const PreferencesProvider = ({
             const newValue = !prevDisableNeuroglancerStateGeneration;
             savePreferencesToBackend(
               'disableNeuroglancerStateGeneration',
+              newValue
+            );
+            return newValue;
+          }
+        );
+      } catch (error) {
+        return handleError(error);
+      }
+      return createSuccess(undefined);
+    }, [savePreferencesToBackend]);
+
+  const toggleDisableHeuristicalLayerTypeDetection =
+    React.useCallback(async (): Promise<Result<void>> => {
+      try {
+        setDisableHeuristicalLayerTypeDetection(
+          prevDisableHeuristicalLayerTypeDetection => {
+            const newValue = !prevDisableHeuristicalLayerTypeDetection;
+            savePreferencesToBackend(
+              'disableHeuristicalLayerTypeDetection',
               newValue
             );
             return newValue;
@@ -514,6 +536,23 @@ export const PreferencesProvider = ({
   }, [fetchPreferences]);
 
   React.useEffect(() => {
+    (async function () {
+      const rawDisableHeuristicalLayerTypeDetection = await fetchPreferences(
+        'disableHeuristicalLayerTypeDetection'
+      );
+      if (rawDisableHeuristicalLayerTypeDetection !== null) {
+        log.debug(
+          'setting initial disableHeuristicalLayerTypeDetection preference:',
+          rawDisableHeuristicalLayerTypeDetection
+        );
+        setDisableHeuristicalLayerTypeDetection(
+          rawDisableHeuristicalLayerTypeDetection
+        );
+      }
+    })();
+  }, [fetchPreferences]);
+
+  React.useEffect(() => {
     if (!isZonesMapReady) {
       return;
     }
@@ -662,6 +701,8 @@ export const PreferencesProvider = ({
         toggleHideDotFiles,
         disableNeuroglancerStateGeneration,
         toggleDisableNeuroglancerStateGeneration,
+        disableHeuristicalLayerTypeDetection,
+        toggleDisableHeuristicalLayerTypeDetection,
         zonePreferenceMap,
         zoneFavorites,
         fileSharePathPreferenceMap,

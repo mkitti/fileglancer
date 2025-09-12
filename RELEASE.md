@@ -1,10 +1,6 @@
-# Making a new release of fileglancer_server
+# Making a new release of Fileglancer
 
-This extension can be distributed as Python packages. All of the Python
-packaging instructions are in the `pyproject.toml` file to wrap your extension in a
-Python package.
-
-Make sure to do a clean build before building the package:
+Make sure to do a clean build before building the package for release:
 
 ```bash
 ./clean.sh
@@ -12,13 +8,13 @@ pixi run dev-install
 pixi run node-build
 ```
 
-Bump the version using `hatch`. See the docs on [hatch-nodejs-version](https://github.com/agoose77/hatch-nodejs-version#semver) for details.
+Bump the version using `hatch`. The current version is visible in `package.json`. See the docs on [hatch-nodejs-version](https://github.com/agoose77/hatch-nodejs-version#semver) for details.
 
 ```bash
 pixi run set-version <new-version>
 ```
 
-To create a Python source package (`.tar.gz`) and the binary package (`.whl`) in the `dist/` directory, do:
+Build the distribution bundle:
 
 ```bash
 pixi run pypi-build
@@ -31,3 +27,5 @@ pixi run pypi-upload
 ```
 
 The new version should now be [available on PyPI](https://pypi.org/project/fileglancer/).
+
+Now [draft a new release](https://github.com/JaneliaSciComp/fileglancer/releases/new). Create a new tag that is the same as the version number, and set the release title to the same (e.g. "1.0.0". Click on "Generate release notes" and make any necessary edits. Ideally, you should include any release notes from the associated [fileglancer-central](https://github.com/JaneliaSciComp/fileglancer-central) release.

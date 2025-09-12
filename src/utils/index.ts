@@ -1,4 +1,5 @@
 import {
+  escapePathForUrl,
   getFileContentPath,
   getFileBrowsePath,
   getFileURL,
@@ -176,6 +177,7 @@ async function fetchFileWithTextDetection(
 }
 
 export {
+  escapePathForUrl,
   fetchFileAsJson,
   fetchFileAsText,
   fetchFileContent,
