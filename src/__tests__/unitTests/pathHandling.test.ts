@@ -43,16 +43,24 @@ describe('convertPathToPosixStyle', () => {
 
 describe('escapePathForUrl', () => {
   test('escapes spaces in path segments', () => {
-    expect(escapePathForUrl('file with spaces.txt')).toBe('file%20with%20spaces.txt');
+    expect(escapePathForUrl('file with spaces.txt')).toBe(
+      'file%20with%20spaces.txt'
+    );
   });
   test('escapes percentage signs in path segments', () => {
-    expect(escapePathForUrl('file%with%signs.txt')).toBe('file%25with%25signs.txt');
+    expect(escapePathForUrl('file%with%signs.txt')).toBe(
+      'file%25with%25signs.txt'
+    );
   });
   test('preserves forward slashes as path separators', () => {
-    expect(escapePathForUrl('folder/subfolder/file.txt')).toBe('folder/subfolder/file.txt');
+    expect(escapePathForUrl('folder/subfolder/file.txt')).toBe(
+      'folder/subfolder/file.txt'
+    );
   });
   test('escapes spaces and percentage signs while preserving path structure', () => {
-    expect(escapePathForUrl('folder/sub folder/file 100%.txt')).toBe('folder/sub%20folder/file%20100%25.txt');
+    expect(escapePathForUrl('folder/sub folder/file 100%.txt')).toBe(
+      'folder/sub%20folder/file%20100%25.txt'
+    );
   });
   test('handles empty string', () => {
     expect(escapePathForUrl('')).toBe('');
@@ -61,7 +69,9 @@ describe('escapePathForUrl', () => {
     expect(escapePathForUrl('folder//subfolder')).toBe('folder//subfolder');
   });
   test('handles complex special characters', () => {
-    expect(escapePathForUrl('path/file name (copy) 50%.txt')).toBe('path/file%20name%20(copy)%2050%25.txt');
+    expect(escapePathForUrl('path/file name (copy) 50%.txt')).toBe(
+      'path/file%20name%20(copy)%2050%25.txt'
+    );
   });
 });
 

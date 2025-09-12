@@ -7,7 +7,7 @@ const PATH_DELIMITER = '/';
 /**
  * Escapes path segments for safe inclusion in URLs while preserving forward slashes as path separators.
  * This prevents issues with special characters like percentage signs breaking URL parsing.
- * 
+ *
  * Examples:
  * escapePathForUrl('file with spaces.txt') // Returns 'file%20with%20spaces.txt'
  * escapePathForUrl('path/with%signs/file.txt') // Returns 'path/with%25signs/file.txt'
@@ -15,7 +15,7 @@ const PATH_DELIMITER = '/';
  */
 function escapePathForUrl(path: string): string {
   if (!path) return path;
-  
+
   // Split by forward slashes to preserve path separators
   return path
     .split('/')
@@ -145,13 +145,13 @@ function getFileURL(fspName: string, filePath?: string): string {
   const escapedFspName = encodeURIComponent(fspName);
   const fspPath = joinPaths('/api/fileglancer/content/', escapedFspName);
   const apiPath = getFullPath(fspPath);
-  
+
   if (filePath) {
     const escapedFilePath = escapePathForUrl(filePath);
     const apiFilePath = joinPaths(apiPath, escapedFilePath);
     return new URL(apiFilePath, window.location.origin).href;
   }
-  
+
   return new URL(apiPath, window.location.origin).href;
 }
 
