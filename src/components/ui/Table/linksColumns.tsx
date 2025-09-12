@@ -1,5 +1,5 @@
 import { Typography } from '@material-tailwind/react';
-import { type ColumnDef } from '@tanstack/react-table';
+import { FilterFn, type ColumnDef } from '@tanstack/react-table';
 import toast from 'react-hot-toast';
 
 import DataLinkDialog from '@/components/ui/Dialogs/DataLink';
@@ -142,6 +142,19 @@ function ActionsCell({ item }: { item: ProxiedPath }) {
 
 const tooltipTriggerClasses = 'max-w-full truncate';
 
+// Custom filter function for path column that searches both path and fsp_name,
+// instead of just the accessor value for the column, which is path.
+const pathFilter: FilterFn<ProxiedPath> = (row, columnId, filterValue) => {
+  const item = row.original;
+  const searchValue = String(filterValue).toLowerCase();
+
+  const pathMatch = item.path?.toLowerCase().includes(searchValue) || false;
+  const fspNameMatch =
+    item.fsp_name?.toLowerCase().includes(searchValue) || false;
+
+  return pathMatch || fspNameMatch;
+};
+
 export const linksColumns: ColumnDef<ProxiedPath>[] = [
   {
     accessorKey: 'sharing_name',
@@ -162,14 +175,16 @@ export const linksColumns: ColumnDef<ProxiedPath>[] = [
       );
     },
     enableSorting: true,
-    enableColumnFilter: true
+    enableColumnFilter: true,
+    filterFn: 'includesString'
   },
   {
     accessorKey: 'path',
     header: 'File Path',
     cell: ({ row }) => <PathCell item={row.original} />,
     enableSorting: true,
-    enableColumnFilter: true
+    enableColumnFilter: true,
+    filterFn: pathFilter
   },
   {
     accessorKey: 'created_at',
@@ -193,7 +208,8 @@ export const linksColumns: ColumnDef<ProxiedPath>[] = [
       );
     },
     enableSorting: true,
-    enableColumnFilter: true
+    enableColumnFilter: true,
+    filterFn: 'includesString'
   },
   {
     accessorKey: 'sharing_key',
