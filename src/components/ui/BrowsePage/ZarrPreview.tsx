@@ -80,6 +80,7 @@ export default function ZarrPreview({
 
           {showDataLinkDialog ? (
             <DataLinkDialog
+              type="zarr"
               action="create"
               showDataLinkDialog={showDataLinkDialog}
               setShowDataLinkDialog={setShowDataLinkDialog}
