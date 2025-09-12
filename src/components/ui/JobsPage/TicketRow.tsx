@@ -6,6 +6,7 @@ import type { Ticket } from '@/contexts/TicketsContext';
 import {
   formatDateString,
   getPreferredPathForDisplay,
+  makeBrowseLink,
   makeMapKey
 } from '@/utils';
 import { FileSharePath } from '@/shared.types';
@@ -27,7 +28,7 @@ export default function TicketRow({ item }: { item: Ticket }) {
   return (
     <>
       <div className="line-clamp-2 max-w-full">
-        <FgStyledLink to={`/browse/${item.fsp_name}/${item.path}`}>
+        <FgStyledLink to={makeBrowseLink(item.fsp_name, item.path)}>
           {displayPath}
         </FgStyledLink>
       </div>

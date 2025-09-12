@@ -5,6 +5,30 @@ import type { FileSharePath } from '@/shared.types';
 const PATH_DELIMITER = '/';
 
 /**
+ * Escapes path segments for safe inclusion in URLs while preserving forward slashes as path separators.
+ * This prevents issues with special characters like percentage signs breaking URL parsing.
+ * 
+ * Examples:
+ * escapePathForUrl('file with spaces.txt') // Returns 'file%20with%20spaces.txt'
+ * escapePathForUrl('path/with%signs/file.txt') // Returns 'path/with%25signs/file.txt'
+ * escapePathForUrl('folder/subfolder/file 100%.txt') // Returns 'folder/subfolder/file%20100%25.txt'
+ */
+function escapePathForUrl(path: string): string {
+  if (!path) return path;
+  
+  // Split by forward slashes to preserve path separators
+  return path
+    .split('/')
+    .map(segment => {
+      // Don't escape empty segments (preserves leading/trailing slashes and double slashes)
+      if (segment === '') return segment;
+      // Use encodeURIComponent to escape each segment
+      return encodeURIComponent(segment);
+    })
+    .join('/');
+}
+
+/**
  * Remove any trailing slashes from a path
  * Only for use in normalzing all styles of mount path on initial data load
  * E.g.:
@@ -111,16 +135,24 @@ function getFileContentPath(fspName: string, filePath: string): string {
 /**
  * Constructs a sharable URL to access file contents from the browser with the Fileglancer API.
  * If no filePath is provided, it returns the endpoint URL with the FSP path appended - this is the base URL.
- * If filePath is provided, this is appended to the base URL.
+ * If filePath is provided, this is appended to the base URL with proper URL escaping.
  * Example:
  * getFileURL('myFSP'); // Returns 'http://localhost:8888/api/fileglancer/content/myFSP'
  * getFileURL('myFSP', 'path/to/file.txt'); // Returns 'http://localhost:8888/api/fileglancer/content/myFSP/path/to/file.txt'
+ * getFileURL('myFSP', 'path with%/file.txt'); // Returns 'http://localhost:8888/api/fileglancer/content/myFSP/path%20with%25/file.txt'
  */
 function getFileURL(fspName: string, filePath?: string): string {
-  const fspPath = joinPaths('/api/fileglancer/content/', fspName);
+  const escapedFspName = encodeURIComponent(fspName);
+  const fspPath = joinPaths('/api/fileglancer/content/', escapedFspName);
   const apiPath = getFullPath(fspPath);
-  const apiFilePath = filePath ? joinPaths(apiPath, filePath) : apiPath;
-  return new URL(apiFilePath, window.location.origin).href;
+  
+  if (filePath) {
+    const escapedFilePath = escapePathForUrl(filePath);
+    const apiFilePath = joinPaths(apiPath, escapedFilePath);
+    return new URL(apiFilePath, window.location.origin).href;
+  }
+  
+  return new URL(apiPath, window.location.origin).href;
 }
 
 /** * Constructs a full API path by joining the API root with a relative path.
@@ -221,10 +253,11 @@ function getPreferredPathForDisplay(
 
 /**
  * Constructs a browse link for a file share path.
- * If filePath is provided, appends it to the base path.
+ * If filePath is provided, appends it to the base path with proper URL escaping.
  * Example:
  * makeBrowseLink('myFSP'); // Returns '/browse/myFSP'
  * makeBrowseLink('myFSP', 'path/to/file.txt'); // Returns '/browse/myFSP/path/to/file.txt'
+ * makeBrowseLink('myFSP', 'path with%/file.txt'); // Returns '/browse/myFSP/path%20with%25/file.txt'
  */
 function makeBrowseLink(
   fspName: string | undefined,
@@ -234,11 +267,17 @@ function makeBrowseLink(
     logger.warn('FSP name is required to create a browse link.');
     return '/browse';
   }
-  return filePath ? `/browse/${fspName}/${filePath}` : `/browse/${fspName}`;
+  const escapedFspName = encodeURIComponent(fspName);
+  if (filePath) {
+    const escapedFilePath = escapePathForUrl(filePath);
+    return `/browse/${escapedFspName}/${escapedFilePath}`;
+  }
+  return `/browse/${escapedFspName}`;
 }
 
 export {
   convertPathToPosixStyle,
+  escapePathForUrl,
   getAPIPathRoot,
   getFileBrowsePath,
   getFileContentPath,

@@ -20,7 +20,7 @@ import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useProfileContext } from '@/contexts/ProfileContext';
 import { useOpenFavoritesContext } from '@/contexts/OpenFavoritesContext';
-import { getPreferredPathForDisplay, makeMapKey } from '@/utils';
+import { getPreferredPathForDisplay, makeBrowseLink, makeMapKey } from '@/utils';
 import { copyToClipboard } from '@/utils/copyText';
 import useFavoriteToggle from '@/hooks/useFavoriteToggle';
 
@@ -106,7 +106,7 @@ export default function Toolbar({
           {/* Go to home folder */}
           <FgTooltip
             as={Link}
-            link={`/browse/${profile?.homeFileSharePathName}/${profile?.homeDirectoryName}`}
+            link={makeBrowseLink(profile?.homeFileSharePathName, profile?.homeDirectoryName)}
             icon={HiHome}
             label="Go to home folder"
             triggerClasses={triggerClasses}
