@@ -6,12 +6,11 @@ import {
   getFilteredRowModel,
   getSortedRowModel,
   useReactTable,
-  type Column,
   type ColumnDef,
   type Header,
   type SortingState
 } from '@tanstack/react-table';
-import { Card, Input } from '@material-tailwind/react';
+import { Card, Input, Tooltip } from '@material-tailwind/react';
 import {
   HiSortAscending,
   HiSortDescending,
@@ -46,42 +45,6 @@ function TableRow({
   );
 }
 
-// Follows example here: https://tanstack.com/table/latest/docs/framework/react/examples/filters
-function DebouncedInput({
-  column,
-  debounce = 500
-}: {
-  column: Column<any, unknown>;
-  debounce?: number;
-}) {
-  const initialValue = (column.getFilterValue() as string) || '';
-  const [value, setValue] = React.useState(initialValue);
-
-  React.useEffect(() => {
-    setValue(initialValue);
-  }, [initialValue]);
-
-  React.useEffect(() => {
-    const timeout = setTimeout(() => {
-      column.setFilterValue(value);
-    }, debounce);
-
-    return () => clearTimeout(timeout);
-  }, [value, debounce, column]);
-
-  return (
-    <div onClick={e => e.stopPropagation()} className="max-w-full">
-      <Input
-        type="search"
-        placeholder="Search..."
-        value={value}
-        onChange={e => setValue(e.target.value)}
-        className={`w-36 max-w-full border shadow rounded hidden hover:block focus:block group-hover/filter:block group-focus/filter:block ${value ? 'block' : ''}`}
-      />
-    </div>
-  );
-}
-
 function HeaderIcons<TData, TValue>({
   header
 }: {
@@ -102,6 +65,166 @@ function HeaderIcons<TData, TValue>({
         <HiOutlineSearch className="icon-default text-foreground opacity-40 dark:opacity-60" />
       ) : null}
     </div>
+  );
+}
+
+// Follows example here: https://tanstack.com/table/latest/docs/framework/react/examples/filters
+const DebouncedInput = React.forwardRef<
+  HTMLInputElement,
+  {
+    value: string;
+    setValue: (value: string) => void;
+    handleInputFocus: () => void;
+  }
+>(({ value, setValue, handleInputFocus }, ref) => {
+  return (
+    <div onClick={e => e.stopPropagation()} className="max-w-full">
+      <Input
+        ref={ref}
+        type="search"
+        placeholder="Search..."
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        onFocus={handleInputFocus}
+        className="w-36 max-w-full border shadow rounded"
+      />
+    </div>
+  );
+});
+
+function SearchPopover<TData, TValue>({
+  header
+}: {
+  header: Header<TData, TValue>;
+}) {
+  const [isSearchFocused, setIsSearchFocused] = React.useState(false);
+  const [forceOpen, setForceOpen] = React.useState(false);
+
+  const initialValue = (header.column.getFilterValue() as string) || '';
+  const [value, setValue] = React.useState(initialValue);
+
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const tooltipRef = React.useRef<HTMLDivElement>(null);
+
+  const debounce = 350;
+
+  function handleInputFocus() {
+    setIsSearchFocused(true);
+    setForceOpen(true);
+  }
+
+  const clearAndClose = React.useCallback(() => {
+    setValue('');
+    header.column.setFilterValue('');
+    setIsSearchFocused(false);
+    setForceOpen(false);
+    inputRef.current?.blur();
+  }, [header.column]);
+
+  // Handle clicks outside the tooltip
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        tooltipRef.current &&
+        !tooltipRef.current.contains(event.target as Node) &&
+        forceOpen
+      ) {
+        clearAndClose();
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [forceOpen, clearAndClose]);
+
+  // Handle Escape key to clear and close tooltip
+  React.useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape' && forceOpen) {
+        clearAndClose();
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [forceOpen, clearAndClose]);
+
+  React.useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
+
+  React.useEffect(() => {
+    const timeout = setTimeout(() => {
+      header.column.setFilterValue(value);
+    }, debounce);
+
+    return () => clearTimeout(timeout);
+  }, [value, debounce, header.column]);
+
+  // Keep tooltip open if there's a search value
+  React.useEffect(() => {
+    if (value) {
+      setForceOpen(true);
+    } else if (!isSearchFocused) {
+      setForceOpen(false);
+    }
+  }, [value, isSearchFocused]);
+
+  if (!header.column.getCanFilter()) {
+    // Non-filterable column - just show header with sorting
+    return (
+      <div
+        className={`flex flex-col ${
+          header.column.getCanSort() ? 'cursor-pointer group/sort' : ''
+        }`}
+        onClick={header.column.getToggleSortingHandler()}
+      >
+        <div className="flex items-center gap-2 font-semibold select-none">
+          {flexRender(header.column.columnDef.header, header.getContext())}
+          <HeaderIcons header={header} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Tooltip
+      placement="top-start"
+      interactive={true}
+      open={forceOpen ? true : undefined}
+    >
+      {/** when open is undefined (forceOpen is false), then the interactive=true prop takes over.
+       * This allows use of the safePolygon() function in tooltip.tsx, keeping the tooltip open
+       * as the user moves towards it */}
+      <Tooltip.Trigger
+        as="div"
+        ref={tooltipRef}
+        className={`flex flex-col ${
+          header.column.getCanSort() ? 'cursor-pointer group/sort' : ''
+        } group/filter`}
+        onClick={header.column.getToggleSortingHandler()}
+      >
+        <div className="flex items-center gap-2 font-semibold select-none">
+          {flexRender(header.column.columnDef.header, header.getContext())}
+          <HeaderIcons header={header} />
+        </div>
+      </Tooltip.Trigger>
+      <Tooltip.Content
+        className="z-10 min-w-36 border border-surface bg-background px-3 py-2.5 text-foreground"
+        onMouseEnter={() => inputRef.current?.focus()}
+      >
+        <DebouncedInput
+          ref={inputRef}
+          value={value}
+          setValue={setValue}
+          handleInputFocus={handleInputFocus}
+        />
+      </Tooltip.Content>
+    </Tooltip>
   );
 }
 
@@ -138,33 +261,15 @@ function Table<TData>({
       <div
         className={`grid ${gridColsClass} gap-4 px-4 py-2 border-b border-surface dark:border-foreground`}
       >
-        {table.getHeaderGroups().map(headerGroup =>
-          headerGroup.headers.map(header =>
-            header.isPlaceholder ? null : (
-              <div
-                className={`flex flex-col
-                    ${
-                      header.column.getCanSort()
-                        ? 'cursor-pointer group/sort'
-                        : ''
-                    } ${header.column.getCanFilter() ? 'group/filter' : ''}`}
-                key={header.id}
-                onClick={header.column.getToggleSortingHandler()}
-              >
-                <div className="flex items-center gap-2 font-semibold select-none">
-                  {flexRender(
-                    header.column.columnDef.header,
-                    header.getContext()
-                  )}
-                  <HeaderIcons header={header} />
-                </div>
-                {header.column.getCanFilter() ? (
-                  <DebouncedInput column={header.column} />
-                ) : null}
-              </div>
+        {table
+          .getHeaderGroups()
+          .map(headerGroup =>
+            headerGroup.headers.map(header =>
+              header.isPlaceholder ? null : (
+                <SearchPopover key={header.id} header={header} />
+              )
             )
-          )
-        )}
+          )}
       </div>
 
       {/* Body */}
