@@ -259,6 +259,7 @@ export default function useZarrMetadata() {
       (async () => {
         const determinedLayerType = await getLayerType(
           metadata,
+          url,
           !disableHeuristicalLayerTypeDetection
         );
         console.log('Determined layer type:', determinedLayerType);

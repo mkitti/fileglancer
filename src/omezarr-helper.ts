@@ -95,6 +95,40 @@ function getResolvedScales(multiscale: omezarr.Multiscale): number[] {
 }
 
 /**
+ * Get the size in bytes for a given dtype string.
+ */
+function getDtypeSize(dtype: string): number {
+  if (!dtype) return 4; // Default to 4 bytes
+  
+  // Parse numpy-style dtype strings (int8, int16, uint8, etc.)
+  if (dtype.includes('int') || dtype.includes('uint')) {
+    const bitMatch = dtype.match(/\d+/);
+    if (bitMatch) {
+      const bitCount = parseInt(bitMatch[0]);
+      return bitCount / 8;
+    } else {
+      // Try explicit endianness format: <byteorder><type><bytes>
+      const oldFormatMatch = dtype.match(/^[<>|]([iuf])(\d+)$/);
+      if (oldFormatMatch) {
+        return parseInt(oldFormatMatch[2], 10);
+      }
+    }
+  }
+  
+  // Handle float types
+  if (dtype.includes('float')) {
+    const bitMatch = dtype.match(/\d+/);
+    if (bitMatch) {
+      const bitCount = parseInt(bitMatch[0]);
+      return bitCount / 8;
+    }
+  }
+  
+  // Default fallback
+  return 4;
+}
+
+/**
  * Get the min and max values for a given Zarr array, based on the dtype:
  * https://zarr-specs.readthedocs.io/en/latest/v2/v2.0.html#data-type-encoding
  */
@@ -500,111 +534,199 @@ async function getOmeZarrThumbnail(
 }
 
 /**
- * Fetches a chunk-aligned crop from a zarr array and analyzes all values
- * in the crop to compute the percentage of unique values. If the crop size
- * is smaller than the chunk size, only a single chunk is fetched.
+ * Generate random chunk coordinates for sampling.
+ * @param metadata - The metadata object containing the zarr array
+ * @param numSamples - The number of random chunk coordinates to generate
+ * @returns Array of chunk coordinate strings
+ */
+function generateRandomChunkCoordinates(metadata: Metadata, numSamples: number): string[] {
+  const chunks = [];
+  const shape = metadata.arr.shape;
+  const chunkSizes = metadata.arr.chunks;
+  
+  // Calculate the number of chunks per dimension
+  const chunksPerDim = shape.map((dim, i) => Math.ceil(dim / chunkSizes[i]));
+  
+  for (let i = 0; i < numSamples; i++) {
+    // Generate random chunk indices for each dimension
+    const chunkIndices = chunksPerDim.map(numChunks => 
+      Math.floor(Math.random() * numChunks)
+    );
+    chunks.push(chunkIndices.join('/'));
+  }
+  
+  return chunks;
+}
+
+/**
+ * Get the compressed size of a specific chunk via a HEAD request.
+ * @param url - The base URL of the zarr array
+ * @param metadata - The metadata object containing the zarr array
+ * @param chunkKey - The chunk key (e.g., "0/0/0")
+ * @returns Promise<number> - The compressed size in bytes, or -1 if unable to determine
+ */
+async function getCompressedChunkSize(url: string, metadata: Metadata, chunkKey: string = ''): Promise<number> {
+  try {
+    if (!metadata.multiscale) {
+      throw new Error('No multiscale metadata');
+    }
+
+    // Use the first (full resolution) dataset
+    const firstDataset = metadata.multiscale.datasets[0];
+    const path = firstDataset.path || '0';
+    
+    // Use provided chunk key or default to first chunk
+    const actualChunkKey = chunkKey || metadata.arr.shape.map(() => '0').join('/');
+    const chunkUrl = `${url.replace(/\/$/, '')}/${path}/${actualChunkKey}`;
+    
+    log.debug('Getting compressed chunk size for:', chunkUrl);
+    
+    const response = await fetch(chunkUrl, { method: 'HEAD' });
+    if (!response.ok) {
+      log.warn('Failed to get chunk HEAD response:', response.status, response.statusText);
+      return -1;
+    }
+    
+    const contentLength = response.headers.get('content-length');
+    if (!contentLength) {
+      log.warn('No content-length header in chunk response');
+      return -1;
+    }
+    
+    return parseInt(contentLength, 10);
+  } catch (error) {
+    log.error('Error getting compressed chunk size:', error);
+    return -1;
+  }
+}
+
+/**
+ * Analyze compression ratio by sampling multiple chunks to determine if data is likely segmentation.
+ * Uses the minimum compression ratio across samples to avoid bias from masked/empty areas.
+ * @param url - The base URL of the zarr array
+ * @param metadata - The metadata object containing the zarr array
+ * @param numSamples - The number of chunks to sample (default: 5)
+ * @returns Promise<LayerType | null> - Returns 'segmentation' if highly compressed, null if inconclusive
+ */
+async function analyzeCompressionRatio(url: string, metadata: Metadata, numSamples: number = 5): Promise<LayerType | null> {
+  try {
+    const startTime = Date.now();
+    // Generate random chunk coordinates for sampling
+    const chunkKeys = generateRandomChunkCoordinates(metadata, numSamples);
+    const compressionRatios: number[] = [];
+    
+    // Calculate uncompressed size of a chunk (all chunks have same size)
+    const chunkElements = metadata.arr.chunks.reduce((a, b) => a * b, 1);
+    const dtypeSize = getDtypeSize(metadata.arr.dtype);
+    const uncompressedSize = chunkElements * dtypeSize;
+    
+    log.debug(`Sampling ${numSamples} chunks for compression analysis`);
+    
+    // Sample each chunk and calculate its compression ratio
+    for (const chunkKey of chunkKeys) {
+      const compressedSize = await getCompressedChunkSize(url, metadata, chunkKey);
+      if (compressedSize > 0) {
+        const compressionRatio = uncompressedSize / compressedSize;
+        compressionRatios.push(compressionRatio);
+        log.debug(`Chunk ${chunkKey}: compression ratio ${compressionRatio.toFixed(2)} (compressed: ${compressedSize}, uncompressed: ${uncompressedSize})`);
+      } else {
+        log.warn(`Failed to get compressed size for chunk ${chunkKey}`);
+      }
+    }
+    
+    if (compressionRatios.length === 0) {
+      log.debug('Could not determine compression ratios for any chunks');
+      return null;
+    }
+    
+    // Take the minimum compression ratio to avoid bias from masked/empty areas
+    const minCompressionRatio = Math.min(...compressionRatios);
+    log.debug(`Minimum compression ratio: ${minCompressionRatio.toFixed(2)} (from ${compressionRatios.length} samples)`);
+    
+    const elapsedTime = Date.now() - startTime;
+    log.debug(`Elapsed time for compression ratio analysis: ${elapsedTime}ms`);
+
+    // If even the least compressed chunk has high compression (ratio > 10), likely segmentation data
+    if (minCompressionRatio > 10) {
+      log.debug(`High minimum compression ratio (${minCompressionRatio.toFixed(2)} > 10) suggests segmentation data`);
+      return 'segmentation';
+    }
+    
+    return 'image';
+  } catch (error) {
+    log.error('Error in compression ratio analysis:', error);
+    return null;
+  }
+}
+
+/**
+ * Fetches a center chunk from a zarr array and analyzes values
+ * to compute the percentage of unique values.
  *
  * @param metadata - The metadata object containing the zarr array
- * @param cropSize - The size of the crop to take (default: 64)
- * @returns Promise<number> - The percentage of unique values in the cropped data
+ * @param cropSize - The number of values to sample from each spatial axis (default: 32)
+ * @returns Promise<number> - The percentage of unique values in the sampled data
  */
 async function getPercentUniqueValues(
   metadata: Metadata,
+  url: string,
   cropSize: number = 32
 ): Promise<number> {
+  const startTime = Date.now();
   try {
-    const arr = metadata.arr;
-    const arrayShape = arr.shape;
-    const chunks = arr.chunks;
-    log.trace('Array shape:', arrayShape);
-    log.trace('Chunk sizes:', chunks);
-
-    // Calculate the center point of the array
-    const centerPoint = arrayShape.map(dimSize => Math.floor(dimSize / 2));
-    log.trace('Center point:', centerPoint);
-
-    // Align crop to chunk boundaries
-    const startIndices: number[] = [];
-    const endIndices: number[] = [];
-
-    for (let i = 0; i < arrayShape.length; i++) {
-      const chunkSize = chunks[i];
-      log.trace('Chunk size:', chunkSize);
-      const center = centerPoint[i];
-      log.trace('Center:', center);
-
-      // Find which chunk contains the center point
-      const centerChunkIndex = Math.floor(center / chunkSize);
-      log.trace('Center chunk index:', centerChunkIndex);
-
-      // Calculate the start and end indices
-      startIndices[i] = centerChunkIndex * chunkSize;
-      log.trace('Start index:', startIndices[i]);
-      endIndices[i] = Math.min(startIndices[i] + cropSize, arrayShape[i]);
-      log.trace('End index:', endIndices[i]);
+    if (!metadata.multiscale) {
+      throw new Error('No multiscale metadata');
     }
 
-    // Create selection slice for the crop
-    const selection = startIndices.map((start, i) => [start, endIndices[i]]);
+    const store = new zarr.FetchStore(url);
+    const paths: Array<string> = metadata.multiscale.datasets.map((d) => d.path);
+    const path = paths[0];
+    const arr = await omezarr.getArray(store, path, metadata.zarrVersion);
 
-    log.debug(
-      'Crop dimensions:',
-      selection.map(([start, end]) => end - start)
-    );
 
-    // Fetch the crop data using zarrita's get API
-    const cropSelection = selection.map(([start, end]) =>
-      zarr.slice(start, end)
-    );
-    const cropData = await zarr.get(arr, cropSelection);
-
-    // Convert to typed array for easier processing
-    let flatData: ArrayLike<number>;
-    if (
-      cropData.data instanceof ArrayBuffer ||
-      ArrayBuffer.isView(cropData.data)
-    ) {
-      flatData = new Float32Array(cropData.data as ArrayBuffer);
-    } else if (Array.isArray(cropData.data)) {
-      flatData = cropData.data as number[];
-    } else {
-      // Handle TypedArray case
-      flatData = cropData.data as ArrayLike<number>;
+    // Select a crop from the center of the array
+    const axes = metadata.multiscale.axes;
+    const cropSelection = arr.shape.map((dimSize, index) => {
+      const axisName = axes?.[index].name;
+      if (axisName === 'x' || axisName === 'y' || axisName === 'z') {
+        const center = Math.floor(dimSize / 2);
+        const cropStart = center - arr.chunks[index] / 2;
+        return zarr.slice(cropStart, cropStart + cropSize);
+      }
+      // Skip non-spatial axes
+      return 0;
+    });
+    
+    log.debug('Crop selection: ', cropSelection);
+    
+    const cropChunk = await zarr.get(arr, cropSelection);
+    if (!cropChunk || !cropChunk.data) {
+      throw new Error('No data returned from crop chunk');
     }
-    const totalValues = flatData.length;
-
-    log.debug('Total values in chunk-aligned crop:', totalValues);
-
-    // Analyze all values in the crop
+    const data = cropChunk.data as any;
     const uniqueValues = new Set<number>();
-    for (let i = 0; i < totalValues; i++) {
-      const value = flatData[i];
-      if (!isNaN(value)) {
+    for (let i = 0; i < data.length; i++) {
+      const value = Number(data[i]);
+      if (!isNaN(value) && isFinite(value)) {
         uniqueValues.add(value);
       }
     }
 
-    const uniqueCount = uniqueValues.size;
-    log.debug(
-      `Analyzed ${totalValues} values, found ${uniqueCount} unique values`
-    );
-
-    return uniqueCount / totalValues;
+    log.debug('Unique values: ', uniqueValues.size);
+    log.debug('Data length: ', data.length);
+    log.debug('Elapsed time: ', Date.now() - startTime);
+    return uniqueValues.size / data.length;
   } catch (error) {
-    log.error(
-      'Error fetching chunk-aligned crop for unique value analysis:',
-      error
-    );
+    log.error('Error in getPercentUniqueValues:', error);
     throw error;
   }
 }
 
 /**
- * Determines the layer type for the given metadata.
+ * Determines the layer type for the given OME-Zarr metadata.
  * If heuristical detection is disabled, returns "image".
- * If the image has multiple timepoints or multiple channels,
- * returns "image" without counting unique values.
- *
+ * First checks compression ratio by comparing compressed chunk size to uncompressed size.
+ * If compression ratio indicates segmentation data, returns "segmentation" without further analysis.
  * Otherwise, analyzes unique values to determine if it's a segmentation or image.
  *
  * @param metadata - The metadata object containing the zarr array and multiscale info
@@ -613,17 +735,28 @@ async function getPercentUniqueValues(
  */
 async function getLayerType(
   metadata: Metadata,
+  url: string,
   useHeuristicalDetection = true
 ): Promise<LayerType> {
   try {
-    // If heuristical detection is disabled, return "auto"
+
+    if (!metadata.multiscale) {
+      return 'image';
+    }
+
     if (!useHeuristicalDetection) {
       log.debug('Heuristical layer type detection is disabled, assuming image');
       return 'image';
     }
 
-    // If no multiple timepoints or channels, analyze unique values
-    const uniqueValuePercent = await getPercentUniqueValues(metadata);
+    // First, check compression ratio
+    // const compressionResult = await analyzeCompressionRatio(url, metadata);
+    // if (compressionResult) {
+    //   return compressionResult;
+    // }
+
+    // Fall back to unique values analysis
+    const uniqueValuePercent = await getPercentUniqueValues(metadata, url);
     log.debug('Percentage unique values:', uniqueValuePercent);
 
     const layerType = uniqueValuePercent < 0.001 ? 'segmentation' : 'image';
