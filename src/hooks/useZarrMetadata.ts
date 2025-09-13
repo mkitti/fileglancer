@@ -257,12 +257,14 @@ export default function useZarrMetadata() {
 
     if (metadata && url) {
       (async () => {
+        const startTime = Date.now();
         const determinedLayerType = await getLayerType(
           metadata,
           url,
-          !disableHeuristicalLayerTypeDetection
+          !disableHeuristicalLayerTypeDetection,
+          thumbnailSrc
         );
-        console.log('Determined layer type:', determinedLayerType);
+        console.log('Elapsed time: ', Date.now() - startTime);
         setLayerType(determinedLayerType);
 
         const openWithToolUrls = {
@@ -321,7 +323,8 @@ export default function useZarrMetadata() {
     dataUrl,
     externalDataUrl,
     disableNeuroglancerStateGeneration,
-    disableHeuristicalLayerTypeDetection
+    disableHeuristicalLayerTypeDetection,
+    thumbnailSrc
   ]);
 
   return {

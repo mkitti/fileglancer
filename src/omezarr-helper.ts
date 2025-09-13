@@ -98,8 +98,10 @@ function getResolvedScales(multiscale: omezarr.Multiscale): number[] {
  * Get the size in bytes for a given dtype string.
  */
 function getDtypeSize(dtype: string): number {
-  if (!dtype) return 4; // Default to 4 bytes
-  
+  if (!dtype) {
+    return 4; // Default to 4 bytes
+  }
+
   // Parse numpy-style dtype strings (int8, int16, uint8, etc.)
   if (dtype.includes('int') || dtype.includes('uint')) {
     const bitMatch = dtype.match(/\d+/);
@@ -114,7 +116,7 @@ function getDtypeSize(dtype: string): number {
       }
     }
   }
-  
+
   // Handle float types
   if (dtype.includes('float')) {
     const bitMatch = dtype.match(/\d+/);
@@ -123,7 +125,7 @@ function getDtypeSize(dtype: string): number {
       return bitCount / 8;
     }
   }
-  
+
   // Default fallback
   return 4;
 }
@@ -539,22 +541,25 @@ async function getOmeZarrThumbnail(
  * @param numSamples - The number of random chunk coordinates to generate
  * @returns Array of chunk coordinate strings
  */
-function generateRandomChunkCoordinates(metadata: Metadata, numSamples: number): string[] {
+function generateRandomChunkCoordinates(
+  metadata: Metadata,
+  numSamples: number
+): string[] {
   const chunks = [];
   const shape = metadata.arr.shape;
   const chunkSizes = metadata.arr.chunks;
-  
+
   // Calculate the number of chunks per dimension
   const chunksPerDim = shape.map((dim, i) => Math.ceil(dim / chunkSizes[i]));
-  
+
   for (let i = 0; i < numSamples; i++) {
     // Generate random chunk indices for each dimension
-    const chunkIndices = chunksPerDim.map(numChunks => 
+    const chunkIndices = chunksPerDim.map(numChunks =>
       Math.floor(Math.random() * numChunks)
     );
     chunks.push(chunkIndices.join('/'));
   }
-  
+
   return chunks;
 }
 
@@ -565,7 +570,11 @@ function generateRandomChunkCoordinates(metadata: Metadata, numSamples: number):
  * @param chunkKey - The chunk key (e.g., "0/0/0")
  * @returns Promise<number> - The compressed size in bytes, or -1 if unable to determine
  */
-async function getCompressedChunkSize(url: string, metadata: Metadata, chunkKey: string = ''): Promise<number> {
+async function getCompressedChunkSize(
+  url: string,
+  metadata: Metadata,
+  chunkKey: string = ''
+): Promise<number> {
   try {
     if (!metadata.multiscale) {
       throw new Error('No multiscale metadata');
@@ -574,25 +583,30 @@ async function getCompressedChunkSize(url: string, metadata: Metadata, chunkKey:
     // Use the first (full resolution) dataset
     const firstDataset = metadata.multiscale.datasets[0];
     const path = firstDataset.path || '0';
-    
+
     // Use provided chunk key or default to first chunk
-    const actualChunkKey = chunkKey || metadata.arr.shape.map(() => '0').join('/');
+    const actualChunkKey =
+      chunkKey || metadata.arr.shape.map(() => '0').join('/');
     const chunkUrl = `${url.replace(/\/$/, '')}/${path}/${actualChunkKey}`;
-    
+
     log.debug('Getting compressed chunk size for:', chunkUrl);
-    
+
     const response = await fetch(chunkUrl, { method: 'HEAD' });
     if (!response.ok) {
-      log.warn('Failed to get chunk HEAD response:', response.status, response.statusText);
+      log.warn(
+        'Failed to get chunk HEAD response:',
+        response.status,
+        response.statusText
+      );
       return -1;
     }
-    
+
     const contentLength = response.headers.get('content-length');
     if (!contentLength) {
       log.warn('No content-length header in chunk response');
       return -1;
     }
-    
+
     return parseInt(contentLength, 10);
   } catch (error) {
     log.error('Error getting compressed chunk size:', error);
@@ -608,50 +622,65 @@ async function getCompressedChunkSize(url: string, metadata: Metadata, chunkKey:
  * @param numSamples - The number of chunks to sample (default: 5)
  * @returns Promise<LayerType | null> - Returns 'segmentation' if highly compressed, null if inconclusive
  */
-async function analyzeCompressionRatio(url: string, metadata: Metadata, numSamples: number = 5): Promise<LayerType | null> {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function analyzeCompressionRatio(
+  url: string,
+  metadata: Metadata,
+  numSamples: number = 5
+): Promise<LayerType | null> {
   try {
     const startTime = Date.now();
     // Generate random chunk coordinates for sampling
     const chunkKeys = generateRandomChunkCoordinates(metadata, numSamples);
     const compressionRatios: number[] = [];
-    
+
     // Calculate uncompressed size of a chunk (all chunks have same size)
     const chunkElements = metadata.arr.chunks.reduce((a, b) => a * b, 1);
     const dtypeSize = getDtypeSize(metadata.arr.dtype);
     const uncompressedSize = chunkElements * dtypeSize;
-    
+
     log.debug(`Sampling ${numSamples} chunks for compression analysis`);
-    
+
     // Sample each chunk and calculate its compression ratio
     for (const chunkKey of chunkKeys) {
-      const compressedSize = await getCompressedChunkSize(url, metadata, chunkKey);
+      const compressedSize = await getCompressedChunkSize(
+        url,
+        metadata,
+        chunkKey
+      );
       if (compressedSize > 0) {
         const compressionRatio = uncompressedSize / compressedSize;
         compressionRatios.push(compressionRatio);
-        log.debug(`Chunk ${chunkKey}: compression ratio ${compressionRatio.toFixed(2)} (compressed: ${compressedSize}, uncompressed: ${uncompressedSize})`);
+        log.debug(
+          `Chunk ${chunkKey}: compression ratio ${compressionRatio.toFixed(2)} (compressed: ${compressedSize}, uncompressed: ${uncompressedSize})`
+        );
       } else {
         log.warn(`Failed to get compressed size for chunk ${chunkKey}`);
       }
     }
-    
+
     if (compressionRatios.length === 0) {
       log.debug('Could not determine compression ratios for any chunks');
       return null;
     }
-    
+
     // Take the minimum compression ratio to avoid bias from masked/empty areas
     const minCompressionRatio = Math.min(...compressionRatios);
-    log.debug(`Minimum compression ratio: ${minCompressionRatio.toFixed(2)} (from ${compressionRatios.length} samples)`);
-    
+    log.debug(
+      `Minimum compression ratio: ${minCompressionRatio.toFixed(2)} (from ${compressionRatios.length} samples)`
+    );
+
     const elapsedTime = Date.now() - startTime;
     log.debug(`Elapsed time for compression ratio analysis: ${elapsedTime}ms`);
 
     // If even the least compressed chunk has high compression (ratio > 10), likely segmentation data
     if (minCompressionRatio > 10) {
-      log.debug(`High minimum compression ratio (${minCompressionRatio.toFixed(2)} > 10) suggests segmentation data`);
+      log.debug(
+        `High minimum compression ratio (${minCompressionRatio.toFixed(2)} > 10) suggests segmentation data`
+      );
       return 'segmentation';
     }
-    
+
     return 'image';
   } catch (error) {
     log.error('Error in compression ratio analysis:', error);
@@ -667,6 +696,7 @@ async function analyzeCompressionRatio(url: string, metadata: Metadata, numSampl
  * @param cropSize - The number of values to sample from each spatial axis (default: 32)
  * @returns Promise<number> - The percentage of unique values in the sampled data
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function getPercentUniqueValues(
   metadata: Metadata,
   url: string,
@@ -679,10 +709,9 @@ async function getPercentUniqueValues(
     }
 
     const store = new zarr.FetchStore(url);
-    const paths: Array<string> = metadata.multiscale.datasets.map((d) => d.path);
+    const paths: Array<string> = metadata.multiscale.datasets.map(d => d.path);
     const path = paths[0];
     const arr = await omezarr.getArray(store, path, metadata.zarrVersion);
-
 
     // Select a crop from the center of the array
     const axes = metadata.multiscale.axes;
@@ -696,9 +725,9 @@ async function getPercentUniqueValues(
       // Skip non-spatial axes
       return 0;
     });
-    
+
     log.debug('Crop selection: ', cropSelection);
-    
+
     const cropChunk = await zarr.get(arr, cropSelection);
     if (!cropChunk || !cropChunk.data) {
       throw new Error('No data returned from crop chunk');
@@ -723,6 +752,118 @@ async function getPercentUniqueValues(
 }
 
 /**
+ * Calculates the median of an array of numbers.
+ * @param values - Array of numbers
+ * @returns The median value
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function calculateMedian(values: number[]): number {
+  const sorted = values.slice().sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 !== 0
+    ? sorted[mid]
+    : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+/**
+ * Analyzes a thumbnail image by taking N random crops and calculating
+ * the maximum unique value ratio across all crops.
+ * @param thumbnailDataUrl - Base64 data URL of the thumbnail image
+ * @param numSamples - Number of random crops to analyze (default: 20)
+ * @param cropSize - Size of the random crops (default: 5)
+ * @returns Promise<number> - The maximum ratio of unique values to total values
+ */
+async function analyzeThumbnailUniqueValues(
+  thumbnailDataUrl: string,
+  numSamples: number = 20,
+  cropSize: number = 5
+): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+
+        const ratios: number[] = [];
+
+        // Ensure we have enough space for crops
+        if (img.width < cropSize || img.height < cropSize) {
+          log.warn(
+            `Thumbnail too small (${img.width}x${img.height}) for ${cropSize}x${cropSize} crops, using full image`
+          );
+          const imageData = ctx.getImageData(0, 0, img.width, img.height);
+          const data = imageData.data;
+          const uniqueValues = new Set<string>();
+
+          for (let i = 0; i < data.length; i += 4) {
+            const rgb = `${data[i]},${data[i + 1]},${data[i + 2]}`;
+            uniqueValues.add(rgb);
+          }
+
+          const totalPixels = data.length / 4;
+          const ratio = uniqueValues.size / totalPixels;
+          resolve(ratio);
+          return;
+        }
+
+        // Generate random crop positions and analyze each
+        for (let sample = 0; sample < numSamples; sample++) {
+          const x = Math.floor(Math.random() * (img.width - cropSize));
+          const y = Math.floor(Math.random() * (img.height - cropSize));
+
+          const cropData = ctx.getImageData(x, y, cropSize, cropSize);
+          const data = cropData.data;
+          const uniqueValues = new Set<string>();
+
+          for (let i = 0; i < data.length; i += 4) {
+            // Use RGB values (ignore alpha channel for uniqueness)
+            const rgb = `${data[i]},${data[i + 1]},${data[i + 2]}`;
+            uniqueValues.add(rgb);
+          }
+
+          const totalPixels = cropSize * cropSize;
+          const ratio = uniqueValues.size / totalPixels;
+          log.debug(
+            'totalPixels: ',
+            totalPixels,
+            ', uniqueValues: ',
+            uniqueValues.size,
+            ', ratio: ',
+            ratio
+          );
+
+          ratios.push(ratio);
+        }
+
+        const maxRatio = Math.max(...ratios);
+
+        log.debug(
+          `Thumbnail analysis: analyzed ${numSamples} random crops, max unique value ratio: ${maxRatio.toFixed(4)} (range: ${Math.min(...ratios).toFixed(4)}-${Math.max(...ratios).toFixed(4)})`
+        );
+        resolve(maxRatio);
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    img.onerror = () => {
+      reject(new Error('Failed to load thumbnail image'));
+    };
+
+    img.src = thumbnailDataUrl;
+  });
+}
+
+/**
  * Determines the layer type for the given OME-Zarr metadata.
  * If heuristical detection is disabled, returns "image".
  * First checks compression ratio by comparing compressed chunk size to uncompressed size.
@@ -731,15 +872,16 @@ async function getPercentUniqueValues(
  *
  * @param metadata - The metadata object containing the zarr array and multiscale info
  * @param useHeuristicalDetection - If true, skip heuristical detection and return "auto"
+ * @param thumbnailDataUrl - Optional thumbnail data URL for additional analysis
  * @returns Promise<LayerType> - The determined layer type
  */
 async function getLayerType(
   metadata: Metadata,
   url: string,
-  useHeuristicalDetection = true
+  useHeuristicalDetection = true,
+  thumbnailDataUrl?: string | null
 ): Promise<LayerType> {
   try {
-
     if (!metadata.multiscale) {
       return 'image';
     }
@@ -755,19 +897,54 @@ async function getLayerType(
     //   return compressionResult;
     // }
 
-    // Fall back to unique values analysis
-    const uniqueValuePercent = await getPercentUniqueValues(metadata, url);
-    log.debug('Percentage unique values:', uniqueValuePercent);
+    // If thumbnail is available, analyze it first (faster and more reliable)
+    if (thumbnailDataUrl) {
+      try {
+        const thumbnailUniqueRatio =
+          await analyzeThumbnailUniqueValues(thumbnailDataUrl);
+        log.debug('Thumbnail unique value ratio:', thumbnailUniqueRatio);
 
-    const layerType = uniqueValuePercent < 0.001 ? 'segmentation' : 'image';
-    log.debug('Determined layer type based on unique values:', layerType);
+        // If thumbnail has very low unique value ratio, it's likely segmentation
+        if (thumbnailUniqueRatio < 0.2) {
+          const layerType = 'segmentation';
+          log.debug(
+            'Determined layer type based on thumbnail analysis:',
+            layerType
+          );
+          return layerType;
+        } else {
+          const layerType = 'image';
+          log.debug(
+            'Determined layer type based on thumbnail analysis:',
+            layerType
+          );
+          return layerType;
+        }
+      } catch (error) {
+        log.warn(
+          'Failed to analyze thumbnail, falling back to array analysis:',
+          error
+        );
+      }
+    } else {
+      log.debug('No thumbnail available, returning image');
+      return 'image';
+    }
 
-    return layerType;
+    // // Fall back to unique values analysis of array data
+    // const uniqueValuePercent = await getPercentUniqueValues(metadata, url);
+    // log.debug('Percentage unique values:', uniqueValuePercent);
+
+    // const layerType = uniqueValuePercent < 0.001 ? 'segmentation' : 'image';
+    // log.debug('Determined layer type based on unique values:', layerType);
+
+    // return layerType;
   } catch (error) {
     log.error('Error determining layer type:', error);
     // Default to 'image' if we can't determine the type
-    return 'image';
   }
+  log.debug('Returning image as default');
+  return 'image';
 }
 
 export {
@@ -780,5 +957,6 @@ export {
   generateNeuroglancerStateForZarrArray,
   generateNeuroglancerStateForOmeZarr,
   translateUnitToNeuroglancer,
-  getLayerType
+  getLayerType,
+  analyzeThumbnailUniqueValues
 };
