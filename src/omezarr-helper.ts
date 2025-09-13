@@ -741,10 +741,10 @@ async function getPercentUniqueValues(
       }
     }
 
-    log.debug('Unique values: ', uniqueValues.size);
-    log.debug('Data length: ', data.length);
-    log.debug('Elapsed time: ', Date.now() - startTime);
-    return uniqueValues.size / data.length;
+    const ratio = uniqueValues.size / data.length;
+    log.debug('Unique value analysis took ', Date.now() - startTime, 'ms, ', uniqueValues.size, ' unique values out of ', data.length, ' total pixels (ratio: ', ratio.toFixed(4), ')');
+    
+    return ratio;
   } catch (error) {
     log.error('Error in getPercentUniqueValues:', error);
     throw error;
@@ -752,17 +752,75 @@ async function getPercentUniqueValues(
 }
 
 /**
- * Calculates the median of an array of numbers.
- * @param values - Array of numbers
- * @returns The median value
+ * Analyzes edge content in a thumbnail by shifting it 1 pixel to the right,
+ * subtracting from the original, and calculating the ratio of non-zero pixels.
+ * @param thumbnailDataUrl - Base64 data URL of the thumbnail image
+ * @returns Promise<number> - The ratio of edge pixels to total pixels
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function calculateMedian(values: number[]): number {
-  const sorted = values.slice().sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 !== 0
-    ? sorted[mid]
-    : (sorted[mid - 1] + sorted[mid]) / 2;
+async function analyzeThumbnailEdgeContent(
+  thumbnailDataUrl: string
+): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const startTime = Date.now();
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+
+        // Get original image data
+        const originalData = ctx.getImageData(0, 0, img.width, img.height);
+
+        // Clear canvas and draw shifted image (1 pixel to the right)
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 1, 0);
+        const shiftedData = ctx.getImageData(0, 0, img.width, img.height);
+
+        let nonZeroPixels = 0;
+        const totalPixels = img.width * img.height;
+
+        // Compare original and shifted images pixel by pixel
+        for (let i = 0; i < originalData.data.length; i += 4) {
+          // Calculate difference for RGB channels (ignore alpha)
+          const rDiff = Math.abs(originalData.data[i] - shiftedData.data[i]);
+          const gDiff = Math.abs(
+            originalData.data[i + 1] - shiftedData.data[i + 1]
+          );
+          const bDiff = Math.abs(
+            originalData.data[i + 2] - shiftedData.data[i + 2]
+          );
+
+          // If any channel has a significant difference, count as edge pixel
+          if (rDiff > 0 || gDiff > 0 || bDiff > 0) {
+            nonZeroPixels++;
+          }
+        }
+
+        const edgeRatio = nonZeroPixels / totalPixels;
+
+        log.debug(
+          `Edge detection analysis took ${Date.now() - startTime}ms, ${nonZeroPixels} edge pixels out of ${totalPixels} total pixels (ratio: ${edgeRatio.toFixed(4)})`
+        );
+        resolve(edgeRatio);
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    img.onerror = () => {
+      reject(new Error('Failed to load thumbnail image'));
+    };
+
+    img.src = thumbnailDataUrl;
+  });
 }
 
 /**
@@ -782,6 +840,7 @@ async function analyzeThumbnailUniqueValues(
     const img = new Image();
     img.onload = () => {
       try {
+        const startTime = Date.now();
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         if (!ctx) {
@@ -832,22 +891,13 @@ async function analyzeThumbnailUniqueValues(
 
           const totalPixels = cropSize * cropSize;
           const ratio = uniqueValues.size / totalPixels;
-          log.debug(
-            'totalPixels: ',
-            totalPixels,
-            ', uniqueValues: ',
-            uniqueValues.size,
-            ', ratio: ',
-            ratio
-          );
-
           ratios.push(ratio);
         }
 
         const maxRatio = Math.max(...ratios);
 
         log.debug(
-          `Thumbnail analysis: analyzed ${numSamples} random crops, max unique value ratio: ${maxRatio.toFixed(4)} (range: ${Math.min(...ratios).toFixed(4)}-${Math.max(...ratios).toFixed(4)})`
+          'Thumbnail analysis took ', Date.now() - startTime, 'ms, analyzed ', numSamples, ' random crops, max unique value ratio: ', maxRatio.toFixed(4), ' (range: ', Math.min(...ratios).toFixed(4), '-', Math.max(...ratios).toFixed(4), ')'
         );
         resolve(maxRatio);
       } catch (error) {
@@ -900,26 +950,25 @@ async function getLayerType(
     // If thumbnail is available, analyze it first (faster and more reliable)
     if (thumbnailDataUrl) {
       try {
-        const thumbnailUniqueRatio =
-          await analyzeThumbnailUniqueValues(thumbnailDataUrl);
-        log.debug('Thumbnail unique value ratio:', thumbnailUniqueRatio);
+        const [thumbnailUniqueRatio, edgeRatio] = await Promise.all([
+          analyzeThumbnailUniqueValues(thumbnailDataUrl),
+          analyzeThumbnailEdgeContent(thumbnailDataUrl)
+        ]);
 
-        // If thumbnail has very low unique value ratio, it's likely segmentation
-        if (thumbnailUniqueRatio < 0.2) {
-          const layerType = 'segmentation';
-          log.debug(
-            'Determined layer type based on thumbnail analysis:',
-            layerType
-          );
-          return layerType;
-        } else {
-          const layerType = 'image';
-          log.debug(
-            'Determined layer type based on thumbnail analysis:',
-            layerType
-          );
-          return layerType;
-        }
+        log.debug('Thumbnail unique value ratio:', thumbnailUniqueRatio);
+        log.debug('Thumbnail edge detection ratio:', edgeRatio);
+
+        // Combine both heuristics for better classification
+        // Segmentation data typically has:
+        // - Low unique value ratio (homogeneous regions)
+        // - High edge ratio (sharp boundaries between segments)
+        const isSegmentation = edgeRatio < 0.05;
+
+        const layerType = isSegmentation ? 'segmentation' : 'image';
+        log.debug(
+          `Determined layer type based on thumbnail analysis: ${layerType} (unique: ${thumbnailUniqueRatio.toFixed(4)}, edges: ${edgeRatio.toFixed(4)})`
+        );
+        return layerType;
       } catch (error) {
         log.warn(
           'Failed to analyze thumbnail, falling back to array analysis:',
@@ -958,5 +1007,6 @@ export {
   generateNeuroglancerStateForOmeZarr,
   translateUnitToNeuroglancer,
   getLayerType,
-  analyzeThumbnailUniqueValues
+  analyzeThumbnailUniqueValues,
+  analyzeThumbnailEdgeContent
 };
