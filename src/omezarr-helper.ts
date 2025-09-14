@@ -449,14 +449,19 @@ async function getOmeZarrMetadata(dataUrl: string): Promise<Metadata> {
   const { arr, shapes, multiscale, omero, scales, zarr_version } =
     await omezarr.getMultiscaleWithArray(store, 0);
   log.debug(
-    'Zarr version: ', zarr_version, 
-    '\nArray: ', arr,
-    '\nShapes: ', shapes,
-    '\nMultiscale: ', multiscale,
-    '\nOmero: ', omero,
-    '\nScales: ', scales
+    'Zarr version: ',
+    zarr_version,
+    '\nArray: ',
+    arr,
+    '\nShapes: ',
+    shapes,
+    '\nMultiscale: ',
+    multiscale,
+    '\nOmero: ',
+    omero,
+    '\nScales: ',
+    scales
   );
-  
 
   const metadata: Metadata = {
     arr,
@@ -538,15 +543,9 @@ async function analyzeThumbnailEdgeContent(
         // Compare original and shifted images pixel by pixel
         for (let i = 0; i < origData.data.length; i += 4) {
           // Calculate difference for RGB channels (ignore alpha)
-          const rDiff = Math.abs(
-            origData.data[i] - shiftData.data[i]
-          );
-          const gDiff = Math.abs(
-            origData.data[i + 1] - shiftData.data[i + 1]
-          );
-          const bDiff = Math.abs(
-            origData.data[i + 2] - shiftData.data[i + 2]
-          );
+          const rDiff = Math.abs(origData.data[i] - shiftData.data[i]);
+          const gDiff = Math.abs(origData.data[i + 1] - shiftData.data[i + 1]);
+          const bDiff = Math.abs(origData.data[i + 2] - shiftData.data[i + 2]);
 
           // If any channel has a significant difference, count as edge pixel
           if (rDiff > 0 || gDiff > 0 || bDiff > 0) {
@@ -590,14 +589,13 @@ async function determineLayerType(
   try {
     if (!useHeuristicalDetection) {
       log.debug('Heuristical layer type detection is disabled');
-    }
-    else if (thumbnailDataUrl) {
+    } else if (thumbnailDataUrl) {
       try {
         const edgeRatio = await analyzeThumbnailEdgeContent(thumbnailDataUrl);
         log.debug('Thumbnail edge detection ratio:', edgeRatio);
         // Segmentation data typically has low edge ratio
         const layerType = edgeRatio < 0.05 ? 'segmentation' : 'image';
-        log.debug(`Layer type set to ${layerType} based on edge analysis`)
+        log.debug(`Layer type set to ${layerType} based on edge analysis`);
         return layerType;
       } catch (error) {
         log.error('Failed to analyze thumbnail edge content:', error);
