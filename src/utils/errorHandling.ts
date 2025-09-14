@@ -6,7 +6,14 @@ function createSuccess<T>(data: T): Success<T> {
 }
 
 async function toHttpError(response: Response): Promise<Error> {
-  const body = await response.json();
+  let body = { error: null };
+  try {
+    if (!response.bodyUsed) {
+      body = await response.json();
+    }
+  } catch (error) {
+    logger.error('Error parsing JSON response:', error);
+  }
   return new Error(
     body.error ? body.error : `Unknown error (${response.status})`
   );
