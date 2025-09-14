@@ -9,7 +9,7 @@ import {
   generateNeuroglancerStateForDataURL,
   generateNeuroglancerStateForZarrArray,
   generateNeuroglancerStateForOmeZarr,
-  getLayerType
+  determineLayerType
 } from '@/omezarr-helper';
 import type { Metadata } from '@/omezarr-helper';
 import { fetchFileAsJson, getFileURL } from '@/utils';
@@ -257,14 +257,10 @@ export default function useZarrMetadata() {
 
     if (metadata && url) {
       (async () => {
-        const startTime = Date.now();
-        const determinedLayerType = await getLayerType(
-          metadata,
-          url,
+        const determinedLayerType = await determineLayerType(
           !disableHeuristicalLayerTypeDetection,
           thumbnailSrc
         );
-        console.log('Elapsed time: ', Date.now() - startTime);
         setLayerType(determinedLayerType);
 
         const openWithToolUrls = {
