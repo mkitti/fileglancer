@@ -78,7 +78,10 @@ describe('Delete dialog', () => {
       http.delete(
         'http://localhost:3000/api/fileglancer/files/test_fsp',
         () => {
-          return HttpResponse.json({ error: 'Unknown error' }, { status: 500 });
+          return HttpResponse.json(
+            { error: 'Could not delete item' },
+            { status: 500 }
+          );
         }
       )
     );
@@ -87,7 +90,7 @@ describe('Delete dialog', () => {
     await user.click(screen.getByText('Delete'));
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith(
-        'Error deleting item: 500: Unknown error'
+        'Error deleting item: Could not delete item'
       );
     });
   });

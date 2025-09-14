@@ -108,7 +108,7 @@ describe('Change Permissions dialog', () => {
       http.patch('http://localhost:3000/api/fileglancer/files/:fspName', () => {
         return HttpResponse.json(
           { error: 'Permission denied' },
-          { status: 500 }
+          { status: 403 }
         );
       })
     );
@@ -123,7 +123,7 @@ describe('Change Permissions dialog', () => {
     );
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith(
-        'Error changing permissions: 500: Permission denied'
+        'Error changing permissions: Permission denied'
       );
     });
   });
