@@ -8,7 +8,7 @@ function createSuccess<T>(data: T): Success<T> {
 async function toHttpError(response: Response): Promise<Error> {
   const body = await response.json();
   return new Error(
-    `${response.status}: ${body.error ? body.error : 'Unknown error'}`
+    body.error ? body.error : `Unknown error (${response.status})`
   );
 }
 

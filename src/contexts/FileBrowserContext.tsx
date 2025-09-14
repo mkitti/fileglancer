@@ -259,7 +259,7 @@ export const FileBrowserContextProvider = ({
           throw new Error('Folder not found');
         } else {
           throw new Error(
-            `Error: ${response.status}: ${body.error ? body.error : 'Unknown error'}`
+            `${body.error ? body.error : 'Unknown error'}`
           );
         }
       }
