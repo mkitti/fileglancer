@@ -351,7 +351,7 @@ function generateNeuroglancerStateForOmeZarr(
   }
 
   if (channels.length === 0) {
-    log.debug('No channels found in metadata, using default shader');
+    log.trace('No channels found in metadata, using default shader');
     const layer: Record<string, any> = {
       type: layerType,
       source: getNeuroglancerSource(dataUrl, zarrVersion),
@@ -436,7 +436,6 @@ async function getZarrArray(
   dataUrl: string,
   zarrVersion: 2 | 3
 ): Promise<zarr.Array<any>> {
-  log.debug('Getting Zarr array for', dataUrl);
   const store = new zarr.FetchStore(dataUrl);
   return await omezarr.getArray(store, '/', zarrVersion);
 }
@@ -449,12 +448,15 @@ async function getOmeZarrMetadata(dataUrl: string): Promise<Metadata> {
   const store = new zarr.FetchStore(dataUrl);
   const { arr, shapes, multiscale, omero, scales, zarr_version } =
     await omezarr.getMultiscaleWithArray(store, 0);
-  log.debug('Array: ', arr);
-  log.debug('Shapes: ', shapes);
-  log.debug('Multiscale: ', multiscale);
-  log.debug('Omero: ', omero);
-  log.debug('Scales: ', scales);
-  log.debug('Zarr version: ', zarr_version);
+  log.debug(
+    'Zarr version: ', zarr_version, 
+    '\nArray: ', arr,
+    '\nShapes: ', shapes,
+    '\nMultiscale: ', multiscale,
+    '\nOmero: ', omero,
+    '\nScales: ', scales
+  );
+  
 
   const metadata: Metadata = {
     arr,
@@ -512,7 +514,6 @@ async function analyzeThumbnailEdgeContent(
     const img = new Image();
     img.onload = () => {
       try {
-        const startTime = Date.now();
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         if (!ctx) {
@@ -520,30 +521,31 @@ async function analyzeThumbnailEdgeContent(
           return;
         }
 
+        // Get original image data
         canvas.width = img.width;
         canvas.height = img.height;
         ctx.drawImage(img, 0, 0);
-
-        // Get original image data
-        const originalData = ctx.getImageData(0, 0, img.width, img.height);
+        const origData = ctx.getImageData(0, 0, img.width, img.height);
 
         // Clear canvas and draw shifted image (1 pixel to the right)
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 1, 0);
-        const shiftedData = ctx.getImageData(0, 0, img.width, img.height);
+        const shiftData = ctx.getImageData(0, 0, img.width, img.height);
 
         let nonZeroPixels = 0;
         const totalPixels = img.width * img.height;
 
         // Compare original and shifted images pixel by pixel
-        for (let i = 0; i < originalData.data.length; i += 4) {
+        for (let i = 0; i < origData.data.length; i += 4) {
           // Calculate difference for RGB channels (ignore alpha)
-          const rDiff = Math.abs(originalData.data[i] - shiftedData.data[i]);
+          const rDiff = Math.abs(
+            origData.data[i] - shiftData.data[i]
+          );
           const gDiff = Math.abs(
-            originalData.data[i + 1] - shiftedData.data[i + 1]
+            origData.data[i + 1] - shiftData.data[i + 1]
           );
           const bDiff = Math.abs(
-            originalData.data[i + 2] - shiftedData.data[i + 2]
+            origData.data[i + 2] - shiftData.data[i + 2]
           );
 
           // If any channel has a significant difference, count as edge pixel
@@ -555,7 +557,7 @@ async function analyzeThumbnailEdgeContent(
         const edgeRatio = nonZeroPixels / totalPixels;
 
         log.debug(
-          `Edge detection analysis took ${Date.now() - startTime}ms, ${nonZeroPixels} edge pixels out of ${totalPixels} total pixels (ratio: ${edgeRatio.toFixed(4)})`
+          `Edge detection analysis: found ${nonZeroPixels} edge pixels out of ${totalPixels} total pixels`
         );
         resolve(edgeRatio);
       } catch (error) {
@@ -584,40 +586,29 @@ async function determineLayerType(
   useHeuristicalDetection = true,
   thumbnailDataUrl?: string | null
 ): Promise<LayerType> {
+  const DEFAULT_LAYER_TYPE = 'image';
   try {
     if (!useHeuristicalDetection) {
-      log.debug('Heuristical layer type detection is disabled, assuming image');
-      return 'image';
+      log.debug('Heuristical layer type detection is disabled');
     }
-
-    // If thumbnail is available, analyze edge content for segmentation detection
-    if (thumbnailDataUrl) {
+    else if (thumbnailDataUrl) {
       try {
         const edgeRatio = await analyzeThumbnailEdgeContent(thumbnailDataUrl);
-
         log.debug('Thumbnail edge detection ratio:', edgeRatio);
-
-        // Segmentation data typically has low edge ratio (sharp boundaries between segments)
-        const isSegmentation = edgeRatio < 0.05;
-
-        const layerType = isSegmentation ? 'segmentation' : 'image';
-        log.debug(
-          `Determined layer type based on thumbnail edge analysis: ${layerType} (edges: ${edgeRatio.toFixed(4)})`
-        );
+        // Segmentation data typically has low edge ratio
+        const layerType = edgeRatio < 0.05 ? 'segmentation' : 'image';
+        log.debug(`Layer type set to ${layerType} based on edge analysis`)
         return layerType;
       } catch (error) {
-        log.warn('Failed to analyze thumbnail edge content:', error);
+        log.error('Failed to analyze thumbnail edge content:', error);
       }
     } else {
       log.debug('No thumbnail available, returning image');
-      return 'image';
     }
   } catch (error) {
     log.error('Error determining layer type:', error);
-    // Default to 'image' if we can't determine the type
   }
-  log.debug('Returning image as default');
-  return 'image';
+  return DEFAULT_LAYER_TYPE;
 }
 
 export {
