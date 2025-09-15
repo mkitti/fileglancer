@@ -22,8 +22,8 @@ export type OpenWithToolUrls = {
   copy: string;
   validator: string | null;
   neuroglancer: string;
-  vole: string;
-  avivator: string;
+  vole: string | null;
+  avivator: string | null;
 };
 
 export type ZarrArray = zarr.Array<any>;
