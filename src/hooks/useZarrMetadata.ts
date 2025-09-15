@@ -20,7 +20,7 @@ import * as zarr from 'zarrita';
 
 export type OpenWithToolUrls = {
   copy: string;
-  validator: string;
+  validator: string | null;
   neuroglancer: string;
   vole: string;
   avivator: string;
@@ -268,7 +268,6 @@ export default function useZarrMetadata() {
 
   // Run tool url generation when the proxied path url or metadata changes
   React.useEffect(() => {
-    setOpenWithToolUrls(null);
     console.log(
       'Updating OpenWithToolUrls with metadata ',
       metadata,
@@ -336,9 +335,9 @@ export default function useZarrMetadata() {
         } else {
           // Non-OME Zarr - only Neuroglancer available
           if (url) {
-            openWithToolUrls.validator = '';
-            openWithToolUrls.vole = '';
-            openWithToolUrls.avivator = '';
+            openWithToolUrls.validator = null;
+            openWithToolUrls.vole = null;
+            openWithToolUrls.avivator = null;
             if (disableNeuroglancerStateGeneration) {
               openWithToolUrls.neuroglancer =
                 neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
@@ -353,14 +352,16 @@ export default function useZarrMetadata() {
             }
           } else {
             // No proxied URL - only show Neuroglancer as available but empty
-            openWithToolUrls.validator = '';
-            openWithToolUrls.vole = '';
-            openWithToolUrls.avivator = '';
+            openWithToolUrls.validator = null;
+            openWithToolUrls.vole = null;
+            openWithToolUrls.avivator = null;
             openWithToolUrls.neuroglancer = '';
           }
         }
         setOpenWithToolUrls(openWithToolUrls);
       })();
+    } else {
+      setOpenWithToolUrls(null);
     }
   }, [
     metadata,

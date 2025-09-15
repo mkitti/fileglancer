@@ -44,7 +44,7 @@ export default function DataToolLinks({
     }
   };
 
-  const handleLinkClick = (url: string, event: React.MouseEvent) => {
+  const handleLinkClick = (url: string | null, event: React.MouseEvent) => {
     if (!proxiedPath && !automaticDataLinks && setPendingNavigationUrl) {
       event.preventDefault();
       setPendingNavigationUrl(url);
@@ -55,13 +55,17 @@ export default function DataToolLinks({
   const tooltipTriggerClasses =
     'rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75';
 
+  if (!urls) {
+    return null;
+  }
+
   return (
     <div className="my-1">
       <Typography className="font-semibold text-sm text-surface-foreground">
         {title}
       </Typography>
       <ButtonGroup className="relative">
-        {urls?.neuroglancer !== undefined ? (
+        {urls.neuroglancer !== null ? (
           <FgTooltip
             as={Button}
             variant="ghost"
@@ -84,7 +88,7 @@ export default function DataToolLinks({
           </FgTooltip>
         ) : null}
 
-        {urls?.vole !== undefined ? (
+        {urls.vole !== null ? (
           <FgTooltip
             as={Button}
             variant="ghost"
@@ -107,7 +111,7 @@ export default function DataToolLinks({
           </FgTooltip>
         ) : null}
 
-        {urls?.avivator !== undefined ? (
+        {urls.avivator !== null ? (
           <FgTooltip
             as={Button}
             variant="ghost"
@@ -130,7 +134,7 @@ export default function DataToolLinks({
           </FgTooltip>
         ) : null}
 
-        {urls?.validator !== undefined ? (
+        {urls.validator !== null ? (
           <FgTooltip
             as={Button}
             variant="ghost"
@@ -152,7 +156,7 @@ export default function DataToolLinks({
           </FgTooltip>
         ) : null}
 
-        {urls?.copy !== undefined ? (
+        {urls.copy !== null ? (
           <FgTooltip
             as={Button}
             variant="ghost"
