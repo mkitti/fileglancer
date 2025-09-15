@@ -234,31 +234,27 @@ export default function useZarrMetadata() {
     if (!omeZarrUrl) {
       return;
     }
-
     const controller = new AbortController();
-
     const loadThumbnail = async (signal: AbortSignal) => {
       try {
         const [thumbnail, error] = await getOmeZarrThumbnail(omeZarrUrl);
         if (signal.aborted) {
           return;
         }
-
         setLoadingThumbnail(false);
         if (error) {
-          console.error('Thumbnail load failed:', error);
+          log.error('Thumbnail load failed:', error);
           setThumbnailError(error);
         } else {
           setThumbnailSrc(thumbnail);
         }
       } catch (err) {
         if (!signal.aborted) {
-          console.error('Unexpected error loading thumbnail:', err);
+          log.error('Unexpected error loading thumbnail:', err);
           setThumbnailError(err instanceof Error ? err.message : String(err));
         }
       }
     };
-
     loadThumbnail(controller.signal);
 
     return () => {
@@ -268,14 +264,6 @@ export default function useZarrMetadata() {
 
   // Run tool url generation when the proxied path url or metadata changes
   React.useEffect(() => {
-    console.log(
-      'Updating OpenWithToolUrls with metadata ',
-      metadata,
-      ' and dataUrl ',
-      dataUrl,
-      ' and externalDataUrl ',
-      externalDataUrl
-    );
     // Always create openWithToolUrls data structure when metadata is available
     if (metadata) {
       const url = externalDataUrl || dataUrl;
@@ -285,7 +273,6 @@ export default function useZarrMetadata() {
           metadata,
           !disableHeuristicalLayerTypeDetection
         );
-        console.log('Determined layer type:', determinedLayerType);
         setLayerType(determinedLayerType);
 
         const openWithToolUrls = {
