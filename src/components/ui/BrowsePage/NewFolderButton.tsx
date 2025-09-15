@@ -80,16 +80,15 @@ export default function NewFolderButton({
               >
                 Submit
               </Button>
-              {!newName.trim() && (
+              {!newName.trim() ? (
                 <Typography className="text-sm text-gray-500">
                   Please enter a folder name
                 </Typography>
-              )}
-              {newName.trim() && isDuplicateName && (
+              ) : newName.trim() && isDuplicateName ? (
                 <Typography className="text-sm text-red-500">
                   A file or folder with this name already exists
                 </Typography>
-              )}
+              ) : null}
             </div>
           </form>
         </FgDialog>
