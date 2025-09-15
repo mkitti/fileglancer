@@ -299,7 +299,11 @@ class FileMetadataHandler(FileShareHandler):
                 filestore.create_empty_file(subpath)
             else:
                 raise web.HTTPError(400, "Invalid file type")
-        
+
+        except FileExistsError as e:
+            self.set_status(409)  # Conflict status code
+            self.finish(json.dumps({"error": "A file or directory with this name already exists"}))
+            return
         except PermissionError as e:
             self.set_status(403)
             self.finish(json.dumps({"error": str(e)}))
