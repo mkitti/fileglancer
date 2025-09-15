@@ -155,6 +155,14 @@ const pathFilter: FilterFn<ProxiedPath> = (row, columnId, filterValue) => {
   return pathMatch || fspNameMatch;
 };
 
+//Custom filter function for date column, to filter on the formatted date string
+// instead of the raw date string.
+const dateFilter: FilterFn<ProxiedPath> = (row, columnId, filterValue) => {
+  const dateString = row.getValue(columnId) as string;
+  const formattedDate = formatDateString(dateString).toLowerCase();
+  return formattedDate.includes(String(filterValue).toLowerCase());
+};
+
 export const linksColumns: ColumnDef<ProxiedPath>[] = [
   {
     accessorKey: 'sharing_name',
@@ -209,7 +217,7 @@ export const linksColumns: ColumnDef<ProxiedPath>[] = [
     },
     enableSorting: true,
     enableColumnFilter: true,
-    filterFn: 'includesString'
+    filterFn: dateFilter
   },
   {
     accessorKey: 'sharing_key',
