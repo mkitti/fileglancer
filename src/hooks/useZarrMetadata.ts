@@ -9,7 +9,7 @@ import {
   generateNeuroglancerStateForDataURL,
   generateNeuroglancerStateForZarrArray,
   generateNeuroglancerStateForOmeZarr,
-  getLayerType
+  determineLayerType
 } from '@/omezarr-helper';
 import type { Metadata } from '@/omezarr-helper';
 import { fetchFileAsJson, getFileURL } from '@/utils';
@@ -142,7 +142,7 @@ export default function useZarrMetadata() {
   );
 
   const getFile = React.useCallback(
-    async (fileName: string) => {
+    (fileName: string) => {
       return fileBrowserState.files.find(file => file.name === fileName);
     },
     [fileBrowserState.files]
@@ -153,6 +153,18 @@ export default function useZarrMetadata() {
       if (areFileDataLoading) {
         return;
       }
+
+      log.info(
+        'Checking Zarr metadata\nareFileDataLoading:',
+        areFileDataLoading,
+        '\nfileBrowserState.currentFileSharePath:',
+        fileBrowserState.currentFileSharePath,
+        '\nfileBrowserState.currentFileOrFolder:',
+        fileBrowserState.currentFileOrFolder,
+        '\nfileBrowserState.files:',
+        fileBrowserState.files
+      );
+
       setMetadata(null);
       setOmeZarrUrl(null);
       setThumbnailSrc(null);
@@ -171,28 +183,34 @@ export default function useZarrMetadata() {
           fileBrowserState.currentFileOrFolder.path
         );
 
-        const zarrayFile = await getFile('.zarray');
+        const zarrayFile = getFile('.zarray');
         if (zarrayFile) {
           await checkZarrArray(imageUrl, 2, cancelRef);
         } else {
-          const zattrsFile = await getFile('.zattrs');
+          const zattrsFile = getFile('.zattrs');
           if (zattrsFile) {
             const attrs = (await fetchFileAsJson(
               fileBrowserState.currentFileSharePath.name,
               zattrsFile.path,
               cookies
             )) as any;
+            if (cancelRef.cancel) {
+              return;
+            }
             if (attrs.multiscales) {
               checkOmeZarrMetadata(imageUrl, 2, cancelRef);
             }
           } else {
-            const zarrJsonFile = await getFile('zarr.json');
+            const zarrJsonFile = getFile('zarr.json');
             if (zarrJsonFile) {
               const attrs = (await fetchFileAsJson(
                 fileBrowserState.currentFileSharePath.name,
                 zarrJsonFile.path,
                 cookies
               )) as any;
+              if (cancelRef.cancel) {
+                return;
+              }
               if (attrs.node_type === 'array') {
                 checkZarrArray(imageUrl, 3, cancelRef);
               } else if (attrs.node_type === 'group') {
@@ -262,6 +280,43 @@ export default function useZarrMetadata() {
     };
   }, [omeZarrUrl]);
 
+  // Determine layer type when thumbnail becomes available
+  React.useEffect(() => {
+    if (!thumbnailSrc || disableHeuristicalLayerTypeDetection) {
+      // Set default layer type if heuristics are disabled
+      if (disableHeuristicalLayerTypeDetection) {
+        setLayerType('image');
+      }
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const determineType = async (signal: AbortSignal) => {
+      try {
+        const determinedLayerType = await determineLayerType(
+          !disableHeuristicalLayerTypeDetection,
+          thumbnailSrc
+        );
+        if (signal.aborted) {
+          return;
+        }
+        setLayerType(determinedLayerType);
+      } catch (error) {
+        if (!signal.aborted) {
+          console.error('Error determining layer type:', error);
+          setLayerType('image'); // Default fallback
+        }
+      }
+    };
+
+    determineType(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
+  }, [thumbnailSrc, disableHeuristicalLayerTypeDetection]);
+
   // Run tool url generation when the proxied path url or metadata changes
   React.useEffect(() => {
     // Always create openWithToolUrls data structure when metadata is available
@@ -269,12 +324,6 @@ export default function useZarrMetadata() {
       const url = externalDataUrl || dataUrl;
 
       (async () => {
-        const determinedLayerType = await getLayerType(
-          metadata,
-          !disableHeuristicalLayerTypeDetection
-        );
-        setLayerType(determinedLayerType);
-
         const openWithToolUrls = {
           copy: url || ''
         } as OpenWithToolUrls;
@@ -297,7 +346,7 @@ export default function useZarrMetadata() {
                   generateNeuroglancerStateForOmeZarr(
                     url,
                     metadata.zarrVersion,
-                    determinedLayerType,
+                    layerType || 'image',
                     metadata.multiscale,
                     metadata.arr,
                     metadata.omero
@@ -334,7 +383,7 @@ export default function useZarrMetadata() {
                 generateNeuroglancerStateForZarrArray(
                   url,
                   metadata.zarrVersion,
-                  determinedLayerType
+                  layerType || 'image'
                 );
             }
           } else {
@@ -355,7 +404,7 @@ export default function useZarrMetadata() {
     dataUrl,
     externalDataUrl,
     disableNeuroglancerStateGeneration,
-    disableHeuristicalLayerTypeDetection
+    layerType
   ]);
 
   return {

@@ -13,7 +13,11 @@ import {
   FolderFavorite,
   usePreferencesContext
 } from '@/contexts/PreferencesContext';
-import { getPreferredPathForDisplay, removeLastSegmentFromPath } from '@/utils';
+import {
+  getPreferredPathForDisplay,
+  makeBrowseLink,
+  removeLastSegmentFromPath
+} from '@/utils';
 
 type MissingFolderFavoriteDialogProps = {
   folderFavorite: FolderFavorite;
@@ -69,7 +73,10 @@ export default function MissingFolderFavoriteDialog({
                 );
                 if (result.success) {
                   navigate(
-                    `/browse/${folderFavorite.fsp.name}/${removeLastSegmentFromPath(folderFavorite.folderPath)}`
+                    makeBrowseLink(
+                      folderFavorite.fsp.name,
+                      removeLastSegmentFromPath(folderFavorite.folderPath)
+                    )
                   );
                   toast.success(`Deleted favorite folder ${displayPath}`);
                 } else {

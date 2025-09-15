@@ -17,6 +17,7 @@ type ZarrPreviewProps = {
   openWithToolUrls: OpenWithToolUrls | null;
   metadata: ZarrMetadata;
   thumbnailError: string | null;
+  layerType: 'auto' | 'image' | 'segmentation' | null;
 };
 
 export default function ZarrPreview({
@@ -24,7 +25,8 @@ export default function ZarrPreview({
   loadingThumbnail,
   openWithToolUrls,
   metadata,
-  thumbnailError
+  thumbnailError,
+  layerType
 }: ZarrPreviewProps): React.ReactNode {
   const [pendingNavigationUrl, setPendingNavigationUrl] = React.useState<
     string | null
@@ -88,7 +90,10 @@ export default function ZarrPreview({
           ) : null}
         </div>
         {metadata && 'arr' in metadata && (
-          <ZarrMetadataTable metadata={metadata as Metadata} />
+          <ZarrMetadataTable
+            metadata={metadata as Metadata}
+            layerType={layerType}
+          />
         )}
       </div>
     </div>

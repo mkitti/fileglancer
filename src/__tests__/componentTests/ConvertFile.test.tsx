@@ -83,7 +83,10 @@ describe('Convert File dialog', () => {
 
     server.use(
       http.post('http://localhost:3000/api/fileglancer/ticket', () => {
-        return HttpResponse.json({ error: 'Unknown error' }, { status: 500 });
+        return HttpResponse.json(
+          { error: 'Could not create ticket' },
+          { status: 500 }
+        );
       })
     );
 
@@ -99,7 +102,7 @@ describe('Convert File dialog', () => {
     );
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith(
-        'Error creating ticket: 500: Unknown error'
+        'Error creating ticket: Could not create ticket'
       );
     });
   });

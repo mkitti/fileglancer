@@ -42,7 +42,10 @@ describe('Data Link dialog', () => {
 
     server.use(
       http.post('http://localhost:3000/api/fileglancer/proxied-path', () => {
-        return HttpResponse.json({ error: 'Unknown error' }, { status: 500 });
+        return HttpResponse.json(
+          { error: 'Could not create data link' },
+          { status: 500 }
+        );
       })
     );
 
@@ -50,7 +53,7 @@ describe('Data Link dialog', () => {
     await user.click(screen.getByText('Create Data Link'));
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith(
-        'Error creating data link: 500: Unknown error'
+        'Error creating data link: Could not create data link'
       );
     });
   });
