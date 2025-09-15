@@ -151,7 +151,7 @@ export default function PropertiesDrawer({
               </div>
               <OverviewTable file={fileBrowserState.propertiesTarget} />
 
-              <div className="flex flex-col gap-2 max-w-full">
+              <div className="flex flex-col gap-2 min-w-[175px] max-w-full">
                 <div className="flex items-center gap-2 max-w-full">
                   <Switch
                     id="share-switch"
