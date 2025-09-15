@@ -45,7 +45,7 @@ export default function useNewFolderDialog() {
             )
           );
         } else {
-          throw toHttpError(response);
+          throw await toHttpError(response);
         }
       }
     } catch (error) {
