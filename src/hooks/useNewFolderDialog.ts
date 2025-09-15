@@ -46,13 +46,6 @@ export default function useNewFolderDialog() {
       } else {
         if (response.status === 403) {
           return handleError(new Error('Permission denied'));
-        } else if (response.status === 409) {
-          const body = await response.json();
-          return handleError(
-            new Error(
-              body.error || 'A file or directory with this name already exists'
-            )
-          );
         } else {
           throw await toHttpError(response);
         }
