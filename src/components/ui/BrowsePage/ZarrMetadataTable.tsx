@@ -8,6 +8,7 @@ import {
 
 type ZarrMetadataTableProps = {
   metadata: Metadata;
+  layerType: 'auto' | 'image' | 'segmentation' | null;
 };
 
 function getSizeString(shapes: number[][] | undefined) {
@@ -58,7 +59,8 @@ function getAxisData(metadata: Metadata) {
 }
 
 export default function ZarrMetadataTable({
-  metadata
+  metadata,
+  layerType
 }: ZarrMetadataTableProps) {
   const { zarrVersion, multiscale, shapes } = metadata;
   const axisData = getAxisData(metadata);
@@ -77,6 +79,12 @@ export default function ZarrMetadataTable({
             <td className="p-3 font-semibold">Zarr Version</td>
             <td className="p-3">{zarrVersion}</td>
           </tr>
+          {layerType ? (
+            <tr className="border-b border-surface-dark">
+              <td className="p-3 font-semibold">Content (auto-detected)</td>
+              <td className="p-3 capitalize">{layerType}</td>
+            </tr>
+          ) : null}
           {metadata.arr ? (
             <tr className="border-b border-surface-dark">
               <td className="p-3 font-semibold">Data Type</td>

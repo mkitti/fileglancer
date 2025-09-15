@@ -45,7 +45,8 @@ export default function FileBrowser({
     thumbnailSrc,
     openWithToolUrls,
     loadingThumbnail,
-    thumbnailError
+    thumbnailError,
+    layerType
   } = useZarrMetadata();
 
   // If current item is a file, render the FileViewer instead of the file browser
@@ -66,6 +67,7 @@ export default function FileBrowser({
           loadingThumbnail={loadingThumbnail}
           openWithToolUrls={openWithToolUrls}
           thumbnailError={thumbnailError}
+          layerType={layerType}
         />
       ) : null}
 

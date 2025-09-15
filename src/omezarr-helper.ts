@@ -351,7 +351,7 @@ function generateNeuroglancerStateForOmeZarr(
   }
 
   if (channels.length === 0) {
-    log.debug('No channels found in metadata, using default shader');
+    log.trace('No channels found in metadata, using default shader');
     const layer: Record<string, any> = {
       type: layerType,
       source: getNeuroglancerSource(dataUrl, zarrVersion),
@@ -436,7 +436,6 @@ async function getZarrArray(
   dataUrl: string,
   zarrVersion: 2 | 3
 ): Promise<zarr.Array<any>> {
-  log.debug('Getting Zarr array for', dataUrl);
   const store = new zarr.FetchStore(dataUrl);
   return await omezarr.getArray(store, '/', zarrVersion);
 }
@@ -449,12 +448,20 @@ async function getOmeZarrMetadata(dataUrl: string): Promise<Metadata> {
   const store = new zarr.FetchStore(dataUrl);
   const { arr, shapes, multiscale, omero, scales, zarr_version } =
     await omezarr.getMultiscaleWithArray(store, 0);
-  log.debug('Array: ', arr);
-  log.debug('Shapes: ', shapes);
-  log.debug('Multiscale: ', multiscale);
-  log.debug('Omero: ', omero);
-  log.debug('Scales: ', scales);
-  log.debug('Zarr version: ', zarr_version);
+  log.debug(
+    'Zarr version: ',
+    zarr_version,
+    '\nArray: ',
+    arr,
+    '\nShapes: ',
+    shapes,
+    '\nMultiscale: ',
+    multiscale,
+    '\nOmero: ',
+    omero,
+    '\nScales: ',
+    scales
+  );
 
   const metadata: Metadata = {
     arr,
@@ -500,141 +507,106 @@ async function getOmeZarrThumbnail(
 }
 
 /**
- * Fetches a chunk-aligned crop from a zarr array and analyzes all values
- * in the crop to compute the percentage of unique values. If the crop size
- * is smaller than the chunk size, only a single chunk is fetched.
- *
- * @param metadata - The metadata object containing the zarr array
- * @param cropSize - The size of the crop to take (default: 64)
- * @returns Promise<number> - The percentage of unique values in the cropped data
+ * Analyzes edge content in a thumbnail by shifting it 1 pixel to the right,
+ * subtracting from the original, and calculating the ratio of non-zero pixels.
+ * @param thumbnailDataUrl - Base64 data URL of the thumbnail image
+ * @returns Promise<number> - The ratio of edge pixels to total pixels
  */
-async function getPercentUniqueValues(
-  metadata: Metadata,
-  cropSize: number = 32
+async function analyzeThumbnailEdgeContent(
+  thumbnailDataUrl: string
 ): Promise<number> {
-  try {
-    const arr = metadata.arr;
-    const arrayShape = arr.shape;
-    const chunks = arr.chunks;
-    log.trace('Array shape:', arrayShape);
-    log.trace('Chunk sizes:', chunks);
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
 
-    // Calculate the center point of the array
-    const centerPoint = arrayShape.map(dimSize => Math.floor(dimSize / 2));
-    log.trace('Center point:', centerPoint);
+        // Get original image data
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        const origData = ctx.getImageData(0, 0, img.width, img.height);
 
-    // Align crop to chunk boundaries
-    const startIndices: number[] = [];
-    const endIndices: number[] = [];
+        // Clear canvas and draw shifted image (1 pixel to the right)
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 1, 0);
+        const shiftData = ctx.getImageData(0, 0, img.width, img.height);
 
-    for (let i = 0; i < arrayShape.length; i++) {
-      const chunkSize = chunks[i];
-      log.trace('Chunk size:', chunkSize);
-      const center = centerPoint[i];
-      log.trace('Center:', center);
+        let nonZeroPixels = 0;
+        const totalPixels = img.width * img.height;
 
-      // Find which chunk contains the center point
-      const centerChunkIndex = Math.floor(center / chunkSize);
-      log.trace('Center chunk index:', centerChunkIndex);
+        // Compare original and shifted images pixel by pixel
+        for (let i = 0; i < origData.data.length; i += 4) {
+          // Calculate difference for RGB channels (ignore alpha)
+          const rDiff = Math.abs(origData.data[i] - shiftData.data[i]);
+          const gDiff = Math.abs(origData.data[i + 1] - shiftData.data[i + 1]);
+          const bDiff = Math.abs(origData.data[i + 2] - shiftData.data[i + 2]);
 
-      // Calculate the start and end indices
-      startIndices[i] = centerChunkIndex * chunkSize;
-      log.trace('Start index:', startIndices[i]);
-      endIndices[i] = Math.min(startIndices[i] + cropSize, arrayShape[i]);
-      log.trace('End index:', endIndices[i]);
-    }
+          // If any channel has a significant difference, count as edge pixel
+          if (rDiff > 0 || gDiff > 0 || bDiff > 0) {
+            nonZeroPixels++;
+          }
+        }
 
-    // Create selection slice for the crop
-    const selection = startIndices.map((start, i) => [start, endIndices[i]]);
+        const edgeRatio = nonZeroPixels / totalPixels;
 
-    log.debug(
-      'Crop dimensions:',
-      selection.map(([start, end]) => end - start)
-    );
-
-    // Fetch the crop data using zarrita's get API
-    const cropSelection = selection.map(([start, end]) =>
-      zarr.slice(start, end)
-    );
-    const cropData = await zarr.get(arr, cropSelection);
-
-    // Convert to typed array for easier processing
-    let flatData: ArrayLike<number>;
-    if (
-      cropData.data instanceof ArrayBuffer ||
-      ArrayBuffer.isView(cropData.data)
-    ) {
-      flatData = new Float32Array(cropData.data as ArrayBuffer);
-    } else if (Array.isArray(cropData.data)) {
-      flatData = cropData.data as number[];
-    } else {
-      // Handle TypedArray case
-      flatData = cropData.data as ArrayLike<number>;
-    }
-    const totalValues = flatData.length;
-
-    log.debug('Total values in chunk-aligned crop:', totalValues);
-
-    // Analyze all values in the crop
-    const uniqueValues = new Set<number>();
-    for (let i = 0; i < totalValues; i++) {
-      const value = flatData[i];
-      if (!isNaN(value)) {
-        uniqueValues.add(value);
+        log.debug(
+          `Edge detection analysis: found ${nonZeroPixels} edge pixels out of ${totalPixels} total pixels`
+        );
+        resolve(edgeRatio);
+      } catch (error) {
+        reject(error);
       }
-    }
+    };
 
-    const uniqueCount = uniqueValues.size;
-    log.debug(
-      `Analyzed ${totalValues} values, found ${uniqueCount} unique values`
-    );
+    img.onerror = () => {
+      reject(new Error('Failed to load thumbnail image'));
+    };
 
-    return uniqueCount / totalValues;
-  } catch (error) {
-    log.error(
-      'Error fetching chunk-aligned crop for unique value analysis:',
-      error
-    );
-    throw error;
-  }
+    img.src = thumbnailDataUrl;
+  });
 }
 
 /**
- * Determines the layer type for the given metadata.
+ * Determines the layer type for the given OME-Zarr metadata.
  * If heuristical detection is disabled, returns "image".
- * If the image has multiple timepoints or multiple channels,
- * returns "image" without counting unique values.
+ * Uses thumbnail edge detection to determine if data is segmentation or image.
  *
- * Otherwise, analyzes unique values to determine if it's a segmentation or image.
- *
- * @param metadata - The metadata object containing the zarr array and multiscale info
- * @param useHeuristicalDetection - If true, skip heuristical detection and return "auto"
+ * @param useHeuristicalDetection - If true, skip heuristical detection and return "image"
+ * @param thumbnailDataUrl - Optional thumbnail data URL for edge content analysis
  * @returns Promise<LayerType> - The determined layer type
  */
-async function getLayerType(
-  metadata: Metadata,
-  useHeuristicalDetection = true
+async function determineLayerType(
+  useHeuristicalDetection = true,
+  thumbnailDataUrl?: string | null
 ): Promise<LayerType> {
+  const DEFAULT_LAYER_TYPE = 'image';
   try {
-    // If heuristical detection is disabled, return "auto"
     if (!useHeuristicalDetection) {
-      log.debug('Heuristical layer type detection is disabled, assuming image');
-      return 'image';
+      log.debug('Heuristical layer type detection is disabled');
+    } else if (thumbnailDataUrl) {
+      try {
+        const edgeRatio = await analyzeThumbnailEdgeContent(thumbnailDataUrl);
+        log.debug('Thumbnail edge detection ratio:', edgeRatio);
+        // Segmentation data typically has low edge ratio
+        const layerType = edgeRatio < 0.05 ? 'segmentation' : 'image';
+        log.debug(`Layer type set to ${layerType} based on edge analysis`);
+        return layerType;
+      } catch (error) {
+        log.error('Failed to analyze thumbnail edge content:', error);
+      }
+    } else {
+      log.debug('No thumbnail available, returning image');
     }
-
-    // If no multiple timepoints or channels, analyze unique values
-    const uniqueValuePercent = await getPercentUniqueValues(metadata);
-    log.debug('Percentage unique values:', uniqueValuePercent);
-
-    const layerType = uniqueValuePercent < 0.001 ? 'segmentation' : 'image';
-    log.debug('Determined layer type based on unique values:', layerType);
-
-    return layerType;
   } catch (error) {
     log.error('Error determining layer type:', error);
-    // Default to 'image' if we can't determine the type
-    return 'image';
   }
+  return DEFAULT_LAYER_TYPE;
 }
 
 export {
@@ -647,5 +619,6 @@ export {
   generateNeuroglancerStateForZarrArray,
   generateNeuroglancerStateForOmeZarr,
   translateUnitToNeuroglancer,
-  getLayerType
+  determineLayerType,
+  analyzeThumbnailEdgeContent
 };
