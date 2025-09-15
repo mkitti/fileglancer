@@ -17,16 +17,8 @@ export default function NewFolderButton({
 }: NewFolderButtonProps): JSX.Element {
   const [showNewFolderDialog, setShowNewFolderDialog] = React.useState(false);
   const { fileBrowserState } = useFileBrowserContext();
-  const { handleNewFolderSubmit, newName, setNewName } = useNewFolderDialog();
-
-  const isDuplicateName = React.useMemo(() => {
-    if (!newName.trim()) {
-      return false;
-    }
-    return fileBrowserState.files.some(
-      file => file.name.toLowerCase() === newName.trim().toLowerCase()
-    );
-  }, [newName, fileBrowserState.files]);
+  const { handleNewFolderSubmit, newName, setNewName, isDuplicateName } =
+    useNewFolderDialog();
 
   const isSubmitDisabled = !newName.trim() || isDuplicateName;
 

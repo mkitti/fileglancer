@@ -13,6 +13,15 @@ export default function useNewFolderDialog() {
   const { currentFileOrFolder, currentFileSharePath } = fileBrowserState;
   const { cookies } = useCookiesContext();
 
+  const isDuplicateName = React.useMemo(() => {
+    if (!newName.trim()) {
+      return false;
+    }
+    return fileBrowserState.files.some(
+      file => file.name.toLowerCase() === newName.trim().toLowerCase()
+    );
+  }, [newName, fileBrowserState.files]);
+
   async function handleNewFolderSubmit(): Promise<Result<void>> {
     if (!currentFileSharePath) {
       return handleError(new Error('No file share path selected.'));
@@ -56,6 +65,7 @@ export default function useNewFolderDialog() {
   return {
     handleNewFolderSubmit,
     newName,
-    setNewName
+    setNewName,
+    isDuplicateName
   };
 }
