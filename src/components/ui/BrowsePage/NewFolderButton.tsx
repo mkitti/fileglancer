@@ -20,7 +20,9 @@ export default function NewFolderButton({
   const { handleNewFolderSubmit, newName, setNewName } = useNewFolderDialog();
 
   const isDuplicateName = React.useMemo(() => {
-    if (!newName.trim()) return false;
+    if (!newName.trim()) {
+      return false;
+    }
     return fileBrowserState.files.some(
       file => file.name.toLowerCase() === newName.trim().toLowerCase()
     );
