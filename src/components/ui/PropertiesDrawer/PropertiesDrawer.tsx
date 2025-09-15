@@ -150,43 +150,44 @@ export default function PropertiesDrawer({
                 </IconButton>
               </div>
               <OverviewTable file={fileBrowserState.propertiesTarget} />
-
-              <div className="flex flex-col gap-2 min-w-[175px] max-w-full">
-                <div className="flex items-center gap-2 max-w-full">
-                  <Switch
-                    id="share-switch"
-                    className="bg-secondary-light border-secondary-light hover:!bg-secondary-light/80 hover:!border-secondary-light/80"
-                    onChange={() => {
-                      setShowDataLinkDialog(true);
-                    }}
-                    checked={externalDataUrl || proxiedPath ? true : false}
-                    disabled={
-                      externalDataUrl || (automaticDataLinks && metadata)
-                        ? true
-                        : false
-                    }
-                  />
+              {fileBrowserState.propertiesTarget.is_dir ? (
+                <div className="flex flex-col gap-2 min-w-[175px] max-w-full">
+                  <div className="flex items-center gap-2 max-w-full">
+                    <Switch
+                      id="share-switch"
+                      className="bg-secondary-light border-secondary-light hover:!bg-secondary-light/80 hover:!border-secondary-light/80"
+                      onChange={() => {
+                        setShowDataLinkDialog(true);
+                      }}
+                      checked={externalDataUrl || proxiedPath ? true : false}
+                      disabled={
+                        externalDataUrl || (automaticDataLinks && metadata)
+                          ? true
+                          : false
+                      }
+                    />
+                    <Typography
+                      as="label"
+                      htmlFor="share-switch"
+                      className={`${externalDataUrl ? 'cursor-default' : 'cursor-pointer'} text-foreground font-semibold`}
+                    >
+                      {proxiedPath ? 'Delete data link' : 'Create data link'}
+                    </Typography>
+                  </div>
                   <Typography
-                    as="label"
-                    htmlFor="share-switch"
-                    className={`${externalDataUrl ? 'cursor-default' : 'cursor-pointer'} text-foreground font-semibold`}
+                    type="small"
+                    className="text-foreground whitespace-normal w-full"
                   >
-                    {proxiedPath ? 'Delete data link' : 'Create data link'}
+                    {externalDataUrl
+                      ? 'Public data link already exists since this data is on s3.janelia.org.'
+                      : automaticDataLinks && metadata
+                        ? 'Automatic data links for Zarr data are enabled in your preferences.'
+                        : proxiedPath
+                          ? 'Deleting the data link will remove data access for collaborators with the link.'
+                          : 'Creating a data link allows you to share the data at this path with internal collaborators or use tools to view the data.'}
                   </Typography>
                 </div>
-                <Typography
-                  type="small"
-                  className="text-foreground whitespace-normal w-full"
-                >
-                  {externalDataUrl
-                    ? 'Public data link already exists since this data is on s3.janelia.org.'
-                    : automaticDataLinks && metadata
-                      ? 'Automatic data links for Zarr data are enabled in your preferences.'
-                      : proxiedPath
-                        ? 'Deleting the data link will remove data access for collaborators with the link.'
-                        : 'Creating a data link allows you to share the data at this path with internal collaborators or use tools to view the data.'}
-                </Typography>
-              </div>
+              ) : null}
             </Tabs.Panel>
 
             {/*Permissions panel*/}
