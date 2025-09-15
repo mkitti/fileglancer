@@ -19,7 +19,6 @@ import { HiOutlineFolder, HiOutlineBriefcase } from 'react-icons/hi2';
 import { TbBrandGithub } from 'react-icons/tb';
 
 import ProfileMenu from './ProfileMenu';
-import { BetaSticker } from '@/components/ui/Beta';
 import useTheme from '@/hooks/useTheme';
 import { trackEvent } from '@/utils/fathom';
 
@@ -137,7 +136,6 @@ export default function FileglancerNavbar() {
               </Typography>
             </div>
           </Link>
-          <BetaSticker />
         </div>
 
         {/* Desktop menu links */}
