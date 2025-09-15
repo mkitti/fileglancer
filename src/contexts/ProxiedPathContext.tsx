@@ -196,7 +196,7 @@ export const ProxiedPathProvider = ({
           cookies['_xsrf']
         );
         if (!response.ok) {
-          throw toHttpError(response);
+          throw await toHttpError(response);
         } else {
           updateProxiedPath(null);
           return createSuccess(undefined);
