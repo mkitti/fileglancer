@@ -18,7 +18,8 @@ import {
 import { HiOutlineFolder, HiOutlineBriefcase } from 'react-icons/hi2';
 import { TbBrandGithub } from 'react-icons/tb';
 
-import ProfileMenu from './ProfileMenu';
+import ProfileMenu from '@/components/ui/Navbar/ProfileMenu';
+import FgTooltip from '@/components/ui/widgets/FgTooltip';
 import { BetaSticker } from '@/components/ui/Beta';
 import useTheme from '@/hooks/useTheme';
 import { trackEvent } from '@/utils/fathom';
@@ -149,53 +150,61 @@ export default function FileglancerNavbar() {
 
         {/* Theme toggle and profile dropdown menu */}
         <div className="flex items-center gap-1">
-          <IconButton
-            as={Link}
-            to="https://github.com/JaneliaSciComp/fileglancer"
-            target="_blank"
-            rel="noopener noreferrer"
-            size="sm"
-            variant="ghost"
-            color="secondary"
-            onClick={() => trackEvent({ eventId: 'navbar_github_click' })}
-            className="text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
-          >
-            <TbBrandGithub className="icon-large short:icon-default" />
-          </IconButton>
-          <IconButton
-            size="sm"
-            variant="ghost"
-            color="secondary"
-            className="text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
-            onClick={() => {
-              trackEvent({ eventId: 'navbar_theme_toggle_click' });
-              toggleTheme();
-            }}
-          >
-            {isLightTheme ? (
-              <HiOutlineSun className="stroke-2 icon-large short:icon-default" />
-            ) : (
-              <HiOutlineMoon className="stroke-2 icon-large short:icon-default" />
-            )}
-          </IconButton>
-          <ProfileMenu />
+          <FgTooltip label="GitHub">
+            <IconButton
+              as={Link}
+              to="https://github.com/JaneliaSciComp/fileglancer"
+              target="_blank"
+              rel="noopener noreferrer"
+              size="sm"
+              variant="ghost"
+              color="secondary"
+              onClick={() => trackEvent({ eventId: 'navbar_github_click' })}
+              className="text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
+            >
+              <TbBrandGithub className="icon-large short:icon-default" />
+            </IconButton>
+          </FgTooltip>
+          <FgTooltip label="Toggle light/dark themes">
+            <IconButton
+              size="sm"
+              variant="ghost"
+              color="secondary"
+              className="text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
+              onClick={() => {
+                trackEvent({ eventId: 'navbar_theme_toggle_click' });
+                toggleTheme();
+              }}
+            >
+              {isLightTheme ? (
+                <HiOutlineSun className="stroke-2 icon-large short:icon-default" />
+              ) : (
+                <HiOutlineMoon className="stroke-2 icon-large short:icon-default" />
+              )}
+            </IconButton>
+          </FgTooltip>
+          <FgTooltip label="Profile & settings">
+            <ProfileMenu />
+          </FgTooltip>
           {/* Mobile menu links button */}
-          <IconButton
-            size="sm"
-            variant="ghost"
-            color="secondary"
-            onClick={() => {
-              trackEvent({ eventId: 'navbar_mobile_menu_toggle_click' });
-              setOpenNav(!openNav);
-            }}
-            className="mr-2 text-foreground hover:!text-foreground focus:!text-foreground lg:hidden hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
-          >
-            {openNav ? (
-              <HiOutlineX className="stroke-2 icon-large short:icon-default" />
-            ) : (
-              <HiOutlineMenu className="stroke-2 icon-large short:icon-default" />
-            )}
-          </IconButton>
+          <FgTooltip label="Navigation menu">
+            <IconButton
+              size="sm"
+              variant="ghost"
+              color="secondary"
+              onClick={() => {
+                trackEvent({ eventId: 'navbar_mobile_menu_toggle_click' });
+                setOpenNav(!openNav);
+              }}
+              className="mr-2 text-foreground hover:!text-foreground focus:!text-foreground lg:hidden hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
+            >
+              {openNav ? (
+                <HiOutlineX className="stroke-2 icon-large short:icon-default" />
+              ) : (
+                <HiOutlineMenu className="stroke-2 icon-large short:icon-default" />
+              )}
+            </IconButton>
+          </FgTooltip>
         </div>
       </Navbar>
       <Collapse open={openNav} className="bg-background">
