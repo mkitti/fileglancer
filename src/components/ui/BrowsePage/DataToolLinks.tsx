@@ -29,13 +29,18 @@ export default function DataToolLinks({
   const [showCopiedTooltip, setShowCopiedTooltip] = React.useState(false);
   const { automaticDataLinks } = usePreferencesContext();
 
-  const handleCopyUrl = async () => {
-    if (urls?.copy) {
-      await copyToClipboard(urls.copy);
-      setShowCopiedTooltip(true);
-      setTimeout(() => {
-        setShowCopiedTooltip(false);
-      }, 2000);
+  const handleCopyUrl = async (event: React.MouseEvent) => {
+    if (!proxiedPath && !automaticDataLinks && setPendingNavigationUrl) {
+      event.preventDefault();
+      setShowDataLinkDialog(true);
+    } else {
+      if (urls?.copy) {
+        await copyToClipboard(urls.copy);
+        setShowCopiedTooltip(true);
+        setTimeout(() => {
+          setShowCopiedTooltip(false);
+        }, 2000);
+      }
     }
   };
 
@@ -153,7 +158,7 @@ export default function DataToolLinks({
             variant="ghost"
             triggerClasses={tooltipTriggerClasses}
             label={showCopiedTooltip ? 'Copied!' : 'Copy data URL'}
-            onClick={handleCopyUrl}
+            onClick={e => handleCopyUrl(e)}
             openCondition={showCopiedTooltip ? true : undefined}
           >
             <img
