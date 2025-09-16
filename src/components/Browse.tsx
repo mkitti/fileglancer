@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useOutletContext } from 'react-router';
-
+import { default as log } from '@/logger';
 import type { OutletContextType } from '@/layouts/BrowseLayout';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import FileBrowser from './ui/BrowsePage/FileBrowser';
@@ -49,11 +49,11 @@ export default function Browse() {
       tabIndex={0}
       data-browse-container
       onPaste={async event => {
-        console.log('React paste event fired!', event);
+        log.debug('React paste event fired!', event);
 
         // Check if any input, textarea, or contenteditable element is focused
         const activeElement = document.activeElement;
-        console.log('Active element:', activeElement);
+        log.debug('Active element:', activeElement);
 
         const isTextInputFocused =
           activeElement &&
@@ -61,28 +61,28 @@ export default function Browse() {
             activeElement.tagName === 'TEXTAREA' ||
             activeElement.getAttribute('contenteditable') === 'true');
 
-        console.log('Is text input focused:', isTextInputFocused);
+        log.debug('Is text input focused:', isTextInputFocused);
 
         // Only handle paste if no text input is focused
         if (!isTextInputFocused) {
-          console.log('Handling paste event');
+          log.debug('Handling paste event');
           event.preventDefault();
 
           try {
             const clipboardText = await navigator.clipboard.readText();
-            console.log('Clipboard text (API):', clipboardText);
+            log.debug('Clipboard text (API):', clipboardText);
             setPastedPath(clipboardText);
             setShowNavigationDialog(true);
           } catch (error) {
-            console.log('Clipboard API failed, using fallback:', error);
+            log.debug('Clipboard API failed, using fallback:', error);
             // Fallback to event.clipboardData if clipboard API fails
             const clipboardText = event.clipboardData?.getData('text') || '';
-            console.log('Clipboard text (fallback):', clipboardText);
+            log.debug('Clipboard text (fallback):', clipboardText);
             setPastedPath(clipboardText);
             setShowNavigationDialog(true);
           }
         } else {
-          console.log('Text input is focused, ignoring paste');
+          log.debug('Text input is focused, ignoring paste');
         }
       }}
     >
