@@ -313,7 +313,7 @@ function Table<TData>({
           <div className="flex items-center gap-1">
             <Typography variant="small">Page</Typography>
             <Typography variant="small" className="font-bold">
-              {table.getState().pagination.pageIndex === 0
+              {table.getPageCount() === 0
                 ? 0
                 : table.getState().pagination.pageIndex + 1}{' '}
               of {table.getPageCount().toLocaleString()}
