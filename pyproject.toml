@@ -136,8 +136,8 @@ pip-uninstall = "pip uninstall -y fileglancer"
 node-install = "npm install"
 node-build = "npm run build"
 node-eslint-check = "npx eslint . --cache --ext .ts,.tsx"
-node-prettier-check =  "npx prettier \"**/*{.ts,.tsx,.js,.jsx,.css,.json,.md}\" --check"
-node-prettier-write = "npx prettier --write '**/*.{ts,tsx,js,jsx,json,md}'"
+node-prettier-check =  "npx prettier \"**/*{.ts,.tsx,.js,.jsx,.css,.json,.md}\" \"!package-lock.json\" --check"
+node-prettier-write = "npx prettier --write '**/*.{ts,tsx,js,jsx,json,md}' '!package-lock.json'"
 node-check = "npx tsc --noEmit -p tsconfig.app.json"
 ext-overwrite = { cmd = "jupyter labextension develop . --overwrite" }
 ext-enable = { cmd = "jupyter server extension enable fileglancer", depends-on = ["ext-overwrite"] }
