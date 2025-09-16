@@ -278,11 +278,11 @@ function Table<TData>({
       ) : data && data.length > 0 ? (
         table.getRowModel().rows.map(row => (
           <TableRow key={row.id} gridColsClass={gridColsClass}>
-            {row
-              .getVisibleCells()
-              .map(cell =>
-                flexRender(cell.column.columnDef.cell, cell.getContext())
-              )}
+            {row.getVisibleCells().map(cell => (
+              <div key={cell.id}>
+                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+              </div>
+            ))}
           </TableRow>
         ))
       ) : !data || data.length === 0 ? (

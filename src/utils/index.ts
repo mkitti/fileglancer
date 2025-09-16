@@ -1,3 +1,4 @@
+import { default as log } from '@/logger';
 import {
   escapePathForUrl,
   getFileContentPath,
@@ -71,6 +72,7 @@ async function checkSessionValidity(xrsfCookie: string): Promise<boolean> {
     });
     return response.ok;
   } catch (error) {
+    log.error('Error checking session validity:', error);
     return false;
   }
 }
