@@ -271,9 +271,9 @@ function Table<TData>({
   });
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       <div
-        className={`grid ${gridColsClass} gap-4 px-4 py-2 border-b border-surface dark:border-foreground`}
+        className={`shrink-0 grid ${gridColsClass} gap-4 px-4 py-2 border-b border-surface dark:border-foreground`}
       >
         {table
           .getHeaderGroups()
@@ -289,15 +289,17 @@ function Table<TData>({
       {loadingState ? (
         <TableRowSkeleton gridColsClass={gridColsClass} />
       ) : data && data.length > 0 ? (
-        table.getRowModel().rows.map(row => (
-          <TableRow key={row.id} gridColsClass={gridColsClass}>
-            {row
-              .getVisibleCells()
-              .map(cell =>
-                flexRender(cell.column.columnDef.cell, cell.getContext())
-              )}
-          </TableRow>
-        ))
+        <div className="max-h-full overflow-y-auto">
+          {table.getRowModel().rows.map(row => (
+            <TableRow key={row.id} gridColsClass={gridColsClass}>
+              {row
+                .getVisibleCells()
+                .map(cell =>
+                  flexRender(cell.column.columnDef.cell, cell.getContext())
+                )}
+            </TableRow>
+          ))}
+        </div>
       ) : !data || data.length === 0 ? (
         <div className="px-4 py-8 text-center text-foreground">
           {emptyText || 'No data available'}
@@ -308,7 +310,7 @@ function Table<TData>({
         </div>
       )}
       {/* https://tanstack.com/table/latest/docs/framework/react/examples/pagination */}
-      <div className="flex items-center gap-2 py-2 px-4">
+      <div className="shrink-0 flex items-center gap-2 py-2 px-4">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">
             <Typography variant="small">Page</Typography>
@@ -362,7 +364,7 @@ function Table<TData>({
           </Select>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -375,7 +377,7 @@ function TableCard<TData>({
   enableColumnSearch
 }: TableProps<TData>) {
   return (
-    <Card className="min-h-32 overflow-y-auto">
+    <Card className="min-h-48">
       <Table
         columns={columns}
         data={data}
