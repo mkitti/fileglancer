@@ -8,12 +8,9 @@ import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 export default function RecentDataLinksCard() {
   const { allProxiedPaths, loadingProxiedPaths } = useProxiedPathContext();
 
-  // Get the 10 most recent data links
-  const recentDataLinks = allProxiedPaths?.slice(0, 10) || [];
-
   return (
     <DashboardCard title="Recently created data links">
-      {recentDataLinks.length === 0 ? (
+      {allProxiedPaths.length === 0 ? (
         <div className="px-4 pt-4 flex flex-col gap-4">
           <Typography className="text-muted-foreground">
             No data links created yet.
@@ -30,7 +27,7 @@ export default function RecentDataLinksCard() {
       ) : (
         <Table
           columns={linksColumns}
-          data={recentDataLinks || []}
+          data={allProxiedPaths || []}
           gridColsClass="grid-cols-[1.5fr_2.5fr_1.5fr_1fr_1fr]"
           loadingState={loadingProxiedPaths}
           emptyText="No shared paths."
