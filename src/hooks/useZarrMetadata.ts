@@ -127,17 +127,6 @@ export default function useZarrMetadata() {
         return;
       }
 
-      log.info(
-        'Checking Zarr metadata\nareFileDataLoading:',
-        areFileDataLoading,
-        '\nfileBrowserState.currentFileSharePath:',
-        fileBrowserState.currentFileSharePath,
-        '\nfileBrowserState.currentFileOrFolder:',
-        fileBrowserState.currentFileOrFolder,
-        '\nfileBrowserState.files:',
-        fileBrowserState.files
-      );
-
       setMetadata(null);
       setOmeZarrUrl(null);
       setThumbnailSrc(null);
