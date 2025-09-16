@@ -4,14 +4,27 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
+  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
   type Header,
   type SortingState
 } from '@tanstack/react-table';
-import { Card, Input, Tooltip } from '@material-tailwind/react';
 import {
+  ButtonGroup,
+  Card,
+  IconButton,
+  Input,
+  Select,
+  Tooltip,
+  Typography
+} from '@material-tailwind/react';
+import {
+  HiChevronDoubleLeft,
+  HiChevronLeft,
+  HiChevronDoubleRight,
+  HiChevronRight,
   HiSortAscending,
   HiSortDescending,
   HiOutlineSwitchVertical,
@@ -253,7 +266,8 @@ function Table<TData>({
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel()
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel()
   });
 
   return (
@@ -271,7 +285,6 @@ function Table<TData>({
             )
           )}
       </div>
-
       {/* Body */}
       {loadingState ? (
         <TableRowSkeleton gridColsClass={gridColsClass} />
@@ -294,6 +307,62 @@ function Table<TData>({
           There was an error loading the data.
         </div>
       )}
+      {/* https://tanstack.com/table/latest/docs/framework/react/examples/pagination */}
+      <div className="flex items-center gap-2 py-2 px-4">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <Typography variant="small">Page</Typography>
+            <Typography variant="small" className="font-bold">
+              {table.getState().pagination.pageIndex === 0
+                ? 0
+                : table.getState().pagination.pageIndex + 1}{' '}
+              of {table.getPageCount().toLocaleString()}
+            </Typography>
+          </div>
+          <ButtonGroup variant="ghost">
+            <IconButton
+              onClick={() => table.firstPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              <HiChevronDoubleLeft className="icon-default" />
+            </IconButton>
+            <IconButton
+              // className="border rounded p-1"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              <HiChevronLeft className="icon-default" />
+            </IconButton>
+            <IconButton
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              <HiChevronRight className="icon-default" />
+            </IconButton>
+            <IconButton
+              onClick={() => table.lastPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              <HiChevronDoubleRight className="icon-default" />
+            </IconButton>
+          </ButtonGroup>
+        </div>
+        <div>
+          <Select
+            value={table.getState().pagination.pageSize.toString()}
+            onValueChange={(value: string) => {
+              table.setPageSize(Number(value));
+            }}
+          >
+            <Select.Trigger placeholder="Page size" />
+            <Select.List>
+              {['10', '20', '30', '40', '50'].map(pageSize => (
+                <Select.Option value={pageSize}>{pageSize}/page</Select.Option>
+              ))}
+            </Select.List>
+          </Select>
+        </div>
+      </div>
     </>
   );
 }
