@@ -283,7 +283,7 @@ export default function useZarrMetadata() {
   // Run tool url generation when the proxied path url or metadata changes
   React.useEffect(() => {
     setOpenWithToolUrls(null);
-    console.log(
+    log.debug(
       'Updating OpenWithToolUrls with metadata ',
       metadata,
       '\n  and dataUrl ',
