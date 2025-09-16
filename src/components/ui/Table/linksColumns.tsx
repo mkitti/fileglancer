@@ -167,10 +167,10 @@ export const linksColumns: ColumnDef<ProxiedPath>[] = [
   {
     accessorKey: 'sharing_name',
     header: 'Name',
-    cell: ({ row }) => {
+    cell: ({ cell, row }) => {
       const item = row.original;
       return (
-        <div className="min-w-0 max-w-full">
+        <div className="min-w-0 max-w-full" key={cell.id}>
           <FgTooltip
             label={item.sharing_name}
             triggerClasses={tooltipTriggerClasses}
@@ -189,7 +189,7 @@ export const linksColumns: ColumnDef<ProxiedPath>[] = [
   {
     accessorKey: 'path',
     header: 'File Path',
-    cell: ({ row }) => <PathCell item={row.original} />,
+    cell: ({ cell, row }) => <PathCell item={row.original} key={cell.id} />,
     enableSorting: true,
     enableColumnFilter: true,
     filterFn: pathFilter
@@ -197,10 +197,10 @@ export const linksColumns: ColumnDef<ProxiedPath>[] = [
   {
     accessorKey: 'created_at',
     header: 'Date Created',
-    cell: ({ getValue }) => {
+    cell: ({ cell, getValue }) => {
       const dateString = getValue() as string;
       return (
-        <div className="min-w-0 max-w-full">
+        <div className="min-w-0 max-w-full" key={cell.id}>
           <FgTooltip
             label={formatDateString(dateString)}
             triggerClasses={tooltipTriggerClasses}
@@ -222,10 +222,10 @@ export const linksColumns: ColumnDef<ProxiedPath>[] = [
   {
     accessorKey: 'sharing_key',
     header: 'Key',
-    cell: ({ getValue }) => {
+    cell: ({ cell, getValue }) => {
       const key = getValue() as string;
       return (
-        <div className="min-w-0 max-w-full">
+        <div className="min-w-0 max-w-full" key={cell.id}>
           <FgTooltip label={key} triggerClasses={tooltipTriggerClasses}>
             <Typography className="text-foreground truncate">{key}</Typography>
           </FgTooltip>
@@ -239,7 +239,7 @@ export const linksColumns: ColumnDef<ProxiedPath>[] = [
   {
     id: 'actions',
     header: 'Actions',
-    cell: ({ row }) => <ActionsCell item={row.original} />,
+    cell: ({ cell, row }) => <ActionsCell item={row.original} key={cell.id} />,
     enableSorting: false
   }
 ];
