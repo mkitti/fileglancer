@@ -2,6 +2,8 @@ import os
 import json
 import requests
 import re
+import grp
+import pwd
 from datetime import datetime, timezone
 from abc import ABC
 from mimetypes import guess_type
@@ -56,6 +58,7 @@ def _get_mounted_filestore(fsp):
 
 class BaseHandler(APIHandler):
     _home_file_share_path_cache = {}
+    _groups_cache = {}
 
     def get_current_user(self):
         """
@@ -96,6 +99,36 @@ class BaseHandler(APIHandler):
 
         self._home_file_share_path_cache[key] = None
         return None
+
+
+    def get_user_groups(self):
+        """
+        Get the groups for the current user.
+        
+        Returns:
+            list: List of group names the user belongs to.
+        """
+        username = self.get_current_user()
+
+        if username in self._groups_cache:
+            return self._groups_cache[username]
+
+        try:
+            user_info = pwd.getpwnam(username)
+            user_groups = []
+            all_groups = grp.getgrall()  # Get all groups on the system
+            for group in all_groups:
+                if username in group.gr_mem:  # Check if user is a member of this group
+                    user_groups.append(group.gr_name)
+            primary_group = grp.getgrgid(user_info.pw_gid).gr_name
+            if primary_group not in user_groups: # Add primary group if not already included
+                user_groups.append(primary_group)
+            self._groups_cache[username] = user_groups
+            return user_groups
+        except Exception as e:
+            self.log.error(f"Error getting groups for user {username}: {str(e)}")
+            self._groups_cache[username] = []
+            return []
 
 
 class StreamingProxy(BaseHandler):
