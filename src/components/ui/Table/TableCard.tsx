@@ -327,7 +327,6 @@ function Table<TData>({
               <HiChevronDoubleLeft className="icon-default" />
             </IconButton>
             <IconButton
-              // className="border rounded p-1"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
             >
