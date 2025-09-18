@@ -47,7 +47,7 @@ function PathCell({ item }: { item: ProxiedPath }) {
   const browseLink = makeBrowseLink(item.fsp_name, item.path);
 
   return (
-    <div className="min-w-0 max-w-full">
+    <div className="min-w-0 max-w-full flex">
       <FgTooltip label={displayPath} triggerClasses={tooltipTriggerClasses}>
         <Typography
           as={FgStyledLink}
@@ -120,7 +120,7 @@ function ActionsCell({ item }: { item: ProxiedPath }) {
   };
 
   return (
-    <div className="min-w-0">
+    <div className="min-w-0 flex">
       <div onClick={e => e.stopPropagation()}>
         <DataLinksActionsMenu<ProxiedPathRowActionProps>
           menuItems={menuItems}
@@ -170,7 +170,7 @@ export const linksColumns: ColumnDef<ProxiedPath>[] = [
     cell: ({ cell, row }) => {
       const item = row.original;
       return (
-        <div className="min-w-0 max-w-full" key={cell.id}>
+        <div className="flex min-w-0 max-w-full" key={cell.id}>
           <FgTooltip
             label={item.sharing_name}
             triggerClasses={tooltipTriggerClasses}
@@ -200,7 +200,7 @@ export const linksColumns: ColumnDef<ProxiedPath>[] = [
     cell: ({ cell, getValue }) => {
       const dateString = getValue() as string;
       return (
-        <div className="min-w-0 max-w-full" key={cell.id}>
+        <div className="flex min-w-0 max-w-full" key={cell.id}>
           <FgTooltip
             label={formatDateString(dateString)}
             triggerClasses={tooltipTriggerClasses}
@@ -225,7 +225,7 @@ export const linksColumns: ColumnDef<ProxiedPath>[] = [
     cell: ({ cell, getValue }) => {
       const key = getValue() as string;
       return (
-        <div className="min-w-0 max-w-full" key={cell.id}>
+        <div className="flex min-w-0 max-w-full" key={cell.id}>
           <FgTooltip label={key} triggerClasses={tooltipTriggerClasses}>
             <Typography className="text-foreground truncate">{key}</Typography>
           </FgTooltip>
