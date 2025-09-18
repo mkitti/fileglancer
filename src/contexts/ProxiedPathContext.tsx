@@ -4,6 +4,7 @@ import { default as log } from '@/logger';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import { useExternalBucketContext } from './ExternalBucketContext';
 import { sendFetchRequest } from '@/utils';
 import type { Result } from '@/shared.types';
 import { createSuccess, handleError, toHttpError } from '@/utils/errorHandling';
@@ -70,6 +71,7 @@ export const ProxiedPathProvider = ({
   const { cookies } = useCookiesContext();
   const { fileBrowserState } = useFileBrowserContext();
   const { automaticDataLinks } = usePreferencesContext();
+  const { externalDataUrl } = useExternalBucketContext();
 
   const updateProxiedPath = React.useCallback(
     (proxiedPath: ProxiedPath | null) => {
@@ -258,12 +260,14 @@ export const ProxiedPathProvider = ({
   ]);
 
   // Automatically create proxied path when Zarr is detected and automaticDataLinks is enabled
+  // and no external data url exists
   React.useEffect(() => {
     (async function () {
       if (
         zarrDetected &&
         automaticDataLinks &&
         !proxiedPath &&
+        !externalDataUrl &&
         fileBrowserState.currentFileSharePath &&
         fileBrowserState.currentFileOrFolder
       ) {
@@ -283,6 +287,7 @@ export const ProxiedPathProvider = ({
     zarrDetected,
     automaticDataLinks,
     proxiedPath,
+    externalDataUrl,
     createProxiedPath,
     refreshProxiedPaths,
     fileBrowserState.currentFileSharePath,
