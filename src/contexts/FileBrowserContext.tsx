@@ -134,9 +134,7 @@ export const FileBrowserContextProvider = ({
   const navigate = useNavigate();
 
   const handleLeftClick = (
-    // e: React.MouseEvent<HTMLDivElement>,
     file: FileOrFolder,
-    // displayFiles: FileOrFolder[],
     showFilePropertiesDrawer: boolean
   ) => {
     // If clicking on a file (not directory), navigate to the file URL
@@ -149,38 +147,7 @@ export const FileBrowserContextProvider = ({
       return;
     }
 
-    // For directories, handle selection as before
-    // if (e.shiftKey) {
-    //   // If shift key held down while clicking,
-    //   // add all files between the last selected and the current file
-    //   const lastSelectedIndex = selectedFiles.length
-    //     ? displayFiles.findIndex(
-    //         f => f === selectedFiles[selectedFiles.length - 1]
-    //       )
-    //     : -1;
-    //   const currentIndex = displayFiles.findIndex(f => f.name === file.name);
-    //   const start = Math.min(lastSelectedIndex, currentIndex);
-    //   const end = Math.max(lastSelectedIndex, currentIndex);
-    //   const newSelectedFiles = displayFiles.slice(start, end + 1);
-    //   setSelectedFiles(newSelectedFiles);
-    //   setPropertiesTarget(file);
-    // } else if (e.metaKey) {
-    //   // If  "Windows/Cmd" is held down while clicking,
-    //   // toggle the current file in the selection
-    //   // and set it as the properties target
-    //   const currentIndex = selectedFiles.indexOf(file);
-    //   const newSelectedFiles = [...selectedFiles];
-
-    //   if (currentIndex === -1) {
-    //     newSelectedFiles.push(file);
-    //   } else {
-    //     newSelectedFiles.splice(currentIndex, 1);
-    //   }
-
-    //   setSelectedFiles(newSelectedFiles);
-    //   setPropertiesTarget(file);
-    // } else {
-    // If no modifier keys are held down, select the current file
+    // Select the clicked file
     const currentIndex = fileBrowserState.selectedFiles.indexOf(file);
     const newSelectedFiles =
       currentIndex === -1 ||
@@ -206,19 +173,6 @@ export const FileBrowserContextProvider = ({
   };
 
   const updateFilesWithContextMenuClick = (file: FileOrFolder) => {
-    // Update file selection - if file is not already selected, select it; otherwise keep current selection
-    // if (fileBrowserState.selectedFiles.length === 0) {
-    //   updateAllStates(
-    //     fileBrowserState.currentFileSharePath,
-    //     fileBrowserState.currentFolder,
-    //     fileBrowserState.files,
-    //     file, // Set as properties target
-    //     [file], // Select the clicked file
-    //     fileBrowserState.uiErrorMsg
-    //   );
-    //   return;
-    // }
-
     const currentIndex = fileBrowserState.selectedFiles.indexOf(file);
     const newSelectedFiles =
       currentIndex === -1 ? [file] : [...fileBrowserState.selectedFiles];

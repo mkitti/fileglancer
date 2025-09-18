@@ -14,12 +14,6 @@ git clone git@github.com:JaneliaSciComp/fileglancer.git
 cd fileglancer
 ```
 
-Copy the .env example and edit the environmental variable values for your setup:
-
-```bash
-cp .env.example .env
-```
-
 If this is your first time installing the extension in dev mode, install package in development mode.
 
 ```bash

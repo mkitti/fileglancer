@@ -127,17 +127,6 @@ export default function useZarrMetadata() {
         return;
       }
 
-      log.info(
-        'Checking Zarr metadata\nareFileDataLoading:',
-        areFileDataLoading,
-        '\nfileBrowserState.currentFileSharePath:',
-        fileBrowserState.currentFileSharePath,
-        '\nfileBrowserState.currentFileOrFolder:',
-        fileBrowserState.currentFileOrFolder,
-        '\nfileBrowserState.files:',
-        fileBrowserState.files
-      );
-
       setMetadata(null);
       setOmeZarrUrl(null);
       setThumbnailSrc(null);
@@ -294,7 +283,7 @@ export default function useZarrMetadata() {
   // Run tool url generation when the proxied path url or metadata changes
   React.useEffect(() => {
     setOpenWithToolUrls(null);
-    console.log(
+    log.debug(
       'Updating OpenWithToolUrls with metadata ',
       metadata,
       '\n  and dataUrl ',
