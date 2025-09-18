@@ -31,7 +31,12 @@ export default function DataToolLinks({
   const { externalDataUrl } = useExternalBucketContext();
 
   const handleCopyUrl = async (event: React.MouseEvent) => {
-    if (!proxiedPath && !automaticDataLinks && setPendingNavigationUrl) {
+    if (
+      !proxiedPath &&
+      !externalDataUrl &&
+      !automaticDataLinks &&
+      setPendingNavigationUrl
+    ) {
       event.preventDefault();
       setShowDataLinkDialog(true);
     } else {
