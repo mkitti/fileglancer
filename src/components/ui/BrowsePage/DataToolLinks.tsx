@@ -151,7 +151,7 @@ export default function DataToolLinks({
               to={urls.validator}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={e => handleLinkClick(urls.validator!, e)}
+              onClick={e => handleLinkClick(urls.validator, e)}
             >
               <img
                 src={validator_logo}
