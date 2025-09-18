@@ -71,7 +71,6 @@ export default function ZarrPreview({
           {openWithToolUrls || externalDataUrl ? (
             <DataToolLinks
               title="Open with:"
-              proxiedPath={proxiedPath}
               urls={openWithToolUrls as OpenWithToolUrls}
               setShowDataLinkDialog={setShowDataLinkDialog}
               setPendingNavigationUrl={setPendingNavigationUrl}

@@ -8,26 +8,27 @@ import volE_logo from '@/assets/aics_website-3d-cell-viewer.png';
 import avivator_logo from '@/assets/vizarr_logo.png';
 import copy_logo from '@/assets/copy-link-64.png';
 import type { OpenWithToolUrls } from '@/hooks/useZarrMetadata';
-import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 import { copyToClipboard } from '@/utils/copyText';
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
+import { useExternalBucketContext } from '@/contexts/ExternalBucketContext';
 
 export default function DataToolLinks({
   title,
-  proxiedPath,
   urls,
   setShowDataLinkDialog,
   setPendingNavigationUrl
 }: {
   title: string;
-  proxiedPath: ProxiedPath | null;
   urls: OpenWithToolUrls | null;
   setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
   setPendingNavigationUrl?: React.Dispatch<React.SetStateAction<string | null>>;
 }): React.ReactNode {
   const [showCopiedTooltip, setShowCopiedTooltip] = React.useState(false);
   const { automaticDataLinks } = usePreferencesContext();
+  const { proxiedPath } = useProxiedPathContext();
+  const { externalDataUrl } = useExternalBucketContext();
 
   const handleCopyUrl = async (event: React.MouseEvent) => {
     if (!proxiedPath && !automaticDataLinks && setPendingNavigationUrl) {
