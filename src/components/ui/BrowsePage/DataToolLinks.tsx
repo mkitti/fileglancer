@@ -45,7 +45,12 @@ export default function DataToolLinks({
   };
 
   const handleLinkClick = (url: string | null, event: React.MouseEvent) => {
-    if (!proxiedPath && !automaticDataLinks && setPendingNavigationUrl) {
+    if (
+      !proxiedPath &&
+      !externalDataUrl &&
+      !automaticDataLinks &&
+      setPendingNavigationUrl
+    ) {
       event.preventDefault();
       setPendingNavigationUrl(url);
       setShowDataLinkDialog(true);
