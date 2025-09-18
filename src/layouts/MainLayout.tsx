@@ -13,7 +13,6 @@ import { ExternalBucketProvider } from '@/contexts/ExternalBucketContext';
 import { ProfileContextProvider } from '@/contexts/ProfileContext';
 import { NotificationProvider } from '@/contexts/NotificationsContext';
 import FileglancerNavbar from '@/components/ui/Navbar/Navbar';
-import { BetaBanner } from '@/components/ui/Beta';
 import Notifications from '@/components/ui/Notifications/Notifications';
 import ErrorFallback from '@/components/ErrorFallback';
 
@@ -44,7 +43,6 @@ export const MainLayout = () => {
                           <div className="flex-shrink-0 w-full">
                             <FileglancerNavbar />
                             <Notifications />
-                            <BetaBanner />
                           </div>
                           <div className="flex flex-col items-center flex-1 w-full overflow-hidden">
                             <ErrorBoundary FallbackComponent={ErrorFallback}>
