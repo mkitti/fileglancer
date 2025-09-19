@@ -54,6 +54,11 @@ export const handlers = [
         return HttpResponse.json({
           value: []
         });
+      } else {
+        // Fallback for any unhandled preferences
+        return HttpResponse.json({
+          value: null
+        });
       }
     }
   ),
@@ -182,6 +187,11 @@ export const handlers = [
       description: 'Test description',
       comments: []
     });
+  }),
+
+  // External bucket
+  http.get('http://localhost:3000/api/fileglancer/external-bucket', () => {
+    return HttpResponse.json({ buckets: [] }, { status: 200 });
   }),
 
   //Profile
