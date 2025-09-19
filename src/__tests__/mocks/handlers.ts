@@ -4,19 +4,22 @@ import { http, HttpResponse } from 'msw';
 
 export const handlers = [
   // Proxied paths
-  http.get('http://localhost:3000/api/fileglancer/proxied-path', ({ request }) => {
-    const url = new URL(request.url);
-    const fspName = url.searchParams.get('fsp_name');
-    const path = url.searchParams.get('path');
+  http.get(
+    'http://localhost:3000/api/fileglancer/proxied-path',
+    ({ request }) => {
+      const url = new URL(request.url);
+      const fspName = url.searchParams.get('fsp_name');
+      const path = url.searchParams.get('path');
 
-    // If query params are provided, simulate no existing proxied path (for fetchProxiedPath)
-    if (fspName && path) {
+      // If query params are provided, simulate no existing proxied path (for fetchProxiedPath)
+      if (fspName && path) {
+        return HttpResponse.json({ paths: [] }, { status: 200 });
+      }
+
+      // Default case for fetching all proxied paths
       return HttpResponse.json({ paths: [] }, { status: 200 });
     }
-
-    // Default case for fetching all proxied paths
-    return HttpResponse.json({ paths: [] }, { status: 200 });
-  }),
+  ),
 
   http.post('http://localhost:3000/api/fileglancer/proxied-path', () => {
     return HttpResponse.json({
@@ -129,12 +132,9 @@ export const handlers = [
   ),
   // Default to successful PATCH request for permission changes
   // 204 = successful, no content in response
-  http.patch(
-    'http://localhost:3000/api/fileglancer/files/:fspName',
-    ({ request }) => {
-      return HttpResponse.json(null, { status: 204 });
-    }
-  ),
+  http.patch('http://localhost:3000/api/fileglancer/files/:fspName', () => {
+    return HttpResponse.json(null, { status: 204 });
+  }),
   http.delete('http://localhost:3000/api/fileglancer/files/:fspName', () => {
     return HttpResponse.json(null, { status: 200 });
   }),
