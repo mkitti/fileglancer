@@ -29,7 +29,6 @@ type ProxiedPathContextType = {
   deleteProxiedPath: (proxiedPath: ProxiedPath) => Promise<Result<void>>;
   refreshProxiedPaths: () => Promise<Result<ProxiedPath[] | void>>;
   fetchProxiedPath: () => Promise<Result<ProxiedPath | void>>;
-  notifyZarrDetected: () => void;
 };
 
 function sortProxiedPathsByDate(paths: ProxiedPath[]): ProxiedPath[] {
@@ -67,7 +66,6 @@ export const ProxiedPathProvider = ({
     null
   );
   const [dataUrl, setDataUrl] = React.useState<string | null>(null);
-  const [zarrDetected, setZarrDetected] = React.useState<boolean>(false);
   const { cookies } = useCookiesContext();
   const { fileBrowserState } = useFileBrowserContext();
   const { areDataLinksAutomatic } = usePreferencesContext();
@@ -217,10 +215,6 @@ export const ProxiedPathProvider = ({
     [cookies, updateProxiedPath]
   );
 
-  const notifyZarrDetected = React.useCallback(() => {
-    setZarrDetected(true);
-  }, []);
-
   React.useEffect(() => {
     (async function () {
       setLoadingProxiedPaths(true);
@@ -243,47 +237,11 @@ export const ProxiedPathProvider = ({
         updateProxiedPath(null);
       }
     })();
-    // Reset zarrDetected when navigating to a new file/folder
-    setZarrDetected(false);
   }, [
     fileBrowserState.currentFileSharePath,
     fileBrowserState.currentFileOrFolder,
     fetchProxiedPath,
     updateProxiedPath
-  ]);
-
-  // Automatically create proxied path when Zarr is detected and areDataLinksAutomatic is true
-  // and no external data url exists
-  React.useEffect(() => {
-    (async function () {
-      if (
-        zarrDetected &&
-        areDataLinksAutomatic &&
-        !proxiedPath &&
-        !externalDataUrl &&
-        fileBrowserState.currentFileSharePath &&
-        fileBrowserState.currentFileOrFolder
-      ) {
-        const result = await createProxiedPath();
-        if (result.success) {
-          await refreshProxiedPaths();
-        } else {
-          log.error(
-            'Error auto-creating proxied path for Zarr file',
-            result.error
-          );
-        }
-      }
-    })();
-  }, [
-    zarrDetected,
-    areDataLinksAutomatic,
-    proxiedPath,
-    externalDataUrl,
-    createProxiedPath,
-    refreshProxiedPaths,
-    fileBrowserState.currentFileSharePath,
-    fileBrowserState.currentFileOrFolder
   ]);
 
   return (
@@ -296,8 +254,7 @@ export const ProxiedPathProvider = ({
         createProxiedPath,
         deleteProxiedPath,
         refreshProxiedPaths,
-        fetchProxiedPath,
-        notifyZarrDetected
+        fetchProxiedPath
       }}
     >
       {children}

@@ -47,23 +47,13 @@ export default function useZarrMetadata() {
   >(null);
 
   const { fileBrowserState, areFileDataLoading } = useFileBrowserContext();
-  const { dataUrl, notifyZarrDetected } = useProxiedPathContext();
+  const { dataUrl } = useProxiedPathContext();
   const { externalDataUrl } = useExternalBucketContext();
   const {
     disableNeuroglancerStateGeneration,
     disableHeuristicalLayerTypeDetection
   } = usePreferencesContext();
   const [cookies] = useCookies(['_xsrf']);
-
-  const notifyZarrDetectedOnce = React.useCallback((): void => {
-    if (fileBrowserState.currentFileOrFolder) {
-      const currentPath = fileBrowserState.currentFileOrFolder.path;
-      if (notifiedPathRef.current !== currentPath) {
-        notifyZarrDetected();
-        notifiedPathRef.current = currentPath;
-      }
-    }
-  }, [fileBrowserState.currentFileOrFolder, notifyZarrDetected]);
 
   const checkZarrArray = React.useCallback(
     async (
@@ -92,8 +82,6 @@ export default function useZarrMetadata() {
           scales: undefined,
           zarrVersion: zarrVersion
         });
-        // Notify proxied path context that Zarr has been detected - but only once per path
-        notifyZarrDetectedOnce();
       } catch (error) {
         log.error('Error fetching Zarr array:', error);
         if (cancelRef.cancel) {
@@ -102,7 +90,7 @@ export default function useZarrMetadata() {
         setThumbnailError('Error fetching Zarr array');
       }
     },
-    [notifyZarrDetectedOnce]
+    []
   );
 
   const checkOmeZarrMetadata = React.useCallback(
@@ -126,8 +114,6 @@ export default function useZarrMetadata() {
         }
         setMetadata(metadata);
         setLoadingThumbnail(true);
-        // Notify proxied path context that Zarr has been detected - but only once per path
-        notifyZarrDetectedOnce();
       } catch (error) {
         log.error('Exception fetching OME-Zarr metadata:', imageUrl, error);
         if (cancelRef.cancel) {
@@ -136,7 +122,7 @@ export default function useZarrMetadata() {
         setThumbnailError('Error fetching OME-Zarr metadata');
       }
     },
-    [notifyZarrDetectedOnce]
+    []
   );
 
   const getFile = React.useCallback(
