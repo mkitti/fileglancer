@@ -19,7 +19,8 @@ export default function DataToolLinks({
   setShowDataLinkDialog,
   setPendingToolUrl,
   showCopiedTooltip,
-  handleCopyUrl
+  handleCopyUrl,
+  handleCreateDataLink
 }: {
   title: string;
   urls: OpenWithToolUrls | null;
@@ -27,6 +28,14 @@ export default function DataToolLinks({
   setPendingToolUrl?: React.Dispatch<React.SetStateAction<PendingToolUrl>>;
   showCopiedTooltip: boolean;
   handleCopyUrl: (url: string) => Promise<void>;
+  handleCreateDataLink: (
+    pendingToolUrl: PendingToolUrl,
+    urls: OpenWithToolUrls | null,
+    handleCopyUrl: ((url: string) => Promise<void>) | undefined,
+    setPendingToolUrl:
+      | React.Dispatch<React.SetStateAction<PendingToolUrl>>
+      | undefined
+  ) => Promise<void>;
 }): React.ReactNode {
   const { areDataLinksAutomatic } = usePreferencesContext();
   const { proxiedPath } = useProxiedPathContext();

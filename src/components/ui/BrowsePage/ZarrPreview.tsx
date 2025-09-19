@@ -35,7 +35,12 @@ export default function ZarrPreview({
 }: ZarrPreviewProps): React.ReactNode {
   const [pendingToolUrl, setPendingToolUrl] =
     React.useState<PendingToolUrl>(null);
-  const { showDataLinkDialog, setShowDataLinkDialog } = useDataLinkDialog();
+  const {
+    showDataLinkDialog,
+    setShowDataLinkDialog,
+    handleCreateDataLink,
+    handleDeleteDataLink
+  } = useDataToolLinks();
   const { proxiedPath } = useProxiedPathContext();
   const { externalDataUrl } = useExternalBucketContext();
   const { showCopiedTooltip, handleCopyUrl } = useCopiedTooltip();
@@ -81,6 +86,7 @@ export default function ZarrPreview({
               setPendingToolUrl={setPendingToolUrl}
               showCopiedTooltip={showCopiedTooltip}
               handleCopyUrl={handleCopyUrl}
+              handleCreateDataLink={handleCreateDataLink}
             />
           ) : null}
 
@@ -94,6 +100,8 @@ export default function ZarrPreview({
               pendingToolUrl={pendingToolUrl}
               setPendingToolUrl={setPendingToolUrl}
               handleCopyUrl={handleCopyUrl}
+              handleCreateDataLink={handleCreateDataLink}
+              handleDeleteDataLink={handleDeleteDataLink}
             />
           ) : null}
         </div>

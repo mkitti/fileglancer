@@ -12,7 +12,6 @@ import type { OpenWithToolUrls, PendingToolUrl } from '@/hooks/useZarrMetadata';
 import FgDialog from './FgDialog';
 import TextWithFilePath from './TextWithFilePath';
 import AutomaticLinksToggle from '@/components/ui/PreferencesPage/AutomaticLinksToggle';
-import useDataLinkDialog from '@/hooks/useDataLinkDialog';
 
 type DataLinkDialogProps = {
   action: 'create' | 'delete';
@@ -20,9 +19,18 @@ type DataLinkDialogProps = {
   setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
   proxiedPath: ProxiedPath | null;
   urls: OpenWithToolUrls | null;
+  handleDeleteDataLink: (proxiedPath: ProxiedPath | null) => Promise<void>;
   pendingToolUrl?: PendingToolUrl;
   setPendingToolUrl?: React.Dispatch<React.SetStateAction<PendingToolUrl>>;
   handleCopyUrl?: (url: string) => Promise<void>;
+  handleCreateDataLink?: (
+    pendingToolUrl: PendingToolUrl,
+    urls: OpenWithToolUrls | null,
+    handleCopyUrl: ((url: string) => Promise<void>) | undefined,
+    setPendingToolUrl:
+      | React.Dispatch<React.SetStateAction<PendingToolUrl>>
+      | undefined
+  ) => Promise<void>;
 };
 
 function CreateLinkBtn({
@@ -82,10 +90,7 @@ function DeleteLinkBtn({
   proxiedPath: ProxiedPath | null;
   displayPath: string;
   setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
-  handleDeleteDataLink: (
-    proxiedPath: ProxiedPath | null,
-    displayPath: string
-  ) => Promise<void>;
+  handleDeleteDataLink: (proxiedPath: ProxiedPath | null) => Promise<void>;
 }): JSX.Element {
   return (
     <Button
@@ -141,12 +146,13 @@ export default function DataLinkDialog({
   urls,
   pendingToolUrl,
   setPendingToolUrl,
-  handleCopyUrl
+  handleCopyUrl,
+  handleCreateDataLink,
+  handleDeleteDataLink
 }: DataLinkDialogProps): JSX.Element {
   const { fileBrowserState } = useFileBrowserContext();
   const { pathPreference, areDataLinksAutomatic } = usePreferencesContext();
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
-  const { handleCreateDataLink, handleDeleteDataLink } = useDataLinkDialog();
 
   const [localAreDataLinksAutomatic] = React.useState(areDataLinksAutomatic);
 
