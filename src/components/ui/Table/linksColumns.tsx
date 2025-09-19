@@ -13,7 +13,7 @@ import {
   makeMapKey,
   makeBrowseLink
 } from '@/utils';
-import useDataLinkDialog from '@/hooks/useDataLinkDialog';
+import useDataToolLinks from '@/hooks/useDataToolLinks';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 import type { FileSharePath, Result } from '@/shared.types';
 import type { MenuItem } from '@/components/ui/Menus/FgMenuItems';

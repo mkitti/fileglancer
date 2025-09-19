@@ -10,7 +10,7 @@ import type {
   ZarrMetadata,
   PendingToolUrl
 } from '@/hooks/useZarrMetadata';
-import useDataLinkDialog from '@/hooks/useDataLinkDialog';
+import useDataToolLinks from '@/hooks/useDataToolLinks';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useExternalBucketContext } from '@/contexts/ExternalBucketContext';
 import { Metadata } from '@/omezarr-helper';

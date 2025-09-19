@@ -5,18 +5,55 @@ import {
   useProxiedPathContext,
   type ProxiedPath
 } from '@/contexts/ProxiedPathContext';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
+import { getPreferredPathForDisplay, makeMapKey } from '@/utils';
+import type { FileSharePath } from '@/shared.types';
 import type { OpenWithToolUrls, PendingToolUrl } from '@/hooks/useZarrMetadata';
 import { constructToolUrl } from '@/utils/toolUrls';
 
-export default function useDataLinkDialog() {
+export default function useDataToolLinks() {
   const [showDataLinkDialog, setShowDataLinkDialog] =
     React.useState<boolean>(false);
   const {
     createProxiedPath,
     fetchProxiedPath,
     deleteProxiedPath,
-    refreshProxiedPaths
+    refreshProxiedPaths,
+    proxiedPath
   } = useProxiedPathContext();
+  const { fileBrowserState } = useFileBrowserContext();
+  const { pathPreference } = usePreferencesContext();
+  const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
+
+  // Helper function to calculate displayPath
+  const getDisplayPath = React.useCallback(() => {
+    const fspKey = proxiedPath
+      ? makeMapKey('fsp', proxiedPath.fsp_name)
+      : fileBrowserState.currentFileSharePath
+        ? makeMapKey('fsp', fileBrowserState.currentFileSharePath.name)
+        : '';
+
+    const pathFsp = fspKey
+      ? (zonesAndFileSharePathsMap[fspKey] as FileSharePath)
+      : null;
+    const targetPath = proxiedPath
+      ? proxiedPath.path
+      : fileBrowserState.currentFileOrFolder
+        ? fileBrowserState.currentFileOrFolder.path
+        : '';
+
+    return pathFsp && targetPath
+      ? getPreferredPathForDisplay(pathPreference, pathFsp, targetPath)
+      : '';
+  }, [
+    proxiedPath,
+    fileBrowserState.currentFileSharePath,
+    fileBrowserState.currentFileOrFolder,
+    pathPreference,
+    zonesAndFileSharePathsMap
+  ]);
 
   const handlePendingTool = React.useCallback(
     async (
@@ -52,7 +89,6 @@ export default function useDataLinkDialog() {
 
   const handleCreateDataLink = React.useCallback(
     async (
-      displayPath: string,
       pendingToolUrl: PendingToolUrl,
       urls: OpenWithToolUrls | null,
       handleCopyUrl: ((url: string) => Promise<void>) | undefined,
@@ -60,6 +96,7 @@ export default function useDataLinkDialog() {
         | React.Dispatch<React.SetStateAction<PendingToolUrl>>
         | undefined
     ) => {
+      const displayPath = getDisplayPath();
       // Check if proxied path already exists
       const fetchResult = await fetchProxiedPath();
       if (!fetchResult.success) {
@@ -114,12 +151,14 @@ export default function useDataLinkDialog() {
       createProxiedPath,
       fetchProxiedPath,
       refreshProxiedPaths,
-      handlePendingTool
+      handlePendingTool,
+      getDisplayPath
     ]
   );
 
   const handleDeleteDataLink = React.useCallback(
-    async (proxiedPath: ProxiedPath | null, displayPath: string) => {
+    async (proxiedPath: ProxiedPath | null) => {
+      const displayPath = getDisplayPath();
       if (!proxiedPath) {
         toast.error('Proxied path not found');
         return;
@@ -139,7 +178,7 @@ export default function useDataLinkDialog() {
         }
       }
     },
-    [deleteProxiedPath, refreshProxiedPaths]
+    [deleteProxiedPath, refreshProxiedPaths, getDisplayPath]
   );
 
   return {
