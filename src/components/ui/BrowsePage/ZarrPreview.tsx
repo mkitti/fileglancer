@@ -14,6 +14,7 @@ import useDataLinkDialog from '@/hooks/useDataLinkDialog';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useExternalBucketContext } from '@/contexts/ExternalBucketContext';
 import { Metadata } from '@/omezarr-helper';
+import useCopiedTooltip from '@/hooks/useCopiedTooltip';
 
 type ZarrPreviewProps = {
   thumbnailSrc: string | null;
@@ -37,6 +38,7 @@ export default function ZarrPreview({
   const { showDataLinkDialog, setShowDataLinkDialog } = useDataLinkDialog();
   const { proxiedPath } = useProxiedPathContext();
   const { externalDataUrl } = useExternalBucketContext();
+  const { showCopiedTooltip, handleCopyUrl } = useCopiedTooltip();
 
   return (
     <div className="my-4 p-4 shadow-sm rounded-md bg-primary-light/30">
@@ -76,7 +78,9 @@ export default function ZarrPreview({
               title="Open with:"
               urls={openWithToolUrls as OpenWithToolUrls}
               setShowDataLinkDialog={setShowDataLinkDialog}
-              setPendingNavigationUrl={setPendingNavigationUrl}
+              setPendingToolUrl={setPendingToolUrl}
+              showCopiedTooltip={showCopiedTooltip}
+              handleCopyUrl={handleCopyUrl}
             />
           ) : null}
 
@@ -86,8 +90,10 @@ export default function ZarrPreview({
               showDataLinkDialog={showDataLinkDialog}
               setShowDataLinkDialog={setShowDataLinkDialog}
               proxiedPath={proxiedPath}
-              pendingNavigationUrl={pendingNavigationUrl}
-              setPendingNavigationUrl={setPendingNavigationUrl}
+              urls={openWithToolUrls as OpenWithToolUrls}
+              pendingToolUrl={pendingToolUrl}
+              setPendingToolUrl={setPendingToolUrl}
+              handleCopyUrl={handleCopyUrl}
             />
           ) : null}
         </div>

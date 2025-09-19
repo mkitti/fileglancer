@@ -30,7 +30,10 @@ export default function DataToolLinks({
   const { proxiedPath } = useProxiedPathContext();
   const { externalDataUrl } = useExternalBucketContext();
 
-  const handleCopyUrl = async (event: React.MouseEvent) => {
+  const handleLinkClick = (
+    url: keyof OpenWithToolUrls,
+    event: React.MouseEvent
+  ) => {
     if (
       !proxiedPath &&
       !externalDataUrl &&
@@ -38,27 +41,7 @@ export default function DataToolLinks({
       setPendingNavigationUrl
     ) {
       event.preventDefault();
-      setShowDataLinkDialog(true);
-    } else {
-      if (urls?.copy) {
-        await copyToClipboard(urls.copy);
-        setShowCopiedTooltip(true);
-        setTimeout(() => {
-          setShowCopiedTooltip(false);
-        }, 2000);
-      }
-    }
-  };
-
-  const handleLinkClick = (url: string | null, event: React.MouseEvent) => {
-    if (
-      !proxiedPath &&
-      !externalDataUrl &&
-      !automaticDataLinks &&
-      setPendingNavigationUrl
-    ) {
-      event.preventDefault();
-      setPendingNavigationUrl(url);
+      setPendingToolUrl(url);
       setShowDataLinkDialog(true);
     }
   };
