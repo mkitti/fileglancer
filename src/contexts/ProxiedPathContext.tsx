@@ -70,7 +70,7 @@ export const ProxiedPathProvider = ({
   const [zarrDetected, setZarrDetected] = React.useState<boolean>(false);
   const { cookies } = useCookiesContext();
   const { fileBrowserState } = useFileBrowserContext();
-  const { automaticDataLinks } = usePreferencesContext();
+  const { areDataLinksAutomatic } = usePreferencesContext();
   const { externalDataUrl } = useExternalBucketContext();
 
   const updateProxiedPath = React.useCallback(
@@ -252,13 +252,13 @@ export const ProxiedPathProvider = ({
     updateProxiedPath
   ]);
 
-  // Automatically create proxied path when Zarr is detected and automaticDataLinks is enabled
+  // Automatically create proxied path when Zarr is detected and areDataLinksAutomatic is true
   // and no external data url exists
   React.useEffect(() => {
     (async function () {
       if (
         zarrDetected &&
-        automaticDataLinks &&
+        areDataLinksAutomatic &&
         !proxiedPath &&
         !externalDataUrl &&
         fileBrowserState.currentFileSharePath &&
@@ -277,7 +277,7 @@ export const ProxiedPathProvider = ({
     })();
   }, [
     zarrDetected,
-    automaticDataLinks,
+    areDataLinksAutomatic,
     proxiedPath,
     externalDataUrl,
     createProxiedPath,

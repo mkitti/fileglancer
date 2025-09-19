@@ -28,7 +28,7 @@ export default function DataToolLinks({
   showCopiedTooltip: boolean;
   handleCopyUrl: (url: string) => Promise<void>;
 }): React.ReactNode {
-  const { automaticDataLinks } = usePreferencesContext();
+  const { areDataLinksAutomatic } = usePreferencesContext();
   const { proxiedPath } = useProxiedPathContext();
   const { externalDataUrl } = useExternalBucketContext();
 
@@ -39,7 +39,7 @@ export default function DataToolLinks({
     if (
       !proxiedPath &&
       !externalDataUrl &&
-      !automaticDataLinks &&
+      !areDataLinksAutomatic &&
       setPendingToolUrl
     ) {
       event.preventDefault();

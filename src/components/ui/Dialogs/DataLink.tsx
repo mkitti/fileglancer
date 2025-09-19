@@ -144,11 +144,11 @@ export default function DataLinkDialog({
   handleCopyUrl
 }: DataLinkDialogProps): JSX.Element {
   const { fileBrowserState } = useFileBrowserContext();
-  const { pathPreference, automaticDataLinks } = usePreferencesContext();
+  const { pathPreference, areDataLinksAutomatic } = usePreferencesContext();
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
   const { handleCreateDataLink, handleDeleteDataLink } = useDataLinkDialog();
 
-  const [localAutomaticDataLinks] = React.useState(automaticDataLinks);
+  const [localAreDataLinksAutomatic] = React.useState(areDataLinksAutomatic);
 
   const fspKey = proxiedPath
     ? makeMapKey('fsp', proxiedPath.fsp_name)
@@ -177,7 +177,7 @@ export default function DataLinkDialog({
     targetPath
   );
 
-  if (action === 'create' && localAutomaticDataLinks) {
+  if (action === 'create' && localAreDataLinksAutomatic) {
     return <></>;
   }
 
@@ -192,7 +192,9 @@ export default function DataLinkDialog({
       }}
     >
       <div className="flex flex-col gap-4 my-4">
-        {action === 'create' && !localAutomaticDataLinks ? (
+        {action === 'create' &&
+        !localAreDataLinksAutomatic &&
+        handleCreateDataLink ? (
           <>
             <TextWithFilePath
               text="Are you sure you want to create a data link for this path?"
@@ -224,7 +226,7 @@ export default function DataLinkDialog({
               />
             </BtnContainer>
           </>
-        ) : action === 'delete' && localAutomaticDataLinks ? (
+        ) : action === 'delete' && localAreDataLinksAutomatic ? (
           <>
             <TextWithFilePath
               text="Are you sure you want to delete the data link for this path?"
@@ -254,7 +256,7 @@ export default function DataLinkDialog({
             </Typography>
             <AutomaticLinksToggle />
           </>
-        ) : action === 'delete' && !localAutomaticDataLinks ? (
+        ) : action === 'delete' && !localAreDataLinksAutomatic ? (
           <>
             <TextWithFilePath
               text="Are you sure you want to delete the data link for this path?"
