@@ -41,7 +41,7 @@ export default function DataToolLinks({
   const { proxiedPath } = useProxiedPathContext();
   const { externalDataUrl } = useExternalBucketContext();
 
-  const handleLinkClick = (
+  const handleLinkClick = async (
     url: keyof OpenWithToolUrls,
     event: React.MouseEvent
   ) => {
@@ -54,6 +54,9 @@ export default function DataToolLinks({
       event.preventDefault();
       setPendingToolUrl(url);
       setShowDataLinkDialog(true);
+    } else if (!proxiedPath && !externalDataUrl && areDataLinksAutomatic) {
+      event.preventDefault();
+      await handleCreateDataLink(url, urls, handleCopyUrl, setPendingToolUrl);
     }
   };
 
@@ -82,7 +85,7 @@ export default function DataToolLinks({
               to={urls.neuroglancer}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={e => handleLinkClick('neuroglancer', e)}
+              onClick={async e => await handleLinkClick('neuroglancer', e)}
             >
               <img
                 src={neuroglancer_logo}
@@ -104,7 +107,7 @@ export default function DataToolLinks({
               to={urls.vole}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={e => handleLinkClick('vole', e)}
+              onClick={async e => await handleLinkClick('vole', e)}
             >
               <img
                 src={volE_logo}
@@ -126,7 +129,7 @@ export default function DataToolLinks({
               to={urls.avivator}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={e => handleLinkClick('avivator', e)}
+              onClick={async e => await handleLinkClick('avivator', e)}
             >
               <img
                 src={avivator_logo}
@@ -148,7 +151,7 @@ export default function DataToolLinks({
               to={urls.validator}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={e => handleLinkClick('validator', e)}
+              onClick={async e => await handleLinkClick('validator', e)}
             >
               <img
                 src={validator_logo}
@@ -166,7 +169,7 @@ export default function DataToolLinks({
           label={showCopiedTooltip ? 'Copied!' : 'Copy data URL'}
           onClick={async e => {
             if (urls.copy === '') {
-              handleLinkClick('copy', e);
+              await handleLinkClick('copy', e);
             } else if (urls.copy !== '') {
               await handleCopyUrl(urls.copy);
             }
