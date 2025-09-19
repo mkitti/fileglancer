@@ -130,7 +130,7 @@ export const PreferencesProvider = ({
         return data?.value;
       } catch (error) {
         if (error instanceof HTTPError && error.responseCode === 404) {
-          log.debug(`Preference '${key}' not found`);
+          return null; // Preference not found is not an error
         } else {
           log.error(`Error fetching preference '${key}':`, error);
         }
@@ -500,7 +500,6 @@ export const PreferencesProvider = ({
       }
       const rawLayoutPref = await fetchPreferences('layout');
       if (rawLayoutPref) {
-        log.debug('setting layout:', rawLayoutPref);
         setLayout(rawLayoutPref);
       }
       setIsLayoutLoadedFromDB(true);
@@ -511,7 +510,6 @@ export const PreferencesProvider = ({
     (async function () {
       const rawPathPreference = await fetchPreferences('path');
       if (rawPathPreference) {
-        log.debug('setting initial path preference:', rawPathPreference);
         setPathPreference(rawPathPreference);
       }
     })();
@@ -521,7 +519,6 @@ export const PreferencesProvider = ({
     (async function () {
       const rawHideDotFiles = await fetchPreferences('hideDotFiles');
       if (rawHideDotFiles !== null) {
-        log.debug('setting initial hideDotFiles preference:', rawHideDotFiles);
         setHideDotFiles(rawHideDotFiles);
       }
     })();
@@ -532,10 +529,6 @@ export const PreferencesProvider = ({
       const rawAutomaticDataLinks =
         await fetchPreferences('automaticDataLinks');
       if (rawAutomaticDataLinks !== null) {
-        log.debug(
-          'setting initial automaticDataLinks preference:',
-          rawAutomaticDataLinks
-        );
         setAutomaticDataLinks(rawAutomaticDataLinks);
       }
     })();
@@ -547,10 +540,6 @@ export const PreferencesProvider = ({
         'disableNeuroglancerStateGeneration'
       );
       if (rawDisableNeuroglancerStateGeneration !== null) {
-        log.debug(
-          'setting initial disableNeuroglancerStateGeneration preference:',
-          rawDisableNeuroglancerStateGeneration
-        );
         setDisableNeuroglancerStateGeneration(
           rawDisableNeuroglancerStateGeneration
         );
@@ -564,10 +553,6 @@ export const PreferencesProvider = ({
         'disableHeuristicalLayerTypeDetection'
       );
       if (rawDisableHeuristicalLayerTypeDetection !== null) {
-        log.debug(
-          'setting initial disableHeuristicalLayerTypeDetection preference:',
-          rawDisableHeuristicalLayerTypeDetection
-        );
         setDisableHeuristicalLayerTypeDetection(
           rawDisableHeuristicalLayerTypeDetection
         );

@@ -47,7 +47,7 @@ function PathCell({ item }: { item: ProxiedPath }) {
   const browseLink = makeBrowseLink(item.fsp_name, item.path);
 
   return (
-    <div className="min-w-0 max-w-full flex">
+    <div key={`path-${item.sharing_key}`} className="min-w-0 max-w-full flex">
       <FgTooltip label={displayPath} triggerClasses={tooltipTriggerClasses}>
         <Typography
           as={FgStyledLink}
@@ -120,7 +120,7 @@ function ActionsCell({ item }: { item: ProxiedPath }) {
   };
 
   return (
-    <div className="min-w-0 flex">
+    <div key={`action-${item.sharing_key}`} className="min-w-0 flex">
       <div onClick={e => e.stopPropagation()}>
         <DataLinksActionsMenu<ProxiedPathRowActionProps>
           menuItems={menuItems}
@@ -134,6 +134,7 @@ function ActionsCell({ item }: { item: ProxiedPath }) {
           showDataLinkDialog={showDataLinkDialog}
           setShowDataLinkDialog={setShowDataLinkDialog}
           proxiedPath={item}
+          urls={null}
         />
       ) : null}
     </div>
@@ -189,7 +190,7 @@ export const linksColumns: ColumnDef<ProxiedPath>[] = [
   {
     accessorKey: 'path',
     header: 'File Path',
-    cell: ({ cell, row }) => <PathCell item={row.original} key={cell.id} />,
+    cell: ({ row }) => <PathCell item={row.original} />,
     enableSorting: true,
     enableColumnFilter: true,
     filterFn: pathFilter
@@ -239,7 +240,7 @@ export const linksColumns: ColumnDef<ProxiedPath>[] = [
   {
     id: 'actions',
     header: 'Actions',
-    cell: ({ cell, row }) => <ActionsCell item={row.original} key={cell.id} />,
+    cell: ({ row }) => <ActionsCell item={row.original} />,
     enableSorting: false
   }
 ];

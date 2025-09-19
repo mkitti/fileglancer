@@ -75,7 +75,6 @@ export const ProxiedPathProvider = ({
 
   const updateProxiedPath = React.useCallback(
     (proxiedPath: ProxiedPath | null) => {
-      log.debug('updateProxiedPath', proxiedPath);
       setProxiedPath(proxiedPath);
       if (proxiedPath) {
         setDataUrl(proxiedPath.url);
@@ -131,9 +130,6 @@ export const ProxiedPathProvider = ({
       !fileBrowserState.currentFileSharePath ||
       !fileBrowserState.currentFileOrFolder
     ) {
-      log.debug(
-        'fetchProxiedPath - no current file share path or file/folder selected'
-      );
       return createSuccess(undefined);
     }
     try {
@@ -143,9 +139,6 @@ export const ProxiedPathProvider = ({
         cookies['_xsrf']
       );
       if (!response.ok && response.status !== 404) {
-        log.warn(
-          `No proxied path found for fsp ${fileBrowserState.currentFileSharePath.name} and path ${fileBrowserState.currentFileOrFolder.path}: ${response.status} ${response.statusText}`
-        );
         // This is not an error, just no proxied path found for this fsp/path
         return createSuccess(undefined);
       } else if (!response.ok) {
@@ -271,7 +264,6 @@ export const ProxiedPathProvider = ({
         fileBrowserState.currentFileSharePath &&
         fileBrowserState.currentFileOrFolder
       ) {
-        log.debug('Auto-creating proxied path for Zarr file');
         const result = await createProxiedPath();
         if (result.success) {
           await refreshProxiedPaths();
