@@ -4,7 +4,17 @@ import { http, HttpResponse } from 'msw';
 
 export const handlers = [
   // Proxied paths
-  http.get('http://localhost:3000/api/fileglancer/proxied-path', () => {
+  http.get('http://localhost:3000/api/fileglancer/proxied-path', ({ request }) => {
+    const url = new URL(request.url);
+    const fspName = url.searchParams.get('fsp_name');
+    const path = url.searchParams.get('path');
+
+    // If query params are provided, simulate no existing proxied path (for fetchProxiedPath)
+    if (fspName && path) {
+      return HttpResponse.json({ paths: [] }, { status: 200 });
+    }
+
+    // Default case for fetching all proxied paths
     return HttpResponse.json({ paths: [] }, { status: 200 });
   }),
 
@@ -30,6 +40,10 @@ export const handlers = [
       if (queryParam === 'path') {
         return HttpResponse.json({
           value: ['linux_path']
+        });
+      } else if (queryParam === 'areDataLinksAutomatic') {
+        return HttpResponse.json({
+          value: false
         });
       } else if (
         queryParam === 'fileSharePath' ||
