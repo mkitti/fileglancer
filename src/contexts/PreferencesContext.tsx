@@ -31,7 +31,7 @@ type PreferencesContextType = {
   ) => Promise<Result<void>>;
   hideDotFiles: boolean;
   toggleHideDotFiles: () => Promise<Result<void>>;
-  automaticDataLinks: boolean;
+  areDataLinksAutomatic: boolean;
   toggleAutomaticDataLinks: () => Promise<Result<void>>;
   disableNeuroglancerStateGeneration: boolean;
   toggleDisableNeuroglancerStateGeneration: () => Promise<Result<void>>;
@@ -79,7 +79,7 @@ export const PreferencesProvider = ({
     ['linux_path'] | ['windows_path'] | ['mac_path']
   >(['linux_path']);
   const [hideDotFiles, setHideDotFiles] = React.useState<boolean>(false);
-  const [automaticDataLinks, setAutomaticDataLinks] =
+  const [areDataLinksAutomatic, setAreDataLinksAutomatic] =
     React.useState<boolean>(false);
   const [
     disableNeuroglancerStateGeneration,
@@ -262,7 +262,7 @@ export const PreferencesProvider = ({
   const toggleAutomaticDataLinks = React.useCallback(async (): Promise<
     Result<void>
   > => {
-    return togglePreference('automaticDataLinks', setAutomaticDataLinks);
+    return togglePreference('areDataLinksAutomatic', setAreDataLinksAutomatic);
   }, [togglePreference]);
 
   const toggleDisableNeuroglancerStateGeneration =
@@ -526,10 +526,11 @@ export const PreferencesProvider = ({
 
   React.useEffect(() => {
     (async function () {
-      const rawAutomaticDataLinks =
-        await fetchPreferences('automaticDataLinks');
-      if (rawAutomaticDataLinks !== null) {
-        setAutomaticDataLinks(rawAutomaticDataLinks);
+      const rawAreDataLinksAutomatic = await fetchPreferences(
+        'areDataLinksAutomatic'
+      );
+      if (rawAreDataLinksAutomatic !== null) {
+        setAreDataLinksAutomatic(rawAreDataLinksAutomatic);
       }
     })();
   }, [fetchPreferences]);
@@ -707,7 +708,7 @@ export const PreferencesProvider = ({
         handlePathPreferenceSubmit,
         hideDotFiles,
         toggleHideDotFiles,
-        automaticDataLinks,
+        areDataLinksAutomatic,
         toggleAutomaticDataLinks,
         disableNeuroglancerStateGeneration,
         toggleDisableNeuroglancerStateGeneration,

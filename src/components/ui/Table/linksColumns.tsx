@@ -62,7 +62,8 @@ function PathCell({ item }: { item: ProxiedPath }) {
 }
 
 function ActionsCell({ item }: { item: ProxiedPath }) {
-  const { showDataLinkDialog, setShowDataLinkDialog } = useDataLinkDialog();
+  const { showDataLinkDialog, setShowDataLinkDialog, handleDeleteDataLink } =
+    useDataToolLinks();
   const { pathPreference } = usePreferencesContext();
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
 
@@ -135,6 +136,7 @@ function ActionsCell({ item }: { item: ProxiedPath }) {
           setShowDataLinkDialog={setShowDataLinkDialog}
           proxiedPath={item}
           urls={null}
+          handleDeleteDataLink={handleDeleteDataLink}
         />
       ) : null}
     </div>

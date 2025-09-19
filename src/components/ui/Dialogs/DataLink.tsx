@@ -34,7 +34,6 @@ type DataLinkDialogProps = {
 };
 
 function CreateLinkBtn({
-  displayPath,
   urls,
   pendingToolUrl,
   setPendingToolUrl,
@@ -42,14 +41,12 @@ function CreateLinkBtn({
   handleCopyUrl,
   handleCreateDataLink
 }: {
-  displayPath: string;
   urls: OpenWithToolUrls | null;
   pendingToolUrl?: PendingToolUrl;
   setPendingToolUrl?: React.Dispatch<React.SetStateAction<PendingToolUrl>>;
   setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
   handleCopyUrl?: (url: string) => Promise<void>;
   handleCreateDataLink: (
-    displayPath: string,
     pendingToolUrl: PendingToolUrl,
     urls: OpenWithToolUrls | null,
     handleCopyUrl: ((url: string) => Promise<void>) | undefined,
@@ -66,7 +63,6 @@ function CreateLinkBtn({
       onClick={async () => {
         if (pendingToolUrl) {
           await handleCreateDataLink(
-            displayPath,
             pendingToolUrl,
             urls,
             handleCopyUrl,
@@ -83,7 +79,6 @@ function CreateLinkBtn({
 
 function DeleteLinkBtn({
   proxiedPath,
-  displayPath,
   setShowDataLinkDialog,
   handleDeleteDataLink
 }: {
@@ -98,7 +93,7 @@ function DeleteLinkBtn({
       color="error"
       className="!rounded-md flex items-center gap-2 hover:text-background focus:text-background"
       onClick={async () => {
-        await handleDeleteDataLink(proxiedPath, displayPath);
+        await handleDeleteDataLink(proxiedPath);
         setShowDataLinkDialog(false);
       }}
     >
@@ -218,7 +213,6 @@ export default function DataLinkDialog({
             </div>
             <BtnContainer>
               <CreateLinkBtn
-                displayPath={displayPath}
                 urls={urls}
                 pendingToolUrl={pendingToolUrl}
                 setPendingToolUrl={setPendingToolUrl}
