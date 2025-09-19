@@ -5,7 +5,11 @@ import zarrLogo from '@/assets/zarr.jpg';
 import ZarrMetadataTable from '@/components/ui/BrowsePage/ZarrMetadataTable';
 import DataLinkDialog from '@/components/ui/Dialogs/DataLink';
 import DataToolLinks from './DataToolLinks';
-import type { OpenWithToolUrls, ZarrMetadata } from '@/hooks/useZarrMetadata';
+import type {
+  OpenWithToolUrls,
+  ZarrMetadata,
+  PendingToolUrl
+} from '@/hooks/useZarrMetadata';
 import useDataLinkDialog from '@/hooks/useDataLinkDialog';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useExternalBucketContext } from '@/contexts/ExternalBucketContext';
@@ -28,9 +32,8 @@ export default function ZarrPreview({
   thumbnailError,
   layerType
 }: ZarrPreviewProps): React.ReactNode {
-  const [pendingNavigationUrl, setPendingNavigationUrl] = React.useState<
-    string | null
-  >(null);
+  const [pendingToolUrl, setPendingToolUrl] =
+    React.useState<PendingToolUrl>(null);
   const { showDataLinkDialog, setShowDataLinkDialog } = useDataLinkDialog();
   const { proxiedPath } = useProxiedPathContext();
   const { externalDataUrl } = useExternalBucketContext();
