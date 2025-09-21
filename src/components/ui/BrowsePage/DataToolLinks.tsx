@@ -7,7 +7,7 @@ import validator_logo from '@/assets/ome-ngff-validator.png';
 import volE_logo from '@/assets/aics_website-3d-cell-viewer.png';
 import avivator_logo from '@/assets/vizarr_logo.png';
 import copy_logo from '@/assets/copy-link-64.png';
-import type { OpenWithToolUrls, PendingToolUrl } from '@/hooks/useZarrMetadata';
+import type { OpenWithToolUrls, PendingToolKey } from '@/hooks/useZarrMetadata';
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
@@ -17,7 +17,7 @@ export default function DataToolLinks({
   title,
   urls,
   setShowDataLinkDialog,
-  setPendingToolUrl,
+  setPendingToolKey,
   showCopiedTooltip,
   handleCopyUrl,
   handleCreateDataLink
@@ -25,15 +25,15 @@ export default function DataToolLinks({
   title: string;
   urls: OpenWithToolUrls | null;
   setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
-  setPendingToolUrl?: React.Dispatch<React.SetStateAction<PendingToolUrl>>;
+  setPendingToolKey?: React.Dispatch<React.SetStateAction<PendingToolKey>>;
   showCopiedTooltip: boolean;
   handleCopyUrl: (url: string) => Promise<void>;
   handleCreateDataLink: (
-    pendingToolUrl: PendingToolUrl,
+    pendingToolKey: PendingToolKey,
     urls: OpenWithToolUrls | null,
     handleCopyUrl: ((url: string) => Promise<void>) | undefined,
-    setPendingToolUrl:
-      | React.Dispatch<React.SetStateAction<PendingToolUrl>>
+    setPendingToolKey:
+      | React.Dispatch<React.SetStateAction<PendingToolKey>>
       | undefined
   ) => Promise<void>;
 }): React.ReactNode {
@@ -49,14 +49,14 @@ export default function DataToolLinks({
       !proxiedPath &&
       !externalDataUrl &&
       !areDataLinksAutomatic &&
-      setPendingToolUrl
+      setPendingToolKey
     ) {
       event.preventDefault();
-      setPendingToolUrl(url);
+      setPendingToolKey(url);
       setShowDataLinkDialog(true);
     } else if (!proxiedPath && !externalDataUrl && areDataLinksAutomatic) {
       event.preventDefault();
-      await handleCreateDataLink(url, urls, handleCopyUrl, setPendingToolUrl);
+      await handleCreateDataLink(url, urls, handleCopyUrl, setPendingToolKey);
     }
   };
 

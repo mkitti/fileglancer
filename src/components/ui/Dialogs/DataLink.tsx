@@ -8,7 +8,7 @@ import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
 import { getPreferredPathForDisplay, makeMapKey } from '@/utils';
 import type { FileSharePath } from '@/shared.types';
-import type { OpenWithToolUrls, PendingToolUrl } from '@/hooks/useZarrMetadata';
+import type { OpenWithToolUrls, PendingToolKey } from '@/hooks/useZarrMetadata';
 import FgDialog from './FgDialog';
 import TextWithFilePath from './TextWithFilePath';
 import AutomaticLinksToggle from '@/components/ui/PreferencesPage/AutomaticLinksToggle';
@@ -20,38 +20,38 @@ type DataLinkDialogProps = {
   proxiedPath: ProxiedPath | null;
   urls: OpenWithToolUrls | null;
   handleDeleteDataLink: (proxiedPath: ProxiedPath | null) => Promise<void>;
-  pendingToolUrl?: PendingToolUrl;
-  setPendingToolUrl?: React.Dispatch<React.SetStateAction<PendingToolUrl>>;
+  pendingToolKey?: PendingToolKey;
+  setPendingToolKey?: React.Dispatch<React.SetStateAction<PendingToolKey>>;
   handleCopyUrl?: (url: string) => Promise<void>;
   handleCreateDataLink?: (
-    pendingToolUrl: PendingToolUrl,
+    pendingToolKey: PendingToolKey,
     urls: OpenWithToolUrls | null,
     handleCopyUrl: ((url: string) => Promise<void>) | undefined,
-    setPendingToolUrl:
-      | React.Dispatch<React.SetStateAction<PendingToolUrl>>
+    setPendingToolKey:
+      | React.Dispatch<React.SetStateAction<PendingToolKey>>
       | undefined
   ) => Promise<void>;
 };
 
 function CreateLinkBtn({
   urls,
-  pendingToolUrl,
-  setPendingToolUrl,
+  pendingToolKey,
+  setPendingToolKey,
   setShowDataLinkDialog,
   handleCopyUrl,
   handleCreateDataLink
 }: {
   urls: OpenWithToolUrls | null;
-  pendingToolUrl?: PendingToolUrl;
-  setPendingToolUrl?: React.Dispatch<React.SetStateAction<PendingToolUrl>>;
+  pendingToolKey?: PendingToolKey;
+  setPendingToolKey?: React.Dispatch<React.SetStateAction<PendingToolKey>>;
   setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
   handleCopyUrl?: (url: string) => Promise<void>;
   handleCreateDataLink: (
-    pendingToolUrl: PendingToolUrl,
+    pendingToolKey: PendingToolKey,
     urls: OpenWithToolUrls | null,
     handleCopyUrl: ((url: string) => Promise<void>) | undefined,
-    setPendingToolUrl:
-      | React.Dispatch<React.SetStateAction<PendingToolUrl>>
+    setPendingToolKey:
+      | React.Dispatch<React.SetStateAction<PendingToolKey>>
       | undefined
   ) => Promise<void>;
 }): JSX.Element {
@@ -61,12 +61,12 @@ function CreateLinkBtn({
       color="error"
       className="!rounded-md flex items-center gap-2"
       onClick={async () => {
-        if (pendingToolUrl) {
+        if (pendingToolKey) {
           await handleCreateDataLink(
-            pendingToolUrl,
+            pendingToolKey,
             urls,
             handleCopyUrl,
-            setPendingToolUrl
+            setPendingToolKey
           );
         }
         setShowDataLinkDialog(false);
@@ -103,10 +103,10 @@ function DeleteLinkBtn({
 }
 
 function CancelBtn({
-  setPendingToolUrl,
+  setPendingToolKey,
   setShowDataLinkDialog
 }: {
-  setPendingToolUrl?: React.Dispatch<React.SetStateAction<PendingToolUrl>>;
+  setPendingToolKey?: React.Dispatch<React.SetStateAction<PendingToolKey>>;
   setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
 }): JSX.Element {
   return (
@@ -114,8 +114,8 @@ function CancelBtn({
       variant="outline"
       className="!rounded-md flex items-center gap-2"
       onClick={() => {
-        if (setPendingToolUrl) {
-          setPendingToolUrl(null);
+        if (setPendingToolKey) {
+          setPendingToolKey(null);
         }
         setShowDataLinkDialog(false);
       }}
@@ -139,8 +139,8 @@ export default function DataLinkDialog({
   setShowDataLinkDialog,
   proxiedPath,
   urls,
-  pendingToolUrl,
-  setPendingToolUrl,
+  pendingToolKey,
+  setPendingToolKey,
   handleCopyUrl,
   handleCreateDataLink,
   handleDeleteDataLink
@@ -186,8 +186,8 @@ export default function DataLinkDialog({
     <FgDialog
       open={showDataLinkDialog}
       onClose={() => {
-        if (setPendingToolUrl) {
-          setPendingToolUrl(null);
+        if (setPendingToolKey) {
+          setPendingToolKey(null);
         }
         setShowDataLinkDialog(false);
       }}
@@ -214,14 +214,14 @@ export default function DataLinkDialog({
             <BtnContainer>
               <CreateLinkBtn
                 urls={urls}
-                pendingToolUrl={pendingToolUrl}
-                setPendingToolUrl={setPendingToolUrl}
+                pendingToolKey={pendingToolKey}
+                setPendingToolKey={setPendingToolKey}
                 setShowDataLinkDialog={setShowDataLinkDialog}
                 handleCopyUrl={handleCopyUrl}
                 handleCreateDataLink={handleCreateDataLink}
               />
               <CancelBtn
-                setPendingToolUrl={setPendingToolUrl}
+                setPendingToolKey={setPendingToolKey}
                 setShowDataLinkDialog={setShowDataLinkDialog}
               />
             </BtnContainer>
@@ -245,7 +245,7 @@ export default function DataLinkDialog({
                 handleDeleteDataLink={handleDeleteDataLink}
               />
               <CancelBtn
-                setPendingToolUrl={setPendingToolUrl}
+                setPendingToolKey={setPendingToolKey}
                 setShowDataLinkDialog={setShowDataLinkDialog}
               />
             </BtnContainer>
@@ -277,7 +277,7 @@ export default function DataLinkDialog({
                 handleDeleteDataLink={handleDeleteDataLink}
               />
               <CancelBtn
-                setPendingToolUrl={setPendingToolUrl}
+                setPendingToolKey={setPendingToolKey}
                 setShowDataLinkDialog={setShowDataLinkDialog}
               />
             </BtnContainer>

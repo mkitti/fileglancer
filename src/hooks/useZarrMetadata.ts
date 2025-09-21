@@ -27,7 +27,7 @@ export type OpenWithToolUrls = {
   avivator: string | null;
 };
 
-export type PendingToolUrl = keyof OpenWithToolUrls | null;
+export type PendingToolKey = keyof OpenWithToolUrls | null;
 export type ZarrArray = zarr.Array<any>;
 export type ZarrMetadata = Metadata | null;
 

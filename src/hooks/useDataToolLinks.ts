@@ -10,7 +10,7 @@ import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
 import { getPreferredPathForDisplay, makeMapKey } from '@/utils';
 import type { FileSharePath } from '@/shared.types';
-import type { OpenWithToolUrls, PendingToolUrl } from '@/hooks/useZarrMetadata';
+import type { OpenWithToolUrls, PendingToolKey } from '@/hooks/useZarrMetadata';
 import { constructToolUrl } from '@/utils/toolUrls';
 
 export default function useDataToolLinks() {
@@ -57,30 +57,30 @@ export default function useDataToolLinks() {
 
   const handlePendingTool = React.useCallback(
     async (
-      pendingToolUrl: PendingToolUrl,
+      pendingToolKey: PendingToolKey,
       dataUrl: string | undefined,
       urls: OpenWithToolUrls | null,
       handleCopyUrl: ((url: string) => Promise<void>) | undefined,
-      setPendingToolUrl:
-        | React.Dispatch<React.SetStateAction<PendingToolUrl>>
+      setPendingToolKey:
+        | React.Dispatch<React.SetStateAction<PendingToolKey>>
         | undefined
     ) => {
-      if (pendingToolUrl && pendingToolUrl !== 'copy') {
-        let navigationUrl = urls?.[pendingToolUrl];
+      if (pendingToolKey && pendingToolKey !== 'copy') {
+        let navigationUrl = urls?.[pendingToolKey];
 
         // If URL not available but we have dataUrl from creating the new proxied path successfully,
         // construct the nagiation URL using the utility function
         if (!navigationUrl && dataUrl) {
-          navigationUrl = constructToolUrl(pendingToolUrl, dataUrl);
+          navigationUrl = constructToolUrl(pendingToolKey, dataUrl);
         }
 
-        if (navigationUrl && setPendingToolUrl) {
+        if (navigationUrl && setPendingToolKey) {
           window.open(navigationUrl, '_blank', 'noopener,noreferrer');
-          setPendingToolUrl(null);
+          setPendingToolKey(null);
         } else {
           toast.error('URL not available');
         }
-      } else if (pendingToolUrl === 'copy' && dataUrl && handleCopyUrl) {
+      } else if (pendingToolKey === 'copy' && dataUrl && handleCopyUrl) {
         await handleCopyUrl(dataUrl);
       }
     },
@@ -89,11 +89,11 @@ export default function useDataToolLinks() {
 
   const handleCreateDataLink = React.useCallback(
     async (
-      pendingToolUrl: PendingToolUrl,
+      pendingToolKey: PendingToolKey,
       urls: OpenWithToolUrls | null,
       handleCopyUrl: ((url: string) => Promise<void>) | undefined,
-      setPendingToolUrl:
-        | React.Dispatch<React.SetStateAction<PendingToolUrl>>
+      setPendingToolKey:
+        | React.Dispatch<React.SetStateAction<PendingToolKey>>
         | undefined
     ) => {
       const displayPath = getDisplayPath();
@@ -115,11 +115,11 @@ export default function useDataToolLinks() {
           return;
         }
         await handlePendingTool(
-          pendingToolUrl,
+          pendingToolKey,
           fetchResult.data?.url,
           urls,
           handleCopyUrl,
-          setPendingToolUrl
+          setPendingToolKey
         );
       } else {
         // No existing proxied path, create one
@@ -134,11 +134,11 @@ export default function useDataToolLinks() {
             return;
           }
           await handlePendingTool(
-            pendingToolUrl,
+            pendingToolKey,
             createProxiedPathResult.data?.url,
             urls,
             handleCopyUrl,
-            setPendingToolUrl
+            setPendingToolKey
           );
         } else {
           toast.error(

@@ -28,8 +28,8 @@ function TestDataLinkComponent() {
       urls={mockOpenWithToolUrls}
       handleDeleteDataLink={handleDeleteDataLink}
       handleCreateDataLink={handleCreateDataLink}
-      pendingToolUrl="copy"
-      setPendingToolUrl={vi.fn()}
+      pendingToolKey="copy"
+      setPendingToolKey={vi.fn()}
       handleCopyUrl={vi.fn()}
     />
   );

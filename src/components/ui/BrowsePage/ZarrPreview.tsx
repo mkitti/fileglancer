@@ -8,7 +8,7 @@ import DataToolLinks from './DataToolLinks';
 import type {
   OpenWithToolUrls,
   ZarrMetadata,
-  PendingToolUrl
+  PendingToolKey
 } from '@/hooks/useZarrMetadata';
 import useDataToolLinks from '@/hooks/useDataToolLinks';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
@@ -33,8 +33,8 @@ export default function ZarrPreview({
   thumbnailError,
   layerType
 }: ZarrPreviewProps): React.ReactNode {
-  const [pendingToolUrl, setPendingToolUrl] =
-    React.useState<PendingToolUrl>(null);
+  const [pendingToolKey, setPendingToolKey] =
+    React.useState<PendingToolKey>(null);
   const {
     showDataLinkDialog,
     setShowDataLinkDialog,
@@ -83,7 +83,7 @@ export default function ZarrPreview({
               title="Open with:"
               urls={openWithToolUrls as OpenWithToolUrls}
               setShowDataLinkDialog={setShowDataLinkDialog}
-              setPendingToolUrl={setPendingToolUrl}
+              setPendingToolKey={setPendingToolKey}
               showCopiedTooltip={showCopiedTooltip}
               handleCopyUrl={handleCopyUrl}
               handleCreateDataLink={handleCreateDataLink}
@@ -97,8 +97,8 @@ export default function ZarrPreview({
               setShowDataLinkDialog={setShowDataLinkDialog}
               proxiedPath={proxiedPath}
               urls={openWithToolUrls as OpenWithToolUrls}
-              pendingToolUrl={pendingToolUrl}
-              setPendingToolUrl={setPendingToolUrl}
+              pendingToolKey={pendingToolKey}
+              setPendingToolKey={setPendingToolKey}
               handleCopyUrl={handleCopyUrl}
               handleCreateDataLink={handleCreateDataLink}
               handleDeleteDataLink={handleDeleteDataLink}
