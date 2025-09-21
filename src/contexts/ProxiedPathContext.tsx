@@ -1,10 +1,7 @@
 import React from 'react';
 
-import { default as log } from '@/logger';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import { useExternalBucketContext } from './ExternalBucketContext';
 import { sendFetchRequest } from '@/utils';
 import type { Result } from '@/shared.types';
 import { createSuccess, handleError, toHttpError } from '@/utils/errorHandling';
@@ -68,8 +65,6 @@ export const ProxiedPathProvider = ({
   const [dataUrl, setDataUrl] = React.useState<string | null>(null);
   const { cookies } = useCookiesContext();
   const { fileBrowserState } = useFileBrowserContext();
-  const { areDataLinksAutomatic } = usePreferencesContext();
-  const { externalDataUrl } = useExternalBucketContext();
 
   const updateProxiedPath = React.useCallback(
     (proxiedPath: ProxiedPath | null) => {

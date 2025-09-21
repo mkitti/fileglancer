@@ -1,5 +1,4 @@
 import path from 'path';
-import logger from '@/logger';
 import type { FileSharePath } from '@/shared.types';
 
 const PATH_DELIMITER = '/';
