@@ -171,7 +171,7 @@ export default function useZarrMetadata() {
               return;
             }
             if (attrs.multiscales) {
-              checkOmeZarrMetadata(imageUrl, 2, cancelRef);
+              await checkOmeZarrMetadata(imageUrl, 2, cancelRef);
             }
           } else {
             const zarrJsonFile = getFile('zarr.json');
@@ -185,10 +185,10 @@ export default function useZarrMetadata() {
                 return;
               }
               if (attrs.node_type === 'array') {
-                checkZarrArray(imageUrl, 3, cancelRef);
+                await checkZarrArray(imageUrl, 3, cancelRef);
               } else if (attrs.node_type === 'group') {
                 if (attrs.attributes?.ome?.multiscales) {
-                  checkOmeZarrMetadata(imageUrl, 3, cancelRef);
+                  await checkOmeZarrMetadata(imageUrl, 3, cancelRef);
                 } else {
                   log.info('Zarrv3 group has no multiscales', attrs.attributes);
                 }
