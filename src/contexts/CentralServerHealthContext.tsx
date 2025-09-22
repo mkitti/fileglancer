@@ -5,6 +5,7 @@ import {
   CentralServerStatus,
   shouldTriggerHealthCheck
 } from '@/utils/centralServerHealth';
+import { setHealthCheckReporter, clearHealthCheckReporter } from '@/utils';
 import logger from '@/logger';
 
 type CentralServerHealthContextType = {
@@ -229,6 +230,14 @@ export const CentralServerHealthProvider = ({
     setShowWarningOverlay(false);
     await checkHealth();
   }, [checkHealth]);
+
+  // Register health check reporter with global sendFetchRequest
+  React.useEffect(() => {
+    setHealthCheckReporter(reportFailedRequest);
+    return () => {
+      clearHealthCheckReporter();
+    };
+  }, [reportFailedRequest]);
 
   // Cleanup timeouts on unmount
   React.useEffect(() => {

@@ -3,9 +3,7 @@ import React from 'react';
 import { default as log } from '@/logger';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import { useCentralServerHealthContext } from '@/contexts/CentralServerHealthContext';
 import { sendFetchRequest } from '@/utils';
-import { sendFetchRequestWithHealthCheck } from '@/utils/enhancedFetch';
 import type { Result } from '@/shared.types';
 import { createSuccess, handleError, toHttpError } from '@/utils/errorHandling';
 
@@ -67,7 +65,6 @@ export const ProxiedPathProvider = ({
   const [dataUrl, setDataUrl] = React.useState<string | null>(null);
   const { cookies } = useCookiesContext();
   const { fileBrowserState } = useFileBrowserContext();
-  const { reportFailedRequest } = useCentralServerHealthContext();
 
   const updateProxiedPath = React.useCallback(
     (proxiedPath: ProxiedPath | null) => {
@@ -85,12 +82,10 @@ export const ProxiedPathProvider = ({
   const fetchAllProxiedPaths = React.useCallback(async (): Promise<
     Result<ProxiedPath[] | void>
   > => {
-    const response = await sendFetchRequestWithHealthCheck(
+    const response = await sendFetchRequest(
       '/api/fileglancer/proxied-path',
       'GET',
-      cookies['_xsrf'],
-      undefined,
-      reportFailedRequest
+      cookies['_xsrf']
     );
 
     if (!response.ok) {
@@ -103,7 +98,7 @@ export const ProxiedPathProvider = ({
     } else {
       return createSuccess(undefined);
     }
-  }, [cookies, reportFailedRequest]);
+  }, [cookies]);
 
   const refreshProxiedPaths = async (): Promise<Result<void>> => {
     setLoadingProxiedPaths(true);
@@ -133,12 +128,10 @@ export const ProxiedPathProvider = ({
       return createSuccess(undefined);
     }
     try {
-      const response = await sendFetchRequestWithHealthCheck(
+      const response = await sendFetchRequest(
         `/api/fileglancer/proxied-path?fsp_name=${fileBrowserState.currentFileSharePath.name}&path=${fileBrowserState.currentFileOrFolder.path}`,
         'GET',
-        cookies['_xsrf'],
-        undefined,
-        reportFailedRequest
+        cookies['_xsrf']
       );
       if (!response.ok && response.status !== 404) {
         log.warn(
@@ -161,8 +154,7 @@ export const ProxiedPathProvider = ({
   }, [
     fileBrowserState.currentFileSharePath,
     fileBrowserState.currentFileOrFolder,
-    cookies,
-    reportFailedRequest
+    cookies
   ]);
 
   async function createProxiedPath(): Promise<Result<ProxiedPath | void>> {
@@ -173,15 +165,14 @@ export const ProxiedPathProvider = ({
     }
 
     try {
-      const response = await sendFetchRequestWithHealthCheck(
+      const response = await sendFetchRequest(
         '/api/fileglancer/proxied-path',
         'POST',
         cookies['_xsrf'],
         {
           fsp_name: fileBrowserState.currentFileSharePath.name,
           path: fileBrowserState.currentFileOrFolder.path
-        },
-        reportFailedRequest
+        }
       );
 
       if (response.ok) {
@@ -199,12 +190,10 @@ export const ProxiedPathProvider = ({
   const deleteProxiedPath = React.useCallback(
     async (proxiedPath: ProxiedPath): Promise<Result<void>> => {
       try {
-        const response = await sendFetchRequestWithHealthCheck(
+        const response = await sendFetchRequest(
           `/api/fileglancer/proxied-path?sharing_key=${proxiedPath.sharing_key}`,
           'DELETE',
-          cookies['_xsrf'],
-          undefined,
-          reportFailedRequest
+          cookies['_xsrf']
         );
         if (!response.ok) {
           throw await toHttpError(response);
@@ -216,7 +205,7 @@ export const ProxiedPathProvider = ({
         return handleError(error);
       }
     },
-    [cookies, updateProxiedPath, reportFailedRequest]
+    [cookies, updateProxiedPath]
   );
 
   React.useEffect(() => {

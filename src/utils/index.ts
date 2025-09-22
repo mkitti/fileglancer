@@ -12,6 +12,22 @@ import {
   makePathSegmentArray,
   removeLastSegmentFromPath
 } from './pathHandling';
+import { shouldTriggerHealthCheck } from './centralServerHealth';
+
+// Global health check reporter registry
+let globalHealthCheckReporter:
+  | ((apiPath: string, responseStatus?: number) => Promise<void>)
+  | null = null;
+
+export function setHealthCheckReporter(
+  reporter: (apiPath: string, responseStatus?: number) => Promise<void>
+) {
+  globalHealthCheckReporter = reporter;
+}
+
+export function clearHealthCheckReporter() {
+  globalHealthCheckReporter = null;
+}
 
 const formatFileSize = (sizeInBytes: number): string => {
   if (sizeInBytes < 1024) {
@@ -96,7 +112,24 @@ async function sendFetchRequest(
       body && { body: JSON.stringify(body) })
   };
 
-  const response = await fetch(getFullPath(apiPath), options);
+  let response: Response;
+  try {
+    response = await fetch(getFullPath(apiPath), options);
+  } catch (error) {
+    // Report network errors to central server health monitoring if applicable
+    if (globalHealthCheckReporter && shouldTriggerHealthCheck(apiPath)) {
+      try {
+        await globalHealthCheckReporter(apiPath);
+      } catch (healthError) {
+        // Don't let health check errors interfere with the original request
+        log.debug(
+          'Error reporting network failure to health checker:',
+          healthError
+        );
+      }
+    }
+    throw error;
+  }
 
   // Check for 403 Forbidden - could be permission denied or session expired
   if (response.status === 403) {
@@ -108,6 +141,20 @@ async function sendFetchRequest(
       throw new HTTPError('Session expired', 401);
     }
     // If session is valid, this is just a permission denied for this specific resource
+  }
+
+  // Report failed requests to central server health monitoring if applicable
+  if (
+    !response.ok &&
+    globalHealthCheckReporter &&
+    shouldTriggerHealthCheck(apiPath, response.status)
+  ) {
+    try {
+      await globalHealthCheckReporter(apiPath, response.status);
+    } catch (error) {
+      // Don't let health check errors interfere with the original request
+      log.debug('Error reporting failed request to health checker:', error);
+    }
   }
 
   return response;
