@@ -26,9 +26,8 @@ export function CentralServerDownOverlay({
               <Typography type="h5" className="text-foreground font-bold">
                 Central Server Unavailable
               </Typography>
-              <Typography type="body" className="text-muted-foreground">
+              <Typography type="p" className="text-muted-foreground">
                 The Fileglancer Central server is currently down or unreachable.
-                Some features may not be available.
               </Typography>
             </div>
 
@@ -54,8 +53,16 @@ export function CentralServerDownOverlay({
                 </Typography>
                 <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
                   <li>Try again in a few moments</li>
-                  <li>Contact support if the issue persists</li>
-                  <li>Continue browsing local files (if available)</li>
+                  <li>
+                    Contact{' '}
+                    <a
+                      className="text-primary-light hover:underline focus:underline"
+                      href="mailto:support@hhmi.org"
+                    >
+                      support
+                    </a>{' '}
+                    if the issue persists
+                  </li>
                 </ul>
               </div>
 
