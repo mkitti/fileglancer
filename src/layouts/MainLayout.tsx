@@ -16,7 +16,7 @@ import { CentralServerHealthProvider } from '@/contexts/CentralServerHealthConte
 import FileglancerNavbar from '@/components/ui/Navbar/Navbar';
 import Notifications from '@/components/ui/Notifications/Notifications';
 import ErrorFallback from '@/components/ErrorFallback';
-import { CentralServerDownOverlay } from '@/components/ui/Overlays/CentralServerDownOverlay';
+import { CentralServerDownOverlay } from '@/components/ui/Dialogs/CentralServerDownOverlay';
 import { useCentralServerHealthContext } from '@/contexts/CentralServerHealthContext';
 
 const MainLayoutContent = () => {
