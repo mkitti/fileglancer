@@ -13,10 +13,10 @@ import type { Result } from '@/shared.types';
 import type { OpenWithToolUrls, PendingToolKey } from '@/hooks/useZarrMetadata';
 
 export default function useDataToolLinks(
-  openWithToolUrls: OpenWithToolUrls | null,
-  pendingToolKey: PendingToolKey,
-  setPendingToolKey: React.Dispatch<React.SetStateAction<PendingToolKey>>,
-  setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>
+  openWithToolUrls?: OpenWithToolUrls | null,
+  pendingToolKey?: PendingToolKey,
+  setPendingToolKey?: React.Dispatch<React.SetStateAction<PendingToolKey>>,
+  setShowDataLinkDialog?: React.Dispatch<React.SetStateAction<boolean>>
 ) {
   const [showCopiedTooltip, setShowCopiedTooltip] = React.useState(false);
 

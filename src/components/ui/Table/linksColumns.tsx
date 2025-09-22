@@ -1,3 +1,4 @@
+import React from 'react';
 import { Typography } from '@material-tailwind/react';
 import { FilterFn, type ColumnDef } from '@tanstack/react-table';
 import toast from 'react-hot-toast';
@@ -62,8 +63,9 @@ function PathCell({ item }: { item: ProxiedPath }) {
 }
 
 function ActionsCell({ item }: { item: ProxiedPath }) {
-  const { showDataLinkDialog, setShowDataLinkDialog, handleDeleteDataLink } =
-    useDataToolLinks();
+  const [showDataLinkDialog, setShowDataLinkDialog] =
+    React.useState<boolean>(false);
+  const { handleDeleteDataLink } = useDataToolLinks();
   const { pathPreference } = usePreferencesContext();
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
 
@@ -135,7 +137,6 @@ function ActionsCell({ item }: { item: ProxiedPath }) {
           showDataLinkDialog={showDataLinkDialog}
           setShowDataLinkDialog={setShowDataLinkDialog}
           proxiedPath={item}
-          urls={null}
           handleDeleteDataLink={handleDeleteDataLink}
         />
       ) : null}
