@@ -23,9 +23,11 @@ export function CentralServerDownOverlay({
     setLocalCountdown(countdownSeconds);
   }, [countdownSeconds]);
 
-  // Handle countdown timer
+  const isCountdownActive = localCountdown !== null && localCountdown > 0;
+
+  // Handle countdown timer - only restart when countdown becomes active
   React.useEffect(() => {
-    if (localCountdown === null || localCountdown <= 0) {
+    if (!isCountdownActive) {
       return;
     }
 
@@ -39,7 +41,7 @@ export function CentralServerDownOverlay({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [localCountdown]);
+  }, [isCountdownActive]);
 
   return (
     <Dialog open={open}>
