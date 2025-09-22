@@ -52,12 +52,12 @@ export const CentralServerHealthProvider = ({
   const retryTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const retryAttemptRef = React.useRef<number>(0);
   const isRetryingRef = React.useRef<boolean>(false);
-  const MAX_RETRY_ATTEMPTS = 10; // Limit total retry attempts to prevent infinite loops
+  const MAX_RETRY_ATTEMPTS = 100; // Limit total retry attempts to prevent infinite loops
 
   // Calculate exponential backoff delay (capped at 1 minute)
   const getRetryDelay = React.useCallback((attempt: number): number => {
     const baseDelay = 6000; // Start with 6 seconds
-    const maxDelay = 60000; // Cap at 1 minute
+    const maxDelay = 300000; // Cap at 5 minutes
     const delay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
     return delay;
   }, []);
