@@ -11,10 +11,7 @@ import type {
   PendingToolKey
 } from '@/hooks/useZarrMetadata';
 import useDataToolLinks from '@/hooks/useDataToolLinks';
-import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
-import { useExternalBucketContext } from '@/contexts/ExternalBucketContext';
 import { Metadata } from '@/omezarr-helper';
-import useCopiedTooltip from '@/hooks/useCopiedTooltip';
 
 type ZarrPreviewProps = {
   thumbnailSrc: string | null;
@@ -33,17 +30,22 @@ export default function ZarrPreview({
   thumbnailError,
   layerType
 }: ZarrPreviewProps): React.ReactNode {
+  const [showDataLinkDialog, setShowDataLinkDialog] =
+    React.useState<boolean>(false);
   const [pendingToolKey, setPendingToolKey] =
     React.useState<PendingToolKey>(null);
+
   const {
-    showDataLinkDialog,
-    setShowDataLinkDialog,
-    handleCreateDataLink,
-    handleDeleteDataLink
-  } = useDataToolLinks();
-  const { proxiedPath } = useProxiedPathContext();
-  const { externalDataUrl } = useExternalBucketContext();
-  const { showCopiedTooltip, handleCopyUrl } = useCopiedTooltip();
+    handleToolClick,
+    handleDialogConfirm,
+    handleDialogCancel,
+    showCopiedTooltip
+  } = useDataToolLinks(
+    openWithToolUrls,
+    pendingToolKey,
+    setPendingToolKey,
+    setShowDataLinkDialog
+  );
 
   return (
     <div className="my-4 p-4 shadow-sm rounded-md bg-primary-light/30">
@@ -78,30 +80,23 @@ export default function ZarrPreview({
             ) : null}
           </div>
 
-          {openWithToolUrls || externalDataUrl ? (
+          {openWithToolUrls ? (
             <DataToolLinks
+              onToolClick={handleToolClick}
+              showCopiedTooltip={showCopiedTooltip}
               title="Open with:"
               urls={openWithToolUrls as OpenWithToolUrls}
-              setShowDataLinkDialog={setShowDataLinkDialog}
-              setPendingToolKey={setPendingToolKey}
-              showCopiedTooltip={showCopiedTooltip}
-              handleCopyUrl={handleCopyUrl}
-              handleCreateDataLink={handleCreateDataLink}
             />
           ) : null}
 
           {showDataLinkDialog ? (
             <DataLinkDialog
               action="create"
+              onConfirm={handleDialogConfirm}
+              onCancel={handleDialogCancel}
               showDataLinkDialog={showDataLinkDialog}
-              setShowDataLinkDialog={setShowDataLinkDialog}
-              proxiedPath={proxiedPath}
-              urls={openWithToolUrls as OpenWithToolUrls}
-              pendingToolKey={pendingToolKey}
               setPendingToolKey={setPendingToolKey}
-              handleCopyUrl={handleCopyUrl}
-              handleCreateDataLink={handleCreateDataLink}
-              handleDeleteDataLink={handleDeleteDataLink}
+              setShowDataLinkDialog={setShowDataLinkDialog}
             />
           ) : null}
         </div>
