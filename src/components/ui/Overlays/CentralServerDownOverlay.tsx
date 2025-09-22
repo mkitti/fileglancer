@@ -101,7 +101,7 @@ export function CentralServerDownOverlay({
                 autoFocus
               >
                 <HiRefresh className="w-4 h-4" />
-                Try Again
+                Try To Reconnect
               </Button>
             </div>
           </div>
