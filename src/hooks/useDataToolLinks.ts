@@ -12,6 +12,31 @@ import { copyToClipboard } from '@/utils/copyText';
 import type { Result } from '@/shared.types';
 import type { OpenWithToolUrls, PendingToolKey } from '@/hooks/useZarrMetadata';
 
+// Overload for ZarrPreview usage with required parameters
+export default function useDataToolLinks(
+  openWithToolUrls: OpenWithToolUrls | null,
+  pendingToolKey: PendingToolKey,
+  setPendingToolKey: React.Dispatch<React.SetStateAction<PendingToolKey>>,
+  setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>
+): {
+  handleCreateDataLink: () => Promise<Result<void | ProxiedPath[]>>;
+  handleDeleteDataLink: (proxiedPath: ProxiedPath) => Promise<void>;
+  handleToolClick: (toolKey: PendingToolKey) => Promise<void>;
+  handleDialogConfirm: () => Promise<void>;
+  handleDialogCancel: () => void;
+  showCopiedTooltip: boolean;
+};
+
+// Overload for linksColumns usage with no parameters
+export default function useDataToolLinks(): {
+  handleCreateDataLink: () => Promise<Result<void | ProxiedPath[]>>;
+  handleDeleteDataLink: (proxiedPath: ProxiedPath) => Promise<void>;
+  handleToolClick: (toolKey: PendingToolKey) => Promise<void>;
+  handleDialogConfirm: () => Promise<void>;
+  handleDialogCancel: () => void;
+  showCopiedTooltip: boolean;
+};
+
 export default function useDataToolLinks(
   openWithToolUrls?: OpenWithToolUrls | null,
   pendingToolKey?: PendingToolKey,
@@ -50,6 +75,8 @@ export default function useDataToolLinks(
     const createProxiedPathResult = await createProxiedPath();
     if (createProxiedPathResult.success) {
       toast.success('Data link created successfully');
+    } else if (createProxiedPathResult.error) {
+      toast.error(`Error creating data link: ${createProxiedPathResult.error}`);
     }
     return await refreshProxiedPaths();
   };
@@ -71,13 +98,16 @@ export default function useDataToolLinks(
         toast.error('URL not available');
       }
     }
-    setPendingToolKey(null);
+    setPendingToolKey?.(null);
   };
 
   const createLinkAndExecuteAction = async (
     clickedToolKey?: PendingToolKey
   ) => {
     const toolKey = clickedToolKey || pendingToolKey;
+    if (!toolKey) {
+      return;
+    }
     const result = await handleCreateDataLink();
     if (result.success) {
       // Wait for URLs to be updated and use ref to get current value
@@ -99,6 +129,8 @@ export default function useDataToolLinks(
       if (attempts >= maxAttempts) {
         toast.error('Timeout waiting for data link URLs to be ready');
       }
+    } else if (result.error) {
+      toast.error(`Error refreshing links: ${result.error}`);
     }
   };
 
@@ -107,8 +139,8 @@ export default function useDataToolLinks(
       if (areDataLinksAutomatic) {
         await createLinkAndExecuteAction(toolKey);
       } else {
-        setPendingToolKey(toolKey);
-        setShowDataLinkDialog(true);
+        setPendingToolKey?.(toolKey);
+        setShowDataLinkDialog?.(true);
       }
     } else {
       if (openWithToolUrls) {
@@ -119,12 +151,12 @@ export default function useDataToolLinks(
 
   const handleDialogConfirm = async () => {
     await createLinkAndExecuteAction();
-    setShowDataLinkDialog(false);
+    setShowDataLinkDialog?.(false);
   };
 
   const handleDialogCancel = () => {
-    setPendingToolKey(null);
-    setShowDataLinkDialog(false);
+    setPendingToolKey?.(null);
+    setShowDataLinkDialog?.(false);
   };
 
   const handleDeleteDataLink = async (proxiedPath: ProxiedPath) => {
