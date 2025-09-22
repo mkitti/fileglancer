@@ -2,8 +2,10 @@ import React from 'react';
 import { default as log } from '@/logger';
 import { Zone, FileSharePath, ZonesAndFileSharePathsMap } from '@/shared.types';
 import { sendFetchRequest, makeMapKey } from '@/utils';
+import { sendFetchRequestWithHealthCheck } from '@/utils/enhancedFetch';
 import { removeTrailingSlashes } from '@/utils/pathHandling';
 import { useCookiesContext } from './CookiesContext';
+import { useCentralServerHealthContext } from './CentralServerHealthContext';
 
 type ZonesAndFspMapContextType = {
   isZonesMapReady: boolean;
@@ -35,16 +37,19 @@ export const ZonesAndFspMapContextProvider = ({
     React.useState<ZonesAndFileSharePathsMap>({});
 
   const { cookies } = useCookiesContext();
+  const { reportFailedRequest } = useCentralServerHealthContext();
 
   const getZones = React.useCallback(async (): Promise<{
     paths: FileSharePath[];
   }> => {
     let rawData: { paths: FileSharePath[] } = { paths: [] };
     try {
-      const response = await sendFetchRequest(
+      const response = await sendFetchRequestWithHealthCheck(
         '/api/fileglancer/file-share-paths',
         'GET',
-        cookies['_xsrf']
+        cookies['_xsrf'],
+        undefined,
+        reportFailedRequest
       );
       rawData = await response.json();
     } catch (error: unknown) {
@@ -55,7 +60,7 @@ export const ZonesAndFspMapContextProvider = ({
       }
     }
     return rawData;
-  }, [cookies]);
+  }, [cookies, reportFailedRequest]);
 
   function createZonesAndFileSharePathsMap(rawData: {
     paths: FileSharePath[];

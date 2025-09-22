@@ -1,0 +1,307 @@
+import React from 'react';
+import { useCookiesContext } from '@/contexts/CookiesContext';
+import {
+  checkCentralServerHealth,
+  CentralServerStatus,
+  shouldTriggerHealthCheck
+} from '@/utils/centralServerHealth';
+import logger from '@/logger';
+
+type CentralServerHealthContextType = {
+  status: CentralServerStatus;
+  checkHealth: () => Promise<void>;
+  reportFailedRequest: (
+    apiPath: string,
+    responseStatus?: number
+  ) => Promise<void>;
+  dismissWarning: () => void;
+  showWarningOverlay: boolean;
+  retryCountdown: number | null;
+};
+
+const CentralServerHealthContext =
+  React.createContext<CentralServerHealthContextType | null>(null);
+
+export const useCentralServerHealthContext = () => {
+  const context = React.useContext(CentralServerHealthContext);
+  if (!context) {
+    throw new Error(
+      'useCentralServerHealthContext must be used within a CentralServerHealthProvider'
+    );
+  }
+  return context;
+};
+
+export const CentralServerHealthProvider = ({
+  children
+}: {
+  children: React.ReactNode;
+}) => {
+  const [status, setStatus] = React.useState<CentralServerStatus>('healthy');
+  const [showWarningOverlay, setShowWarningOverlay] = React.useState(false);
+  const [isChecking, setIsChecking] = React.useState(false);
+  const [retryCountdown, setRetryCountdown] = React.useState<number | null>(
+    null
+  );
+  const { cookies } = useCookiesContext();
+
+  // Debounce health checks to avoid spam
+  const healthCheckTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Exponential backoff retry state
+  const retryTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const retryAttemptRef = React.useRef<number>(0);
+  const isRetryingRef = React.useRef<boolean>(false);
+  const MAX_RETRY_ATTEMPTS = 10; // Limit total retry attempts to prevent infinite loops
+
+  // Countdown timer state
+  const countdownIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
+  const nextRetryTimeRef = React.useRef<number | null>(null);
+
+  // Calculate exponential backoff delay (capped at 1 minute)
+  const getRetryDelay = React.useCallback((attempt: number): number => {
+    const baseDelay = 2000; // Start with 2 seconds
+    const maxDelay = 60000; // Cap at 1 minute
+    const delay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
+    return delay;
+  }, []);
+
+  // Start countdown timer
+  const startCountdown = React.useCallback((delayMs: number) => {
+    // Clear any existing countdown
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+    }
+
+    nextRetryTimeRef.current = Date.now() + delayMs;
+    setRetryCountdown(Math.ceil(delayMs / 1000));
+
+    countdownIntervalRef.current = setInterval(() => {
+      if (nextRetryTimeRef.current) {
+        const remainingMs = nextRetryTimeRef.current - Date.now();
+        const remainingSeconds = Math.ceil(remainingMs / 1000);
+
+        if (remainingSeconds <= 0) {
+          setRetryCountdown(null);
+          if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = null;
+          }
+        } else {
+          setRetryCountdown(remainingSeconds);
+        }
+      }
+    }, 1000);
+  }, []);
+
+  // Stop countdown timer
+  const stopCountdown = React.useCallback(() => {
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    nextRetryTimeRef.current = null;
+    setRetryCountdown(null);
+  }, []);
+
+  // Stop retry mechanism
+  const stopRetrying = React.useCallback(() => {
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
+    isRetryingRef.current = false;
+    retryAttemptRef.current = 0;
+    stopCountdown();
+  }, [stopCountdown]);
+
+  // Start exponential backoff retry
+  const startRetrying = React.useCallback(() => {
+    if (isRetryingRef.current) {
+      return; // Already retrying
+    }
+
+    isRetryingRef.current = true;
+    retryAttemptRef.current = 0;
+
+    const scheduleNextRetry = () => {
+      const delay = getRetryDelay(retryAttemptRef.current);
+      logger.info(
+        `Scheduling next health check retry in ${delay}ms (attempt ${retryAttemptRef.current + 1})`
+      );
+
+      // Start countdown timer
+      startCountdown(delay);
+
+      retryTimeoutRef.current = setTimeout(async () => {
+        retryAttemptRef.current++;
+
+        // Stop retrying if we've exceeded the maximum attempts
+        if (retryAttemptRef.current > MAX_RETRY_ATTEMPTS) {
+          logger.warn(`Stopping retries after ${MAX_RETRY_ATTEMPTS} attempts`);
+          stopRetrying();
+          return;
+        }
+
+        // Perform health check directly without calling checkHealth to avoid circular dependency
+        try {
+          setIsChecking(true);
+          setStatus('checking');
+
+          const healthStatus = await checkCentralServerHealth(cookies['_xsrf']);
+          setStatus(healthStatus);
+
+          if (healthStatus === 'healthy') {
+            setShowWarningOverlay(false);
+            logger.info('Central server detected as healthy during retry');
+            stopRetrying();
+          } else if (healthStatus === 'down') {
+            logger.warn(
+              `Central server still down during retry (attempt ${retryAttemptRef.current}/${MAX_RETRY_ATTEMPTS})`
+            );
+            // Continue retrying if we haven't exceeded max attempts
+            if (retryAttemptRef.current < MAX_RETRY_ATTEMPTS) {
+              scheduleNextRetry();
+            } else {
+              logger.warn(`Maximum retry attempts reached, stopping`);
+              stopRetrying();
+            }
+          }
+        } catch (error) {
+          logger.error('Error during retry health check:', error);
+          setStatus('down');
+          // Continue retrying if we haven't exceeded max attempts
+          if (retryAttemptRef.current < MAX_RETRY_ATTEMPTS) {
+            scheduleNextRetry();
+          } else {
+            logger.warn(`Maximum retry attempts reached, stopping`);
+            stopRetrying();
+          }
+        } finally {
+          setIsChecking(false);
+        }
+      }, delay);
+    };
+
+    scheduleNextRetry();
+  }, [getRetryDelay, stopRetrying, startCountdown, cookies]);
+
+  const checkHealth = React.useCallback(async () => {
+    if (isChecking) {
+      return; // Already checking, avoid duplicate checks
+    }
+
+    setIsChecking(true);
+    setStatus('checking');
+
+    try {
+      const healthStatus = await checkCentralServerHealth(cookies['_xsrf']);
+      setStatus(healthStatus);
+
+      if (healthStatus === 'down') {
+        setShowWarningOverlay(true);
+        logger.warn('Central server detected as down');
+        // Start exponential backoff retries
+        startRetrying();
+      } else if (healthStatus === 'healthy') {
+        setShowWarningOverlay(false);
+        logger.info('Central server detected as healthy');
+        // Stop retrying since server is healthy
+        stopRetrying();
+      }
+    } catch (error) {
+      logger.error('Error during health check:', error);
+      setStatus('down');
+      setShowWarningOverlay(true);
+      // Start exponential backoff retries
+      startRetrying();
+    } finally {
+      setIsChecking(false);
+    }
+  }, [cookies, isChecking, startRetrying, stopRetrying]);
+
+  const reportFailedRequest = React.useCallback(
+    async (apiPath: string, responseStatus?: number) => {
+      // Only trigger health check if this looks like a central server issue
+      if (!shouldTriggerHealthCheck(apiPath, responseStatus)) {
+        logger.debug(
+          `reportFailedRequest: Skipping health check for ${apiPath} (${responseStatus})`
+        );
+        return;
+      }
+
+      // Don't check if already checking or already known to be down
+      if (isChecking || status === 'down') {
+        logger.debug(
+          `reportFailedRequest: Skipping health check - already checking (${isChecking}) or down (${status === 'down'})`
+        );
+        return;
+      }
+
+      // Don't trigger if already retrying (additional safety)
+      if (isRetryingRef.current) {
+        logger.debug(
+          `reportFailedRequest: Skipping health check - already retrying`
+        );
+        return;
+      }
+
+      logger.info(
+        `Failed request to ${apiPath} (${responseStatus}), triggering health check`
+      );
+
+      // Debounce health checks - clear any pending check and schedule a new one
+      if (healthCheckTimeoutRef.current) {
+        clearTimeout(healthCheckTimeoutRef.current);
+      }
+
+      healthCheckTimeoutRef.current = setTimeout(() => {
+        checkHealth();
+      }, 1000); // Wait 1 second before checking
+    },
+    [checkHealth, isChecking, status]
+  );
+
+  const dismissWarning = React.useCallback(() => {
+    setShowWarningOverlay(false);
+  }, []);
+
+  // Retry function for the overlay
+  const handleRetry = React.useCallback(async () => {
+    setShowWarningOverlay(false);
+    await checkHealth();
+  }, [checkHealth]);
+
+  // Cleanup timeouts on unmount
+  React.useEffect(() => {
+    return () => {
+      if (healthCheckTimeoutRef.current) {
+        clearTimeout(healthCheckTimeoutRef.current);
+      }
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
+      isRetryingRef.current = false;
+    };
+  }, []);
+
+  return (
+    <CentralServerHealthContext.Provider
+      value={{
+        status,
+        checkHealth,
+        reportFailedRequest,
+        dismissWarning,
+        showWarningOverlay,
+        retryCountdown
+      }}
+    >
+      {children}
+    </CentralServerHealthContext.Provider>
+  );
+};
+
+export default CentralServerHealthContext;

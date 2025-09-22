@@ -12,9 +12,44 @@ import { ProxiedPathProvider } from '@/contexts/ProxiedPathContext';
 import { ExternalBucketProvider } from '@/contexts/ExternalBucketContext';
 import { ProfileContextProvider } from '@/contexts/ProfileContext';
 import { NotificationProvider } from '@/contexts/NotificationsContext';
+import { CentralServerHealthProvider } from '@/contexts/CentralServerHealthContext';
 import FileglancerNavbar from '@/components/ui/Navbar/Navbar';
 import Notifications from '@/components/ui/Notifications/Notifications';
 import ErrorFallback from '@/components/ErrorFallback';
+import { CentralServerDownOverlay } from '@/components/ui/Overlays/CentralServerDownOverlay';
+import { useCentralServerHealthContext } from '@/contexts/CentralServerHealthContext';
+
+const MainLayoutContent = () => {
+  const { showWarningOverlay, checkHealth, retryCountdown } = useCentralServerHealthContext();
+
+  return (
+    <>
+      <Toaster
+        position="bottom-center"
+        toastOptions={{
+          className: 'min-w-fit',
+          success: { duration: 4000 }
+        }}
+      />
+      <div className="flex flex-col h-full w-full overflow-y-hidden bg-background text-foreground box-border">
+        <div className="flex-shrink-0 w-full">
+          <FileglancerNavbar />
+          <Notifications />
+        </div>
+        <div className="flex flex-col items-center flex-1 w-full overflow-hidden">
+          <ErrorBoundary FallbackComponent={ErrorFallback}>
+            <Outlet />
+          </ErrorBoundary>
+        </div>
+      </div>
+      <CentralServerDownOverlay
+        open={showWarningOverlay}
+        onRetry={checkHealth}
+        retryCountdown={retryCountdown}
+      />
+    </>
+  );
+};
 
 export const MainLayout = () => {
   const params = useParams();
@@ -23,42 +58,27 @@ export const MainLayout = () => {
 
   return (
     <CookiesProvider>
-      <ZonesAndFspMapContextProvider>
-        <OpenFavoritesProvider>
-          <FileBrowserContextProvider fspName={fspName} filePath={filePath}>
-            <PreferencesProvider>
-              <ProxiedPathProvider>
-                <ExternalBucketProvider>
-                  <ProfileContextProvider>
-                    <NotificationProvider>
-                      <TicketProvider>
-                        <Toaster
-                          position="bottom-center"
-                          toastOptions={{
-                            className: 'min-w-fit',
-                            success: { duration: 4000 }
-                          }}
-                        />
-                        <div className="flex flex-col h-full w-full overflow-y-hidden bg-background text-foreground box-border">
-                          <div className="flex-shrink-0 w-full">
-                            <FileglancerNavbar />
-                            <Notifications />
-                          </div>
-                          <div className="flex flex-col items-center flex-1 w-full overflow-hidden">
-                            <ErrorBoundary FallbackComponent={ErrorFallback}>
-                              <Outlet />
-                            </ErrorBoundary>
-                          </div>
-                        </div>
-                      </TicketProvider>
-                    </NotificationProvider>
-                  </ProfileContextProvider>
-                </ExternalBucketProvider>
-              </ProxiedPathProvider>
-            </PreferencesProvider>
-          </FileBrowserContextProvider>
-        </OpenFavoritesProvider>
-      </ZonesAndFspMapContextProvider>
+      <CentralServerHealthProvider>
+        <ZonesAndFspMapContextProvider>
+          <OpenFavoritesProvider>
+            <FileBrowserContextProvider fspName={fspName} filePath={filePath}>
+              <PreferencesProvider>
+                <ProxiedPathProvider>
+                  <ExternalBucketProvider>
+                    <ProfileContextProvider>
+                      <NotificationProvider>
+                        <TicketProvider>
+                          <MainLayoutContent />
+                        </TicketProvider>
+                      </NotificationProvider>
+                    </ProfileContextProvider>
+                  </ExternalBucketProvider>
+                </ProxiedPathProvider>
+              </PreferencesProvider>
+            </FileBrowserContextProvider>
+          </OpenFavoritesProvider>
+        </ZonesAndFspMapContextProvider>
+      </CentralServerHealthProvider>
     </CookiesProvider>
   );
 };

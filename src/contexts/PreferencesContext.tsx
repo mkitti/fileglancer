@@ -5,7 +5,9 @@ import type { FileSharePath, Zone } from '@/shared.types';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { useZoneAndFspMapContext } from './ZonesAndFspMapContext';
 import { useFileBrowserContext } from './FileBrowserContext';
+import { useCentralServerHealthContext } from './CentralServerHealthContext';
 import { sendFetchRequest, makeMapKey, HTTPError } from '@/utils';
+import { sendFetchRequestWithHealthCheck } from '@/utils/enhancedFetch';
 import { createSuccess, handleError, toHttpError } from '@/utils/errorHandling';
 import type { Result } from '@/shared.types';
 
@@ -114,14 +116,17 @@ export const PreferencesProvider = ({
   const { isZonesMapReady, zonesAndFileSharePathsMap } =
     useZoneAndFspMapContext();
   const { fileBrowserState } = useFileBrowserContext();
+  const { reportFailedRequest } = useCentralServerHealthContext();
 
   const fetchPreferences = React.useCallback(
     async (key: string) => {
       try {
-        const data = await sendFetchRequest(
+        const data = await sendFetchRequestWithHealthCheck(
           `/api/fileglancer/preference?key=${key}`,
           'GET',
-          cookies['_xsrf']
+          cookies['_xsrf'],
+          undefined,
+          reportFailedRequest
         ).then(response => response.json());
         return data?.value;
       } catch (error) {
@@ -133,7 +138,7 @@ export const PreferencesProvider = ({
         return null;
       }
     },
-    [cookies]
+    [cookies, reportFailedRequest]
   );
 
   const accessMapItems = React.useCallback(
@@ -195,11 +200,12 @@ export const PreferencesProvider = ({
 
   const savePreferencesToBackend = React.useCallback(
     async <T,>(key: string, value: T): Promise<Response> => {
-      const response = await sendFetchRequest(
+      const response = await sendFetchRequestWithHealthCheck(
         `/api/fileglancer/preference?key=${key}`,
         'PUT',
         cookies['_xsrf'],
-        { value: value }
+        { value: value },
+        reportFailedRequest
       );
       if (!response.ok) {
         throw await toHttpError(response);
@@ -207,7 +213,7 @@ export const PreferencesProvider = ({
         return response;
       }
     },
-    [cookies]
+    [cookies, reportFailedRequest]
   );
 
   const handleUpdateLayout = async (layout: string): Promise<void> => {
