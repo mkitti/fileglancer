@@ -1,6 +1,5 @@
 import React from 'react';
 import { Button, Typography } from '@material-tailwind/react';
-import toast from 'react-hot-toast';
 
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
@@ -8,52 +7,36 @@ import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
 import { getPreferredPathForDisplay, makeMapKey } from '@/utils';
 import type { FileSharePath } from '@/shared.types';
-import type { OpenWithToolUrls, PendingToolKey } from '@/hooks/useZarrMetadata';
+import type { PendingToolKey } from '@/hooks/useZarrMetadata';
 import FgDialog from './FgDialog';
 import TextWithFilePath from './TextWithFilePath';
 import AutomaticLinksToggle from '@/components/ui/PreferencesPage/AutomaticLinksToggle';
 
-type DataLinkDialogProps = {
-  action: 'create' | 'delete';
+interface CommonDataLinkDialogProps {
+  getDisplayPath?: () => string;
   showDataLinkDialog: boolean;
   setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
-  proxiedPath: ProxiedPath | null;
-  urls: OpenWithToolUrls | null;
-  handleDeleteDataLink: (proxiedPath: ProxiedPath | null) => Promise<void>;
-  pendingToolKey?: PendingToolKey;
-  setPendingToolKey?: React.Dispatch<React.SetStateAction<PendingToolKey>>;
-  handleCopyUrl?: (url: string) => Promise<void>;
-  handleCreateDataLink?: (
-    pendingToolKey: PendingToolKey,
-    urls: OpenWithToolUrls | null,
-    handleCopyUrl: ((url: string) => Promise<void>) | undefined,
-    setPendingToolKey:
-      | React.Dispatch<React.SetStateAction<PendingToolKey>>
-      | undefined
-  ) => Promise<void>;
-};
+}
+
+interface CreateLinkDialog extends CommonDataLinkDialogProps {
+  action: 'create';
+  onConfirm: () => Promise<void>;
+  onCancel: () => void;
+  setPendingToolKey: React.Dispatch<React.SetStateAction<PendingToolKey>>;
+}
+
+interface DeleteLinkDialog extends CommonDataLinkDialogProps {
+  action: 'delete';
+  proxiedPath: ProxiedPath;
+  handleDeleteDataLink: (proxiedPath: ProxiedPath) => Promise<void>;
+}
+
+type DataLinkDialogProps = CreateLinkDialog | DeleteLinkDialog;
 
 function CreateLinkBtn({
-  urls,
-  pendingToolKey,
-  setPendingToolKey,
-  setShowDataLinkDialog,
-  handleCopyUrl,
-  handleCreateDataLink
+  onConfirm
 }: {
-  urls: OpenWithToolUrls | null;
-  pendingToolKey?: PendingToolKey;
-  setPendingToolKey?: React.Dispatch<React.SetStateAction<PendingToolKey>>;
-  setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
-  handleCopyUrl?: (url: string) => Promise<void>;
-  handleCreateDataLink: (
-    pendingToolKey: PendingToolKey,
-    urls: OpenWithToolUrls | null,
-    handleCopyUrl: ((url: string) => Promise<void>) | undefined,
-    setPendingToolKey:
-      | React.Dispatch<React.SetStateAction<PendingToolKey>>
-      | undefined
-  ) => Promise<void>;
+  onConfirm: () => Promise<void>;
 }): JSX.Element {
   return (
     <Button
@@ -61,15 +44,7 @@ function CreateLinkBtn({
       color="error"
       className="!rounded-md flex items-center gap-2"
       onClick={async () => {
-        if (pendingToolKey) {
-          await handleCreateDataLink(
-            pendingToolKey,
-            urls,
-            handleCopyUrl,
-            setPendingToolKey
-          );
-        }
-        setShowDataLinkDialog(false);
+        await onConfirm();
       }}
     >
       Create Data Link
@@ -82,10 +57,9 @@ function DeleteLinkBtn({
   setShowDataLinkDialog,
   handleDeleteDataLink
 }: {
-  proxiedPath: ProxiedPath | null;
-  displayPath: string;
+  proxiedPath: ProxiedPath;
   setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
-  handleDeleteDataLink: (proxiedPath: ProxiedPath | null) => Promise<void>;
+  handleDeleteDataLink: (proxiedPath: ProxiedPath) => Promise<void>;
 }): JSX.Element {
   return (
     <Button
@@ -104,20 +78,28 @@ function DeleteLinkBtn({
 
 function CancelBtn({
   setPendingToolKey,
-  setShowDataLinkDialog
+  setShowDataLinkDialog,
+  onCancel
 }: {
   setPendingToolKey?: React.Dispatch<React.SetStateAction<PendingToolKey>>;
-  setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowDataLinkDialog?: React.Dispatch<React.SetStateAction<boolean>>;
+  onCancel?: () => void;
 }): JSX.Element {
   return (
     <Button
       variant="outline"
       className="!rounded-md flex items-center gap-2"
       onClick={() => {
-        if (setPendingToolKey) {
-          setPendingToolKey(null);
+        if (onCancel) {
+          onCancel();
+        } else {
+          if (setPendingToolKey) {
+            setPendingToolKey(null);
+          }
+          if (setShowDataLinkDialog) {
+            setShowDataLinkDialog(false);
+          }
         }
-        setShowDataLinkDialog(false);
       }}
     >
       Cancel
@@ -133,69 +115,52 @@ function BtnContainer({
   return <div className="flex gap-4">{children}</div>;
 }
 
-export default function DataLinkDialog({
-  action,
-  showDataLinkDialog,
-  setShowDataLinkDialog,
-  proxiedPath,
-  urls,
-  pendingToolKey,
-  setPendingToolKey,
-  handleCopyUrl,
-  handleCreateDataLink,
-  handleDeleteDataLink
-}: DataLinkDialogProps): JSX.Element {
+export default function DataLinkDialog(
+  props: DataLinkDialogProps
+): JSX.Element {
   const { fileBrowserState } = useFileBrowserContext();
   const { pathPreference, areDataLinksAutomatic } = usePreferencesContext();
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
-
   const [localAreDataLinksAutomatic] = React.useState(areDataLinksAutomatic);
 
-  const fspKey = proxiedPath
-    ? makeMapKey('fsp', proxiedPath.fsp_name)
-    : fileBrowserState.currentFileSharePath
-      ? makeMapKey('fsp', fileBrowserState.currentFileSharePath.name)
+  function getDisplayPath(): string {
+    const fspKey =
+      props.action === 'delete'
+        ? makeMapKey('fsp', props.proxiedPath.fsp_name)
+        : fileBrowserState.currentFileSharePath
+          ? makeMapKey('fsp', fileBrowserState.currentFileSharePath.name)
+          : '';
+
+    const pathFsp = fspKey
+      ? (zonesAndFileSharePathsMap[fspKey] as FileSharePath)
+      : null;
+    const targetPath =
+      props.action === 'delete'
+        ? props.proxiedPath.path
+        : fileBrowserState.currentFileOrFolder
+          ? fileBrowserState.currentFileOrFolder.path
+          : '';
+
+    return pathFsp && targetPath
+      ? getPreferredPathForDisplay(pathPreference, pathFsp, targetPath)
       : '';
-
-  if (fspKey === '') {
-    return <>{toast.error('Valid file share path or proxied path required')}</>;
   }
-
-  const pathFsp = zonesAndFileSharePathsMap[fspKey] as FileSharePath;
-  const targetPath = proxiedPath
-    ? proxiedPath.path
-    : fileBrowserState.currentFileOrFolder
-      ? fileBrowserState.currentFileOrFolder.path
-      : '';
-
-  if (!targetPath) {
-    return <>{toast.error('Valid current folder or proxied path required')}</>;
-  }
-
-  const displayPath = getPreferredPathForDisplay(
-    pathPreference,
-    pathFsp,
-    targetPath
-  );
-
-  if (action === 'create' && localAreDataLinksAutomatic) {
-    return <></>;
-  }
+  const displayPath = getDisplayPath();
 
   return (
     <FgDialog
-      open={showDataLinkDialog}
+      open={props.showDataLinkDialog}
       onClose={() => {
-        if (setPendingToolKey) {
-          setPendingToolKey(null);
+        if (props.action === 'create') {
+          props.setPendingToolKey(null);
         }
-        setShowDataLinkDialog(false);
+        props.setShowDataLinkDialog(false);
       }}
     >
       <div className="flex flex-col gap-4 my-4">
-        {action === 'create' &&
-        !localAreDataLinksAutomatic &&
-        handleCreateDataLink ? (
+        {props.action === 'create' && localAreDataLinksAutomatic ? (
+          <> </>
+        ) : props.action === 'create' && !localAreDataLinksAutomatic ? (
           <>
             <TextWithFilePath
               text="Are you sure you want to create a data link for this path?"
@@ -212,21 +177,12 @@ export default function DataLinkDialog({
               <AutomaticLinksToggle />
             </div>
             <BtnContainer>
-              <CreateLinkBtn
-                urls={urls}
-                pendingToolKey={pendingToolKey}
-                setPendingToolKey={setPendingToolKey}
-                setShowDataLinkDialog={setShowDataLinkDialog}
-                handleCopyUrl={handleCopyUrl}
-                handleCreateDataLink={handleCreateDataLink}
-              />
-              <CancelBtn
-                setPendingToolKey={setPendingToolKey}
-                setShowDataLinkDialog={setShowDataLinkDialog}
-              />
+              <CreateLinkBtn onConfirm={props.onConfirm} />
+              <CancelBtn onCancel={props.onCancel} />
             </BtnContainer>
           </>
-        ) : action === 'delete' && localAreDataLinksAutomatic ? (
+        ) : null}
+        {props.action === 'delete' && localAreDataLinksAutomatic ? (
           <>
             <TextWithFilePath
               text="Are you sure you want to delete the data link for this path?"
@@ -239,15 +195,11 @@ export default function DataLinkDialog({
             </Typography>
             <BtnContainer>
               <DeleteLinkBtn
-                proxiedPath={proxiedPath}
-                displayPath={displayPath}
-                setShowDataLinkDialog={setShowDataLinkDialog}
-                handleDeleteDataLink={handleDeleteDataLink}
+                proxiedPath={props.proxiedPath}
+                setShowDataLinkDialog={props.setShowDataLinkDialog}
+                handleDeleteDataLink={props.handleDeleteDataLink}
               />
-              <CancelBtn
-                setPendingToolKey={setPendingToolKey}
-                setShowDataLinkDialog={setShowDataLinkDialog}
-              />
+              <CancelBtn setShowDataLinkDialog={props.setShowDataLinkDialog} />
             </BtnContainer>
             <Typography className="text-foreground">
               <span className="font-semibold">Note:</span> Automatic data links
@@ -256,7 +208,7 @@ export default function DataLinkDialog({
             </Typography>
             <AutomaticLinksToggle />
           </>
-        ) : action === 'delete' && !localAreDataLinksAutomatic ? (
+        ) : props.action === 'delete' && !localAreDataLinksAutomatic ? (
           <>
             <TextWithFilePath
               text="Are you sure you want to delete the data link for this path?"
@@ -271,15 +223,11 @@ export default function DataLinkDialog({
             </Typography>
             <BtnContainer>
               <DeleteLinkBtn
-                proxiedPath={proxiedPath}
-                displayPath={displayPath}
-                setShowDataLinkDialog={setShowDataLinkDialog}
-                handleDeleteDataLink={handleDeleteDataLink}
+                proxiedPath={props.proxiedPath}
+                setShowDataLinkDialog={props.setShowDataLinkDialog}
+                handleDeleteDataLink={props.handleDeleteDataLink}
               />
-              <CancelBtn
-                setPendingToolKey={setPendingToolKey}
-                setShowDataLinkDialog={setShowDataLinkDialog}
-              />
+              <CancelBtn setShowDataLinkDialog={props.setShowDataLinkDialog} />
             </BtnContainer>
           </>
         ) : null}
