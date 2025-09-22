@@ -142,7 +142,7 @@ export default function useDataToolLinks(
         setPendingToolKey?.(toolKey);
         setShowDataLinkDialog?.(true);
       }
-    } else if (externalDataUrl && openWithToolUrls) {
+    } else if ((proxiedPath || externalDataUrl) && openWithToolUrls) {
       await executeToolAction(toolKey, openWithToolUrls);
     }
   };
