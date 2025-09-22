@@ -56,7 +56,7 @@ export const CentralServerHealthProvider = ({
 
   // Calculate exponential backoff delay (capped at 1 minute)
   const getRetryDelay = React.useCallback((attempt: number): number => {
-    const baseDelay = 2000; // Start with 2 seconds
+    const baseDelay = 6000; // Start with 6 seconds
     const maxDelay = 60000; // Cap at 1 minute
     const delay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
     return delay;
