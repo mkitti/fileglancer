@@ -296,7 +296,7 @@ export default function useZarrMetadata() {
     if (metadata) {
       const url = externalDataUrl || dataUrl;
 
-      (async () => {
+      (() => {
         const openWithToolUrls = {
           copy: url || ''
         } as OpenWithToolUrls;
