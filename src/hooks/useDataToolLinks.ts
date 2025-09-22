@@ -5,187 +5,155 @@ import {
   useProxiedPathContext,
   type ProxiedPath
 } from '@/contexts/ProxiedPathContext';
-import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
-import { getPreferredPathForDisplay, makeMapKey } from '@/utils';
-import type { FileSharePath } from '@/shared.types';
-import type { OpenWithToolUrls, PendingToolKey } from '@/hooks/useZarrMetadata';
-import { constructToolUrl } from '@/utils/toolUrls';
+import { useExternalBucketContext } from '@/contexts/ExternalBucketContext';
 
-export default function useDataToolLinks() {
-  const [showDataLinkDialog, setShowDataLinkDialog] =
-    React.useState<boolean>(false);
+import { copyToClipboard } from '@/utils/copyText';
+import type { Result } from '@/shared.types';
+import type { OpenWithToolUrls, PendingToolKey } from '@/hooks/useZarrMetadata';
+
+export default function useDataToolLinks(
+  openWithToolUrls: OpenWithToolUrls | null,
+  pendingToolKey: PendingToolKey,
+  setPendingToolKey: React.Dispatch<React.SetStateAction<PendingToolKey>>,
+  setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>
+) {
+  const [showCopiedTooltip, setShowCopiedTooltip] = React.useState(false);
+
+  // Store current URLs in a ref to avoid stale closure issues
+  const currentUrlsRef = React.useRef(openWithToolUrls);
+  currentUrlsRef.current = openWithToolUrls;
+
   const {
     createProxiedPath,
-    fetchProxiedPath,
     deleteProxiedPath,
     refreshProxiedPaths,
     proxiedPath
   } = useProxiedPathContext();
-  const { fileBrowserState } = useFileBrowserContext();
-  const { pathPreference } = usePreferencesContext();
-  const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
 
-  // Helper function to calculate displayPath
-  const getDisplayPath = React.useCallback(() => {
-    const fspKey = proxiedPath
-      ? makeMapKey('fsp', proxiedPath.fsp_name)
-      : fileBrowserState.currentFileSharePath
-        ? makeMapKey('fsp', fileBrowserState.currentFileSharePath.name)
-        : '';
+  const { areDataLinksAutomatic } = usePreferencesContext();
+  const { externalDataUrl } = useExternalBucketContext();
 
-    const pathFsp = fspKey
-      ? (zonesAndFileSharePathsMap[fspKey] as FileSharePath)
-      : null;
-    const targetPath = proxiedPath
-      ? proxiedPath.path
-      : fileBrowserState.currentFileOrFolder
-        ? fileBrowserState.currentFileOrFolder.path
-        : '';
+  const handleCopy = async (url: string): Promise<void> => {
+    const result = await copyToClipboard(url);
+    if (result.success) {
+      setShowCopiedTooltip(true);
+      setTimeout(() => setShowCopiedTooltip(false), 2000);
+    } else {
+      toast.error('Failed to copy URL to clipboard');
+    }
+  };
 
-    return pathFsp && targetPath
-      ? getPreferredPathForDisplay(pathPreference, pathFsp, targetPath)
-      : '';
-  }, [
-    proxiedPath,
-    fileBrowserState.currentFileSharePath,
-    fileBrowserState.currentFileOrFolder,
-    pathPreference,
-    zonesAndFileSharePathsMap
-  ]);
+  const handleCreateDataLink = async (): Promise<
+    Result<void | ProxiedPath[]>
+  > => {
+    const createProxiedPathResult = await createProxiedPath();
+    if (createProxiedPathResult.success) {
+      toast.success('Data link created successfully');
+    }
+    return await refreshProxiedPaths();
+  };
 
-  const handlePendingTool = React.useCallback(
-    async (
-      pendingToolKey: PendingToolKey,
-      dataUrl: string | undefined,
-      urls: OpenWithToolUrls | null,
-      handleCopyUrl: ((url: string) => Promise<void>) | undefined,
-      setPendingToolKey:
-        | React.Dispatch<React.SetStateAction<PendingToolKey>>
-        | undefined
-    ) => {
-      if (pendingToolKey && pendingToolKey !== 'copy') {
-        let navigationUrl = urls?.[pendingToolKey];
-
-        // If URL not available but we have dataUrl from creating the new proxied path successfully,
-        // construct the nagiation URL using the utility function
-        if (!navigationUrl && dataUrl) {
-          navigationUrl = constructToolUrl(pendingToolKey, dataUrl);
-        }
-
-        if (navigationUrl && setPendingToolKey) {
-          window.open(navigationUrl, '_blank', 'noopener,noreferrer');
-          setPendingToolKey(null);
-        } else {
-          toast.error('URL not available');
-        }
-      } else if (pendingToolKey === 'copy' && dataUrl && handleCopyUrl) {
-        await handleCopyUrl(dataUrl);
-      }
-    },
-    []
-  );
-
-  const handleCreateDataLink = React.useCallback(
-    async (
-      pendingToolKey: PendingToolKey,
-      urls: OpenWithToolUrls | null,
-      handleCopyUrl: ((url: string) => Promise<void>) | undefined,
-      setPendingToolKey:
-        | React.Dispatch<React.SetStateAction<PendingToolKey>>
-        | undefined
-    ) => {
-      const displayPath = getDisplayPath();
-      // Check if proxied path already exists
-      const fetchResult = await fetchProxiedPath();
-      if (!fetchResult.success) {
-        toast.error(
-          `Error checking for existing data link: ${fetchResult.error}`
-        );
-        return;
-      }
-
-      if (fetchResult.data) {
-        // Proxied path already exists
-        toast.success(`Data link exists for ${displayPath}`);
-        const refreshResult = await refreshProxiedPaths();
-        if (!refreshResult.success) {
-          toast.error(`Error refreshing proxied paths: ${refreshResult.error}`);
-          return;
-        }
-        await handlePendingTool(
-          pendingToolKey,
-          fetchResult.data?.url,
-          urls,
-          handleCopyUrl,
-          setPendingToolKey
-        );
+  const executeToolAction = async (
+    toolKey: PendingToolKey,
+    urls: OpenWithToolUrls
+  ) => {
+    if (!urls) {
+      return;
+    }
+    if (toolKey === 'copy') {
+      await handleCopy(urls.copy);
+    } else if (toolKey) {
+      const navigationUrl = urls[toolKey];
+      if (navigationUrl) {
+        window.open(navigationUrl, '_blank', 'noopener,noreferrer');
       } else {
-        // No existing proxied path, create one
-        const createProxiedPathResult = await createProxiedPath();
-        if (createProxiedPathResult.success) {
-          toast.success(`Successfully created data link for ${displayPath}`);
-          const refreshResult = await refreshProxiedPaths();
-          if (!refreshResult.success) {
-            toast.error(
-              `Error refreshing proxied paths: ${refreshResult.error}`
-            );
-            return;
-          }
-          await handlePendingTool(
-            pendingToolKey,
-            createProxiedPathResult.data?.url,
-            urls,
-            handleCopyUrl,
-            setPendingToolKey
-          );
-        } else {
-          toast.error(
-            `Error creating data link: ${createProxiedPathResult.error}`
-          );
+        toast.error('URL not available');
+      }
+    }
+    setPendingToolKey(null);
+  };
+
+  const createLinkAndExecuteAction = async (
+    clickedToolKey?: PendingToolKey
+  ) => {
+    const toolKey = clickedToolKey || pendingToolKey;
+    const result = await handleCreateDataLink();
+    if (result.success) {
+      // Wait for URLs to be updated and use ref to get current value
+      let attempts = 0;
+      const maxAttempts = 50; // 5 seconds max
+
+      while (attempts < maxAttempts) {
+        const currentUrls = currentUrlsRef.current;
+
+        if (currentUrls && currentUrls.copy && currentUrls.copy !== '') {
+          await executeToolAction(toolKey, currentUrls);
+          break;
         }
-      }
-    },
-    [
-      createProxiedPath,
-      fetchProxiedPath,
-      refreshProxiedPaths,
-      handlePendingTool,
-      getDisplayPath
-    ]
-  );
 
-  const handleDeleteDataLink = React.useCallback(
-    async (proxiedPath: ProxiedPath | null) => {
-      const displayPath = getDisplayPath();
-      if (!proxiedPath) {
-        toast.error('Proxied path not found');
-        return;
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
       }
 
-      const deleteResult = await deleteProxiedPath(proxiedPath);
-      if (!deleteResult.success) {
-        toast.error(`Error deleting data link: ${deleteResult.error}`);
-        return;
+      if (attempts >= maxAttempts) {
+        toast.error('Timeout waiting for data link URLs to be ready');
+      }
+    }
+  };
+
+  const handleToolClick = async (toolKey: PendingToolKey) => {
+    if (!proxiedPath && !externalDataUrl) {
+      if (areDataLinksAutomatic) {
+        await createLinkAndExecuteAction(toolKey);
       } else {
-        toast.success(`Successfully deleted data link for ${displayPath}`);
-
-        const refreshResult = await refreshProxiedPaths();
-        if (!refreshResult.success) {
-          toast.error(`Error refreshing proxied paths: ${refreshResult.error}`);
-          return;
-        }
+        setPendingToolKey(toolKey);
+        setShowDataLinkDialog(true);
       }
-    },
-    [deleteProxiedPath, refreshProxiedPaths, getDisplayPath]
-  );
+    } else {
+      if (openWithToolUrls) {
+        await executeToolAction(toolKey, openWithToolUrls);
+      }
+    }
+  };
+
+  const handleDialogConfirm = async () => {
+    await createLinkAndExecuteAction();
+    setShowDataLinkDialog(false);
+  };
+
+  const handleDialogCancel = () => {
+    setPendingToolKey(null);
+    setShowDataLinkDialog(false);
+  };
+
+  const handleDeleteDataLink = async (proxiedPath: ProxiedPath) => {
+    if (!proxiedPath) {
+      toast.error('Proxied path not found');
+      return;
+    }
+
+    const deleteResult = await deleteProxiedPath(proxiedPath);
+    if (!deleteResult.success) {
+      toast.error(`Error deleting data link: ${deleteResult.error}`);
+      return;
+    } else {
+      toast.success(`Successfully deleted data link`);
+
+      const refreshResult = await refreshProxiedPaths();
+      if (!refreshResult.success) {
+        toast.error(`Error refreshing proxied paths: ${refreshResult.error}`);
+        return;
+      }
+    }
+  };
 
   return {
-    showDataLinkDialog,
-    setShowDataLinkDialog,
-    handlePendingTool,
     handleCreateDataLink,
-    handleDeleteDataLink
+    handleDeleteDataLink,
+    handleToolClick,
+    handleDialogConfirm,
+    handleDialogCancel,
+    showCopiedTooltip
   };
 }
