@@ -40,6 +40,7 @@ export function CentralServerDownOverlay({
 
     return () => clearInterval(timer);
   }, [localCountdown]);
+
   return (
     <Dialog open={open}>
       <Dialog.Overlay className="bg-black/50">
@@ -97,6 +98,7 @@ export function CentralServerDownOverlay({
                 onClick={onRetry}
                 className="w-full flex items-center justify-center gap-2"
                 color="primary"
+                autoFocus
               >
                 <HiRefresh className="w-4 h-4" />
                 Try Again
