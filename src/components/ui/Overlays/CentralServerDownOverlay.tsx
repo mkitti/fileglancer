@@ -1,3 +1,4 @@
+import React from 'react';
 import { Dialog, Button, Typography } from '@material-tailwind/react';
 import { HiOutlineExclamationTriangle } from 'react-icons/hi2';
 import { HiRefresh } from 'react-icons/hi';
@@ -5,14 +6,40 @@ import { HiRefresh } from 'react-icons/hi';
 type CentralServerDownOverlayProps = {
   open: boolean;
   onRetry: () => void;
-  retryCountdown: number | null;
+  countdownSeconds: number | null;
 };
 
 export function CentralServerDownOverlay({
   open,
   onRetry,
-  retryCountdown
+  countdownSeconds
 }: CentralServerDownOverlayProps): JSX.Element {
+  const [localCountdown, setLocalCountdown] = React.useState<number | null>(
+    null
+  );
+
+  // Update local countdown when prop changes
+  React.useEffect(() => {
+    setLocalCountdown(countdownSeconds);
+  }, [countdownSeconds]);
+
+  // Handle countdown timer
+  React.useEffect(() => {
+    if (localCountdown === null || localCountdown <= 0) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setLocalCountdown(prev => {
+        if (prev === null || prev <= 1) {
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [localCountdown]);
   return (
     <Dialog open={open}>
       <Dialog.Overlay className="bg-black/50">
@@ -31,13 +58,13 @@ export function CentralServerDownOverlay({
               </Typography>
             </div>
 
-            {retryCountdown !== null && (
+            {localCountdown !== null && localCountdown > 0 && (
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 w-full">
                 <div className="flex items-center justify-center space-x-2">
                   <div className="w-3 h-3 bg-primary rounded-full animate-pulse"></div>
                   <Typography type="small" className="text-primary font-medium">
-                    Automatically retrying in {retryCountdown} second
-                    {retryCountdown !== 1 ? 's' : ''}
+                    Automatically retrying in {localCountdown} second
+                    {localCountdown !== 1 ? 's' : ''}
                   </Typography>
                 </div>
               </div>

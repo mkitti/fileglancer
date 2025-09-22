@@ -16,7 +16,7 @@ type CentralServerHealthContextType = {
   ) => Promise<void>;
   dismissWarning: () => void;
   showWarningOverlay: boolean;
-  retryCountdown: number | null;
+  nextRetrySeconds: number | null;
 };
 
 const CentralServerHealthContext =
@@ -40,7 +40,7 @@ export const CentralServerHealthProvider = ({
   const [status, setStatus] = React.useState<CentralServerStatus>('healthy');
   const [showWarningOverlay, setShowWarningOverlay] = React.useState(false);
   const [isChecking, setIsChecking] = React.useState(false);
-  const [retryCountdown, setRetryCountdown] = React.useState<number | null>(
+  const [nextRetrySeconds, setNextRetrySeconds] = React.useState<number | null>(
     null
   );
   const { cookies } = useCookiesContext();
@@ -54,54 +54,12 @@ export const CentralServerHealthProvider = ({
   const isRetryingRef = React.useRef<boolean>(false);
   const MAX_RETRY_ATTEMPTS = 10; // Limit total retry attempts to prevent infinite loops
 
-  // Countdown timer state
-  const countdownIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
-  const nextRetryTimeRef = React.useRef<number | null>(null);
-
   // Calculate exponential backoff delay (capped at 1 minute)
   const getRetryDelay = React.useCallback((attempt: number): number => {
     const baseDelay = 2000; // Start with 2 seconds
     const maxDelay = 60000; // Cap at 1 minute
     const delay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
     return delay;
-  }, []);
-
-  // Start countdown timer
-  const startCountdown = React.useCallback((delayMs: number) => {
-    // Clear any existing countdown
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-    }
-
-    nextRetryTimeRef.current = Date.now() + delayMs;
-    setRetryCountdown(Math.ceil(delayMs / 1000));
-
-    countdownIntervalRef.current = setInterval(() => {
-      if (nextRetryTimeRef.current) {
-        const remainingMs = nextRetryTimeRef.current - Date.now();
-        const remainingSeconds = Math.ceil(remainingMs / 1000);
-
-        if (remainingSeconds <= 0) {
-          setRetryCountdown(null);
-          if (countdownIntervalRef.current) {
-            clearInterval(countdownIntervalRef.current);
-            countdownIntervalRef.current = null;
-          }
-        } else {
-          setRetryCountdown(remainingSeconds);
-        }
-      }
-    }, 1000);
-  }, []);
-
-  // Stop countdown timer
-  const stopCountdown = React.useCallback(() => {
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-      countdownIntervalRef.current = null;
-    }
-    nextRetryTimeRef.current = null;
-    setRetryCountdown(null);
   }, []);
 
   // Stop retry mechanism
@@ -112,8 +70,8 @@ export const CentralServerHealthProvider = ({
     }
     isRetryingRef.current = false;
     retryAttemptRef.current = 0;
-    stopCountdown();
-  }, [stopCountdown]);
+    setNextRetrySeconds(null);
+  }, []);
 
   // Start exponential backoff retry
   const startRetrying = React.useCallback(() => {
@@ -130,8 +88,8 @@ export const CentralServerHealthProvider = ({
         `Scheduling next health check retry in ${delay}ms (attempt ${retryAttemptRef.current + 1})`
       );
 
-      // Start countdown timer
-      startCountdown(delay);
+      // Set the countdown seconds for the overlay
+      setNextRetrySeconds(Math.ceil(delay / 1000));
 
       retryTimeoutRef.current = setTimeout(async () => {
         retryAttemptRef.current++;
@@ -184,7 +142,7 @@ export const CentralServerHealthProvider = ({
     };
 
     scheduleNextRetry();
-  }, [getRetryDelay, stopRetrying, startCountdown, cookies]);
+  }, [getRetryDelay, stopRetrying, cookies]);
 
   const checkHealth = React.useCallback(async () => {
     if (isChecking) {
@@ -281,9 +239,6 @@ export const CentralServerHealthProvider = ({
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
       }
-      if (countdownIntervalRef.current) {
-        clearInterval(countdownIntervalRef.current);
-      }
       isRetryingRef.current = false;
     };
   }, []);
@@ -296,7 +251,7 @@ export const CentralServerHealthProvider = ({
         reportFailedRequest,
         dismissWarning,
         showWarningOverlay,
-        retryCountdown
+        nextRetrySeconds
       }}
     >
       {children}

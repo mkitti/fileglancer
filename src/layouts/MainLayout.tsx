@@ -20,7 +20,8 @@ import { CentralServerDownOverlay } from '@/components/ui/Overlays/CentralServer
 import { useCentralServerHealthContext } from '@/contexts/CentralServerHealthContext';
 
 const MainLayoutContent = () => {
-  const { showWarningOverlay, checkHealth, retryCountdown } = useCentralServerHealthContext();
+  const { showWarningOverlay, checkHealth, nextRetrySeconds } =
+    useCentralServerHealthContext();
 
   return (
     <>
@@ -45,7 +46,7 @@ const MainLayoutContent = () => {
       <CentralServerDownOverlay
         open={showWarningOverlay}
         onRetry={checkHealth}
-        retryCountdown={retryCountdown}
+        countdownSeconds={nextRetrySeconds}
       />
     </>
   );
