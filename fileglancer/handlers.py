@@ -893,6 +893,39 @@ class VersionHandler(BaseHandler):
         self.write(json.dumps({"version": version}))
         self.finish()
 
+class CentralVersionHandler(BaseHandler):
+    """
+    API handler for returning the version of the fileglancer-central server
+    """
+    @web.authenticated
+    def get(self):
+        self.log.info("GET /api/fileglancer/central-version")
+        try:
+            central_url = self.settings['fileglancer'].central_url
+
+            if not central_url:
+                self.log.error("Central server URL not configured")
+                self.set_status(500)
+                self.finish(json.dumps({"error": "Central server not configured"}))
+                return
+
+            response = requests.get(f"{central_url}/version")
+            response.raise_for_status()
+
+            central_version_data = response.json()
+            self.log.debug(f"Central server version: {central_version_data}")
+
+            self.set_header('Content-Type', 'application/json')
+            self.set_status(200)
+            self.write(json.dumps(central_version_data))
+            self.finish()
+
+        except Exception as e:
+            self.log.error(f"Error getting central version: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({"error": f"Failed to fetch central version: {str(e)}"}))
+
+
 class ExternalBucketHandler(BaseHandler):
     """
     API handler for external bucket operations
