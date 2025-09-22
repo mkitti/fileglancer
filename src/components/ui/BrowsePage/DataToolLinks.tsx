@@ -9,57 +9,18 @@ import avivator_logo from '@/assets/vizarr_logo.png';
 import copy_logo from '@/assets/copy-link-64.png';
 import type { OpenWithToolUrls, PendingToolKey } from '@/hooks/useZarrMetadata';
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
-import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
-import { useExternalBucketContext } from '@/contexts/ExternalBucketContext';
 
 export default function DataToolLinks({
-  title,
-  urls,
-  setShowDataLinkDialog,
-  setPendingToolKey,
+  onToolClick,
   showCopiedTooltip,
-  handleCopyUrl,
-  handleCreateDataLink
+  title,
+  urls
 }: {
+  onToolClick: (toolKey: PendingToolKey) => Promise<void>;
+  showCopiedTooltip: boolean;
   title: string;
   urls: OpenWithToolUrls | null;
-  setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
-  setPendingToolKey?: React.Dispatch<React.SetStateAction<PendingToolKey>>;
-  showCopiedTooltip: boolean;
-  handleCopyUrl: (url: string) => Promise<void>;
-  handleCreateDataLink: (
-    pendingToolKey: PendingToolKey,
-    urls: OpenWithToolUrls | null,
-    handleCopyUrl: ((url: string) => Promise<void>) | undefined,
-    setPendingToolKey:
-      | React.Dispatch<React.SetStateAction<PendingToolKey>>
-      | undefined
-  ) => Promise<void>;
 }): React.ReactNode {
-  const { areDataLinksAutomatic } = usePreferencesContext();
-  const { proxiedPath } = useProxiedPathContext();
-  const { externalDataUrl } = useExternalBucketContext();
-
-  const handleLinkClick = async (
-    url: keyof OpenWithToolUrls,
-    event: React.MouseEvent
-  ) => {
-    if (
-      !proxiedPath &&
-      !externalDataUrl &&
-      !areDataLinksAutomatic &&
-      setPendingToolKey
-    ) {
-      event.preventDefault();
-      setPendingToolKey(url);
-      setShowDataLinkDialog(true);
-    } else if (!proxiedPath && !externalDataUrl && areDataLinksAutomatic) {
-      event.preventDefault();
-      await handleCreateDataLink(url, urls, handleCopyUrl, setPendingToolKey);
-    }
-  };
-
   const tooltipTriggerClasses =
     'rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75';
 
@@ -80,12 +41,14 @@ export default function DataToolLinks({
             triggerClasses={tooltipTriggerClasses}
             label="View in Neuroglancer"
           >
-            {' '}
             <Link
               to={urls.neuroglancer}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={async e => await handleLinkClick('neuroglancer', e)}
+              onClick={async e => {
+                e.preventDefault();
+                await onToolClick('neuroglancer');
+              }}
             >
               <img
                 src={neuroglancer_logo}
@@ -107,7 +70,10 @@ export default function DataToolLinks({
               to={urls.vole}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={async e => await handleLinkClick('vole', e)}
+              onClick={async e => {
+                e.preventDefault();
+                await onToolClick('vole');
+              }}
             >
               <img
                 src={volE_logo}
@@ -129,7 +95,10 @@ export default function DataToolLinks({
               to={urls.avivator}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={async e => await handleLinkClick('avivator', e)}
+              onClick={async e => {
+                e.preventDefault();
+                await onToolClick('avivator');
+              }}
             >
               <img
                 src={avivator_logo}
@@ -151,7 +120,10 @@ export default function DataToolLinks({
               to={urls.validator}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={async e => await handleLinkClick('validator', e)}
+              onClick={async e => {
+                e.preventDefault();
+                await onToolClick('validator');
+              }}
             >
               <img
                 src={validator_logo}
@@ -167,12 +139,8 @@ export default function DataToolLinks({
           variant="ghost"
           triggerClasses={tooltipTriggerClasses}
           label={showCopiedTooltip ? 'Copied!' : 'Copy data URL'}
-          onClick={async e => {
-            if (urls.copy === '') {
-              await handleLinkClick('copy', e);
-            } else if (urls.copy !== '') {
-              await handleCopyUrl(urls.copy);
-            }
+          onClick={async () => {
+            await onToolClick('copy');
           }}
           openCondition={showCopiedTooltip ? true : undefined}
         >
