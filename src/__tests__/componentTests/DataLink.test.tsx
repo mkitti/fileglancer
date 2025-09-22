@@ -17,20 +17,21 @@ const mockOpenWithToolUrls: OpenWithToolUrls = {
 
 // Test component that integrates the real hook with the dialog
 function TestDataLinkComponent() {
-  const { handleCreateDataLink, handleDeleteDataLink } = useDataToolLinks();
+  const { handleDialogConfirm } = useDataToolLinks(
+    mockOpenWithToolUrls,
+    'copy',
+    vi.fn(),
+    vi.fn()
+  );
 
   return (
     <DataLinkDialog
       action="create"
       showDataLinkDialog={true}
       setShowDataLinkDialog={vi.fn()}
-      proxiedPath={null}
-      urls={mockOpenWithToolUrls}
-      handleDeleteDataLink={handleDeleteDataLink}
-      handleCreateDataLink={handleCreateDataLink}
-      pendingToolKey="copy"
+      onConfirm={handleDialogConfirm}
+      onCancel={vi.fn()}
       setPendingToolKey={vi.fn()}
-      handleCopyUrl={vi.fn()}
     />
   );
 }
@@ -53,7 +54,7 @@ describe('Data Link dialog', () => {
     await user.click(screen.getByText('Create Data Link'));
     await waitFor(() => {
       expect(toast.success).toHaveBeenCalledWith(
-        'Successfully created data link for /test/fsp/my_folder/my_zarr'
+        'Data link created successfully'
       );
     });
   });
