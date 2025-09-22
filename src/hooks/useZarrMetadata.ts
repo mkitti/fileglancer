@@ -16,7 +16,6 @@ import { fetchFileAsJson, getFileURL } from '@/utils';
 import { useCookies } from 'react-cookie';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useExternalBucketContext } from '@/contexts/ExternalBucketContext';
-import { TOOL_BASE_URLS } from '@/utils/toolUrls';
 import * as zarr from 'zarrita';
 
 export type OpenWithToolUrls = {
@@ -46,6 +45,10 @@ export default function useZarrMetadata() {
     'auto' | 'image' | 'segmentation' | null
   >(null);
 
+  const validatorBaseUrl = 'https://ome.github.io/ome-ngff-validator/?source=';
+  const neuroglancerBaseUrl = 'https://neuroglancer-demo.appspot.com/#!';
+  const voleBaseUrl = 'https://volumeviewer.allencell.org/viewer?url=';
+  const avivatorBaseUrl = 'https://avivator.gehlenborglab.org/?image_url=';
   const { fileBrowserState, areFileDataLoading } = useFileBrowserContext();
   const { dataUrl } = useProxiedPathContext();
   const { externalDataUrl } = useExternalBucketContext();
@@ -306,17 +309,16 @@ export default function useZarrMetadata() {
           // OME-Zarr - all tools available
           if (url) {
             // Populate with actual URLs when proxied path is available
-            openWithToolUrls.validator = TOOL_BASE_URLS.validator + url;
-            openWithToolUrls.vole = TOOL_BASE_URLS.vole + url;
-            openWithToolUrls.avivator = TOOL_BASE_URLS.avivator + url;
+            openWithToolUrls.validator = validatorBaseUrl + url;
+            openWithToolUrls.vole = voleBaseUrl + url;
+            openWithToolUrls.avivator = avivatorBaseUrl + url;
             if (disableNeuroglancerStateGeneration) {
               openWithToolUrls.neuroglancer =
-                TOOL_BASE_URLS.neuroglancer +
-                generateNeuroglancerStateForDataURL(url);
+                neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
             } else {
               try {
                 openWithToolUrls.neuroglancer =
-                  TOOL_BASE_URLS.neuroglancer +
+                  neuroglancerBaseUrl +
                   generateNeuroglancerStateForOmeZarr(
                     url,
                     metadata.zarrVersion,
@@ -331,7 +333,7 @@ export default function useZarrMetadata() {
                   error
                 );
                 openWithToolUrls.neuroglancer =
-                  TOOL_BASE_URLS.neuroglancer +
+                  neuroglancerBaseUrl +
                   generateNeuroglancerStateForDataURL(url);
               }
             }
@@ -350,11 +352,10 @@ export default function useZarrMetadata() {
             openWithToolUrls.avivator = null;
             if (disableNeuroglancerStateGeneration) {
               openWithToolUrls.neuroglancer =
-                TOOL_BASE_URLS.neuroglancer +
-                generateNeuroglancerStateForDataURL(url);
+                neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
             } else {
               openWithToolUrls.neuroglancer =
-                TOOL_BASE_URLS.neuroglancer +
+                neuroglancerBaseUrl +
                 generateNeuroglancerStateForZarrArray(
                   url,
                   metadata.zarrVersion,
