@@ -142,10 +142,8 @@ export default function useDataToolLinks(
         setPendingToolKey?.(toolKey);
         setShowDataLinkDialog?.(true);
       }
-    } else {
-      if (openWithToolUrls) {
-        await executeToolAction(toolKey, openWithToolUrls);
-      }
+    } else if (externalDataUrl && openWithToolUrls) {
+      await executeToolAction(toolKey, openWithToolUrls);
     }
   };
 
