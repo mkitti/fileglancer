@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { toHttpError, getErrorString } from '@/utils/errorHandling';
+import { sendFetchRequest } from '@/utils';
+import { useCookiesContext } from '@/contexts/CookiesContext';
 import logger from '@/logger';
 
 interface CentralVersionData {
@@ -21,13 +23,18 @@ export default function useCentralVersion(): UseCentralVersionReturn {
     status: 'loading',
     version: 'unknown'
   });
+  const { cookies } = useCookiesContext();
 
   useEffect(() => {
     const fetchCentralVersion = async () => {
       try {
         setState({ status: 'loading', version: 'unknown' });
 
-        const response = await fetch('/api/fileglancer/central-version');
+        const response = await sendFetchRequest(
+          '/api/fileglancer/central-version',
+          'GET',
+          cookies['_xsrf']
+        );
 
         if (!response.ok) {
           if (response.status === 500) {
@@ -53,7 +60,7 @@ export default function useCentralVersion(): UseCentralVersionReturn {
     };
 
     fetchCentralVersion();
-  }, []);
+  }, [cookies]);
 
   return {
     centralVersionState
