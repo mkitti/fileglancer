@@ -21,26 +21,6 @@ export default function DataToolLinks({
   title: string;
   urls: OpenWithToolUrls | null;
 }): React.ReactNode {
-  const [showCopiedTooltip, setShowCopiedTooltip] = React.useState(false);
-
-  const handleCopyUrl = async () => {
-    if (urls?.copy) {
-      await copyToClipboard(urls.copy);
-      setShowCopiedTooltip(true);
-      setTimeout(() => {
-        setShowCopiedTooltip(false);
-      }, 2000);
-    }
-  };
-
-  const handleLinkClick = (url: string, event: React.MouseEvent) => {
-    if (!proxiedPath && !automaticDataLinks && setPendingNavigationUrl) {
-      event.preventDefault();
-      setPendingNavigationUrl(url);
-      setShowDataLinkDialog(true);
-    }
-  };
-
   const tooltipTriggerClasses =
     'rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75';
 
@@ -171,9 +151,6 @@ export default function DataToolLinks({
           />
         </FgTooltip>
       </ButtonGroup>
-      {automaticLinkError ? (
-        <Typography className="text-error text-xs pt-3">{`${automaticLinkError}`}</Typography>
-      ) : null}
     </div>
   );
 }
