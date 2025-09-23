@@ -12,7 +12,7 @@ import {
 import { useCookiesContext } from './CookiesContext';
 import { useZoneAndFspMapContext } from './ZonesAndFspMapContext';
 import { normalizePosixStylePath } from '@/utils/pathHandling';
-import { createSuccess, handleError, toHttpError } from '@/utils/errorHandling';
+import { createSuccess, handleError } from '@/utils/errorHandling';
 
 type FileBrowserResponse = {
   info: FileOrFolder;
@@ -87,7 +87,6 @@ export const FileBrowserContextProvider = ({
   // Function to update fileBrowserState with complete, consistent data
   const updateFileBrowserState = React.useCallback(
     (newState: Partial<FileBrowserState>) => {
-      log.debug('Updating fileBrowserState:', newState);
       setFileBrowserState(prev => ({
         ...prev,
         ...newState
@@ -134,9 +133,7 @@ export const FileBrowserContextProvider = ({
   const navigate = useNavigate();
 
   const handleLeftClick = (
-    // e: React.MouseEvent<HTMLDivElement>,
     file: FileOrFolder,
-    // displayFiles: FileOrFolder[],
     showFilePropertiesDrawer: boolean
   ) => {
     // If clicking on a file (not directory), navigate to the file URL
@@ -149,38 +146,7 @@ export const FileBrowserContextProvider = ({
       return;
     }
 
-    // For directories, handle selection as before
-    // if (e.shiftKey) {
-    //   // If shift key held down while clicking,
-    //   // add all files between the last selected and the current file
-    //   const lastSelectedIndex = selectedFiles.length
-    //     ? displayFiles.findIndex(
-    //         f => f === selectedFiles[selectedFiles.length - 1]
-    //       )
-    //     : -1;
-    //   const currentIndex = displayFiles.findIndex(f => f.name === file.name);
-    //   const start = Math.min(lastSelectedIndex, currentIndex);
-    //   const end = Math.max(lastSelectedIndex, currentIndex);
-    //   const newSelectedFiles = displayFiles.slice(start, end + 1);
-    //   setSelectedFiles(newSelectedFiles);
-    //   setPropertiesTarget(file);
-    // } else if (e.metaKey) {
-    //   // If  "Windows/Cmd" is held down while clicking,
-    //   // toggle the current file in the selection
-    //   // and set it as the properties target
-    //   const currentIndex = selectedFiles.indexOf(file);
-    //   const newSelectedFiles = [...selectedFiles];
-
-    //   if (currentIndex === -1) {
-    //     newSelectedFiles.push(file);
-    //   } else {
-    //     newSelectedFiles.splice(currentIndex, 1);
-    //   }
-
-    //   setSelectedFiles(newSelectedFiles);
-    //   setPropertiesTarget(file);
-    // } else {
-    // If no modifier keys are held down, select the current file
+    // Select the clicked file
     const currentIndex = fileBrowserState.selectedFiles.indexOf(file);
     const newSelectedFiles =
       currentIndex === -1 ||
@@ -206,19 +172,6 @@ export const FileBrowserContextProvider = ({
   };
 
   const updateFilesWithContextMenuClick = (file: FileOrFolder) => {
-    // Update file selection - if file is not already selected, select it; otherwise keep current selection
-    // if (fileBrowserState.selectedFiles.length === 0) {
-    //   updateAllStates(
-    //     fileBrowserState.currentFileSharePath,
-    //     fileBrowserState.currentFolder,
-    //     fileBrowserState.files,
-    //     file, // Set as properties target
-    //     [file], // Select the clicked file
-    //     fileBrowserState.uiErrorMsg
-    //   );
-    //   return;
-    // }
-
     const currentIndex = fileBrowserState.selectedFiles.indexOf(file);
     const newSelectedFiles =
       currentIndex === -1 ? [file] : [...fileBrowserState.selectedFiles];
@@ -242,13 +195,13 @@ export const FileBrowserContextProvider = ({
       const url = getFileBrowsePath(fspName, folderName);
 
       const response = await sendFetchRequest(url, 'GET', cookies['_xsrf']);
-      const data = await response.json();
+      const body = await response.json();
 
       if (!response.ok) {
         if (response.status === 403) {
-          if (data.info && data.info.owner) {
+          if (body.info && body.info.owner) {
             throw new Error(
-              `You do not have permission to list this folder. Contact the owner (${data.info.owner}) for access.`
+              `You do not have permission to list this folder. Contact the owner (${body.info.owner}) for access.`
             );
           } else {
             throw new Error(
@@ -258,11 +211,13 @@ export const FileBrowserContextProvider = ({
         } else if (response.status === 404) {
           throw new Error('Folder not found');
         } else {
-          throw await toHttpError(response);
+          throw new Error(
+            body.error ? body.error : `Unknown error (${response.status})`
+          );
         }
       }
 
-      return data as FileBrowserResponse;
+      return body as FileBrowserResponse;
     },
     [cookies]
   );
@@ -271,12 +226,6 @@ export const FileBrowserContextProvider = ({
   const fetchAndUpdateFileBrowserState = React.useCallback(
     async (fsp: FileSharePath, targetPath: string): Promise<void> => {
       setAreFileDataLoading(true);
-      log.debug(
-        'Fetching metadata for FSP:',
-        fsp.name,
-        'and path:',
-        targetPath
-      );
       let fileOrFolder: FileOrFolder | null = null;
 
       try {
@@ -357,7 +306,6 @@ export const FileBrowserContextProvider = ({
         new Error('File share path and file/folder required to refresh')
       );
     }
-    log.debug('Refreshing file list');
     try {
       await fetchAndUpdateFileBrowserState(
         fileBrowserState.currentFileSharePath,
@@ -371,7 +319,6 @@ export const FileBrowserContextProvider = ({
 
   // Function to trigger a refresh of file content in FileViewer
   const triggerFileContentRefresh = React.useCallback(() => {
-    log.debug('Triggering file content refresh');
     setFileBrowserState(prev => ({
       ...prev,
       fileContentRefreshTrigger: prev.fileContentRefreshTrigger + 1
@@ -380,10 +327,12 @@ export const FileBrowserContextProvider = ({
 
   // Effect to update currentFolder and propertiesTarget when URL params change
   React.useEffect(() => {
-    log.debug('URL changed: fspName=', fspName, 'filePath=', filePath);
     let cancelled = false;
     const updateCurrentFileSharePathAndFolder = async () => {
-      if (!isZonesMapReady || !zonesAndFileSharePathsMap || !fspName) {
+      if (!isZonesMapReady || !zonesAndFileSharePathsMap) {
+        return;
+      }
+      if (!fspName) {
         if (cancelled) {
           return;
         }
@@ -393,7 +342,7 @@ export const FileBrowserContextProvider = ({
           [],
           null,
           [],
-          'Invalid file share path name'
+          'No file share path name in URL'
         );
         return;
       }
@@ -401,7 +350,6 @@ export const FileBrowserContextProvider = ({
       const fspKey = makeMapKey('fsp', fspName);
       const urlFsp = zonesAndFileSharePathsMap[fspKey] as FileSharePath;
       if (!urlFsp) {
-        log.error(`File share path not found for fspName: ${fspName}`);
         if (cancelled) {
           return;
         }

@@ -1,92 +1,50 @@
 import React from 'react';
 import { Button, Typography } from '@material-tailwind/react';
-import toast from 'react-hot-toast';
 
-import {
-  ProxiedPath,
-  useProxiedPathContext
-} from '@/contexts/ProxiedPathContext';
+import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
 import { getPreferredPathForDisplay, makeMapKey } from '@/utils';
 import type { FileSharePath } from '@/shared.types';
+import type { PendingToolKey } from '@/hooks/useZarrMetadata';
 import FgDialog from './FgDialog';
 import TextWithFilePath from './TextWithFilePath';
 import AutomaticLinksToggle from '@/components/ui/PreferencesPage/AutomaticLinksToggle';
 
-type DataLinkDialogProps = {
-  action: 'create' | 'delete';
+interface CommonDataLinkDialogProps {
+  getDisplayPath?: () => string;
   showDataLinkDialog: boolean;
   setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
-  proxiedPath: ProxiedPath | null;
-  pendingNavigationUrl?: string | null;
-  setPendingNavigationUrl?: React.Dispatch<React.SetStateAction<string | null>>;
-};
+}
+
+interface CreateLinkDialog extends CommonDataLinkDialogProps {
+  action: 'create';
+  onConfirm: () => Promise<void>;
+  onCancel: () => void;
+  setPendingToolKey: React.Dispatch<React.SetStateAction<PendingToolKey>>;
+}
+
+interface DeleteLinkDialog extends CommonDataLinkDialogProps {
+  action: 'delete';
+  proxiedPath: ProxiedPath;
+  handleDeleteDataLink: (proxiedPath: ProxiedPath) => Promise<void>;
+}
+
+type DataLinkDialogProps = CreateLinkDialog | DeleteLinkDialog;
 
 function CreateLinkBtn({
-  displayPath,
-  pendingNavigationUrl,
-  setPendingNavigationUrl,
-  setShowDataLinkDialog
+  onConfirm
 }: {
-  displayPath: string;
-  pendingNavigationUrl?: string | null;
-  setPendingNavigationUrl?: React.Dispatch<React.SetStateAction<string | null>>;
-  setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  onConfirm: () => Promise<void>;
 }): JSX.Element {
-  const { createProxiedPath, fetchProxiedPath, refreshProxiedPaths } =
-    useProxiedPathContext();
-
-  async function refreshLinks() {
-    const refreshResult = await refreshProxiedPaths();
-    if (!refreshResult.success) {
-      toast.error(`Error refreshing proxied paths: ${refreshResult.error}`);
-      return;
-    }
-  }
-
-  function navigateToPendingUrl() {
-    if (pendingNavigationUrl && setPendingNavigationUrl) {
-      window.open(pendingNavigationUrl, '_blank', 'noopener,noreferrer');
-      setPendingNavigationUrl(null);
-    }
-  }
-
   return (
     <Button
       variant="outline"
       color="error"
       className="!rounded-md flex items-center gap-2"
       onClick={async () => {
-        // Check if proxied path already exists
-        const fetchResult = await fetchProxiedPath();
-        if (!fetchResult.success) {
-          toast.error(
-            `Error checking for existing data link: ${fetchResult.error}`
-          );
-          return;
-        }
-
-        if (fetchResult.data) {
-          // Proxied path already exists
-          toast.success(`Data link exists for ${displayPath}`);
-          await refreshLinks();
-          navigateToPendingUrl();
-        } else {
-          // No existing proxied path, create one
-          const createProxiedPathResult = await createProxiedPath();
-          if (createProxiedPathResult.success) {
-            toast.success(`Successfully created data link for ${displayPath}`);
-            await refreshLinks();
-            navigateToPendingUrl();
-          } else {
-            toast.error(
-              `Error creating data link: ${createProxiedPathResult.error}`
-            );
-          }
-        }
-        setShowDataLinkDialog(false);
+        await onConfirm();
       }}
     >
       Create Data Link
@@ -96,42 +54,20 @@ function CreateLinkBtn({
 
 function DeleteLinkBtn({
   proxiedPath,
-  displayPath,
-  setShowDataLinkDialog
+  setShowDataLinkDialog,
+  handleDeleteDataLink
 }: {
-  proxiedPath: ProxiedPath | null;
-  displayPath: string;
+  proxiedPath: ProxiedPath;
   setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  handleDeleteDataLink: (proxiedPath: ProxiedPath) => Promise<void>;
 }): JSX.Element {
-  const { deleteProxiedPath, refreshProxiedPaths } = useProxiedPathContext();
-
   return (
     <Button
       variant="outline"
       color="error"
       className="!rounded-md flex items-center gap-2 hover:text-background focus:text-background"
       onClick={async () => {
-        if (!proxiedPath) {
-          toast.error('Proxied path not found');
-          return;
-        }
-
-        const deleteResult = await deleteProxiedPath(proxiedPath);
-        if (!deleteResult.success) {
-          toast.error(`Error deleting data link: ${deleteResult.error}`);
-          return;
-        } else {
-          toast.success(`Successfully deleted data link for ${displayPath}`);
-
-          const refreshResult = await refreshProxiedPaths();
-          if (!refreshResult.success) {
-            toast.error(
-              `Error refreshing proxied paths: ${refreshResult.error}`
-            );
-            return;
-          }
-        }
-
+        await handleDeleteDataLink(proxiedPath);
         setShowDataLinkDialog(false);
       }}
     >
@@ -141,21 +77,29 @@ function DeleteLinkBtn({
 }
 
 function CancelBtn({
-  setPendingNavigationUrl,
-  setShowDataLinkDialog
+  setPendingToolKey,
+  setShowDataLinkDialog,
+  onCancel
 }: {
-  setPendingNavigationUrl?: React.Dispatch<React.SetStateAction<string | null>>;
-  setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  setPendingToolKey?: React.Dispatch<React.SetStateAction<PendingToolKey>>;
+  setShowDataLinkDialog?: React.Dispatch<React.SetStateAction<boolean>>;
+  onCancel?: () => void;
 }): JSX.Element {
   return (
     <Button
       variant="outline"
       className="!rounded-md flex items-center gap-2"
       onClick={() => {
-        if (setPendingNavigationUrl) {
-          setPendingNavigationUrl(null);
+        if (onCancel) {
+          onCancel();
+        } else {
+          if (setPendingToolKey) {
+            setPendingToolKey(null);
+          }
+          if (setShowDataLinkDialog) {
+            setShowDataLinkDialog(false);
+          }
         }
-        setShowDataLinkDialog(false);
       }}
     >
       Cancel
@@ -171,63 +115,52 @@ function BtnContainer({
   return <div className="flex gap-4">{children}</div>;
 }
 
-export default function DataLinkDialog({
-  action,
-  showDataLinkDialog,
-  setShowDataLinkDialog,
-  proxiedPath,
-  pendingNavigationUrl,
-  setPendingNavigationUrl
-}: DataLinkDialogProps): JSX.Element {
+export default function DataLinkDialog(
+  props: DataLinkDialogProps
+): JSX.Element {
   const { fileBrowserState } = useFileBrowserContext();
-  const { pathPreference, automaticDataLinks } = usePreferencesContext();
+  const { pathPreference, areDataLinksAutomatic } = usePreferencesContext();
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
+  const [localAreDataLinksAutomatic] = React.useState(areDataLinksAutomatic);
 
-  const [localAutomaticDataLinks] = React.useState(automaticDataLinks);
+  function getDisplayPath(): string {
+    const fspKey =
+      props.action === 'delete'
+        ? makeMapKey('fsp', props.proxiedPath.fsp_name)
+        : fileBrowserState.currentFileSharePath
+          ? makeMapKey('fsp', fileBrowserState.currentFileSharePath.name)
+          : '';
 
-  const fspKey = proxiedPath
-    ? makeMapKey('fsp', proxiedPath.fsp_name)
-    : fileBrowserState.currentFileSharePath
-      ? makeMapKey('fsp', fileBrowserState.currentFileSharePath.name)
+    const pathFsp = fspKey
+      ? (zonesAndFileSharePathsMap[fspKey] as FileSharePath)
+      : null;
+    const targetPath =
+      props.action === 'delete'
+        ? props.proxiedPath.path
+        : fileBrowserState.currentFileOrFolder
+          ? fileBrowserState.currentFileOrFolder.path
+          : '';
+
+    return pathFsp && targetPath
+      ? getPreferredPathForDisplay(pathPreference, pathFsp, targetPath)
       : '';
-
-  if (fspKey === '') {
-    return <>{toast.error('Valid file share path or proxied path required')}</>;
   }
-
-  const pathFsp = zonesAndFileSharePathsMap[fspKey] as FileSharePath;
-  const targetPath = proxiedPath
-    ? proxiedPath.path
-    : fileBrowserState.currentFileOrFolder
-      ? fileBrowserState.currentFileOrFolder.path
-      : '';
-
-  if (!targetPath) {
-    return <>{toast.error('Valid current folder or proxied path required')}</>;
-  }
-
-  const displayPath = getPreferredPathForDisplay(
-    pathPreference,
-    pathFsp,
-    targetPath
-  );
-
-  if (action === 'create' && localAutomaticDataLinks) {
-    return <></>;
-  }
+  const displayPath = getDisplayPath();
 
   return (
     <FgDialog
-      open={showDataLinkDialog}
+      open={props.showDataLinkDialog}
       onClose={() => {
-        if (setPendingNavigationUrl) {
-          setPendingNavigationUrl(null);
+        if (props.action === 'create') {
+          props.setPendingToolKey(null);
         }
-        setShowDataLinkDialog(false);
+        props.setShowDataLinkDialog(false);
       }}
     >
       <div className="flex flex-col gap-4 my-4">
-        {action === 'create' && !localAutomaticDataLinks ? (
+        {props.action === 'create' && localAreDataLinksAutomatic ? (
+          <> </>
+        ) : props.action === 'create' && !localAreDataLinksAutomatic ? (
           <>
             <TextWithFilePath
               text="Are you sure you want to create a data link for this path?"
@@ -244,19 +177,12 @@ export default function DataLinkDialog({
               <AutomaticLinksToggle />
             </div>
             <BtnContainer>
-              <CreateLinkBtn
-                displayPath={displayPath}
-                pendingNavigationUrl={pendingNavigationUrl}
-                setPendingNavigationUrl={setPendingNavigationUrl}
-                setShowDataLinkDialog={setShowDataLinkDialog}
-              />
-              <CancelBtn
-                setPendingNavigationUrl={setPendingNavigationUrl}
-                setShowDataLinkDialog={setShowDataLinkDialog}
-              />
+              <CreateLinkBtn onConfirm={props.onConfirm} />
+              <CancelBtn onCancel={props.onCancel} />
             </BtnContainer>
           </>
-        ) : action === 'delete' && localAutomaticDataLinks ? (
+        ) : null}
+        {props.action === 'delete' && localAreDataLinksAutomatic ? (
           <>
             <TextWithFilePath
               text="Are you sure you want to delete the data link for this path?"
@@ -269,14 +195,11 @@ export default function DataLinkDialog({
             </Typography>
             <BtnContainer>
               <DeleteLinkBtn
-                proxiedPath={proxiedPath}
-                displayPath={displayPath}
-                setShowDataLinkDialog={setShowDataLinkDialog}
+                proxiedPath={props.proxiedPath}
+                setShowDataLinkDialog={props.setShowDataLinkDialog}
+                handleDeleteDataLink={props.handleDeleteDataLink}
               />
-              <CancelBtn
-                setPendingNavigationUrl={setPendingNavigationUrl}
-                setShowDataLinkDialog={setShowDataLinkDialog}
-              />
+              <CancelBtn setShowDataLinkDialog={props.setShowDataLinkDialog} />
             </BtnContainer>
             <Typography className="text-foreground">
               <span className="font-semibold">Note:</span> Automatic data links
@@ -285,7 +208,7 @@ export default function DataLinkDialog({
             </Typography>
             <AutomaticLinksToggle />
           </>
-        ) : action === 'delete' && !localAutomaticDataLinks ? (
+        ) : props.action === 'delete' && !localAreDataLinksAutomatic ? (
           <>
             <TextWithFilePath
               text="Are you sure you want to delete the data link for this path?"
@@ -300,14 +223,11 @@ export default function DataLinkDialog({
             </Typography>
             <BtnContainer>
               <DeleteLinkBtn
-                proxiedPath={proxiedPath}
-                displayPath={displayPath}
-                setShowDataLinkDialog={setShowDataLinkDialog}
+                proxiedPath={props.proxiedPath}
+                setShowDataLinkDialog={props.setShowDataLinkDialog}
+                handleDeleteDataLink={props.handleDeleteDataLink}
               />
-              <CancelBtn
-                setPendingNavigationUrl={setPendingNavigationUrl}
-                setShowDataLinkDialog={setShowDataLinkDialog}
-              />
+              <CancelBtn setShowDataLinkDialog={props.setShowDataLinkDialog} />
             </BtnContainer>
           </>
         ) : null}

@@ -1,9 +1,7 @@
 import React from 'react';
 
-import { default as log } from '@/logger';
 import { useCookiesContext } from '@/contexts/CookiesContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { sendFetchRequest } from '@/utils';
 import type { Result } from '@/shared.types';
 import { createSuccess, handleError, toHttpError } from '@/utils/errorHandling';
@@ -28,8 +26,6 @@ type ProxiedPathContextType = {
   deleteProxiedPath: (proxiedPath: ProxiedPath) => Promise<Result<void>>;
   refreshProxiedPaths: () => Promise<Result<ProxiedPath[] | void>>;
   fetchProxiedPath: () => Promise<Result<ProxiedPath | void>>;
-  notifyZarrDetected: () => void;
-  automaticLinkError: string | null;
 };
 
 function sortProxiedPathsByDate(paths: ProxiedPath[]): ProxiedPath[] {
@@ -67,17 +63,11 @@ export const ProxiedPathProvider = ({
     null
   );
   const [dataUrl, setDataUrl] = React.useState<string | null>(null);
-  const [zarrDetected, setZarrDetected] = React.useState<boolean>(false);
-  const [automaticLinkError, setAutomaticLinkError] = React.useState<
-    string | null
-  >(null);
   const { cookies } = useCookiesContext();
   const { fileBrowserState } = useFileBrowserContext();
-  const { automaticDataLinks } = usePreferencesContext();
 
   const updateProxiedPath = React.useCallback(
     (proxiedPath: ProxiedPath | null) => {
-      log.debug('updateProxiedPath', proxiedPath);
       setProxiedPath(proxiedPath);
       if (proxiedPath) {
         setDataUrl(proxiedPath.url);
@@ -133,9 +123,6 @@ export const ProxiedPathProvider = ({
       !fileBrowserState.currentFileSharePath ||
       !fileBrowserState.currentFileOrFolder
     ) {
-      log.debug(
-        'fetchProxiedPath - no current file share path or file/folder selected'
-      );
       return createSuccess(undefined);
     }
     try {
@@ -145,9 +132,6 @@ export const ProxiedPathProvider = ({
         cookies['_xsrf']
       );
       if (!response.ok && response.status !== 404) {
-        log.warn(
-          `No proxied path found for fsp ${fileBrowserState.currentFileSharePath.name} and path ${fileBrowserState.currentFileOrFolder.path}: ${response.status} ${response.statusText}`
-        );
         // This is not an error, just no proxied path found for this fsp/path
         return createSuccess(undefined);
       } else if (!response.ok) {
@@ -214,7 +198,7 @@ export const ProxiedPathProvider = ({
           cookies['_xsrf']
         );
         if (!response.ok) {
-          throw toHttpError(response);
+          throw await toHttpError(response);
         } else {
           updateProxiedPath(null);
           return createSuccess(undefined);
@@ -225,10 +209,6 @@ export const ProxiedPathProvider = ({
     },
     [cookies, updateProxiedPath]
   );
-
-  const notifyZarrDetected = React.useCallback(() => {
-    setZarrDetected(true);
-  }, []);
 
   React.useEffect(() => {
     (async function () {
@@ -252,45 +232,11 @@ export const ProxiedPathProvider = ({
         updateProxiedPath(null);
       }
     })();
-    // Reset zarrDetected and automaticLinkError when navigating to a new file/folder
-    setZarrDetected(false);
-    setAutomaticLinkError(null);
   }, [
     fileBrowserState.currentFileSharePath,
     fileBrowserState.currentFileOrFolder,
     fetchProxiedPath,
     updateProxiedPath
-  ]);
-
-  // Automatically create proxied path when Zarr is detected and automaticDataLinks is enabled
-  React.useEffect(() => {
-    (async function () {
-      if (
-        zarrDetected &&
-        automaticDataLinks &&
-        !proxiedPath &&
-        fileBrowserState.currentFileSharePath &&
-        fileBrowserState.currentFileOrFolder
-      ) {
-        const result = await createProxiedPath();
-        if (result.success) {
-          await refreshProxiedPaths();
-        } else {
-          setAutomaticLinkError(
-            `Error automatically create data link:
-            ${result.error}`
-          );
-        }
-      }
-    })();
-  }, [
-    zarrDetected,
-    automaticDataLinks,
-    proxiedPath,
-    createProxiedPath,
-    refreshProxiedPaths,
-    fileBrowserState.currentFileSharePath,
-    fileBrowserState.currentFileOrFolder
   ]);
 
   return (
@@ -303,9 +249,7 @@ export const ProxiedPathProvider = ({
         createProxiedPath,
         deleteProxiedPath,
         refreshProxiedPaths,
-        fetchProxiedPath,
-        notifyZarrDetected,
-        automaticLinkError
+        fetchProxiedPath
       }}
     >
       {children}

@@ -4,7 +4,7 @@ import { Typography } from '@material-tailwind/react';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 
 export default function AutomaticLinksToggle() {
-  const { automaticDataLinks, toggleAutomaticDataLinks } =
+  const { areDataLinksAutomatic, toggleAutomaticDataLinks } =
     usePreferencesContext();
   return (
     <div className="flex items-center gap-2">
@@ -12,12 +12,12 @@ export default function AutomaticLinksToggle() {
         className="icon-small checked:accent-secondary-light"
         type="checkbox"
         id="automatic_data_links"
-        checked={automaticDataLinks}
+        checked={areDataLinksAutomatic}
         onChange={async () => {
           const result = await toggleAutomaticDataLinks();
           if (result.success) {
             toast.success(
-              automaticDataLinks
+              areDataLinksAutomatic
                 ? 'Disabled automatic data links'
                 : 'Enabled automatic data links'
             );
