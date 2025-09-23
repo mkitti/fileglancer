@@ -23,8 +23,7 @@ import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useTicketContext } from '@/contexts/TicketsContext';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useExternalBucketContext } from '@/contexts/ExternalBucketContext';
-import useZarrMetadata from '@/hooks/useZarrMetadata';
-import useDataLinkDialog from '@/hooks/useDataLinkDialog';
+import useDataToolLinks from '@/hooks/useDataToolLinks';
 
 type PropertiesDrawerProps = {
   togglePropertiesDrawer: () => void;
@@ -40,7 +39,6 @@ export default function PropertiesDrawer({
   const { fileBrowserState } = useFileBrowserContext();
   const { pathPreference, automaticDataLinks } = usePreferencesContext();
   const { ticket } = useTicketContext();
-  const { metadata } = useZarrMetadata();
   const { proxiedPath } = useProxiedPathContext();
   const { externalDataUrl } = useExternalBucketContext();
   const { showDataLinkDialog, setShowDataLinkDialog } = useDataLinkDialog();
@@ -160,11 +158,7 @@ export default function PropertiesDrawer({
                         setShowDataLinkDialog(true);
                       }}
                       checked={externalDataUrl || proxiedPath ? true : false}
-                      disabled={
-                        externalDataUrl || (automaticDataLinks && metadata)
-                          ? true
-                          : false
-                      }
+                      disabled={externalDataUrl ? true : false}
                     />
                     <Typography
                       as="label"
@@ -180,11 +174,9 @@ export default function PropertiesDrawer({
                   >
                     {externalDataUrl
                       ? 'Public data link already exists since this data is on s3.janelia.org.'
-                      : automaticDataLinks && metadata
-                        ? 'Automatic data links for Zarr data are enabled in your preferences.'
-                        : proxiedPath
-                          ? 'Deleting the data link will remove data access for collaborators with the link.'
-                          : 'Creating a data link allows you to share the data at this path with internal collaborators or use tools to view the data.'}
+                      : proxiedPath
+                        ? 'Deleting the data link will remove data access for collaborators with the link.'
+                        : 'Creating a data link allows you to share the data at this path with internal collaborators or use tools to view the data.'}
                   </Typography>
                 </div>
               ) : null}
@@ -237,10 +229,10 @@ export default function PropertiesDrawer({
       </Card>
       {showDataLinkDialog ? (
         <DataLinkDialog
-          type={metadata ? 'zarr' : 'other'}
-          action={
-            externalDataUrl || (proxiedPath && !metadata) ? 'delete' : 'create'
-          }
+          tools={false}
+          action="create"
+          onConfirm={handleDialogConfirm}
+          onCancel={handleDialogCancel}
           showDataLinkDialog={showDataLinkDialog}
           setShowDataLinkDialog={setShowDataLinkDialog}
           proxiedPath={proxiedPath}

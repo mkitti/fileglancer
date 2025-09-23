@@ -170,14 +170,12 @@ export default function DataLinkDialog(
               If you share the data link with internal collaborators, they will
               be able to view these data.
             </Typography>
-            {type === 'zarr' ? (
-              <div className="flex flex-col gap-2">
-                <Typography className="font-semibold text-foreground">
-                  Don't ask me this again:
-                </Typography>
-                <AutomaticLinksToggle />
-              </div>
-            ) : null}
+            <div className="flex flex-col gap-2">
+              <Typography className="font-semibold text-foreground">
+                Don't ask me this again:
+              </Typography>
+              <AutomaticLinksToggle />
+            </div>
             <BtnContainer>
               <CreateLinkBtn onConfirm={props.onConfirm} />
               <CancelBtn onCancel={props.onCancel} />
