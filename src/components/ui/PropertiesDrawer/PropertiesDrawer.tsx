@@ -141,13 +141,15 @@ export default function PropertiesDrawer({
                   variant="ghost"
                   isCircular
                   className="text-transparent group-hover:text-foreground shrink-0"
-                  onClick={() => {
+                  onClick={async () => {
                     if (fileBrowserState.propertiesTarget) {
-                      try {
-                        copyToClipboard(fullPath);
+                      const result = await copyToClipboard(fullPath);
+                      if (result.success) {
                         toast.success('Path copied to clipboard!');
-                      } catch (error) {
-                        toast.error(`Failed to copy path. Error: ${error}`);
+                      } else {
+                        toast.error(
+                          `Failed to copy path. Error: ${result.error}`
+                        );
                       }
                     }
                   }}
