@@ -5,10 +5,12 @@ import zarrLogo from '@/assets/zarr.jpg';
 import ZarrMetadataTable from '@/components/ui/BrowsePage/ZarrMetadataTable';
 import DataLinkDialog from '@/components/ui/Dialogs/DataLink';
 import DataToolLinks from './DataToolLinks';
-import type { OpenWithToolUrls, ZarrMetadata } from '@/hooks/useZarrMetadata';
-import useDataLinkDialog from '@/hooks/useDataLinkDialog';
-import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
-import { useExternalBucketContext } from '@/contexts/ExternalBucketContext';
+import type {
+  OpenWithToolUrls,
+  ZarrMetadata,
+  PendingToolKey
+} from '@/hooks/useZarrMetadata';
+import useDataToolLinks from '@/hooks/useDataToolLinks';
 import { Metadata } from '@/omezarr-helper';
 
 type ZarrPreviewProps = {
@@ -28,12 +30,22 @@ export default function ZarrPreview({
   thumbnailError,
   layerType
 }: ZarrPreviewProps): React.ReactNode {
-  const [pendingNavigationUrl, setPendingNavigationUrl] = React.useState<
-    string | null
-  >(null);
-  const { showDataLinkDialog, setShowDataLinkDialog } = useDataLinkDialog();
-  const { proxiedPath } = useProxiedPathContext();
-  const { externalDataUrl } = useExternalBucketContext();
+  const [showDataLinkDialog, setShowDataLinkDialog] =
+    React.useState<boolean>(false);
+  const [pendingToolKey, setPendingToolKey] =
+    React.useState<PendingToolKey>(null);
+
+  const {
+    handleToolClick,
+    handleDialogConfirm,
+    handleDialogCancel,
+    showCopiedTooltip
+  } = useDataToolLinks(
+    openWithToolUrls,
+    pendingToolKey,
+    setPendingToolKey,
+    setShowDataLinkDialog
+  );
 
   return (
     <div className="my-4 p-4 shadow-sm rounded-md bg-primary-light/30">
@@ -68,24 +80,23 @@ export default function ZarrPreview({
             ) : null}
           </div>
 
-          {openWithToolUrls || externalDataUrl ? (
+          {openWithToolUrls ? (
             <DataToolLinks
+              onToolClick={handleToolClick}
+              showCopiedTooltip={showCopiedTooltip}
               title="Open with:"
-              proxiedPath={proxiedPath}
               urls={openWithToolUrls as OpenWithToolUrls}
-              setShowDataLinkDialog={setShowDataLinkDialog}
-              setPendingNavigationUrl={setPendingNavigationUrl}
             />
           ) : null}
 
           {showDataLinkDialog ? (
             <DataLinkDialog
               action="create"
+              onConfirm={handleDialogConfirm}
+              onCancel={handleDialogCancel}
               showDataLinkDialog={showDataLinkDialog}
+              setPendingToolKey={setPendingToolKey}
               setShowDataLinkDialog={setShowDataLinkDialog}
-              proxiedPath={proxiedPath}
-              pendingNavigationUrl={pendingNavigationUrl}
-              setPendingNavigationUrl={setPendingNavigationUrl}
             />
           ) : null}
         </div>
