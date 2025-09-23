@@ -99,7 +99,7 @@ export const CentralServerHealthProvider = ({
 
     const scheduleNextRetry = () => {
       const delay = getRetryDelay(retryAttemptRef.current);
-      logger.info(
+      logger.debug(
         `Scheduling next health check retry in ${delay}ms (attempt ${retryAttemptRef.current + 1})`
       );
 
@@ -138,7 +138,7 @@ export const CentralServerHealthProvider = ({
 
           if (healthStatus === 'healthy') {
             setShowWarningOverlay(false);
-            logger.info('Central server detected as healthy during retry');
+            logger.debug('Central server detected as healthy during retry');
             stopRetrying();
           } else if (healthStatus === 'down') {
             logger.warn(
@@ -202,7 +202,7 @@ export const CentralServerHealthProvider = ({
         startRetrying();
       } else if (healthStatus === 'healthy') {
         setShowWarningOverlay(false);
-        logger.info('Central server detected as healthy');
+        logger.debug('Central server detected as healthy');
         // Stop retrying since server is healthy
         stopRetrying();
       }
@@ -234,7 +234,7 @@ export const CentralServerHealthProvider = ({
         return;
       }
 
-      logger.info(
+      logger.debug(
         `Failed request to ${apiPath} (${responseStatus}), triggering health check`
       );
 
@@ -253,12 +253,6 @@ export const CentralServerHealthProvider = ({
   const dismissWarning = React.useCallback(() => {
     setShowWarningOverlay(false);
   }, []);
-
-  // Retry function for the overlay
-  const handleRetry = React.useCallback(async () => {
-    setShowWarningOverlay(false);
-    await checkHealth();
-  }, [checkHealth]);
 
   // Register health check reporter with global sendFetchRequest
   React.useEffect(() => {
