@@ -14,9 +14,21 @@ import type { OpenWithToolUrls, PendingToolKey } from '@/hooks/useZarrMetadata';
 
 // Overload for ZarrPreview usage with required parameters
 export default function useDataToolLinks(
+  setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>,
   openWithToolUrls: OpenWithToolUrls | null,
   pendingToolKey: PendingToolKey,
-  setPendingToolKey: React.Dispatch<React.SetStateAction<PendingToolKey>>,
+  setPendingToolKey: React.Dispatch<React.SetStateAction<PendingToolKey>>
+): {
+  handleCreateDataLink: () => Promise<Result<void | ProxiedPath[]>>;
+  handleDeleteDataLink: (proxiedPath: ProxiedPath) => Promise<void>;
+  handleToolClick: (toolKey: PendingToolKey) => Promise<void>;
+  handleDialogConfirm: () => Promise<void>;
+  handleDialogCancel: () => void;
+  showCopiedTooltip: boolean;
+};
+
+// Overload for linksColumns and PropertiesDrawer usage with only one param
+export default function useDataToolLinks(
   setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>
 ): {
   handleCreateDataLink: () => Promise<Result<void | ProxiedPath[]>>;
@@ -27,21 +39,11 @@ export default function useDataToolLinks(
   showCopiedTooltip: boolean;
 };
 
-// Overload for linksColumns usage with no parameters
-export default function useDataToolLinks(): {
-  handleCreateDataLink: () => Promise<Result<void | ProxiedPath[]>>;
-  handleDeleteDataLink: (proxiedPath: ProxiedPath) => Promise<void>;
-  handleToolClick: (toolKey: PendingToolKey) => Promise<void>;
-  handleDialogConfirm: () => Promise<void>;
-  handleDialogCancel: () => void;
-  showCopiedTooltip: boolean;
-};
-
 export default function useDataToolLinks(
+  setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>,
   openWithToolUrls?: OpenWithToolUrls | null,
   pendingToolKey?: PendingToolKey,
-  setPendingToolKey?: React.Dispatch<React.SetStateAction<PendingToolKey>>,
-  setShowDataLinkDialog?: React.Dispatch<React.SetStateAction<boolean>>
+  setPendingToolKey?: React.Dispatch<React.SetStateAction<PendingToolKey>>
 ) {
   const [showCopiedTooltip, setShowCopiedTooltip] = React.useState(false);
 
@@ -154,7 +156,7 @@ export default function useDataToolLinks(
 
   const handleDialogCancel = () => {
     setPendingToolKey?.(null);
-    setShowDataLinkDialog?.(false);
+    setShowDataLinkDialog(false);
   };
 
   const handleDeleteDataLink = async (proxiedPath: ProxiedPath) => {

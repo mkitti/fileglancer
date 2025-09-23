@@ -64,7 +64,7 @@ function PathCell({ item }: { item: ProxiedPath }) {
 function ActionsCell({ item }: { item: ProxiedPath }) {
   const [showDataLinkDialog, setShowDataLinkDialog] =
     React.useState<boolean>(false);
-  const { handleDeleteDataLink } = useDataToolLinks();
+  const { handleDeleteDataLink } = useDataToolLinks(setShowDataLinkDialog);
   const { pathPreference } = usePreferencesContext();
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
 

@@ -41,10 +41,10 @@ export default function ZarrPreview({
     handleDialogCancel,
     showCopiedTooltip
   } = useDataToolLinks(
+    setShowDataLinkDialog,
     openWithToolUrls,
     pendingToolKey,
-    setPendingToolKey,
-    setShowDataLinkDialog
+    setPendingToolKey
   );
 
   return (

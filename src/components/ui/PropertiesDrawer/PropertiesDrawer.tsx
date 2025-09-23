@@ -36,12 +36,20 @@ export default function PropertiesDrawer({
   setShowPermissionsDialog,
   setShowConvertFileDialog
 }: PropertiesDrawerProps): JSX.Element {
+  const [showDataLinkDialog, setShowDataLinkDialog] =
+    React.useState<boolean>(false);
+
   const { fileBrowserState } = useFileBrowserContext();
   const { pathPreference, automaticDataLinks } = usePreferencesContext();
   const { ticket } = useTicketContext();
   const { proxiedPath } = useProxiedPathContext();
   const { externalDataUrl } = useExternalBucketContext();
-  const { showDataLinkDialog, setShowDataLinkDialog } = useDataLinkDialog();
+  const {
+    handleDialogConfirm,
+    handleDialogCancel,
+    handleCreateDataLink,
+    handleDeleteDataLink
+  } = useDataToolLinks(setShowDataLinkDialog);
 
   const fullPath = getPreferredPathForDisplay(
     pathPreference,
