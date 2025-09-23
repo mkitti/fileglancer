@@ -149,8 +149,14 @@ export default function useDataToolLinks(
     }
   };
 
+  // First case is for link creation through a data tool button click
+  // Second case is for link creation through the PropertiesDrawer dialog
   const handleDialogConfirm = async () => {
-    await createLinkAndExecuteAction();
+    if (pendingToolKey) {
+      await createLinkAndExecuteAction();
+    } else {
+      await handleCreateDataLink();
+    }
     setShowDataLinkDialog?.(false);
   };
 
