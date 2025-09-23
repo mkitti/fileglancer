@@ -23,6 +23,13 @@ type CentralServerHealthContextType = {
 const CentralServerHealthContext =
   React.createContext<CentralServerHealthContextType | null>(null);
 
+// Health check retry configuration constants
+const MAX_RETRY_ATTEMPTS = 100; // Limit total retry attempts to prevent infinite loops
+const RETRY_BASE_DELAY_MS = 6000; // Start with 6 seconds
+const RETRY_MAX_DELAY_MS = 300000; // Cap at 5 minutes
+const HEALTH_CHECK_DEBOUNCE_MS = 1000; // Wait 1 second before checking
+const SECONDS_PER_MS = 1000; // Milliseconds to seconds conversion
+
 export const useCentralServerHealthContext = () => {
   const context = React.useContext(CentralServerHealthContext);
   if (!context) {
@@ -56,13 +63,13 @@ export const CentralServerHealthProvider = ({
   const retryTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const retryAttemptRef = React.useRef<number>(0);
   const isRetryingRef = React.useRef<boolean>(false);
-  const MAX_RETRY_ATTEMPTS = 100; // Limit total retry attempts to prevent infinite loops
 
-  // Calculate exponential backoff delay (capped at 1 minute)
+  // Calculate exponential backoff delay (capped at maximum)
   const getRetryDelay = React.useCallback((attempt: number): number => {
-    const baseDelay = 6000; // Start with 6 seconds
-    const maxDelay = 300000; // Cap at 5 minutes
-    const delay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
+    const delay = Math.min(
+      RETRY_BASE_DELAY_MS * Math.pow(2, attempt),
+      RETRY_MAX_DELAY_MS
+    );
     return delay;
   }, []);
 
@@ -97,7 +104,7 @@ export const CentralServerHealthProvider = ({
       );
 
       // Set the countdown seconds for the overlay
-      setNextRetrySeconds(Math.ceil(delay / 1000));
+      setNextRetrySeconds(Math.ceil(delay / SECONDS_PER_MS));
 
       retryTimeoutRef.current = setTimeout(async () => {
         retryAttemptRef.current++;
@@ -214,25 +221,16 @@ export const CentralServerHealthProvider = ({
     async (apiPath: string, responseStatus?: number) => {
       // Only trigger health check if this looks like a central server issue
       if (!shouldTriggerHealthCheck(apiPath, responseStatus)) {
-        logger.debug(
-          `reportFailedRequest: Skipping health check for ${apiPath} (${responseStatus})`
-        );
         return;
       }
 
       // Don't check if already checking or already known to be down
       if (isChecking || status === 'down') {
-        logger.debug(
-          `reportFailedRequest: Skipping health check - already checking (${isChecking}) or down (${status === 'down'})`
-        );
         return;
       }
 
       // Don't trigger if already retrying (additional safety)
       if (isRetryingRef.current) {
-        logger.debug(
-          `reportFailedRequest: Skipping health check - already retrying`
-        );
         return;
       }
 
@@ -247,7 +245,7 @@ export const CentralServerHealthProvider = ({
 
       healthCheckTimeoutRef.current = setTimeout(() => {
         checkHealth();
-      }, 1000); // Wait 1 second before checking
+      }, HEALTH_CHECK_DEBOUNCE_MS);
     },
     [checkHealth, isChecking, status]
   );

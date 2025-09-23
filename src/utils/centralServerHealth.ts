@@ -4,6 +4,93 @@ import logger from '@/logger';
 
 export type CentralServerStatus = 'healthy' | 'down' | 'checking';
 
+// Structured error response types
+export interface ApiErrorResponse {
+  code: string;
+  message: string;
+  details?: unknown;
+}
+
+// Known error codes for central server health checking
+export const ERROR_CODES = {
+  CENTRAL_SERVER_NOT_CONFIGURED: 'CENTRAL_SERVER_NOT_CONFIGURED',
+  CENTRAL_SERVER_UNREACHABLE: 'CENTRAL_SERVER_UNREACHABLE',
+  CENTRAL_SERVER_AUTH_FAILED: 'CENTRAL_SERVER_AUTH_FAILED',
+  CENTRAL_SERVER_INVALID_RESPONSE: 'CENTRAL_SERVER_INVALID_RESPONSE'
+} as const;
+
+export type CentralServerErrorCode =
+  (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
+
+/**
+ * Type guard to check if an object is a valid ApiErrorResponse
+ */
+export function isApiErrorResponse(obj: unknown): obj is ApiErrorResponse {
+  return (
+    obj !== null &&
+    typeof obj === 'object' &&
+    'code' in obj &&
+    'message' in obj &&
+    typeof (obj as Record<string, unknown>).code === 'string' &&
+    typeof (obj as Record<string, unknown>).message === 'string' &&
+    (!('details' in obj) || (obj as Record<string, unknown>).details !== null)
+  );
+}
+
+/**
+ * Check if an error response indicates a configuration issue rather than connectivity issue
+ */
+function isConfigurationError(errorData: ApiErrorResponse): boolean {
+  // Check for structured error code first
+  if (errorData.code === ERROR_CODES.CENTRAL_SERVER_NOT_CONFIGURED) {
+    return true;
+  }
+
+  // Could add other configuration-related error codes here in the future
+  return false;
+}
+
+/**
+ * Safely parse error response with proper typing
+ */
+async function parseErrorResponse(
+  response: Response
+): Promise<ApiErrorResponse | null> {
+  try {
+    const errorData = await response.json();
+
+    // Validate the response has the expected structure using type guard
+    if (isApiErrorResponse(errorData)) {
+      return errorData;
+    }
+
+    // If it doesn't match our structured format, return null
+    logger.debug(
+      'Error response does not match expected ApiErrorResponse structure:',
+      errorData
+    );
+    return null;
+  } catch (parseError) {
+    logger.debug('Failed to parse error response as JSON:', parseError);
+    return null;
+  }
+}
+
+/**
+ * Create a structured error response
+ */
+export function createApiError(
+  code: CentralServerErrorCode,
+  message: string,
+  details?: unknown
+): ApiErrorResponse {
+  return {
+    code,
+    message,
+    details
+  };
+}
+
 /**
  * Check if the central server is healthy by hitting the version endpoint
  * This is a stable endpoint that should always return 200 when the central server is working
@@ -23,16 +110,21 @@ export async function checkCentralServerHealth(
       return 'healthy';
     }
 
-    // If we get a 500 with "Central server not configured", that's still "healthy" from a connectivity perspective
+    // Handle 500 errors - could be configuration issues or actual server problems
     if (response.status === 500) {
-      try {
-        const errorData = await response.json();
-        if (errorData.error?.includes('Central server not configured')) {
-          return 'healthy'; // Configuration issue, not connectivity issue
-        }
-      } catch {
-        // Failed to parse error response, continue to treat as down
+      const errorData = await parseErrorResponse(response);
+
+      if (errorData && isConfigurationError(errorData)) {
+        logger.info(
+          `Central server configuration issue detected: ${errorData.message}`
+        );
+        return 'healthy'; // Configuration issue, not connectivity issue
       }
+
+      // If we can't parse the error or it's not a config issue, treat as server down
+      logger.warn(
+        `Central server returned 500 error: ${errorData?.message || 'Unknown error'}`
+      );
     }
 
     // Any other error suggests the central server is down
@@ -56,9 +148,6 @@ export function shouldTriggerHealthCheck(
 ): boolean {
   // Skip health check for the health check endpoint itself to avoid infinite loops
   if (apiPath.includes('/central-version')) {
-    logger.debug(
-      `Health check skipped for central-version endpoint: ${apiPath}`
-    );
     return false;
   }
 
@@ -75,7 +164,6 @@ export function shouldTriggerHealthCheck(
   );
 
   if (isLocalEndpoint) {
-    logger.debug(`Health check skipped for local endpoint: ${apiPath}`);
     return false;
   }
 
@@ -93,9 +181,6 @@ export function shouldTriggerHealthCheck(
   );
 
   if (!isCentralServerEndpoint) {
-    logger.debug(
-      `Health check skipped for non-central server endpoint: ${apiPath}`
-    );
     return false;
   }
 
@@ -112,10 +197,6 @@ export function shouldTriggerHealthCheck(
   if (shouldTrigger) {
     logger.info(
       `Health check triggered for server error ${responseStatus} on central server endpoint: ${apiPath}`
-    );
-  } else {
-    logger.debug(
-      `Health check skipped for client error ${responseStatus} on central server endpoint: ${apiPath}`
     );
   }
 

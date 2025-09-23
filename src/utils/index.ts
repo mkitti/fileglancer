@@ -15,7 +15,10 @@ import {
 import { shouldTriggerHealthCheck } from './centralServerHealth';
 
 // Health check reporter registry with robust type safety
-export type HealthCheckReporter = (apiPath: string, responseStatus?: number) => Promise<void>;
+export type HealthCheckReporter = (
+  apiPath: string,
+  responseStatus?: number
+) => Promise<void>;
 
 class HealthCheckRegistry {
   private reporter: HealthCheckReporter | null = null;
@@ -128,11 +131,14 @@ async function checkSessionValidity(xrsfCookie: string): Promise<boolean> {
   }
 }
 
+// Define a more specific type for request body
+type RequestBody = Record<string, unknown>;
+
 async function sendFetchRequest(
   apiPath: string,
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   xrsfCookie: string,
-  body?: { [key: string]: any }
+  body?: RequestBody
 ): Promise<Response> {
   const options: RequestInit = {
     method,

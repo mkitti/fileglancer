@@ -9,6 +9,9 @@ type CentralServerDownOverlayProps = {
   countdownSeconds: number | null;
 };
 
+// Timer configuration constants
+const COUNTDOWN_INTERVAL_MS = 1000; // 1 second intervals for countdown
+
 export function CentralServerDownOverlay({
   open,
   onRetry,
@@ -38,7 +41,7 @@ export function CentralServerDownOverlay({
         }
         return prev - 1;
       });
-    }, 1000);
+    }, COUNTDOWN_INTERVAL_MS);
 
     return () => clearInterval(timer);
   }, [isCountdownActive]);
