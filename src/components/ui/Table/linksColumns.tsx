@@ -1,7 +1,6 @@
 import React from 'react';
 import { Typography } from '@material-tailwind/react';
 import { FilterFn, type ColumnDef } from '@tanstack/react-table';
-import toast from 'react-hot-toast';
 
 import DataLinkDialog from '@/components/ui/Dialogs/DataLink';
 import DataLinksActionsMenu from '@/components/ui/Menus/DataLinksActions';
@@ -16,14 +15,14 @@ import {
 } from '@/utils';
 import useDataToolLinks from '@/hooks/useDataToolLinks';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
-import type { FileSharePath, Result } from '@/shared.types';
+import type { FileSharePath } from '@/shared.types';
 import type { MenuItem } from '@/components/ui/Menus/FgMenuItems';
 import { FgStyledLink } from '../widgets/FgLink';
 import FgTooltip from '../widgets/FgTooltip';
 
 type ProxiedPathRowActionProps = {
-  handleCopyPath: (path: string) => Promise<Result<void>>;
-  handleCopyUrl: (item: ProxiedPath) => Promise<Result<void>>;
+  handleCopyPath: (path: string) => Promise<void>;
+  handleCopyUrl: (item: ProxiedPath) => Promise<void>;
   handleUnshare: () => void;
   item: ProxiedPath;
   displayPath: string;
@@ -87,23 +86,13 @@ function ActionsCell({ item }: { item: ProxiedPath }) {
     {
       name: 'Copy path',
       action: async (props: ProxiedPathRowActionProps) => {
-        const result = await props.handleCopyPath(props.displayPath);
-        if (result.success) {
-          toast.success('Path copied!');
-        } else {
-          toast.error(`Error copying path: ${result.error}`);
-        }
+        await props.handleCopyPath(props.displayPath);
       }
     },
     {
       name: 'Copy sharing link (S3-compatible URL)',
       action: async (props: ProxiedPathRowActionProps) => {
-        const result = await props.handleCopyUrl(props.item);
-        if (result.success) {
-          toast.success('Sharing link copied!');
-        } else {
-          toast.error(`Error copying sharing link: ${result.error}`);
-        }
+        await props.handleCopyUrl(props.item);
       }
     },
     {
