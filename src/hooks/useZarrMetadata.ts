@@ -298,80 +298,76 @@ export default function useZarrMetadata() {
     // Always create openWithToolUrls data structure when metadata is available
     if (metadata) {
       const url = externalDataUrl || dataUrl;
+      const openWithToolUrls = {
+        copy: url || ''
+      } as OpenWithToolUrls;
 
-      (() => {
-        const openWithToolUrls = {
-          copy: url || ''
-        } as OpenWithToolUrls;
-
-        // Determine which tools should be available based on metadata type
-        if (metadata && metadata?.multiscale) {
-          // OME-Zarr - all tools available
-          if (url) {
-            // Populate with actual URLs when proxied path is available
-            openWithToolUrls.validator = validatorBaseUrl + url;
-            openWithToolUrls.vole = voleBaseUrl + url;
-            openWithToolUrls.avivator = avivatorBaseUrl + url;
-            if (disableNeuroglancerStateGeneration) {
-              openWithToolUrls.neuroglancer =
-                neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
-            } else {
-              try {
-                openWithToolUrls.neuroglancer =
-                  neuroglancerBaseUrl +
-                  generateNeuroglancerStateForOmeZarr(
-                    url,
-                    metadata.zarrVersion,
-                    layerType || 'image',
-                    metadata.multiscale,
-                    metadata.arr,
-                    metadata.omero
-                  );
-              } catch (error) {
-                log.error(
-                  'Error generating Neuroglancer state for OME-Zarr:',
-                  error
-                );
-                openWithToolUrls.neuroglancer =
-                  neuroglancerBaseUrl +
-                  generateNeuroglancerStateForDataURL(url);
-              }
-            }
+      // Determine which tools should be available based on metadata type
+      if (metadata?.multiscale) {
+        // OME-Zarr - all tools available
+        if (url) {
+          // Populate with actual URLs when proxied path is available
+          openWithToolUrls.validator = validatorBaseUrl + url;
+          openWithToolUrls.vole = voleBaseUrl + url;
+          openWithToolUrls.avivator = avivatorBaseUrl + url;
+          if (disableNeuroglancerStateGeneration) {
+            openWithToolUrls.neuroglancer =
+              neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
           } else {
-            // No proxied URL - show all tools as available but empty
-            openWithToolUrls.validator = '';
-            openWithToolUrls.vole = '';
-            openWithToolUrls.avivator = '';
-            openWithToolUrls.neuroglancer = '';
-          }
-        } else {
-          // Non-OME Zarr - only Neuroglancer available
-          if (url) {
-            openWithToolUrls.validator = null;
-            openWithToolUrls.vole = null;
-            openWithToolUrls.avivator = null;
-            if (disableNeuroglancerStateGeneration) {
-              openWithToolUrls.neuroglancer =
-                neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
-            } else {
+            try {
               openWithToolUrls.neuroglancer =
                 neuroglancerBaseUrl +
-                generateNeuroglancerStateForZarrArray(
+                generateNeuroglancerStateForOmeZarr(
                   url,
                   metadata.zarrVersion,
-                  layerType || 'image'
+                  layerType || 'image',
+                  metadata.multiscale,
+                  metadata.arr,
+                  metadata.omero
                 );
+            } catch (error) {
+              log.error(
+                'Error generating Neuroglancer state for OME-Zarr:',
+                error
+              );
+              openWithToolUrls.neuroglancer =
+                neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
             }
-          } else {
-            // No proxied URL - only show Neuroglancer as available but empty
-            openWithToolUrls.validator = null;
-            openWithToolUrls.vole = null;
-            openWithToolUrls.avivator = null;
-            openWithToolUrls.neuroglancer = '';
           }
+        } else {
+          // No proxied URL - show all tools as available but empty
+          openWithToolUrls.validator = '';
+          openWithToolUrls.vole = '';
+          openWithToolUrls.avivator = '';
+          openWithToolUrls.neuroglancer = '';
         }
-        setOpenWithToolUrls(openWithToolUrls);
-      })();
+      } else {
+        // Non-OME Zarr - only Neuroglancer available
+        if (url) {
+          openWithToolUrls.validator = null;
+          openWithToolUrls.vole = null;
+          openWithToolUrls.avivator = null;
+          if (disableNeuroglancerStateGeneration) {
+            openWithToolUrls.neuroglancer =
+              neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
+          } else {
+            openWithToolUrls.neuroglancer =
+              neuroglancerBaseUrl +
+              generateNeuroglancerStateForZarrArray(
+                url,
+                metadata.zarrVersion,
+                layerType || 'image'
+              );
+          }
+        } else {
+          // No proxied URL - only show Neuroglancer as available but empty
+          openWithToolUrls.validator = null;
+          openWithToolUrls.vole = null;
+          openWithToolUrls.avivator = null;
+          openWithToolUrls.neuroglancer = '';
+        }
+      }
+      setOpenWithToolUrls(openWithToolUrls);
     } else {
       setOpenWithToolUrls(null);
     }
