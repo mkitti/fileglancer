@@ -241,7 +241,7 @@ export default function PropertiesDrawer({
           </Tabs>
         ) : null}
       </Card>
-      {showDataLinkDialog ? (
+      {showDataLinkDialog && !proxiedPath && !externalDataUrl ? (
         <DataLinkDialog
           tools={false}
           action="create"
