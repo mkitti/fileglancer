@@ -1,5 +1,4 @@
 import path from 'path';
-import logger from '@/logger';
 import type { FileSharePath } from '@/shared.types';
 
 const PATH_DELIMITER = '/';
@@ -267,7 +266,6 @@ function makeBrowseLink(
   filePath?: string
 ): string {
   if (!fspName) {
-    logger.warn('FSP name is required to create a browse link.');
     return '/browse';
   }
   const escapedFspName = encodeURIComponent(fspName);

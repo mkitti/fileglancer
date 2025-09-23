@@ -64,8 +64,8 @@ export const MainLayout = () => {
           <OpenFavoritesProvider>
             <FileBrowserContextProvider fspName={fspName} filePath={filePath}>
               <PreferencesProvider>
-                <ProxiedPathProvider>
-                  <ExternalBucketProvider>
+                <ExternalBucketProvider>
+                  <ProxiedPathProvider>
                     <ProfileContextProvider>
                       <NotificationProvider>
                         <TicketProvider>
@@ -73,8 +73,8 @@ export const MainLayout = () => {
                         </TicketProvider>
                       </NotificationProvider>
                     </ProfileContextProvider>
-                  </ExternalBucketProvider>
-                </ProxiedPathProvider>
+                  </ProxiedPathProvider>
+                </ExternalBucketProvider>
               </PreferencesProvider>
             </FileBrowserContextProvider>
           </OpenFavoritesProvider>
