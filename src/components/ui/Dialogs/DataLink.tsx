@@ -201,9 +201,9 @@ export default function DataLinkDialog(
             />
             <Typography className="text-foreground">
               <span className="font-semibold">Warning:</span> The existing data
-              link will be deleted. Collaborators who previously received the
-              link will no longer be able to view these data. You can create a
-              new data link at any time.
+              link will be deleted. Collaborators with the link will no longer
+              be able to use it to view these data. You can create a new data
+              link at any time.
             </Typography>
             <BtnContainer>
               <DeleteLinkBtn

@@ -40,7 +40,7 @@ export default function PropertiesDrawer({
     React.useState<boolean>(false);
 
   const { fileBrowserState } = useFileBrowserContext();
-  const { pathPreference, automaticDataLinks } = usePreferencesContext();
+  const { pathPreference, areDataLinksAutomatic } = usePreferencesContext();
   const { ticket } = useTicketContext();
   const { proxiedPath } = useProxiedPathContext();
   const { externalDataUrl } = useExternalBucketContext();
