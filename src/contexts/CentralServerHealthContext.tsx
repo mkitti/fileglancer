@@ -49,6 +49,9 @@ export const CentralServerHealthProvider = ({
   // Debounce health checks to avoid spam
   const healthCheckTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
+  // Abort controller to prevent race conditions
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+
   // Exponential backoff retry state
   const retryTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const retryAttemptRef = React.useRef<number>(0);
@@ -68,6 +71,10 @@ export const CentralServerHealthProvider = ({
     if (retryTimeoutRef.current) {
       clearTimeout(retryTimeoutRef.current);
       retryTimeoutRef.current = null;
+    }
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
     }
     isRetryingRef.current = false;
     retryAttemptRef.current = 0;
@@ -104,10 +111,22 @@ export const CentralServerHealthProvider = ({
 
         // Perform health check directly without calling checkHealth to avoid circular dependency
         try {
+          // Cancel any existing health check and create new abort controller
+          if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+          }
+          abortControllerRef.current = new AbortController();
+
           setIsChecking(true);
           setStatus('checking');
 
           const healthStatus = await checkCentralServerHealth(cookies['_xsrf']);
+
+          // Check if this request was aborted
+          if (abortControllerRef.current?.signal.aborted) {
+            return;
+          }
+
           setStatus(healthStatus);
 
           if (healthStatus === 'healthy') {
@@ -150,11 +169,23 @@ export const CentralServerHealthProvider = ({
       return; // Already checking, avoid duplicate checks
     }
 
+    // Cancel any existing health check
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     setIsChecking(true);
     setStatus('checking');
 
     try {
       const healthStatus = await checkCentralServerHealth(cookies['_xsrf']);
+
+      // Check if this request was aborted
+      if (abortControllerRef.current?.signal.aborted) {
+        return;
+      }
+
       setStatus(healthStatus);
 
       if (healthStatus === 'down') {
@@ -239,7 +270,7 @@ export const CentralServerHealthProvider = ({
     };
   }, [reportFailedRequest]);
 
-  // Cleanup timeouts on unmount
+  // Cleanup timeouts and abort controllers on unmount
   React.useEffect(() => {
     return () => {
       if (healthCheckTimeoutRef.current) {
@@ -247,6 +278,9 @@ export const CentralServerHealthProvider = ({
       }
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
       isRetryingRef.current = false;
     };
