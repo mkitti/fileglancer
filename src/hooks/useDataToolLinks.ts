@@ -127,7 +127,9 @@ export default function useDataToolLinks(
       }
 
       if (attempts >= maxAttempts) {
-        toast.error('Timeout waiting for data link URLs to be ready');
+        toast.error(
+          `${toolKey === 'copy' ? 'Error copying data link' : `Error navigating to ${toolKey}`}`
+        );
       }
     } else if (result.error) {
       toast.error(`Error refreshing links: ${result.error}`);
