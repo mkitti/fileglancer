@@ -33,7 +33,8 @@ export function isApiErrorResponse(obj: unknown): obj is ApiErrorResponse {
     'message' in obj &&
     typeof (obj as Record<string, unknown>).code === 'string' &&
     typeof (obj as Record<string, unknown>).message === 'string' &&
-    (!('details' in obj) || (obj as Record<string, unknown>).details !== null)
+    (!('details' in obj) ||
+      (obj as Record<string, unknown>).details !== undefined)
   );
 }
 
