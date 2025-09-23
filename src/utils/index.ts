@@ -14,20 +14,55 @@ import {
 } from './pathHandling';
 import { shouldTriggerHealthCheck } from './centralServerHealth';
 
-// Global health check reporter registry
-let globalHealthCheckReporter:
-  | ((apiPath: string, responseStatus?: number) => Promise<void>)
-  | null = null;
+// Health check reporter registry with robust type safety
+export type HealthCheckReporter = (apiPath: string, responseStatus?: number) => Promise<void>;
 
-export function setHealthCheckReporter(
-  reporter: (apiPath: string, responseStatus?: number) => Promise<void>
-) {
-  globalHealthCheckReporter = reporter;
+class HealthCheckRegistry {
+  private reporter: HealthCheckReporter | null = null;
+  private isEnabled: boolean = true;
+
+  setReporter(reporter: HealthCheckReporter): void {
+    if (typeof reporter !== 'function') {
+      throw new Error('Health check reporter must be a function');
+    }
+    this.reporter = reporter;
+  }
+
+  clearReporter(): void {
+    this.reporter = null;
+  }
+
+  getReporter(): HealthCheckReporter | null {
+    return this.isEnabled ? this.reporter : null;
+  }
+
+  disable(): void {
+    this.isEnabled = false;
+  }
+
+  enable(): void {
+    this.isEnabled = true;
+  }
+
+  isReporterSet(): boolean {
+    return this.reporter !== null;
+  }
 }
 
-export function clearHealthCheckReporter() {
-  globalHealthCheckReporter = null;
+// Create singleton instance
+const healthCheckRegistry = new HealthCheckRegistry();
+
+// Export convenience functions for backward compatibility
+export function setHealthCheckReporter(reporter: HealthCheckReporter): void {
+  healthCheckRegistry.setReporter(reporter);
 }
+
+export function clearHealthCheckReporter(): void {
+  healthCheckRegistry.clearReporter();
+}
+
+// Export registry for advanced usage
+export { healthCheckRegistry };
 
 const formatFileSize = (sizeInBytes: number): string => {
   if (sizeInBytes < 1024) {
@@ -117,9 +152,10 @@ async function sendFetchRequest(
     response = await fetch(getFullPath(apiPath), options);
   } catch (error) {
     // Report network errors to central server health monitoring if applicable
-    if (globalHealthCheckReporter && shouldTriggerHealthCheck(apiPath)) {
+    const reporter = healthCheckRegistry.getReporter();
+    if (reporter && shouldTriggerHealthCheck(apiPath)) {
       try {
-        await globalHealthCheckReporter(apiPath);
+        await reporter(apiPath);
       } catch (healthError) {
         // Don't let health check errors interfere with the original request
         log.debug(
@@ -144,16 +180,15 @@ async function sendFetchRequest(
   }
 
   // Report failed requests to central server health monitoring if applicable
-  if (
-    !response.ok &&
-    globalHealthCheckReporter &&
-    shouldTriggerHealthCheck(apiPath, response.status)
-  ) {
-    try {
-      await globalHealthCheckReporter(apiPath, response.status);
-    } catch (error) {
-      // Don't let health check errors interfere with the original request
-      log.debug('Error reporting failed request to health checker:', error);
+  if (!response.ok) {
+    const reporter = healthCheckRegistry.getReporter();
+    if (reporter && shouldTriggerHealthCheck(apiPath, response.status)) {
+      try {
+        await reporter(apiPath, response.status);
+      } catch (error) {
+        // Don't let health check errors interfere with the original request
+        log.debug('Error reporting failed request to health checker:', error);
+      }
     }
   }
 
