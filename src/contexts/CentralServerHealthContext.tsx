@@ -28,7 +28,7 @@ const MAX_RETRY_ATTEMPTS = 100; // Limit total retry attempts to prevent infinit
 const RETRY_BASE_DELAY_MS = 6000; // Start with 6 seconds
 const RETRY_MAX_DELAY_MS = 300000; // Cap at 5 minutes
 const HEALTH_CHECK_DEBOUNCE_MS = 1000; // Wait 1 second before checking
-const SECONDS_PER_MS = 1000; // Milliseconds to seconds conversion
+const MS_PER_SECOND = 1000; // Milliseconds to seconds conversion
 
 export const useCentralServerHealthContext = () => {
   const context = React.useContext(CentralServerHealthContext);
@@ -104,7 +104,7 @@ export const CentralServerHealthProvider = ({
       );
 
       // Set the countdown seconds for the overlay
-      setNextRetrySeconds(Math.ceil(delay / SECONDS_PER_MS));
+      setNextRetrySeconds(Math.ceil(delay / MS_PER_SECOND));
 
       retryTimeoutRef.current = setTimeout(async () => {
         retryAttemptRef.current++;
