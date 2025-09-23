@@ -235,7 +235,14 @@ export default function PropertiesDrawer({
           onCancel={handleDialogCancel}
           showDataLinkDialog={showDataLinkDialog}
           setShowDataLinkDialog={setShowDataLinkDialog}
+        />
+      ) : showDataLinkDialog && proxiedPath ? (
+        <DataLinkDialog
+          action="delete"
           proxiedPath={proxiedPath}
+          handleDeleteDataLink={handleDeleteDataLink}
+          showDataLinkDialog={showDataLinkDialog}
+          setShowDataLinkDialog={setShowDataLinkDialog}
         />
       ) : null}
     </>

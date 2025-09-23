@@ -18,20 +18,31 @@ interface CommonDataLinkDialogProps {
   setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-interface CreateLinkDialog extends CommonDataLinkDialogProps {
+interface CreateLinkFromToolsProps extends CommonDataLinkDialogProps {
+  tools: true;
   action: 'create';
   onConfirm: () => Promise<void>;
   onCancel: () => void;
   setPendingToolKey: React.Dispatch<React.SetStateAction<PendingToolKey>>;
 }
 
-interface DeleteLinkDialog extends CommonDataLinkDialogProps {
+interface CreateLinkNotFromToolsProps extends CommonDataLinkDialogProps {
+  tools: false;
+  action: 'create';
+  onConfirm: () => Promise<void>;
+  onCancel: () => void;
+}
+
+interface DeleteLinkDialogProps extends CommonDataLinkDialogProps {
   action: 'delete';
   proxiedPath: ProxiedPath;
   handleDeleteDataLink: (proxiedPath: ProxiedPath) => Promise<void>;
 }
 
-type DataLinkDialogProps = CreateLinkDialog | DeleteLinkDialog;
+type DataLinkDialogProps =
+  | CreateLinkFromToolsProps
+  | CreateLinkNotFromToolsProps
+  | DeleteLinkDialogProps;
 
 function CreateLinkBtn({
   onConfirm
@@ -151,7 +162,7 @@ export default function DataLinkDialog(
     <FgDialog
       open={props.showDataLinkDialog}
       onClose={() => {
-        if (props.action === 'create') {
+        if (props.action === 'create' && props.tools) {
           props.setPendingToolKey(null);
         }
         props.setShowDataLinkDialog(false);

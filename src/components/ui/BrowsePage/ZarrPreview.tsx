@@ -91,7 +91,7 @@ export default function ZarrPreview({
 
           {showDataLinkDialog ? (
             <DataLinkDialog
-              type="zarr"
+              tools={true}
               action="create"
               onConfirm={handleDialogConfirm}
               onCancel={handleDialogCancel}
