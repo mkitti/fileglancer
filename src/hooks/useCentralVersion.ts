@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toHttpError, getErrorString } from '@/utils/errorHandling';
+import logger from '@/logger';
 
 interface CentralVersionData {
   version: string;
@@ -42,7 +43,7 @@ export default function useCentralVersion(): UseCentralVersionReturn {
         const data: CentralVersionData = await response.json();
         setState({ status: 'loaded', version: data.version });
       } catch (err) {
-        console.warn('Failed to fetch central version:', err);
+        logger.warn('Failed to fetch central version:', err);
         setState({
           status: 'error',
           version: 'unknown',
