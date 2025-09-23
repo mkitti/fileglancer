@@ -162,8 +162,12 @@ export default function PropertiesDrawer({
                     <Switch
                       id="share-switch"
                       className="bg-secondary-light border-secondary-light hover:!bg-secondary-light/80 hover:!border-secondary-light/80"
-                      onChange={() => {
-                        setShowDataLinkDialog(true);
+                      onChange={async () => {
+                        if (areDataLinksAutomatic && !proxiedPath) {
+                          await handleCreateDataLink();
+                        } else {
+                          setShowDataLinkDialog(true);
+                        }
                       }}
                       checked={externalDataUrl || proxiedPath ? true : false}
                       disabled={externalDataUrl ? true : false}
