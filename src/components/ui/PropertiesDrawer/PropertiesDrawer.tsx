@@ -31,6 +31,46 @@ type PropertiesDrawerProps = {
   setShowConvertFileDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
+function CopyPathButton({
+  path,
+  isDataLink
+}: {
+  path: string;
+  isDataLink?: boolean;
+}): JSX.Element {
+  return (
+    <div className="group flex justify-between items-center min-w-0 max-w-full">
+      <FgTooltip label={path} triggerClasses="block truncate">
+        <Typography className="text-foreground text-sm truncate">
+          <span className="!font-bold">
+            {isDataLink ? 'Data Link: ' : 'Path: '}
+          </span>
+          {path}
+        </Typography>
+      </FgTooltip>
+      <IconButton
+        variant="ghost"
+        isCircular
+        className="text-transparent group-hover:text-foreground shrink-0"
+        onClick={async () => {
+          const result = await copyToClipboard(path);
+          if (result.success) {
+            toast.success(
+              `${isDataLink ? 'Data link' : 'Path'} copied to clipboard!`
+            );
+          } else {
+            toast.error(
+              `Failed to copy ${isDataLink ? 'data link' : 'path'}. Error: ${result.error}`
+            );
+          }
+        }}
+      >
+        <HiOutlineDuplicate className="icon-small" />
+      </IconButton>
+    </div>
+  );
+}
+
 export default function PropertiesDrawer({
   togglePropertiesDrawer,
   setShowPermissionsDialog,
@@ -42,7 +82,7 @@ export default function PropertiesDrawer({
   const { fileBrowserState } = useFileBrowserContext();
   const { pathPreference, areDataLinksAutomatic } = usePreferencesContext();
   const { ticket } = useTicketContext();
-  const { proxiedPath } = useProxiedPathContext();
+  const { proxiedPath, dataUrl } = useProxiedPathContext();
   const { externalDataUrl } = useExternalBucketContext();
   const {
     handleDialogConfirm,
@@ -130,36 +170,10 @@ export default function PropertiesDrawer({
               value="overview"
               className="flex-1 flex flex-col gap-4 max-w-full p-2"
             >
-              <div className="group flex justify-between items-center min-w-0 max-w-full">
-                <FgTooltip label={fullPath} triggerClasses="block truncate">
-                  <Typography className="text-foreground text-sm truncate">
-                    <span className="!font-bold">Path: </span>
-                    {fullPath}
-                  </Typography>
-                </FgTooltip>
-                <IconButton
-                  variant="ghost"
-                  isCircular
-                  className="text-transparent group-hover:text-foreground shrink-0"
-                  onClick={async () => {
-                    if (fileBrowserState.propertiesTarget) {
-                      const result = await copyToClipboard(fullPath);
-                      if (result.success) {
-                        toast.success('Path copied to clipboard!');
-                      } else {
-                        toast.error(
-                          `Failed to copy path. Error: ${result.error}`
-                        );
-                      }
-                    }
-                  }}
-                >
-                  <HiOutlineDuplicate className="icon-small" />
-                </IconButton>
-              </div>
+              <CopyPathButton path={fullPath} />
               <OverviewTable file={fileBrowserState.propertiesTarget} />
               {fileBrowserState.propertiesTarget.is_dir ? (
-                <div className="flex flex-col gap-2 min-w-[175px] max-w-full">
+                <div className="flex flex-col gap-2 min-w-[175px] max-w-full pt-2">
                   <div className="flex items-center gap-2 max-w-full">
                     <Switch
                       id="share-switch"
@@ -193,6 +207,11 @@ export default function PropertiesDrawer({
                         : 'Creating a data link allows you to share the data at this path with internal collaborators or use tools to view the data.'}
                   </Typography>
                 </div>
+              ) : null}
+              {externalDataUrl ? (
+                <CopyPathButton path={externalDataUrl} isDataLink={true} />
+              ) : dataUrl ? (
+                <CopyPathButton path={dataUrl} isDataLink={true} />
               ) : null}
             </Tabs.Panel>
 
