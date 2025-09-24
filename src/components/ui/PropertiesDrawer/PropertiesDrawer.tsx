@@ -177,7 +177,7 @@ export default function PropertiesDrawer({
                   <div className="flex items-center gap-2 max-w-full">
                     <Switch
                       id="share-switch"
-                      className="bg-secondary-light border-secondary-light hover:!bg-secondary-light/80 hover:!border-secondary-light/80"
+                      className="before:bg-primary/50 after:border-primary/50 checked:disabled:before:bg-surface checked:disabled:before:border checked:disabled:before:border-surface-dark checked:disabled:after:border-surface-dark"
                       onChange={async () => {
                         if (areDataLinksAutomatic && !proxiedPath) {
                           await handleCreateDataLink();
