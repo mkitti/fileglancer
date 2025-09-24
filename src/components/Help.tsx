@@ -4,6 +4,7 @@ import { SiClickup, SiSlack } from 'react-icons/si';
 import { IconType } from 'react-icons/lib';
 
 import useVersionNo from '@/hooks/useVersionState';
+import useCentralVersion from '@/hooks/useCentralVersion';
 import { FgStyledLink } from './ui/widgets/FgLink';
 
 type HelpLink = {
@@ -14,6 +15,7 @@ type HelpLink = {
 
 export default function Help() {
   const { versionNo } = useVersionNo();
+  const { centralVersionState } = useCentralVersion();
 
   const helpLinks: HelpLink[] = [
     {
@@ -39,9 +41,28 @@ export default function Help() {
         <Typography type="h5" className="text-foreground font-bold">
           Help
         </Typography>
-        <Typography type="lead" className="text-foreground font-bold">
-          {`Fileglancer Version ${versionNo}`}
-        </Typography>
+        <div className="text-right">
+          <Typography type="lead" className="text-foreground font-bold">
+            {`Fileglancer Version ${versionNo}`}
+          </Typography>
+          {centralVersionState.status === 'loaded' ? (
+            <Typography type="small" className="text-muted-foreground">
+              {`Fileglancer Central Version ${centralVersionState.version}`}
+            </Typography>
+          ) : centralVersionState.status === 'loading' ? (
+            <Typography type="small" className="text-muted-foreground">
+              Loading Fileglancer Central version...
+            </Typography>
+          ) : centralVersionState.status === 'error' ? (
+            <Typography type="small" className="text-muted-foreground">
+              Fileglancer Central version unavailable
+            </Typography>
+          ) : centralVersionState.status === 'not-configured' ? (
+            <Typography type="small" className="text-muted-foreground">
+              Fileglancer Central server not configured
+            </Typography>
+          ) : null}
+        </div>
       </div>
       <Card className="min-h-max shrink-0">
         <List className="w-fit gap-2 p-4">

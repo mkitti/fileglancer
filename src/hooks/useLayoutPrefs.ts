@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import { useCentralServerHealthContext } from '@/contexts/CentralServerHealthContext';
 import logger from '@/logger';
 /**
  * Custom hook that provides storage interface for react-resizable-panels
@@ -31,6 +32,7 @@ export default function useLayoutPrefs() {
   const [showSidebar, setShowSidebar] = React.useState(true);
   const { layout, handleUpdateLayout, isLayoutLoadedFromDB } =
     usePreferencesContext();
+  const { status: centralServerStatus } = useCentralServerHealthContext();
 
   const timerRef = React.useRef<number | null>(null);
 
@@ -132,6 +134,16 @@ export default function useLayoutPrefs() {
         if (!isLayoutLoadedFromDB) {
           return;
         }
+        // This check is here, because if the central server is down, we don't want to
+        // attempt to send additional requests to update the layout preference to a server
+        // that may be experiencing issues. The layout requests occur every time the site
+        // tries to check if the central server is back up, which can lead to a lot of
+        // unnecessary requests if the server is down for an extended period of time.
+        if (centralServerStatus === 'down') {
+          logger.debug('Central server is down, skipping layout update');
+          return;
+        }
+
         if (value === null || value === undefined || value === '') {
           return;
         }
@@ -212,7 +224,8 @@ export default function useLayoutPrefs() {
       debouncedUpdateLayout,
       isLayoutLoadedFromDB,
       showPropertiesDrawer,
-      showSidebar
+      showSidebar,
+      centralServerStatus
     ]
   );
 
