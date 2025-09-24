@@ -209,6 +209,7 @@ export default function useZarrMetadata() {
       areFileDataLoading,
       fileBrowserState.currentFileSharePath,
       fileBrowserState.currentFileOrFolder,
+      fileBrowserState.files,
       getFile,
       cookies
     ]
