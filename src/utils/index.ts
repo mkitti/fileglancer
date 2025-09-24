@@ -322,3 +322,11 @@ export {
   removeLastSegmentFromPath,
   sendFetchRequest
 };
+
+// Re-export retry utility
+export { createRetryWithBackoff } from './retryWithBackoff';
+export type {
+  RetryOptions,
+  RetryCallbacks,
+  RetryState
+} from './retryWithBackoff';
