@@ -41,10 +41,10 @@ export default function ZarrPreview({
     handleDialogCancel,
     showCopiedTooltip
   } = useDataToolLinks(
+    setShowDataLinkDialog,
     openWithToolUrls,
     pendingToolKey,
-    setPendingToolKey,
-    setShowDataLinkDialog
+    setPendingToolKey
   );
 
   return (
@@ -91,6 +91,7 @@ export default function ZarrPreview({
 
           {showDataLinkDialog ? (
             <DataLinkDialog
+              tools={true}
               action="create"
               onConfirm={handleDialogConfirm}
               onCancel={handleDialogCancel}

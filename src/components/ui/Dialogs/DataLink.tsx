@@ -18,20 +18,31 @@ interface CommonDataLinkDialogProps {
   setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-interface CreateLinkDialog extends CommonDataLinkDialogProps {
+interface CreateLinkFromToolsProps extends CommonDataLinkDialogProps {
+  tools: true;
   action: 'create';
   onConfirm: () => Promise<void>;
   onCancel: () => void;
   setPendingToolKey: React.Dispatch<React.SetStateAction<PendingToolKey>>;
 }
 
-interface DeleteLinkDialog extends CommonDataLinkDialogProps {
+interface CreateLinkNotFromToolsProps extends CommonDataLinkDialogProps {
+  tools: false;
+  action: 'create';
+  onConfirm: () => Promise<void>;
+  onCancel: () => void;
+}
+
+interface DeleteLinkDialogProps extends CommonDataLinkDialogProps {
   action: 'delete';
   proxiedPath: ProxiedPath;
   handleDeleteDataLink: (proxiedPath: ProxiedPath) => Promise<void>;
 }
 
-type DataLinkDialogProps = CreateLinkDialog | DeleteLinkDialog;
+type DataLinkDialogProps =
+  | CreateLinkFromToolsProps
+  | CreateLinkNotFromToolsProps
+  | DeleteLinkDialogProps;
 
 function CreateLinkBtn({
   onConfirm
@@ -151,7 +162,7 @@ export default function DataLinkDialog(
     <FgDialog
       open={props.showDataLinkDialog}
       onClose={() => {
-        if (props.action === 'create') {
+        if (props.action === 'create' && props.tools) {
           props.setPendingToolKey(null);
         }
         props.setShowDataLinkDialog(false);
@@ -168,7 +179,7 @@ export default function DataLinkDialog(
             />
             <Typography className="text-foreground">
               If you share the data link with internal collaborators, they will
-              be able to view this data.
+              be able to view these data.
             </Typography>
             <div className="flex flex-col gap-2">
               <Typography className="font-semibold text-foreground">
@@ -182,7 +193,7 @@ export default function DataLinkDialog(
             </BtnContainer>
           </>
         ) : null}
-        {props.action === 'delete' && localAreDataLinksAutomatic ? (
+        {props.action === 'delete' ? (
           <>
             <TextWithFilePath
               text="Are you sure you want to delete the data link for this path?"
@@ -190,36 +201,9 @@ export default function DataLinkDialog(
             />
             <Typography className="text-foreground">
               <span className="font-semibold">Warning:</span> The existing data
-              link to this data will be deleted. Collaborators who previously
-              received the link will no longer be able to access it.
-            </Typography>
-            <BtnContainer>
-              <DeleteLinkBtn
-                proxiedPath={props.proxiedPath}
-                setShowDataLinkDialog={props.setShowDataLinkDialog}
-                handleDeleteDataLink={props.handleDeleteDataLink}
-              />
-              <CancelBtn setShowDataLinkDialog={props.setShowDataLinkDialog} />
-            </BtnContainer>
-            <Typography className="text-foreground">
-              <span className="font-semibold">Note:</span> Automatic data links
-              are currently enabled. To disable this feature, click the checkbox
-              below before deleting this data link.
-            </Typography>
-            <AutomaticLinksToggle />
-          </>
-        ) : props.action === 'delete' && !localAreDataLinksAutomatic ? (
-          <>
-            <TextWithFilePath
-              text="Are you sure you want to delete the data link for this path?"
-              path={displayPath}
-            />
-            <Typography className="text-foreground">
-              <span className="font-semibold">Warning:</span> The existing data
-              link to this data will be deleted. Collaborators who previously
-              received the link will no longer be able to access it. You can
-              create a new data link at any time by navigating to the file path
-              and clicking on one of the data viewers.
+              link will be deleted. Collaborators with the link will no longer
+              be able to use it to view these data. You can create a new data
+              link at any time.
             </Typography>
             <BtnContainer>
               <DeleteLinkBtn
