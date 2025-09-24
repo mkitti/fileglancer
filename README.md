@@ -1,7 +1,6 @@
 # Fileglancer frontend extension
 
 [![Github Actions Status](https://github.com/JaneliaSciComp/fileglancer/workflows/Build/badge.svg)](https://github.com/JaneliaSciComp/fileglancer/actions/workflows/build.yml)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/JaneliaSciComp/fileglancer/main?urlpath=lab)
 
 React-based frontend extension for the Fileglancer app.
 

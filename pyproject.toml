@@ -60,7 +60,7 @@ artifacts = [
   "fileglancer/labextension",
   "fileglancer/ui"
 ]
-exclude = [".github", "binder"]
+exclude = [".github"]
 
 [tool.hatch.build.targets.wheel]
 artifacts = [
