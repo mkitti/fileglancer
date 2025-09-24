@@ -304,12 +304,13 @@ export default function useZarrMetadata() {
 
       // Determine which tools should be available based on metadata type
       if (metadata?.multiscale) {
-        // OME-Zarr - all tools available
+        // OME-Zarr - all urls for v2; no avivator for v3
         if (url) {
           // Populate with actual URLs when proxied path is available
           openWithToolUrls.validator = validatorBaseUrl + url;
           openWithToolUrls.vole = voleBaseUrl + url;
-          openWithToolUrls.avivator = avivatorBaseUrl + url;
+          openWithToolUrls.avivator =
+            metadata.zarrVersion === 2 ? avivatorBaseUrl + url : null;
           if (disableNeuroglancerStateGeneration) {
             openWithToolUrls.neuroglancer =
               neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
