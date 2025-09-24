@@ -1,29 +1,29 @@
+import toast from 'react-hot-toast';
+
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 import { copyToClipboard } from '@/utils/copyText';
-import { createSuccess, handleError } from '@/utils/errorHandling';
-import { Result } from '@/shared.types';
 
 export default function useProxiedPathRow({
   setShowDataLinkDialog
 }: {
   setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
-  const handleCopyPath = async (displayPath: string): Promise<Result<void>> => {
-    try {
-      await copyToClipboard(displayPath);
-    } catch (error) {
-      return handleError(error);
+  const handleCopyPath = async (displayPath: string): Promise<void> => {
+    const result = await copyToClipboard(displayPath);
+    if (result.success) {
+      toast.success('Path copied!');
+    } else {
+      toast.error(`Error copying path: ${result.error}`);
     }
-    return createSuccess(undefined);
   };
 
-  const handleCopyUrl = async (item: ProxiedPath): Promise<Result<void>> => {
-    try {
-      await copyToClipboard(item.url);
-    } catch (error) {
-      return handleError(error);
+  const handleCopyUrl = async (item: ProxiedPath): Promise<void> => {
+    const result = await copyToClipboard(item.url);
+    if (result.success) {
+      toast.success('Sharing link copied!');
+    } else {
+      toast.error(`Error copying sharing link: ${result.error}`);
     }
-    return createSuccess(undefined);
   };
 
   const handleUnshare = async () => {

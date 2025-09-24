@@ -51,7 +51,7 @@ function TableRow({
 }) {
   return (
     <div
-      className={`grid ${gridColsClass} justify-items-start gap-4 px-4 py-4 border-b border-surface last:border-0 items-start`}
+      className={`grid ${gridColsClass} justify-items-start items-center gap-4 px-4 py-4 border-b border-surface last:border-0 items-start`}
     >
       {children}
     </div>
@@ -292,11 +292,11 @@ function Table<TData>({
         <div className="max-h-full overflow-y-auto">
           {table.getRowModel().rows.map(row => (
             <TableRow key={row.id} gridColsClass={gridColsClass}>
-              {row
-                .getVisibleCells()
-                .map(cell =>
-                  flexRender(cell.column.columnDef.cell, cell.getContext())
-                )}
+              {row.getVisibleCells().map(cell => (
+                <React.Fragment key={cell.id}>
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </React.Fragment>
+              ))}
             </TableRow>
           ))}
         </div>
