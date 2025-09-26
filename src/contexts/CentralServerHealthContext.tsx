@@ -111,6 +111,8 @@ export const CentralServerHealthProvider = ({
         if (healthStatus === 'healthy') {
           setShowWarningOverlay(false);
           logger.debug('Central server detected as healthy during retry');
+          // reload the page to ensure full recovery
+          window.location.reload();
           return true; // Success - stop retrying
         } else if (healthStatus === 'down') {
           return false; // Continue retrying
@@ -186,6 +188,8 @@ export const CentralServerHealthProvider = ({
         logger.debug('Central server detected as healthy');
         // Stop retrying since server is healthy
         stopRetrying();
+        // reload the page to ensure full recovery
+        window.location.reload();
       }
     } catch (error) {
       logger.error('Error during health check:', error);
