@@ -59,9 +59,9 @@ class BaseHandler(APIHandler):
 
     def get_current_user(self):
         """
-        Get the current user's username. Uses the USER environment variable 
+        Get the current user's username. Uses the USER environment variable
         if available, otherwise uses the current Jupyter user's name.
-        
+
         Returns:
             str: The username of the current user.
         """
@@ -70,7 +70,7 @@ class BaseHandler(APIHandler):
     def get_home_directory_path(self):
         """
         Get the home directory path of the current user.
-        
+
         Returns:
             str: The home directory path.
         """
@@ -79,7 +79,7 @@ class BaseHandler(APIHandler):
     def get_home_file_share_path_name(self):
         """
         Get the file share path for the current user's home directory.
-        
+
         Returns:
             str: The file share path name for the user's home directory, formatted as file_share_path_name
         """
@@ -177,29 +177,29 @@ class FileContentHandler(FileShareHandler):
     # This function is copied from x2s3, we should export it there and use it here directly
     def _parse_range_header(self, range_header: str, file_size: int):
         """Parse HTTP Range header and return start and end byte positions.
-        
+
         Args:
             range_header: HTTP Range header value (e.g., "bytes=0-499")
             file_size: Total size of the file
-            
+
         Returns:
             Tuple of (start, end) byte positions, or None if invalid
         """
         if not range_header or not range_header.startswith('bytes='):
             return None
-            
+
         try:
             range_spec = range_header[6:]  # Remove 'bytes=' prefix
-            
+
             if ',' in range_spec:
                 # Multiple ranges not supported, use first range
                 range_spec = range_spec.split(',')[0].strip()
-            
+
             if '-' not in range_spec:
                 return None
-                
+
             start_str, end_str = range_spec.split('-', 1)
-                    
+
             if start_str and end_str:
                 # Both start and end specified: "bytes=0-499"
                 start = int(start_str)
@@ -215,16 +215,16 @@ class FileContentHandler(FileShareHandler):
                 end = file_size - 1
             else:
                 return None
-                
+
             # Validate range
             if start < 0 or end < 0 or start >= file_size or start > end:
                 return None
-                
+
             # Clamp end to file size
             end = min(end, file_size - 1)
-            
+
             return (start, end)
-            
+
         except (ValueError, IndexError):
             return None
 
@@ -246,32 +246,32 @@ class FileContentHandler(FileShareHandler):
         filestore = self._get_filestore(filestore_name)
         if filestore is None:
             return
-        
+
         # Get file metadata
         file_name = subpath.split('/')[-1]
         content_type = _guess_content_type(file_name)
-        
+
         try:
             # Check if file exists and get its size
             file_info = filestore.get_file_info(subpath)
-            
+
             self.set_status(200)
             self.set_header('Accept-Ranges', 'bytes')
-            
+
             # Only add download header for binary/unknown files
             if content_type == 'application/octet-stream':
                 self.set_header('Content-Disposition', f'attachment; filename="{file_name}"')
-            
+
             # Set Content-Length if available
             if hasattr(file_info, 'size') and file_info.size is not None:
                 self.set_header('Content-Length', str(file_info.size))
-            
+
             # Set Last-Modified if available
             if hasattr(file_info, 'last_modified') and file_info.last_modified is not None:
                 self.set_header('Last-Modified', _format_timestamp(file_info.last_modified))
 
             self.finish(set_content_type=content_type)
-            
+
         except FileNotFoundError:
             self.log.error(f"File not found in {filestore_name}: {subpath}")
             self.set_status(404)
@@ -297,20 +297,20 @@ class FileContentHandler(FileShareHandler):
         filestore = self._get_filestore(filestore_name)
         if filestore is None:
             return
-        
+
         # Get file metadata first
         file_name = subpath.split('/')[-1]
         content_type = _guess_content_type(file_name)
-        
+
         try:
             file_info = filestore.get_file_info(subpath)
             if file_info.is_dir:
                 self.set_status(400)
                 self.finish(json.dumps({"error": "Cannot download directory content"}))
                 return
-                
+
             file_size = file_info.size
-            
+
             # Check for Range header
             range_header = self.request.headers.get('Range')
             if range_header:
@@ -322,20 +322,20 @@ class FileContentHandler(FileShareHandler):
                     self.set_header('Content-Range', f'bytes */{file_size}')
                     self.finish()
                     return
-                
+
                 start, end = range_result
                 content_length = end - start + 1
-                
+
                 # Set partial content response headers
                 self.set_status(206)  # Partial Content
                 self.set_header('Accept-Ranges', 'bytes')
                 self.set_header('Content-Length', str(content_length))
                 self.set_header('Content-Range', f'bytes {start}-{end}/{file_size}')
-                
+
                 # Only add download header for binary/unknown files
                 if content_type == 'application/octet-stream':
                     self.set_header('Content-Disposition', f'attachment; filename="{file_name}"')
-                
+
                 # Stream the requested range
                 for chunk in filestore.stream_file_range(subpath, start, end):
                     self.write(chunk)
@@ -345,7 +345,7 @@ class FileContentHandler(FileShareHandler):
                 self.set_status(200)
                 self.set_header('Accept-Ranges', 'bytes')
                 self.set_header('Content-Length', str(file_size))
-                
+
                 # Only add download header for binary/unknown files
                 if content_type == 'application/octet-stream':
                     self.set_header('Content-Disposition', f'attachment; filename="{file_name}"')
@@ -353,7 +353,7 @@ class FileContentHandler(FileShareHandler):
                 for chunk in filestore.stream_file_contents(subpath):
                     self.write(chunk)
                 self.finish(set_content_type=content_type)
-                
+
         except FileNotFoundError:
             self.log.error(f"File not found in {filestore_name}: {subpath}")
             self.set_status(404)
@@ -381,7 +381,7 @@ class FileMetadataHandler(FileShareHandler):
         else:
             self.log.info(f"GET /api/fileglancer/files/{path}")
             filestore_name, _, subpath = path.partition('/')
-        
+
         filestore = self._get_filestore(filestore_name)
 
         if filestore is None:
@@ -418,7 +418,7 @@ class FileMetadataHandler(FileShareHandler):
                     self.write("\"files\": [],\n")
                     self.write("\"error\": \"Directory contents not found\"\n")
             self.write("}\n")
-                
+
         except FileNotFoundError:
             self.log.error(f"File or directory not found: {subpath}")
             self.set_status(404)
@@ -518,7 +518,7 @@ class FileMetadataHandler(FileShareHandler):
         filestore = self._get_filestore(path)
         if filestore is None:
             return
-            
+
         try:
             filestore.remove_file_or_dir(subpath)
 
@@ -640,8 +640,8 @@ class ProxiedPathHandler(BaseHandler):
                 self.finish(json.dumps({"error": "Proxied path not found"}))
             else:
                 remote_error = e.response.json().get("error", "")
-                error_message = f"Remote error {e.response.status_code} getting proxied paths: {remote_error}" 
-                self.log.error(error_message)    
+                error_message = f"Remote error {e.response.status_code} getting proxied paths: {remote_error}"
+                self.log.error(error_message)
                 self.set_status(500)
                 self.finish(json.dumps({"error": error_message}))
         except Exception as e:
@@ -680,7 +680,7 @@ class ProxiedPathHandler(BaseHandler):
                 self.log.warning(f"Proxied path not found: {str(e)}")
                 self.set_status(404)
                 self.finish(json.dumps({"error": "Proxied path not found"}))
-            else:   
+            else:
                 remote_error = e.response.json().get("error", "")
                 error_message = f"Remote error {e.response.status_code} creating proxied path: {remote_error}"
                 self.log.error(error_message)
@@ -801,7 +801,7 @@ class TicketHandler(BaseHandler):
             response.raise_for_status()
 
             data = response.json()
-            
+
             # Ensure the response is a dictionary, not a list
             # Required because data is a list of tickets, and Tornado
             # will not accept lists in self.finish() for security reasons.
@@ -827,7 +827,7 @@ class TicketHandler(BaseHandler):
             self.set_status(400)
             self.finish(json.dumps({"error": "JSON body with fsp_name, path, project_key, issue_type, summary, and description is required to create a JIRA ticket"}))
             return
-        
+
         fsp_name = data.get("fsp_name", None)
         path = data.get("path", None)
         project_key = data.get("project_key", None)
@@ -839,7 +839,7 @@ class TicketHandler(BaseHandler):
                 self.set_status(400)
                 self.finish(json.dumps({"error": "fsp_name, path, project_key, issue_type, summary, and description are required to create a JIRA ticket"}))
                 return
-        
+
         try:
             tickets_manager = get_tickets_manager(self.settings)
             response = tickets_manager.create_ticket(username, fsp_name, path, project_key, issue_type, summary, description)
@@ -892,6 +892,72 @@ class VersionHandler(BaseHandler):
         self.set_status(200)
         self.write(json.dumps({"version": version}))
         self.finish()
+
+class CentralVersionHandler(BaseHandler):
+    """
+    API handler for returning the version of the fileglancer-central server
+    """
+    @web.authenticated
+    def get(self):
+        self.log.info("GET /api/fileglancer/central-version")
+        try:
+            central_url = self.settings['fileglancer'].central_url
+
+            if not central_url:
+                self.log.error("Central server URL not configured")
+                self.set_status(500)
+                self.finish(json.dumps({
+                    "code": "CENTRAL_SERVER_NOT_CONFIGURED",
+                    "message": "Central server not configured",
+                    "details": {"central_url": None}
+                }))
+                return
+
+            response = requests.get(f"{central_url}/version")
+            response.raise_for_status()
+
+            central_version_data = response.json()
+            self.log.debug(f"Central server version: {central_version_data}")
+
+            self.set_header('Content-Type', 'application/json')
+            self.set_status(200)
+            self.write(json.dumps(central_version_data))
+            self.finish()
+
+        except requests.exceptions.ConnectionError as e:
+            self.log.error(f"Central server unreachable: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({
+                "code": "CENTRAL_SERVER_UNREACHABLE",
+                "message": "Central server is unreachable",
+                "details": {"central_url": self.settings['fileglancer'].central_url, "error": str(e)}
+            }))
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 401 or e.response.status_code == 403:
+                self.log.error(f"Central server authentication failed: {str(e)}")
+                self.set_status(500)
+                self.finish(json.dumps({
+                    "code": "CENTRAL_SERVER_AUTH_FAILED",
+                    "message": "Authentication failed with central server",
+                    "details": {"status_code": e.response.status_code, "error": str(e)}
+                }))
+            else:
+                self.log.error(f"Central server HTTP error: {str(e)}")
+                self.set_status(500)
+                self.finish(json.dumps({
+                    "code": "CENTRAL_SERVER_INVALID_RESPONSE",
+                    "message": f"Central server returned HTTP {e.response.status_code}",
+                    "details": {"status_code": e.response.status_code, "error": str(e)}
+                }))
+        except Exception as e:
+            self.log.error(f"Error getting central version: {str(e)}")
+            self.set_status(500)
+            self.finish(json.dumps({
+                "code": "CENTRAL_SERVER_INVALID_RESPONSE",
+                "message": f"Failed to fetch central version: {str(e)}",
+                "details": {"error": str(e)}
+            }))
+
 
 class ExternalBucketHandler(BaseHandler):
     """

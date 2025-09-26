@@ -1,7 +1,6 @@
 # Fileglancer frontend extension
 
 [![Github Actions Status](https://github.com/JaneliaSciComp/fileglancer/workflows/Build/badge.svg)](https://github.com/JaneliaSciComp/fileglancer/actions/workflows/build.yml)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/JaneliaSciComp/fileglancer/main?urlpath=lab)
 
 React-based frontend extension for the Fileglancer app.
 
@@ -12,12 +11,6 @@ Clone the repo to your local environment and change directory to the new repo fo
 ```bash
 git clone git@github.com:JaneliaSciComp/fileglancer.git
 cd fileglancer
-```
-
-Copy the .env example and edit the environmental variable values for your setup:
-
-```bash
-cp .env.example .env
 ```
 
 If this is your first time installing the extension in dev mode, install package in development mode.
