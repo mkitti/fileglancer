@@ -29,7 +29,7 @@ export default function ProfileMenu() {
       >
         <HiOutlineUserCircle className="stroke-2 icon-large short:icon-default" />
       </Menu.Trigger>
-      <Menu.Content>
+      <Menu.Content className="z-10">
         <div className="w-full flex items-center py-1.5 px-2.5 rounded align-middle select-none outline-none bg-transparent">
           <HiOutlineUserCircle className="mr-2 icon-default" />
           <Typography className="text-sm text-foreground font-sans font-semibold">
