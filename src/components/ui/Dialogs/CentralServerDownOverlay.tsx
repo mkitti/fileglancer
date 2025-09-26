@@ -56,10 +56,13 @@ export function CentralServerDownOverlay({
             </div>
 
             <div className="space-y-2">
-              <Typography type="h5" className="text-foreground font-bold">
+              <Typography
+                type="h5"
+                className="text-surface-foreground font-bold"
+              >
                 Central Server Unavailable
               </Typography>
-              <Typography type="p" className="text-muted-foreground">
+              <Typography type="p" className="text-foreground">
                 The Fileglancer Central server is currently down or unreachable.
               </Typography>
             </div>
@@ -80,11 +83,11 @@ export function CentralServerDownOverlay({
               <div className="text-left space-y-2">
                 <Typography
                   type="small"
-                  className="text-muted-foreground font-medium"
+                  className="text-foreground font-medium"
                 >
                   What you can do:
                 </Typography>
-                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                <ul className="text-sm text-foreground space-y-1 list-disc list-inside">
                   <li>Try again in a few moments</li>
                   <li>
                     Contact{' '}
