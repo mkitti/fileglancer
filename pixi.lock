@@ -2279,8 +2279,8 @@ packages:
   timestamp: 1756729456476
 - pypi: ./
   name: fileglancer
-  version: 0.6.1
-  sha256: 44aa6da91f6d80ce1414d205d37c75cd9e28a4cf2eccef039178f932b4a8307b
+  version: 0.8.0
+  sha256: 1c0269e2c84e6e7d0edbe2bd35a76eb022a6daeb623a3177dfc6aef43c1f14b9
   requires_dist:
   - jupyter-server>=2.4.0,<3
   - jupyterlab>=4.3.0,<5
