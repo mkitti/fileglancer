@@ -1,3 +1,5 @@
+import { Page } from '@playwright/test';
+
 const sleepInSecs = (secs: number) =>
   new Promise(resolve => setTimeout(resolve, secs * 1000));
 
@@ -32,7 +34,7 @@ const TEST_SHARED_PATHS = [
   }
 ];
 
-const mockAPI = async page => {
+const mockAPI = async (page: Page) => {
   // mock API calls
   await page.route('/api/fileglancer/profile', async route => {
     await route.fulfill({
