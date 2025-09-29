@@ -1,8 +1,6 @@
 import { expect, test } from '@jupyterlab/galata';
 import { openFileGlancer } from './testutils';
 
-test.use({ autoGoto: false });
-
 test.beforeEach('Open fileglancer', async ({ page }) => {
   await openFileGlancer(page);
 });
