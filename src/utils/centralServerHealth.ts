@@ -2,7 +2,7 @@ import { sendFetchRequest } from '@/utils';
 import { getErrorString } from '@/utils/errorHandling';
 import logger from '@/logger';
 
-export type CentralServerStatus = 'healthy' | 'down' | 'checking';
+export type CentralServerStatus = 'healthy' | 'down' | 'checking' | 'ignore';
 
 // Structured error response types
 export interface ApiErrorResponse {
@@ -119,7 +119,7 @@ export async function checkCentralServerHealth(
         logger.info(
           `Central server configuration issue detected: ${errorData.message}`
         );
-        return 'healthy'; // Configuration issue, not connectivity issue
+        return 'ignore'; // Configuration issue, not connectivity issue
       }
 
       // If we can't parse the error or it's not a config issue, treat as server down
