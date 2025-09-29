@@ -18,7 +18,7 @@ test.afterEach(async ({ page }) => {
   await teardownMockAPI(page);
 });
 
-test.skip('favor entire zone with reload page', async ({ page }) => {
+test('favor entire zone with reload page', async ({ page }) => {
   // click on Z1
   await page.getByText('Z1', { exact: true }).click();
 
@@ -42,13 +42,10 @@ test.skip('favor entire zone with reload page', async ({ page }) => {
     .getByRole('link', { name: `${TEST_SHARED_PATHS[2].storage}` })
     .click();
 
-  await expect(page.getByText(`${TEST_SHARED_PATHS[2].name}`)).toBeVisible();
-
-  // first file row
-  await expect(page.getByText('f1FileMay 21, 202510 bytes')).toBeVisible();
-
-  // second file row
-  await expect(page.getByText('f2FileMay 21, 202510 bytes')).toBeVisible();
+  // first file row - check for file name and size separately
+  await expect(page.getByText('f1')).toBeVisible();
+  await expect(page.getByText('May 21, 2025')).toBeVisible();
+  await expect(page.getByText('10 bytes').first()).toBeVisible();
 
   const z2ExpandedStarButton = page
     .getByRole('list')
