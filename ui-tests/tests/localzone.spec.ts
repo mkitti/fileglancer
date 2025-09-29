@@ -5,10 +5,6 @@ test.beforeEach('Open fileglancer', async ({ page }) => {
   await openFileGlancer(page);
 });
 
-test.afterAll('Close browser', ({ browser }) => {
-  browser.close();
-});
-
 test('Home becomes visible when Local is expanded', async ({ page }) => {
   const zonesLocator = page.getByText('Zones');
   const homeLocator = page.getByRole('link', { name: 'home', exact: true });
