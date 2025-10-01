@@ -4,9 +4,9 @@ import { HiOutlineExclamationTriangle } from 'react-icons/hi2';
 import { HiRefresh } from 'react-icons/hi';
 
 type CentralServerDownOverlayProps = {
-  open: boolean;
-  onRetry: () => void;
-  countdownSeconds: number | null;
+  readonly open: boolean;
+  readonly onRetry: () => void;
+  readonly countdownSeconds: number | null;
 };
 
 // Timer configuration constants
@@ -57,33 +57,33 @@ export function CentralServerDownOverlay({
 
             <div className="space-y-2">
               <Typography
-                type="h5"
                 className="text-surface-foreground font-bold"
+                type="h5"
               >
                 Central Server Unavailable
               </Typography>
-              <Typography type="p" className="text-foreground">
+              <Typography className="text-foreground" type="p">
                 The Fileglancer Central server is currently down or unreachable.
               </Typography>
             </div>
 
-            {localCountdown !== null && localCountdown > 0 && (
+            {localCountdown !== null && localCountdown > 0 ? (
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 w-full">
                 <div className="flex items-center justify-center space-x-2">
-                  <div className="w-3 h-3 bg-primary rounded-full animate-pulse"></div>
-                  <Typography type="small" className="text-primary font-medium">
+                  <div className="w-3 h-3 bg-primary rounded-full animate-pulse" />
+                  <Typography className="text-primary font-medium" type="small">
                     Automatically retrying in {localCountdown} second
                     {localCountdown !== 1 ? 's' : ''}
                   </Typography>
                 </div>
               </div>
-            )}
+            ) : null}
 
             <div className="space-y-4 w-full">
               <div className="text-left space-y-2">
                 <Typography
-                  type="small"
                   className="text-foreground font-medium"
+                  type="small"
                 >
                   What you can do:
                 </Typography>
@@ -103,10 +103,10 @@ export function CentralServerDownOverlay({
               </div>
 
               <Button
-                onClick={onRetry}
+                autoFocus
                 className="w-full flex items-center justify-center gap-2"
                 color="primary"
-                autoFocus
+                onClick={onRetry}
               >
                 <HiRefresh className="w-4 h-4" />
                 Try To Reconnect

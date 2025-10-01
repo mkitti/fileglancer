@@ -26,17 +26,21 @@ import { useExternalBucketContext } from '@/contexts/ExternalBucketContext';
 import useDataToolLinks from '@/hooks/useDataToolLinks';
 
 type PropertiesDrawerProps = {
-  togglePropertiesDrawer: () => void;
-  setShowPermissionsDialog: React.Dispatch<React.SetStateAction<boolean>>;
-  setShowConvertFileDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  readonly togglePropertiesDrawer: () => void;
+  readonly setShowPermissionsDialog: React.Dispatch<
+    React.SetStateAction<boolean>
+  >;
+  readonly setShowConvertFileDialog: React.Dispatch<
+    React.SetStateAction<boolean>
+  >;
 };
 
 function CopyPathButton({
   path,
   isDataLink
 }: {
-  path: string;
-  isDataLink?: boolean;
+  readonly path: string;
+  readonly isDataLink?: boolean;
 }): JSX.Element {
   return (
     <div className="group flex justify-between items-center min-w-0 max-w-full">
@@ -49,9 +53,8 @@ function CopyPathButton({
         </Typography>
       </FgTooltip>
       <IconButton
-        variant="ghost"
-        isCircular
         className="text-transparent group-hover:text-foreground shrink-0"
+        isCircular
         onClick={async () => {
           const result = await copyToClipboard(path);
           if (result.success) {
@@ -64,6 +67,7 @@ function CopyPathButton({
             );
           }
         }}
+        variant="ghost"
       >
         <HiOutlineDuplicate className="icon-small" />
       </IconButton>
@@ -105,13 +109,13 @@ export default function PropertiesDrawer({
         <div className="flex items-center justify-between gap-4 mb-1 shrink-0">
           <Typography type="h6">Properties</Typography>
           <IconButton
-            size="sm"
-            variant="ghost"
-            color="secondary"
             className="h-8 w-8 rounded-full text-foreground hover:bg-secondary-light/20 shrink-0"
+            color="secondary"
             onClick={() => {
               togglePropertiesDrawer();
             }}
+            size="sm"
+            variant="ghost"
           >
             <HiX className="icon-default" />
           </IconButton>
@@ -140,9 +144,9 @@ export default function PropertiesDrawer({
         )}
         {fileBrowserState.propertiesTarget ? (
           <Tabs
-            key="file-properties-tabs"
-            defaultValue="overview"
             className="flex flex-col flex-1 min-h-0 "
+            defaultValue="overview"
+            key="file-properties-tabs"
           >
             <Tabs.List className="justify-start items-stretch shrink-0 min-w-fit w-full py-2 bg-surface dark:bg-surface-light">
               <Tabs.Trigger
@@ -167,8 +171,8 @@ export default function PropertiesDrawer({
 
             {/*Overview panel*/}
             <Tabs.Panel
-              value="overview"
               className="flex-1 flex flex-col gap-4 max-w-full p-2"
+              value="overview"
             >
               <CopyPathButton path={fullPath} />
               <OverviewTable file={fileBrowserState.propertiesTarget} />
@@ -176,8 +180,10 @@ export default function PropertiesDrawer({
                 <div className="flex flex-col gap-2 min-w-[175px] max-w-full pt-2">
                   <div className="flex items-center gap-2 max-w-full">
                     <Switch
-                      id="share-switch"
+                      checked={externalDataUrl || proxiedPath ? true : false}
                       className="before:bg-primary/50 after:border-primary/50 checked:disabled:before:bg-surface checked:disabled:before:border checked:disabled:before:border-surface-dark checked:disabled:after:border-surface-dark"
+                      disabled={externalDataUrl ? true : false}
+                      id="share-switch"
                       onChange={async () => {
                         if (areDataLinksAutomatic && !proxiedPath) {
                           await handleCreateDataLink();
@@ -185,20 +191,18 @@ export default function PropertiesDrawer({
                           setShowDataLinkDialog(true);
                         }
                       }}
-                      checked={externalDataUrl || proxiedPath ? true : false}
-                      disabled={externalDataUrl ? true : false}
                     />
                     <Typography
                       as="label"
-                      htmlFor="share-switch"
                       className={`${externalDataUrl ? 'cursor-default' : 'cursor-pointer'} text-foreground font-semibold`}
+                      htmlFor="share-switch"
                     >
                       {proxiedPath ? 'Delete data link' : 'Create data link'}
                     </Typography>
                   </div>
                   <Typography
-                    type="small"
                     className="text-foreground whitespace-normal w-full"
+                    type="small"
                   >
                     {externalDataUrl
                       ? 'Public data link already exists since this data is on s3.janelia.org.'
@@ -209,24 +213,24 @@ export default function PropertiesDrawer({
                 </div>
               ) : null}
               {externalDataUrl ? (
-                <CopyPathButton path={externalDataUrl} isDataLink={true} />
+                <CopyPathButton isDataLink={true} path={externalDataUrl} />
               ) : dataUrl ? (
-                <CopyPathButton path={dataUrl} isDataLink={true} />
+                <CopyPathButton isDataLink={true} path={dataUrl} />
               ) : null}
             </Tabs.Panel>
 
             {/*Permissions panel*/}
             <Tabs.Panel
-              value="permissions"
               className="flex flex-col max-w-full gap-4 flex-1 p-2"
+              value="permissions"
             >
               <PermissionsTable file={fileBrowserState.propertiesTarget} />
               <Button
-                variant="outline"
+                className="!rounded-md !text-primary !text-nowrap !self-start"
                 onClick={() => {
                   setShowPermissionsDialog(true);
                 }}
-                className="!rounded-md !text-primary !text-nowrap !self-start"
+                variant="outline"
               >
                 Change Permissions
               </Button>
@@ -234,8 +238,8 @@ export default function PropertiesDrawer({
 
             {/*Task panel*/}
             <Tabs.Panel
-              value="convert"
               className="flex flex-col gap-4 flex-1 w-full p-2"
+              value="convert"
             >
               {ticket ? (
                 <TicketDetails />
@@ -247,10 +251,10 @@ export default function PropertiesDrawer({
                     Neuroglancer.
                   </Typography>
                   <Button
-                    variant="outline"
                     onClick={() => {
                       setShowConvertFileDialog(true);
                     }}
+                    variant="outline"
                   >
                     Open conversion request
                   </Button>
@@ -262,20 +266,20 @@ export default function PropertiesDrawer({
       </Card>
       {showDataLinkDialog && !proxiedPath && !externalDataUrl ? (
         <DataLinkDialog
-          tools={false}
           action="create"
-          onConfirm={handleDialogConfirm}
           onCancel={handleDialogCancel}
-          showDataLinkDialog={showDataLinkDialog}
+          onConfirm={handleDialogConfirm}
           setShowDataLinkDialog={setShowDataLinkDialog}
+          showDataLinkDialog={showDataLinkDialog}
+          tools={false}
         />
       ) : showDataLinkDialog && proxiedPath ? (
         <DataLinkDialog
           action="delete"
-          proxiedPath={proxiedPath}
           handleDeleteDataLink={handleDeleteDataLink}
-          showDataLinkDialog={showDataLinkDialog}
+          proxiedPath={proxiedPath}
           setShowDataLinkDialog={setShowDataLinkDialog}
+          showDataLinkDialog={showDataLinkDialog}
         />
       ) : null}
     </>

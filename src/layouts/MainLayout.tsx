@@ -44,9 +44,9 @@ const MainLayoutContent = () => {
         </div>
       </div>
       <CentralServerDownOverlay
-        open={showWarningOverlay}
-        onRetry={checkHealth}
         countdownSeconds={nextRetrySeconds}
+        onRetry={checkHealth}
+        open={showWarningOverlay}
       />
     </>
   );
@@ -62,7 +62,7 @@ export const MainLayout = () => {
       <CentralServerHealthProvider>
         <ZonesAndFspMapContextProvider>
           <OpenFavoritesProvider>
-            <FileBrowserContextProvider fspName={fspName} filePath={filePath}>
+            <FileBrowserContextProvider filePath={filePath} fspName={fspName}>
               <PreferencesProvider>
                 <ExternalBucketProvider>
                   <ProxiedPathProvider>

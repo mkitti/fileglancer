@@ -34,20 +34,20 @@ import {
 import { TableRowSkeleton } from '@/components/ui/widgets/Loaders';
 
 type TableProps<TData> = {
-  columns: ColumnDef<TData>[];
-  data: TData[];
-  gridColsClass: string;
-  loadingState?: boolean;
-  emptyText?: string;
-  enableColumnSearch?: boolean;
+  readonly columns: ColumnDef<TData>[];
+  readonly data: TData[];
+  readonly gridColsClass: string;
+  readonly loadingState?: boolean;
+  readonly emptyText?: string;
+  readonly enableColumnSearch?: boolean;
 };
 
 function TableRow({
   gridColsClass,
   children
 }: {
-  gridColsClass: string;
-  children: React.ReactNode;
+  readonly gridColsClass: string;
+  readonly children: React.ReactNode;
 }) {
   return (
     <div
@@ -61,7 +61,7 @@ function TableRow({
 function HeaderIcons<TData, TValue>({
   header
 }: {
-  header: Header<TData, TValue>;
+  readonly header: Header<TData, TValue>;
 }) {
   return (
     <div className="flex items-center">
@@ -85,21 +85,21 @@ function HeaderIcons<TData, TValue>({
 const DebouncedInput = React.forwardRef<
   HTMLInputElement,
   {
-    value: string;
-    setValue: (value: string) => void;
-    handleInputFocus: () => void;
+    readonly value: string;
+    readonly setValue: (value: string) => void;
+    readonly handleInputFocus: () => void;
   }
 >(({ value, setValue, handleInputFocus }, ref) => {
   return (
-    <div onClick={e => e.stopPropagation()} className="max-w-full">
+    <div className="max-w-full" onClick={e => e.stopPropagation()}>
       <Input
-        ref={ref}
-        type="search"
-        placeholder="Search..."
-        value={value}
+        className="w-36 max-w-full border shadow rounded"
         onChange={e => setValue(e.target.value)}
         onFocus={handleInputFocus}
-        className="w-36 max-w-full border shadow rounded"
+        placeholder="Search..."
+        ref={ref}
+        type="search"
+        value={value}
       />
     </div>
   );
@@ -108,7 +108,7 @@ const DebouncedInput = React.forwardRef<
 function SearchPopover<TData, TValue>({
   header
 }: {
-  header: Header<TData, TValue>;
+  readonly header: Header<TData, TValue>;
 }) {
   const [isSearchFocused, setIsSearchFocused] = React.useState(false);
   const [forceOpen, setForceOpen] = React.useState(false);
@@ -206,20 +206,20 @@ function SearchPopover<TData, TValue>({
 
   return (
     <Tooltip
-      placement="top-start"
       interactive={true}
       open={forceOpen ? true : undefined}
+      placement="top-start"
     >
       {/** when open is undefined (forceOpen is false), then the interactive=true prop takes over.
        * This allows use of the safePolygon() function in tooltip.tsx, keeping the tooltip open
        * as the user moves towards it */}
       <Tooltip.Trigger
         as="div"
-        ref={tooltipRef}
         className={`flex flex-col ${
           header.column.getCanSort() ? 'cursor-pointer group/sort' : ''
         } group/filter`}
         onClick={header.column.getToggleSortingHandler()}
+        ref={tooltipRef}
       >
         <div className="flex items-center gap-2 font-semibold select-none">
           {flexRender(header.column.columnDef.header, header.getContext())}
@@ -231,10 +231,10 @@ function SearchPopover<TData, TValue>({
         onMouseEnter={() => inputRef.current?.focus()}
       >
         <DebouncedInput
-          ref={inputRef}
-          value={value}
-          setValue={setValue}
           handleInputFocus={handleInputFocus}
+          ref={inputRef}
+          setValue={setValue}
+          value={value}
         />
       </Tooltip.Content>
     </Tooltip>
@@ -280,7 +280,7 @@ function Table<TData>({
           .map(headerGroup =>
             headerGroup.headers.map(header =>
               header.isPlaceholder ? null : (
-                <SearchPopover key={header.id} header={header} />
+                <SearchPopover header={header} key={header.id} />
               )
             )
           )}
@@ -291,7 +291,7 @@ function Table<TData>({
       ) : data && data.length > 0 ? (
         <div className="max-h-full overflow-y-auto">
           {table.getRowModel().rows.map(row => (
-            <TableRow key={row.id} gridColsClass={gridColsClass}>
+            <TableRow gridColsClass={gridColsClass} key={row.id}>
               {row.getVisibleCells().map(cell => (
                 <React.Fragment key={cell.id}>
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -314,7 +314,7 @@ function Table<TData>({
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">
             <Typography variant="small">Page</Typography>
-            <Typography variant="small" className="font-bold">
+            <Typography className="font-bold" variant="small">
               {table.getPageCount() === 0
                 ? 0
                 : table.getState().pagination.pageIndex + 1}{' '}
@@ -323,26 +323,26 @@ function Table<TData>({
           </div>
           <ButtonGroup variant="ghost">
             <IconButton
-              onClick={() => table.firstPage()}
               disabled={!table.getCanPreviousPage()}
+              onClick={() => table.firstPage()}
             >
               <HiChevronDoubleLeft className="icon-default" />
             </IconButton>
             <IconButton
-              onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
+              onClick={() => table.previousPage()}
             >
               <HiChevronLeft className="icon-default" />
             </IconButton>
             <IconButton
-              onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
+              onClick={() => table.nextPage()}
             >
               <HiChevronRight className="icon-default" />
             </IconButton>
             <IconButton
-              onClick={() => table.lastPage()}
               disabled={!table.getCanNextPage()}
+              onClick={() => table.lastPage()}
             >
               <HiChevronDoubleRight className="icon-default" />
             </IconButton>
@@ -350,10 +350,10 @@ function Table<TData>({
         </div>
         <div>
           <Select
-            value={table.getState().pagination.pageSize.toString()}
             onValueChange={(value: string) => {
               table.setPageSize(Number(value));
             }}
+            value={table.getState().pagination.pageSize.toString()}
           >
             <Select.Trigger placeholder="Page size" />
             <Select.List>
@@ -381,10 +381,10 @@ function TableCard<TData>({
       <Table
         columns={columns}
         data={data}
-        gridColsClass={gridColsClass}
-        loadingState={loadingState}
         emptyText={emptyText}
         enableColumnSearch={enableColumnSearch}
+        gridColsClass={gridColsClass}
+        loadingState={loadingState}
       />
     </Card>
   );

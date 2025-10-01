@@ -49,13 +49,13 @@ export default function RecentDataLinksCard() {
             }
             return (
               <Folder
-                key={item.sharing_key}
-                fsp={fsp}
                 folderPath={item.path}
-                isFavoritable={false}
+                fsp={fsp}
                 icon={
                   <PiLinkSimpleBold className="icon-small short:icon-xsmall stroke-2" />
                 }
+                isFavoritable={false}
+                key={item.sharing_key}
               />
             );
           })}

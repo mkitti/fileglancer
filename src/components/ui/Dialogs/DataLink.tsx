@@ -47,16 +47,16 @@ type DataLinkDialogProps =
 function CreateLinkBtn({
   onConfirm
 }: {
-  onConfirm: () => Promise<void>;
+  readonly onConfirm: () => Promise<void>;
 }): JSX.Element {
   return (
     <Button
-      variant="outline"
-      color="error"
       className="!rounded-md flex items-center gap-2"
+      color="error"
       onClick={async () => {
         await onConfirm();
       }}
+      variant="outline"
     >
       Create Data Link
     </Button>
@@ -68,19 +68,19 @@ function DeleteLinkBtn({
   setShowDataLinkDialog,
   handleDeleteDataLink
 }: {
-  proxiedPath: ProxiedPath;
-  setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
-  handleDeleteDataLink: (proxiedPath: ProxiedPath) => Promise<void>;
+  readonly proxiedPath: ProxiedPath;
+  readonly setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  readonly handleDeleteDataLink: (proxiedPath: ProxiedPath) => Promise<void>;
 }): JSX.Element {
   return (
     <Button
-      variant="outline"
-      color="error"
       className="!rounded-md flex items-center gap-2 hover:text-background focus:text-background"
+      color="error"
       onClick={async () => {
         await handleDeleteDataLink(proxiedPath);
         setShowDataLinkDialog(false);
       }}
+      variant="outline"
     >
       Delete Data Link
     </Button>
@@ -92,13 +92,16 @@ function CancelBtn({
   setShowDataLinkDialog,
   onCancel
 }: {
-  setPendingToolKey?: React.Dispatch<React.SetStateAction<PendingToolKey>>;
-  setShowDataLinkDialog?: React.Dispatch<React.SetStateAction<boolean>>;
-  onCancel?: () => void;
+  readonly setPendingToolKey?: React.Dispatch<
+    React.SetStateAction<PendingToolKey>
+  >;
+  readonly setShowDataLinkDialog?: React.Dispatch<
+    React.SetStateAction<boolean>
+  >;
+  readonly onCancel?: () => void;
 }): JSX.Element {
   return (
     <Button
-      variant="outline"
       className="!rounded-md flex items-center gap-2"
       onClick={() => {
         if (onCancel) {
@@ -112,6 +115,7 @@ function CancelBtn({
           }
         }
       }}
+      variant="outline"
     >
       Cancel
     </Button>
@@ -121,7 +125,7 @@ function CancelBtn({
 function BtnContainer({
   children
 }: {
-  children: React.ReactNode;
+  readonly children: React.ReactNode;
 }): JSX.Element {
   return <div className="flex gap-4">{children}</div>;
 }
@@ -160,13 +164,13 @@ export default function DataLinkDialog(
 
   return (
     <FgDialog
-      open={props.showDataLinkDialog}
       onClose={() => {
         if (props.action === 'create' && props.tools) {
           props.setPendingToolKey(null);
         }
         props.setShowDataLinkDialog(false);
       }}
+      open={props.showDataLinkDialog}
     >
       <div className="flex flex-col gap-4 my-4">
         {props.action === 'create' && localAreDataLinksAutomatic ? (
@@ -174,8 +178,8 @@ export default function DataLinkDialog(
         ) : props.action === 'create' && !localAreDataLinksAutomatic ? (
           <>
             <TextWithFilePath
-              text="Are you sure you want to create a data link for this path?"
               path={displayPath}
+              text="Are you sure you want to create a data link for this path?"
             />
             <Typography className="text-foreground">
               If you share the data link with internal collaborators, they will
@@ -196,8 +200,8 @@ export default function DataLinkDialog(
         {props.action === 'delete' ? (
           <>
             <TextWithFilePath
-              text="Are you sure you want to delete the data link for this path?"
               path={displayPath}
+              text="Are you sure you want to delete the data link for this path?"
             />
             <Typography className="text-foreground">
               <span className="font-semibold">Warning:</span> The existing data
@@ -207,9 +211,9 @@ export default function DataLinkDialog(
             </Typography>
             <BtnContainer>
               <DeleteLinkBtn
+                handleDeleteDataLink={props.handleDeleteDataLink}
                 proxiedPath={props.proxiedPath}
                 setShowDataLinkDialog={props.setShowDataLinkDialog}
-                handleDeleteDataLink={props.handleDeleteDataLink}
               />
               <CancelBtn setShowDataLinkDialog={props.setShowDataLinkDialog} />
             </BtnContainer>

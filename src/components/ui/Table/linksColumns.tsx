@@ -29,7 +29,7 @@ type ProxiedPathRowActionProps = {
   pathFsp: FileSharePath | undefined;
 };
 
-function PathCell({ item }: { item: ProxiedPath }) {
+function PathCell({ item }: { readonly item: ProxiedPath }) {
   const { pathPreference } = usePreferencesContext();
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
   const tooltipTriggerClasses = 'max-w-full truncate';
@@ -47,12 +47,12 @@ function PathCell({ item }: { item: ProxiedPath }) {
   const browseLink = makeBrowseLink(item.fsp_name, item.path);
 
   return (
-    <div key={`path-${item.sharing_key}`} className="min-w-0 max-w-full flex">
+    <div className="min-w-0 max-w-full flex" key={`path-${item.sharing_key}`}>
       <FgTooltip label={displayPath} triggerClasses={tooltipTriggerClasses}>
         <Typography
           as={FgStyledLink}
-          to={browseLink}
           className="text-left truncate block"
+          to={browseLink}
         >
           {displayPath}
         </Typography>
@@ -61,7 +61,7 @@ function PathCell({ item }: { item: ProxiedPath }) {
   );
 }
 
-function ActionsCell({ item }: { item: ProxiedPath }) {
+function ActionsCell({ item }: { readonly item: ProxiedPath }) {
   const [showDataLinkDialog, setShowDataLinkDialog] =
     React.useState<boolean>(false);
   const { handleDeleteDataLink } = useDataToolLinks(setShowDataLinkDialog);
@@ -112,21 +112,21 @@ function ActionsCell({ item }: { item: ProxiedPath }) {
   };
 
   return (
-    <div key={`action-${item.sharing_key}`} className="min-w-0 flex">
+    <div className="min-w-0 flex" key={`action-${item.sharing_key}`}>
       <div onClick={e => e.stopPropagation()}>
         <DataLinksActionsMenu<ProxiedPathRowActionProps>
-          menuItems={menuItems}
           actionProps={actionProps}
+          menuItems={menuItems}
         />
       </div>
       {/* Sharing dialog */}
       {showDataLinkDialog ? (
         <DataLinkDialog
           action="delete"
-          showDataLinkDialog={showDataLinkDialog}
-          setShowDataLinkDialog={setShowDataLinkDialog}
-          proxiedPath={item}
           handleDeleteDataLink={handleDeleteDataLink}
+          proxiedPath={item}
+          setShowDataLinkDialog={setShowDataLinkDialog}
+          showDataLinkDialog={showDataLinkDialog}
         />
       ) : null}
     </div>
@@ -199,8 +199,8 @@ export const linksColumns: ColumnDef<ProxiedPath>[] = [
             triggerClasses={tooltipTriggerClasses}
           >
             <Typography
-              variant="small"
               className="text-left text-foreground truncate"
+              variant="small"
             >
               {formatDateString(dateString)}
             </Typography>

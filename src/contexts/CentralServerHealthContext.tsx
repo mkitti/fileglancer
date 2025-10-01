@@ -47,7 +47,7 @@ export const useCentralServerHealthContext = () => {
 export const CentralServerHealthProvider = ({
   children
 }: {
-  children: React.ReactNode;
+  readonly children: React.ReactNode;
 }) => {
   const [status, setStatus] = React.useState<CentralServerStatus>('healthy');
   const [showWarningOverlay, setShowWarningOverlay] = React.useState(false);
