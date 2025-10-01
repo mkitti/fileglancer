@@ -594,7 +594,7 @@ async function determineLayerType(
         const edgeRatio = await analyzeThumbnailEdgeContent(thumbnailDataUrl);
         log.debug('Thumbnail edge detection ratio:', edgeRatio);
         // Segmentation data typically has low edge ratio
-        const layerType = edgeRatio < 0.05 ? 'segmentation' : 'image';
+        const layerType = edgeRatio > 0.0 && edgeRatio < 0.05 ? 'segmentation' : 'image';
         log.debug(`Layer type set to ${layerType} based on edge analysis`);
         return layerType;
       } catch (error) {
