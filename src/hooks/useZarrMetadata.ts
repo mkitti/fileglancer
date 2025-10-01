@@ -48,7 +48,7 @@ export default function useZarrMetadata() {
   const validatorBaseUrl = 'https://ome.github.io/ome-ngff-validator/?source=';
   const neuroglancerBaseUrl = 'https://neuroglancer-demo.appspot.com/#!';
   const voleBaseUrl = 'https://volumeviewer.allencell.org/viewer?url=';
-  const avivatorBaseUrl = 'https://avivator.gehlenborglab.org/?image_url=';
+  const avivatorBaseUrl = 'https://janeliascicomp.github.io/viv/?image_url=';
   const { fileBrowserState, areFileDataLoading } = useFileBrowserContext();
   const { dataUrl } = useProxiedPathContext();
   const { externalDataUrl } = useExternalBucketContext();
