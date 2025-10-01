@@ -228,9 +228,7 @@ class FileContentHandler(FileShareHandler):
         except (ValueError, IndexError):
             return None
 
-
-    # TODO: This currently can't be authenticated becuase it's used by ome-zarr.js which doesn't have cookie access.
-    #@web.authenticated
+    @web.authenticated
     def head(self, path=""):
         """
         Handle HEAD requests to get file metadata without content
@@ -280,8 +278,7 @@ class FileContentHandler(FileShareHandler):
             self.set_status(403)
             self.finish()
 
-    # TODO: This currently can't be authenticated becuase it's used by ome-zarr.js which doesn't have cookie access.
-    #@web.authenticated
+    @web.authenticated
     def get(self, path=""):
         """
         Handle GET requests to get file content, with HTTP Range header support
