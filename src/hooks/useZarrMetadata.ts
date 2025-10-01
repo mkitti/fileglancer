@@ -93,7 +93,7 @@ export default function useZarrMetadata() {
         setThumbnailError('Error fetching Zarr array');
       }
     },
-    [cookies['_xsrf']]
+    [cookies]
   );
 
   const checkOmeZarrMetadata = React.useCallback(
@@ -121,7 +121,7 @@ export default function useZarrMetadata() {
         setThumbnailError('Error fetching OME-Zarr metadata');
       }
     },
-    [cookies['_xsrf']]
+    [cookies]
   );
 
   const getFile = React.useCallback(
@@ -205,7 +205,6 @@ export default function useZarrMetadata() {
       areFileDataLoading,
       fileBrowserState.currentFileSharePath,
       fileBrowserState.currentFileOrFolder,
-      fileBrowserState.files,
       getFile,
       cookies
     ]
@@ -255,7 +254,7 @@ export default function useZarrMetadata() {
     return () => {
       controller.abort();
     };
-  }, [omeZarrUrl, cookies['_xsrf']]);
+  }, [omeZarrUrl, cookies]);
 
   // Determine layer type when thumbnail becomes available
   React.useEffect(() => {
