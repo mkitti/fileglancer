@@ -18,5 +18,15 @@ export default defineConfig({
     command: 'npm start',
     url: 'http://localhost:8888/lab',
     reuseExistingServer: !process.env.CI
-  }
+  },
+  projects: [
+    {
+      name: 'local-app',
+      testDir: './tests/localApp'
+    },
+    {
+      name: 'mocked-fg-central-app',
+      testDir: './tests/mockedFgCentralApp'
+    }
+  ]
 });
