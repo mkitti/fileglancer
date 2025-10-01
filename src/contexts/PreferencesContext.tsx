@@ -37,6 +37,8 @@ type PreferencesContextType = {
   toggleDisableNeuroglancerStateGeneration: () => Promise<Result<void>>;
   disableHeuristicalLayerTypeDetection: boolean;
   toggleDisableHeuristicalLayerTypeDetection: () => Promise<Result<void>>;
+  useLegacyMultichannelApproach: boolean;
+  toggleUseLegacyMultichannelApproach: () => Promise<Result<void>>;
   zonePreferenceMap: Record<string, ZonePreference>;
   zoneFavorites: Zone[];
   fileSharePathPreferenceMap: Record<string, FileSharePathPreference>;
@@ -89,6 +91,8 @@ export const PreferencesProvider = ({
     disableHeuristicalLayerTypeDetection,
     setDisableHeuristicalLayerTypeDetection
   ] = React.useState<boolean>(false);
+  const [useLegacyMultichannelApproach, setUseLegacyMultichannelApproach] =
+    React.useState<boolean>(false);
   const [zonePreferenceMap, setZonePreferenceMap] = React.useState<
     Record<string, ZonePreference>
   >({});
@@ -291,6 +295,14 @@ export const PreferencesProvider = ({
       }
       return createSuccess(undefined);
     }, [savePreferencesToBackend]);
+
+  const toggleUseLegacyMultichannelApproach =
+    React.useCallback(async (): Promise<Result<void>> => {
+      return togglePreference(
+        'useLegacyMultichannelApproach',
+        setUseLegacyMultichannelApproach
+      );
+    }, [togglePreference]);
 
   function updatePreferenceList<T>(
     key: string,
@@ -562,6 +574,17 @@ export const PreferencesProvider = ({
   }, [fetchPreferences]);
 
   React.useEffect(() => {
+    (async function () {
+      const rawUseLegacyMultichannelApproach = await fetchPreferences(
+        'useLegacyMultichannelApproach'
+      );
+      if (rawUseLegacyMultichannelApproach !== null) {
+        setUseLegacyMultichannelApproach(rawUseLegacyMultichannelApproach);
+      }
+    })();
+  }, [fetchPreferences]);
+
+  React.useEffect(() => {
     if (!isZonesMapReady) {
       return;
     }
@@ -714,6 +737,8 @@ export const PreferencesProvider = ({
         toggleDisableNeuroglancerStateGeneration,
         disableHeuristicalLayerTypeDetection,
         toggleDisableHeuristicalLayerTypeDetection,
+        useLegacyMultichannelApproach,
+        toggleUseLegacyMultichannelApproach,
         zonePreferenceMap,
         zoneFavorites,
         fileSharePathPreferenceMap,

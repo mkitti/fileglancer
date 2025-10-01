@@ -195,7 +195,7 @@ function getLayerName(dataUrl: string): string {
   return dataUrl.split('/').filter(Boolean).pop() || 'Default';
 }
 
-function generateNeuroglancerStateForDataURL(dataUrl: string): string | null {
+function generateNeuroglancerStateForDataURL(dataUrl: string): string {
   log.debug('Generating Neuroglancer state for Zarr array:', dataUrl);
   const layer: Record<string, any> = {
     name: getLayerName(dataUrl),
@@ -223,7 +223,7 @@ function generateNeuroglancerStateForZarrArray(
   dataUrl: string,
   zarrVersion: 2 | 3,
   layerType: LayerType
-): string | null {
+): string {
   log.debug('Generating Neuroglancer state for Zarr array:', dataUrl);
 
   const layer: Record<string, any> = {
@@ -249,9 +249,58 @@ function generateNeuroglancerStateForZarrArray(
 }
 
 /**
- * Generate a Neuroglancer state for a given Zarr array.
+ * Generate a simple Neuroglancer state for a given Zarr array (non-legacy approach).
  */
-function generateNeuroglancerStateForOmeZarr(
+function generateSimpleNeuroglancerStateForOmeZarr(
+  dataUrl: string,
+  layerType: LayerType,
+  multiscale: omezarr.Multiscale,
+  arr: zarr.Array<any>
+): string {
+  log.debug('Generating simple Neuroglancer state for OME-Zarr:', dataUrl);
+
+  // Convert axes array to a map for easier access
+  const axesMap = getAxesMap(multiscale);
+
+  // Determine the layout based on the z-axis
+  let layout = '4panel-alt';
+  if ('z' in axesMap) {
+    const zAxisIndex = axesMap['z'].index;
+    const zDimension = arr.shape[zAxisIndex];
+    if (zDimension === 1) {
+      layout = 'xy';
+    }
+  }
+
+  // If the layer type is segmentation AND there is no channel axis or the channel axis has only one channel
+  const type =
+    layerType === 'segmentation' &&
+    (!axesMap['c'] || arr.shape[axesMap['c']?.index] === 1)
+      ? 'segmentation'
+      : 'auto';
+
+  const state = {
+    layout: layout,
+    layers: [
+      {
+        name: getLayerName(dataUrl),
+        source: 'zarr://' + dataUrl,
+        type
+      }
+    ]
+  };
+
+  log.debug('Simple Neuroglancer state: ', state);
+
+  // Convert the state to a URL-friendly format
+  const stateJson = JSON.stringify(state);
+  return encodeURIComponent(stateJson);
+}
+
+/**
+ * Generate a legacy Neuroglancer state for a given Zarr array (multichannel approach).
+ */
+function generateLegacyNeuroglancerStateForOmeZarr(
   dataUrl: string,
   zarrVersion: 2 | 3,
   layerType: LayerType,
@@ -430,6 +479,39 @@ function generateNeuroglancerStateForOmeZarr(
   // Convert the state to a URL-friendly format
   const stateJson = JSON.stringify(state);
   return encodeURIComponent(stateJson);
+}
+
+/**
+ * Generate a Neuroglancer state for a given Zarr array.
+ */
+function generateNeuroglancerStateForOmeZarr(
+  dataUrl: string,
+  zarrVersion: 2 | 3,
+  layerType: LayerType,
+  multiscale: omezarr.Multiscale,
+  arr: zarr.Array<any>,
+  omero?: omezarr.Omero | null,
+  useLegacyMultichannelApproach: boolean = false
+): string | null {
+  // If using legacy multichannel approach, use the complex version
+  if (useLegacyMultichannelApproach) {
+    return generateLegacyNeuroglancerStateForOmeZarr(
+      dataUrl,
+      zarrVersion,
+      layerType,
+      multiscale,
+      arr,
+      omero
+    );
+  }
+
+  // Otherwise use the simpler version
+  return generateSimpleNeuroglancerStateForOmeZarr(
+    dataUrl,
+    layerType,
+    multiscale,
+    arr
+  );
 }
 
 async function getZarrArray(
