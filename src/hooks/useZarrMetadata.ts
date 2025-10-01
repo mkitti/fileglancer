@@ -54,7 +54,8 @@ export default function useZarrMetadata() {
   const { externalDataUrl } = useExternalBucketContext();
   const {
     disableNeuroglancerStateGeneration,
-    disableHeuristicalLayerTypeDetection
+    disableHeuristicalLayerTypeDetection,
+    useLegacyMultichannelApproach
   } = usePreferencesContext();
   const [cookies] = useCookies(['_xsrf']);
 
@@ -325,7 +326,8 @@ export default function useZarrMetadata() {
                   layerType || 'image',
                   metadata.multiscale,
                   metadata.arr,
-                  metadata.omero
+                  metadata.omero,
+                  useLegacyMultichannelApproach
                 );
             } catch (error) {
               log.error(
@@ -378,7 +380,8 @@ export default function useZarrMetadata() {
     dataUrl,
     externalDataUrl,
     disableNeuroglancerStateGeneration,
-    layerType
+    layerType,
+    useLegacyMultichannelApproach
   ]);
 
   return {
