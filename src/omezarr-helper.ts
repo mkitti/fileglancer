@@ -441,7 +441,7 @@ async function getZarrArray(
     overrides: {
       credentials: 'include',
       headers: {
-        'X-Xsrftoken': xrsfCookie,
+        'X-Xsrftoken': xrsfCookie
       }
     }
   });
@@ -451,13 +451,16 @@ async function getZarrArray(
 /**
  * Process the given OME-Zarr array and return the metadata, thumbnail, and Neuroglancer link.
  */
-async function getOmeZarrMetadata(dataUrl: string, xrsfCookie: string): Promise<Metadata> {
+async function getOmeZarrMetadata(
+  dataUrl: string,
+  xrsfCookie: string
+): Promise<Metadata> {
   log.debug('Getting OME-Zarr metadata for', dataUrl);
   const store = new zarr.FetchStore(dataUrl, {
     overrides: {
       credentials: 'include',
       headers: {
-        'X-Xsrftoken': xrsfCookie,
+        'X-Xsrftoken': xrsfCookie
       }
     }
   });
@@ -505,7 +508,7 @@ async function getOmeZarrThumbnail(
     overrides: {
       credentials: 'include',
       headers: {
-        'X-Xsrftoken': xrsfCookie,
+        'X-Xsrftoken': xrsfCookie
       },
       signal
     }

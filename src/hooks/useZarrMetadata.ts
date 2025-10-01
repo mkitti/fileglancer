@@ -97,11 +97,7 @@ export default function useZarrMetadata() {
   );
 
   const checkOmeZarrMetadata = React.useCallback(
-    async (
-      imageUrl: string,
-      zarrVersion: 2 | 3,
-      signal: AbortSignal
-    ) => {
+    async (imageUrl: string, zarrVersion: 2 | 3, signal: AbortSignal) => {
       log.info(
         'Getting OME-Zarr metadata for',
         imageUrl,
@@ -119,7 +115,7 @@ export default function useZarrMetadata() {
         setLoadingThumbnail(true);
       } catch (error) {
         log.error('Exception fetching OME-Zarr metadata:', imageUrl, error);
-          if (signal.aborted) {
+        if (signal.aborted) {
           return;
         }
         setThumbnailError('Error fetching OME-Zarr metadata');
@@ -232,7 +228,11 @@ export default function useZarrMetadata() {
     const controller = new AbortController();
     const loadThumbnail = async (signal: AbortSignal) => {
       try {
-        const [thumbnail, error] = await getOmeZarrThumbnail(omeZarrUrl, cookies['_xsrf'], signal);
+        const [thumbnail, error] = await getOmeZarrThumbnail(
+          omeZarrUrl,
+          cookies['_xsrf'],
+          signal
+        );
         if (signal.aborted) {
           return;
         }
