@@ -12,6 +12,48 @@ type CentralServerDownOverlayProps = {
 // Timer configuration constants
 const COUNTDOWN_INTERVAL_MS = 1000; // 1 second intervals for countdown
 
+// Helper components to reduce JSX nesting depth
+function MessageContent(): JSX.Element {
+  return (
+    <div className="text-left space-y-2">
+      <Typography className="text-foreground font-medium" type="small">
+        What you can do:
+      </Typography>
+      <ul className="text-sm text-foreground space-y-1 list-disc list-inside">
+        <li>Try again in a few moments</li>
+        <li>
+          Contact{' '}
+          <a
+            className="text-primary-light hover:underline focus:underline"
+            href="mailto:support@hhmi.org"
+          >
+            support
+          </a>{' '}
+          if the issue persists
+        </li>
+      </ul>
+    </div>
+  );
+}
+
+function RetryButton({
+  onRetry
+}: {
+  readonly onRetry: () => void;
+}): JSX.Element {
+  return (
+    <Button
+      autoFocus
+      className="w-full flex items-center justify-center gap-2"
+      color="primary"
+      onClick={onRetry}
+    >
+      <HiRefresh className="w-4 h-4" />
+      Try To Reconnect
+    </Button>
+  );
+}
+
 export function CentralServerDownOverlay({
   open,
   onRetry,
@@ -80,37 +122,8 @@ export function CentralServerDownOverlay({
             ) : null}
 
             <div className="space-y-4 w-full">
-              <div className="text-left space-y-2">
-                <Typography
-                  className="text-foreground font-medium"
-                  type="small"
-                >
-                  What you can do:
-                </Typography>
-                <ul className="text-sm text-foreground space-y-1 list-disc list-inside">
-                  <li>Try again in a few moments</li>
-                  <li>
-                    Contact{' '}
-                    <a
-                      className="text-primary-light hover:underline focus:underline"
-                      href="mailto:support@hhmi.org"
-                    >
-                      support
-                    </a>{' '}
-                    if the issue persists
-                  </li>
-                </ul>
-              </div>
-
-              <Button
-                autoFocus
-                className="w-full flex items-center justify-center gap-2"
-                color="primary"
-                onClick={onRetry}
-              >
-                <HiRefresh className="w-4 h-4" />
-                Try To Reconnect
-              </Button>
+              <MessageContent />
+              <RetryButton onRetry={onRetry} />
             </div>
           </div>
         </Dialog.Content>

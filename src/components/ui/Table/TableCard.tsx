@@ -105,6 +105,8 @@ const DebouncedInput = React.forwardRef<
   );
 });
 
+DebouncedInput.displayName = 'DebouncedInput';
+
 function SearchPopover<TData, TValue>({
   header
 }: {
@@ -358,7 +360,9 @@ function Table<TData>({
             <Select.Trigger placeholder="Page size" />
             <Select.List>
               {['10', '20', '30', '40', '50'].map(pageSize => (
-                <Select.Option value={pageSize}>{pageSize}/page</Select.Option>
+                <Select.Option key={pageSize} value={pageSize}>
+                  {pageSize}/page
+                </Select.Option>
               ))}
             </Select.List>
           </Select>

@@ -1,3 +1,6 @@
+/* eslint-disable react/destructuring-assignment */
+// Props are used for TypeScript type narrowing purposes and cannot be destructured at the beginning
+
 import React from 'react';
 import { Button, Typography } from '@material-tailwind/react';
 
