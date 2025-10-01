@@ -1,5 +1,5 @@
 import { expect, test } from '@jupyterlab/galata';
-import { openFileGlancer } from './testutils';
+import { openFileGlancer } from '../testutils.ts';
 
 test.beforeEach('Open fileglancer', async ({ page }) => {
   await openFileGlancer(page);

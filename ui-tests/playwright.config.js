@@ -22,13 +22,11 @@ export default defineConfig({
   projects: [
     {
       name: 'local-app',
-      testIgnore: '**/fg*.spec.ts',
-      testDir: './tests'
+      testDir: './tests/localApp'
     },
     {
       name: 'mocked-fg-central-app',
-      testMatch: '**/fg*.spec.ts',
-      testDir: './tests'
+      testDir: './tests/mockedFgCentralApp'
     }
   ]
 });

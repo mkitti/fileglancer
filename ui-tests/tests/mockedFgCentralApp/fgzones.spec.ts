@@ -4,7 +4,7 @@ import {
   mockAPI,
   teardownMockAPI,
   TEST_SHARED_PATHS
-} from './testutils';
+} from '../testutils.ts';
 
 test.beforeEach('Open fileglancer', async ({ page }) => {
   await openFileGlancer(page);
