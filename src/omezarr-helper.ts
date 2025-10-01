@@ -434,18 +434,33 @@ function generateNeuroglancerStateForOmeZarr(
 
 async function getZarrArray(
   dataUrl: string,
-  zarrVersion: 2 | 3
+  zarrVersion: 2 | 3,
+  xrsfCookie: string
 ): Promise<zarr.Array<any>> {
-  const store = new zarr.FetchStore(dataUrl);
+  const store = new zarr.FetchStore(dataUrl, {
+    overrides: {
+      credentials: 'include',
+      headers: {
+        'X-Xsrftoken': xrsfCookie,
+      }
+    }
+  });
   return await omezarr.getArray(store, '/', zarrVersion);
 }
 
 /**
  * Process the given OME-Zarr array and return the metadata, thumbnail, and Neuroglancer link.
  */
-async function getOmeZarrMetadata(dataUrl: string): Promise<Metadata> {
+async function getOmeZarrMetadata(dataUrl: string, xrsfCookie: string): Promise<Metadata> {
   log.debug('Getting OME-Zarr metadata for', dataUrl);
-  const store = new zarr.FetchStore(dataUrl);
+  const store = new zarr.FetchStore(dataUrl, {
+    overrides: {
+      credentials: 'include',
+      headers: {
+        'X-Xsrftoken': xrsfCookie,
+      }
+    }
+  });
   const { arr, shapes, multiscale, omero, scales, zarr_version } =
     await omezarr.getMultiscaleWithArray(store, 0);
   log.debug(
@@ -479,12 +494,20 @@ type ThumbnailResult = [thumbnail: string | null, errorMessage: string | null];
 
 async function getOmeZarrThumbnail(
   dataUrl: string,
+  xrsfCookie: string,
   thumbnailSize: number = 300,
   maxThumbnailSize: number = 1024,
   autoBoost: boolean = true
 ): Promise<ThumbnailResult> {
   log.debug('Getting OME-Zarr thumbnail for', dataUrl);
-  const store = new zarr.FetchStore(dataUrl);
+  const store = new zarr.FetchStore(dataUrl, {
+    overrides: {
+      credentials: 'include',
+      headers: {
+        'X-Xsrftoken': xrsfCookie,
+      }
+    }
+  });
   try {
     return [
       await omezarr.renderThumbnail(

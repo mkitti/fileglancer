@@ -72,7 +72,7 @@ export default function useZarrMetadata() {
       );
       setThumbnailError(null);
       try {
-        const arr = await getZarrArray(imageUrl, zarrVersion);
+        const arr = await getZarrArray(imageUrl, zarrVersion, cookies['_xsrf']);
         if (cancelRef.cancel) {
           return;
         }
@@ -93,7 +93,7 @@ export default function useZarrMetadata() {
         setThumbnailError('Error fetching Zarr array');
       }
     },
-    []
+    [cookies['_xsrf']]
   );
 
   const checkOmeZarrMetadata = React.useCallback(
@@ -111,7 +111,7 @@ export default function useZarrMetadata() {
       setThumbnailError(null);
       try {
         setOmeZarrUrl(imageUrl);
-        const metadata = await getOmeZarrMetadata(imageUrl);
+        const metadata = await getOmeZarrMetadata(imageUrl, cookies['_xsrf']);
         if (cancelRef.cancel) {
           return;
         }
@@ -125,7 +125,7 @@ export default function useZarrMetadata() {
         setThumbnailError('Error fetching OME-Zarr metadata');
       }
     },
-    []
+    [cookies['_xsrf']]
   );
 
   const getFile = React.useCallback(
@@ -232,7 +232,7 @@ export default function useZarrMetadata() {
     const controller = new AbortController();
     const loadThumbnail = async (signal: AbortSignal) => {
       try {
-        const [thumbnail, error] = await getOmeZarrThumbnail(omeZarrUrl);
+        const [thumbnail, error] = await getOmeZarrThumbnail(omeZarrUrl, cookies['_xsrf']);
         if (signal.aborted) {
           return;
         }
@@ -255,7 +255,7 @@ export default function useZarrMetadata() {
     return () => {
       controller.abort();
     };
-  }, [omeZarrUrl]);
+  }, [omeZarrUrl, cookies['_xsrf']]);
 
   // Determine layer type when thumbnail becomes available
   React.useEffect(() => {
