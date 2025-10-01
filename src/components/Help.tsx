@@ -2,6 +2,7 @@ import { Card, List, Typography } from '@material-tailwind/react';
 import { TbBrandGithub } from 'react-icons/tb';
 import { SiClickup, SiSlack } from 'react-icons/si';
 import { IconType } from 'react-icons/lib';
+import { LuBookOpenText } from 'react-icons/lu';
 
 import useVersionNo from '@/hooks/useVersionState';
 import useCentralVersion from '@/hooks/useCentralVersion';
@@ -18,6 +19,11 @@ export default function Help() {
   const { centralVersionState } = useCentralVersion();
 
   const helpLinks: HelpLink[] = [
+    {
+      icon: LuBookOpenText,
+      title: `Read the user manual`,
+      url: `https://janeliascicomp.github.io/fileglancer-user-docs/`
+    },
     {
       icon: TbBrandGithub,
       title: `View ${versionNo} release notes`,
