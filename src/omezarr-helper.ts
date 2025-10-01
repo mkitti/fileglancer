@@ -495,6 +495,7 @@ type ThumbnailResult = [thumbnail: string | null, errorMessage: string | null];
 async function getOmeZarrThumbnail(
   dataUrl: string,
   xrsfCookie: string,
+  signal: AbortSignal,
   thumbnailSize: number = 300,
   maxThumbnailSize: number = 1024,
   autoBoost: boolean = true
@@ -505,7 +506,8 @@ async function getOmeZarrThumbnail(
       credentials: 'include',
       headers: {
         'X-Xsrftoken': xrsfCookie,
-      }
+      },
+      signal
     }
   });
   try {

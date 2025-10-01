@@ -62,7 +62,7 @@ export default function useZarrMetadata() {
     async (
       imageUrl: string,
       zarrVersion: 2 | 3,
-      cancelRef: { cancel: boolean }
+      signal: AbortSignal
     ): Promise<void> => {
       log.info(
         'Getting Zarr array for',
@@ -73,7 +73,7 @@ export default function useZarrMetadata() {
       setThumbnailError(null);
       try {
         const arr = await getZarrArray(imageUrl, zarrVersion, cookies['_xsrf']);
-        if (cancelRef.cancel) {
+        if (signal.aborted) {
           return;
         }
         const shapes = [arr.shape];
@@ -87,7 +87,7 @@ export default function useZarrMetadata() {
         });
       } catch (error) {
         log.error('Error fetching Zarr array:', error);
-        if (cancelRef.cancel) {
+        if (signal.aborted) {
           return;
         }
         setThumbnailError('Error fetching Zarr array');
@@ -100,7 +100,7 @@ export default function useZarrMetadata() {
     async (
       imageUrl: string,
       zarrVersion: 2 | 3,
-      cancelRef: { cancel: boolean }
+      signal: AbortSignal
     ) => {
       log.info(
         'Getting OME-Zarr metadata for',
@@ -112,14 +112,14 @@ export default function useZarrMetadata() {
       try {
         setOmeZarrUrl(imageUrl);
         const metadata = await getOmeZarrMetadata(imageUrl, cookies['_xsrf']);
-        if (cancelRef.cancel) {
+        if (signal.aborted) {
           return;
         }
         setMetadata(metadata);
         setLoadingThumbnail(true);
       } catch (error) {
         log.error('Exception fetching OME-Zarr metadata:', imageUrl, error);
-        if (cancelRef.cancel) {
+          if (signal.aborted) {
           return;
         }
         setThumbnailError('Error fetching OME-Zarr metadata');
@@ -136,7 +136,7 @@ export default function useZarrMetadata() {
   );
 
   const checkZarrMetadata = React.useCallback(
-    async (cancelRef: { cancel: boolean }) => {
+    async (signal: AbortSignal) => {
       if (areFileDataLoading) {
         return;
       }
@@ -161,7 +161,7 @@ export default function useZarrMetadata() {
 
         const zarrayFile = getFile('.zarray');
         if (zarrayFile) {
-          await checkZarrArray(imageUrl, 2, cancelRef);
+          await checkZarrArray(imageUrl, 2, signal);
         } else {
           const zattrsFile = getFile('.zattrs');
           if (zattrsFile) {
@@ -170,11 +170,11 @@ export default function useZarrMetadata() {
               zattrsFile.path,
               cookies
             )) as any;
-            if (cancelRef.cancel) {
+            if (signal.aborted) {
               return;
             }
             if (attrs.multiscales) {
-              await checkOmeZarrMetadata(imageUrl, 2, cancelRef);
+              await checkOmeZarrMetadata(imageUrl, 2, signal);
             }
           } else {
             const zarrJsonFile = getFile('zarr.json');
@@ -184,14 +184,14 @@ export default function useZarrMetadata() {
                 zarrJsonFile.path,
                 cookies
               )) as any;
-              if (cancelRef.cancel) {
+              if (signal.aborted) {
                 return;
               }
               if (attrs.node_type === 'array') {
-                await checkZarrArray(imageUrl, 3, cancelRef);
+                await checkZarrArray(imageUrl, 3, signal);
               } else if (attrs.node_type === 'group') {
                 if (attrs.attributes?.ome?.multiscales) {
-                  await checkOmeZarrMetadata(imageUrl, 3, cancelRef);
+                  await checkOmeZarrMetadata(imageUrl, 3, signal);
                 } else {
                   log.info('Zarrv3 group has no multiscales', attrs.attributes);
                 }
@@ -217,10 +217,10 @@ export default function useZarrMetadata() {
 
   // When the file browser state changes, check for Zarr metadata
   React.useEffect(() => {
-    const cancelRef = { cancel: false };
-    checkZarrMetadata(cancelRef);
+    const controller = new AbortController();
+    checkZarrMetadata(controller.signal);
     return () => {
-      cancelRef.cancel = true;
+      controller.abort();
     };
   }, [checkZarrMetadata]);
 
@@ -232,7 +232,7 @@ export default function useZarrMetadata() {
     const controller = new AbortController();
     const loadThumbnail = async (signal: AbortSignal) => {
       try {
-        const [thumbnail, error] = await getOmeZarrThumbnail(omeZarrUrl, cookies['_xsrf']);
+        const [thumbnail, error] = await getOmeZarrThumbnail(omeZarrUrl, cookies['_xsrf'], signal);
         if (signal.aborted) {
           return;
         }
