@@ -8,7 +8,7 @@ export default function DashboardCard({
   children: React.ReactNode;
 }) {
   return (
-    <Card className="w-full border bg-background border-surface overflow-y-auto min-h-32 max-h-full">
+    <Card className="w-full border bg-background border-surface overflow-y-auto h-fit max-h-[50%]">
       <Card.Header className="pt-4 pl-4">
         <Typography className="font-semibold text-surface-foreground">
           {title}
