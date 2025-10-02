@@ -36,7 +36,7 @@ export default function Help() {
     },
     {
       icon: SiClickup,
-      title: 'Submit Issues & Requests',
+      title: 'Submit Tickets',
       description: 'Report bugs or request features through a ClickUp form',
       url: `https://forms.clickup.com/10502797/f/a0gmd-713/NBUCBCIN78SI2BE71G?Version=${versionNo}&URL=${window.location}`
     },
@@ -85,21 +85,18 @@ export default function Help() {
             to={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="group h-44 p-12 flex flex-col gap-2 text-left w-full hover:shadow-lg transition-shadow duration-200"
+            className="group min-h-44 p-8 md:p-12 flex flex-col gap-2 text-left w-full hover:shadow-lg transition-shadow duration-200"
           >
-            <div className="flex items-center gap-4">
-              <Icon className="icon-large text-primary" />
-              <div className="flex items-center gap-1 ">
-                <Typography
-                  type="h6"
-                  className="text-primary font-semibold group-hover:underline"
-                >
+            <div className="flex items-center gap-2">
+              <Icon className="hidden md:block icon-default lg:icon-large text-primary" />
+              <div className="flex items-center gap-1 text-nowrap">
+                <Typography className="text-base md:text-lg lg:text-xl text-primary font-semibold group-hover:underline">
                   {title}
                 </Typography>
-                <HiExternalLink className="icon-small text-primary" />
+                <HiExternalLink className="icon-xsmall md:icon-small text-primary" />
               </div>
             </div>
-            <Typography className="text-muted-foreground">
+            <Typography className="text-sm md:text-base text-muted-foreground">
               {description}
             </Typography>
           </Card>
