@@ -60,7 +60,7 @@ def _should_show_fsp(fsp, user_groups):
     """
     Determine if a file share path should be shown to the user based on the user's groups.
     """
-    if fsp.group == "public" or fsp.group in user_groups:
+    if fsp.group == "public" or fsp.group == 'local' or fsp.group in user_groups:
         return True
     return False
 
