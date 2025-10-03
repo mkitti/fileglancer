@@ -108,6 +108,7 @@ export default function Folder({
               }
             : undefined
         }
+        className="group pl-6 w-full flex gap-2 items-center justify-between rounded-md cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 "
       >
         <Link
           className="w-[calc(100%-2rem)] flex flex-col items-start gap-2 short:gap-1 !text-foreground hover:!text-black focus:!text-black hover:dark:!text-white focus:dark:!text-white"
@@ -122,7 +123,9 @@ export default function Folder({
             </Typography>
           </div>
           <FgTooltip label={displayPath} triggerClasses="w-full">
-            <Typography className="text-left text-sm short:text-xs truncate">
+            <Typography
+              className={`text-left text-sm short:text-xs truncate ${isFavoritable ? '' : 'text-foreground/60 group-hover:text-black group-hover:dark:text-white'}`}
+            >
               {displayPath}
             </Typography>
           </FgTooltip>

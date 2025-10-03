@@ -44,7 +44,9 @@ export default function FileSharePathComponent({
           </Typography>
         </div>
 
-        <Typography className="text-sm short:text-xs truncate max-w-full">
+        <Typography
+          className={`text-sm short:text-xs truncate max-w-full ${isFavoritable ? '' : 'text-foreground/80'}`}
+        >
           {fspPath}
         </Typography>
       </Link>

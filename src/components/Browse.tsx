@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router';
 import { default as log } from '@/logger';
 import type { OutletContextType } from '@/layouts/BrowseLayout';
@@ -32,6 +32,8 @@ export default function Browse() {
   const [showRenameDialog, setShowRenameDialog] = React.useState(false);
   const [showNavigationDialog, setShowNavigationDialog] = React.useState(false);
   const [pastedPath, setPastedPath] = React.useState<string>('');
+  const [componentWidth, setComponentWidth] = useState<number>(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Auto-focus the container when component mounts so it can receive paste events
   useEffect(() => {
@@ -43,9 +45,31 @@ export default function Browse() {
     }
   }, []);
 
+  // Monitor component width changes
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+    const resizeObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        setComponentWidth(entry.contentRect.width);
+      }
+    });
+    resizeObserver.observe(container);
+    // Set initial width
+    setComponentWidth(container.offsetWidth);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   return (
     <div
-      className="flex flex-col h-full min-w-fit max-h-full"
+      ref={containerRef}
+      className="flex flex-col h-full max-h-full w-full max-w-full"
+      tabIndex={0}
       data-browse-container
       onPaste={async event => {
         log.debug('React paste event fired!', event);
@@ -93,16 +117,18 @@ export default function Browse() {
         toggleSidebar={toggleSidebar}
       />
       <div
-        className={`relative grow shrink-0 max-h-[calc(100%-55px)] flex flex-col overflow-y-auto px-2 ${!fileBrowserState.currentFileSharePath ? 'grid grid-cols-2 grid-rows-[60px_1fr] bg-surface-light gap-6 p-6' : ''}`}
+        className={`relative grow shrink-0 max-h-[calc(100%-55px)] flex flex-col overflow-y-auto px-2 ${!fileBrowserState.currentFileSharePath ? 'bg-surface-light py-6' : ''}`}
       >
         {!fileBrowserState.currentFileSharePath ? (
-          <>
-            <div className="col-span-2">
-              <NavigationInput location="dashboard" />
+          <div className="flex flex-col max-w-full gap-6 px-6">
+            <NavigationInput location="dashboard" />
+            <div
+              className={`flex gap-6 ${componentWidth > 800 ? '' : 'flex-col'}`}
+            >
+              <RecentlyViewedCard />
+              <RecentDataLinksCard />
             </div>
-            <RecentlyViewedCard />
-            <RecentDataLinksCard />
-          </>
+          </div>
         ) : (
           <FileBrowser
             setShowConvertFileDialog={setShowConvertFileDialog}

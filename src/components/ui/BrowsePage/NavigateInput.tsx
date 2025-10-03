@@ -39,7 +39,7 @@ export default function NavigationInput({
 
   return (
     <div
-      className={`flex flex-col ${location === 'dashboard' ? '' : 'w-full gap-3 mt-8'}`}
+      className={`flex flex-col w-full ${location === 'dashboard' ? '' : 'gap-3 mt-8'}`}
     >
       <Typography
         as="label"
