@@ -123,26 +123,23 @@ export const PreferencesProvider = ({
     useZoneAndFspMapContext();
   const { fileBrowserState } = useFileBrowserContext();
 
-  const fetchPreferences = React.useCallback(
-    async (key: string) => {
-      try {
-        const data = await sendFetchRequest(
-          `/api/fileglancer/preference?key=${key}`,
-          'GET',
-          cookies['_xsrf']
-        ).then(response => response.json());
-        return data?.value;
-      } catch (error) {
-        if (error instanceof HTTPError && error.responseCode === 404) {
-          return null; // Preference not found is not an error
-        } else {
-          log.error(`Error fetching preference '${key}':`, error);
-        }
-        return null;
+  const fetchPreferences = React.useCallback(async () => {
+    try {
+      const data = await sendFetchRequest(
+        `/api/fileglancer/preference`,
+        'GET',
+        cookies['_xsrf']
+      ).then(response => response.json());
+      return data;
+    } catch (error) {
+      if (error instanceof HTTPError && error.responseCode === 404) {
+        return {}; // No preferences found, return empty object
+      } else {
+        log.error(`Error fetching preferences:`, error);
       }
-    },
-    [cookies]
-  );
+      return {};
+    }
+  }, [cookies]);
 
   const accessMapItems = React.useCallback(
     (keys: string[]) => {
@@ -505,132 +502,47 @@ export const PreferencesProvider = ({
     [recentlyViewedFolders]
   );
 
-  React.useEffect(() => {
-    (async function () {
-      if (isLayoutLoadedFromDB) {
-        return; // Avoid re-fetching if already loaded
-      }
-      const rawLayoutPref = await fetchPreferences('layout');
-      if (rawLayoutPref) {
-        setLayout(rawLayoutPref);
-      }
-      setIsLayoutLoadedFromDB(true);
-    })();
-  }, [fetchPreferences, isLayoutLoadedFromDB]);
-
-  React.useEffect(() => {
-    (async function () {
-      const rawPathPreference = await fetchPreferences('path');
-      if (rawPathPreference) {
-        setPathPreference(rawPathPreference);
-      }
-    })();
-  }, [fetchPreferences]);
-
-  React.useEffect(() => {
-    (async function () {
-      const rawHideDotFiles = await fetchPreferences('hideDotFiles');
-      if (rawHideDotFiles !== null) {
-        setHideDotFiles(rawHideDotFiles);
-      }
-    })();
-  }, [fetchPreferences]);
-
-  React.useEffect(() => {
-    (async function () {
-      const rawAreDataLinksAutomatic = await fetchPreferences(
-        'areDataLinksAutomatic'
-      );
-      if (rawAreDataLinksAutomatic !== null) {
-        setAreDataLinksAutomatic(rawAreDataLinksAutomatic);
-      }
-    })();
-  }, [fetchPreferences]);
-
-  React.useEffect(() => {
-    (async function () {
-      const rawDisableNeuroglancerStateGeneration = await fetchPreferences(
-        'disableNeuroglancerStateGeneration'
-      );
-      if (rawDisableNeuroglancerStateGeneration !== null) {
-        setDisableNeuroglancerStateGeneration(
-          rawDisableNeuroglancerStateGeneration
-        );
-      }
-    })();
-  }, [fetchPreferences]);
-
-  React.useEffect(() => {
-    (async function () {
-      const rawDisableHeuristicalLayerTypeDetection = await fetchPreferences(
-        'disableHeuristicalLayerTypeDetection'
-      );
-      if (rawDisableHeuristicalLayerTypeDetection !== null) {
-        setDisableHeuristicalLayerTypeDetection(
-          rawDisableHeuristicalLayerTypeDetection
-        );
-      }
-    })();
-  }, [fetchPreferences]);
-
-  React.useEffect(() => {
-    (async function () {
-      const rawUseLegacyMultichannelApproach = await fetchPreferences(
-        'useLegacyMultichannelApproach'
-      );
-      if (rawUseLegacyMultichannelApproach !== null) {
-        setUseLegacyMultichannelApproach(rawUseLegacyMultichannelApproach);
-      }
-    })();
-  }, [fetchPreferences]);
-
+  // Fetch all preferences on mount
   React.useEffect(() => {
     if (!isZonesMapReady) {
       return;
     }
+    if (isLayoutLoadedFromDB) {
+      return; // Avoid re-fetching if already loaded
+    }
+    setLoadingRecentlyViewedFolders(true);
 
     (async function () {
-      const backendPrefs = await fetchPreferences('zone');
+      const allPrefs = await fetchPreferences();
+
+      // Zone favorites
+      const zoneBackendPrefs = allPrefs.zone?.value;
       const zoneArray =
-        backendPrefs?.map((pref: ZonePreference) => {
+        zoneBackendPrefs?.map((pref: ZonePreference) => {
           const key = makeMapKey(pref.type, pref.name);
           return { [key]: pref };
         }) || [];
       const zoneMap = Object.assign({}, ...zoneArray);
-      if (zoneMap) {
+      if (Object.keys(zoneMap).length > 0) {
         updateLocalZonePreferenceStates(zoneMap);
       }
-    })();
-  }, [isZonesMapReady, fetchPreferences, updateLocalZonePreferenceStates]);
 
-  React.useEffect(() => {
-    if (!isZonesMapReady) {
-      return;
-    }
-
-    (async function () {
-      const backendPrefs = await fetchPreferences('fileSharePath');
+      // FileSharePath favorites
+      const fspBackendPrefs = allPrefs.fileSharePath?.value;
       const fspArray =
-        backendPrefs?.map((pref: FileSharePathPreference) => {
+        fspBackendPrefs?.map((pref: FileSharePathPreference) => {
           const key = makeMapKey(pref.type, pref.name);
           return { [key]: pref };
         }) || [];
       const fspMap = Object.assign({}, ...fspArray);
-      if (fspMap) {
+      if (Object.keys(fspMap).length > 0) {
         updateLocalFspPreferenceStates(fspMap);
       }
-    })();
-  }, [isZonesMapReady, fetchPreferences, updateLocalFspPreferenceStates]);
 
-  React.useEffect(() => {
-    if (!isZonesMapReady) {
-      return;
-    }
-
-    (async function () {
-      const backendPrefs = await fetchPreferences('folder');
+      // Folder favorites
+      const folderBackendPrefs = allPrefs.folder?.value;
       const folderArray =
-        backendPrefs?.map((pref: FolderPreference) => {
+        folderBackendPrefs?.map((pref: FolderPreference) => {
           const key = makeMapKey(
             pref.type,
             `${pref.fspName}_${pref.folderPath}`
@@ -638,28 +550,59 @@ export const PreferencesProvider = ({
           return { [key]: pref };
         }) || [];
       const folderMap = Object.assign({}, ...folderArray);
-      if (folderMap) {
+      if (Object.keys(folderMap).length > 0) {
         updateLocalFolderPreferenceStates(folderMap);
       }
-    })();
-  }, [isZonesMapReady, fetchPreferences, updateLocalFolderPreferenceStates]);
 
-  // Get initial recently viewed folders from backend
-  React.useEffect(() => {
-    setLoadingRecentlyViewedFolders(true);
-    if (!isZonesMapReady) {
-      return;
-    }
-    (async function () {
-      const backendPrefs = (await fetchPreferences(
-        'recentlyViewedFolders'
-      )) as FolderPreference[];
-      if (backendPrefs && backendPrefs.length > 0) {
-        setRecentlyViewedFolders(backendPrefs);
+      // Recently viewed folders
+      const recentlyViewedBackendPrefs = allPrefs.recentlyViewedFolders?.value;
+      if (recentlyViewedBackendPrefs && recentlyViewedBackendPrefs.length > 0) {
+        setRecentlyViewedFolders(recentlyViewedBackendPrefs);
+      }
+
+      // Layout preference
+      if (allPrefs.layout?.value) {
+        setLayout(allPrefs.layout.value);
+      }
+
+      // Path preference
+      if (allPrefs.path?.value) {
+        setPathPreference(allPrefs.path.value);
+      }
+
+      // Boolean preferences
+      if (allPrefs.hideDotFiles?.value !== undefined) {
+        setHideDotFiles(allPrefs.hideDotFiles.value);
+      }
+      if (allPrefs.areDataLinksAutomatic?.value !== undefined) {
+        setAreDataLinksAutomatic(allPrefs.areDataLinksAutomatic.value);
+      }
+      if (allPrefs.disableNeuroglancerStateGeneration?.value !== undefined) {
+        setDisableNeuroglancerStateGeneration(
+          allPrefs.disableNeuroglancerStateGeneration.value
+        );
+      }
+      if (allPrefs.disableHeuristicalLayerTypeDetection?.value !== undefined) {
+        setDisableHeuristicalLayerTypeDetection(
+          allPrefs.disableHeuristicalLayerTypeDetection.value
+        );
+      }
+      if (allPrefs.useLegacyMultichannelApproach?.value !== undefined) {
+        setUseLegacyMultichannelApproach(
+          allPrefs.useLegacyMultichannelApproach.value
+        );
       }
       setLoadingRecentlyViewedFolders(false);
+      setIsLayoutLoadedFromDB(true);
     })();
-  }, [fetchPreferences, isZonesMapReady]);
+  }, [
+    fetchPreferences,
+    isZonesMapReady,
+    isLayoutLoadedFromDB,
+    updateLocalZonePreferenceStates,
+    updateLocalFspPreferenceStates,
+    updateLocalFolderPreferenceStates
+  ]);
 
   // Store last viewed folder path and FSP name to avoid duplicate updates
   const lastFolderPathRef = React.useRef<string | null>(null);
