@@ -51,27 +51,27 @@ export default function Help() {
   return (
     <>
       <div className="flex justify-between mb-6">
-        <Typography type="h5" className="text-foreground font-bold">
+        <Typography className="text-foreground font-bold" type="h5">
           Help
         </Typography>
         <div className="text-right">
-          <Typography type="lead" className="text-foreground font-bold">
+          <Typography className="text-foreground font-bold" type="lead">
             {`Fileglancer Version ${versionNo}`}
           </Typography>
           {centralVersionState.status === 'loaded' ? (
-            <Typography type="small" className="text-muted-foreground">
+            <Typography className="text-muted-foreground" type="small">
               {`Fileglancer Central Version ${centralVersionState.version}`}
             </Typography>
           ) : centralVersionState.status === 'loading' ? (
-            <Typography type="small" className="text-muted-foreground">
+            <Typography className="text-muted-foreground" type="small">
               Loading Fileglancer Central version...
             </Typography>
           ) : centralVersionState.status === 'error' ? (
-            <Typography type="small" className="text-muted-foreground">
+            <Typography className="text-muted-foreground" type="small">
               Fileglancer Central version unavailable
             </Typography>
           ) : centralVersionState.status === 'not-configured' ? (
-            <Typography type="small" className="text-muted-foreground">
+            <Typography className="text-muted-foreground" type="small">
               Fileglancer Central server not configured
             </Typography>
           ) : null}
@@ -80,12 +80,12 @@ export default function Help() {
       <div className="grid grid-cols-2 gap-10">
         {helpLinks.map(({ icon: Icon, title, description, url }, index) => (
           <Card
-            key={url}
             as={Link}
-            to={url}
-            target="_blank"
-            rel="noopener noreferrer"
             className="group min-h-44 p-8 md:p-12 flex flex-col gap-2 text-left w-full hover:shadow-lg transition-shadow duration-200"
+            key={url}
+            rel="noopener noreferrer"
+            target="_blank"
+            to={url}
           >
             <div className="flex items-center gap-2">
               <Icon className="hidden md:block icon-default lg:icon-large text-primary" />

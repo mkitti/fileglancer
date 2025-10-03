@@ -14,12 +14,12 @@ import useDataToolLinks from '@/hooks/useDataToolLinks';
 import { Metadata } from '@/omezarr-helper';
 
 type ZarrPreviewProps = {
-  thumbnailSrc: string | null;
-  loadingThumbnail: boolean;
-  openWithToolUrls: OpenWithToolUrls | null;
-  metadata: ZarrMetadata;
-  thumbnailError: string | null;
-  layerType: 'auto' | 'image' | 'segmentation' | null;
+  readonly thumbnailSrc: string | null;
+  readonly loadingThumbnail: boolean;
+  readonly openWithToolUrls: OpenWithToolUrls | null;
+  readonly metadata: ZarrMetadata;
+  readonly thumbnailError: string | null;
+  readonly layerType: 'auto' | 'image' | 'segmentation' | null;
 };
 
 export default function ZarrPreview({
@@ -61,17 +61,17 @@ export default function ZarrPreview({
             ) : null}
             {!loadingThumbnail && metadata && thumbnailSrc ? (
               <img
-                id="thumbnail"
-                src={thumbnailSrc}
                 alt="Thumbnail"
                 className="max-h-72 max-w-max rounded-md"
+                id="thumbnail"
+                src={thumbnailSrc}
               />
             ) : !loadingThumbnail && metadata && !thumbnailSrc ? (
               <div className="p-2">
                 <img
-                  src={zarrLogo}
                   alt="Zarr logo"
                   className="max-h-44 rounded-md"
+                  src={zarrLogo}
                 />
                 {thumbnailError ? (
                   <Typography className="text-error text-xs pt-3">{`${thumbnailError}`}</Typography>
@@ -91,22 +91,22 @@ export default function ZarrPreview({
 
           {showDataLinkDialog ? (
             <DataLinkDialog
-              tools={true}
               action="create"
-              onConfirm={handleDialogConfirm}
               onCancel={handleDialogCancel}
-              showDataLinkDialog={showDataLinkDialog}
+              onConfirm={handleDialogConfirm}
               setPendingToolKey={setPendingToolKey}
               setShowDataLinkDialog={setShowDataLinkDialog}
+              showDataLinkDialog={showDataLinkDialog}
+              tools={true}
             />
           ) : null}
         </div>
-        {metadata && 'arr' in metadata && (
+        {metadata && 'arr' in metadata ? (
           <ZarrMetadataTable
-            metadata={metadata as Metadata}
             layerType={layerType}
+            metadata={metadata as Metadata}
           />
-        )}
+        ) : null}
       </div>
     </div>
   );

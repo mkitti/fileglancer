@@ -3,13 +3,12 @@ import { Link } from 'react-router';
 import { ReactNode } from 'react';
 
 type StyledLinkProps = {
-  to: string;
-  children: ReactNode;
-  className?: string;
-  target?: string;
-  rel?: string;
-  textSize?: 'default' | 'large' | 'small';
-  block?: boolean;
+  readonly to: string;
+  readonly children: ReactNode;
+  readonly className?: string;
+  readonly target?: string;
+  readonly rel?: string;
+  readonly textSize?: 'default' | 'large' | 'small';
 };
 
 export function FgStyledLink({
@@ -29,10 +28,10 @@ export function FgStyledLink({
 
   return (
     <Link
-      to={to}
       className={`${baseClasses} ${textClasses[textSize]} ${className}`}
-      target={target}
       rel={rel}
+      target={target}
+      to={to}
     >
       {children}
     </Link>
