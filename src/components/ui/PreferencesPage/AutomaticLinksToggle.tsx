@@ -9,10 +9,9 @@ export default function AutomaticLinksToggle() {
   return (
     <div className="flex items-center gap-2">
       <input
-        className="icon-small checked:accent-secondary-light"
-        type="checkbox"
-        id="automatic_data_links"
         checked={areDataLinksAutomatic}
+        className="icon-small checked:accent-secondary-light"
+        id="automatic_data_links"
         onChange={async () => {
           const result = await toggleAutomaticDataLinks();
           if (result.success) {
@@ -25,11 +24,12 @@ export default function AutomaticLinksToggle() {
             toast.error(result.error);
           }
         }}
+        type="checkbox"
       />
       <Typography
         as="label"
-        htmlFor="automatic_data_links"
         className="text-foreground"
+        htmlFor="automatic_data_links"
       >
         Enable automatic data link creation
       </Typography>

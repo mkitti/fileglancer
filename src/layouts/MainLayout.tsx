@@ -1,3 +1,6 @@
+/* eslint-disable react/jsx-max-depth */
+// Disable max depth because of many context providers
+
 import { Outlet, useParams } from 'react-router';
 import { Toaster } from 'react-hot-toast';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -44,9 +47,9 @@ const MainLayoutContent = () => {
         </div>
       </div>
       <CentralServerDownOverlay
-        open={showWarningOverlay}
-        onRetry={checkHealth}
         countdownSeconds={nextRetrySeconds}
+        onRetry={checkHealth}
+        open={showWarningOverlay}
       />
     </>
   );
@@ -62,7 +65,7 @@ export const MainLayout = () => {
       <CentralServerHealthProvider>
         <ZonesAndFspMapContextProvider>
           <OpenFavoritesProvider>
-            <FileBrowserContextProvider fspName={fspName} filePath={filePath}>
+            <FileBrowserContextProvider filePath={filePath} fspName={fspName}>
               <PreferencesProvider>
                 <ExternalBucketProvider>
                   <ProxiedPathProvider>

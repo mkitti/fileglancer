@@ -45,7 +45,11 @@ export const useTicketContext = () => {
   return context;
 };
 
-export const TicketProvider = ({ children }: { children: React.ReactNode }) => {
+export const TicketProvider = ({
+  children
+}: {
+  readonly children: React.ReactNode;
+}) => {
   const [allTickets, setAllTickets] = React.useState<Ticket[]>([]);
   const [loadingTickets, setLoadingTickets] = React.useState<boolean>(true);
   const [ticket, setTicket] = React.useState<Ticket | null>(null);

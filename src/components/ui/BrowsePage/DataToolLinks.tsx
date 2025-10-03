@@ -16,10 +16,10 @@ export default function DataToolLinks({
   title,
   urls
 }: {
-  onToolClick: (toolKey: PendingToolKey) => Promise<void>;
-  showCopiedTooltip: boolean;
-  title: string;
-  urls: OpenWithToolUrls | null;
+  readonly onToolClick: (toolKey: PendingToolKey) => Promise<void>;
+  readonly showCopiedTooltip: boolean;
+  readonly title: string;
+  readonly urls: OpenWithToolUrls | null;
 }): React.ReactNode {
   const tooltipTriggerClasses =
     'rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75';
@@ -37,23 +37,23 @@ export default function DataToolLinks({
         {urls.neuroglancer !== null ? (
           <FgTooltip
             as={Button}
-            variant="ghost"
-            triggerClasses={tooltipTriggerClasses}
             label="View in Neuroglancer"
+            triggerClasses={tooltipTriggerClasses}
+            variant="ghost"
           >
             <Link
-              to={urls.neuroglancer}
-              target="_blank"
-              rel="noopener noreferrer"
               onClick={async e => {
                 e.preventDefault();
                 await onToolClick('neuroglancer');
               }}
+              rel="noopener noreferrer"
+              target="_blank"
+              to={urls.neuroglancer}
             >
               <img
-                src={neuroglancer_logo}
                 alt="Neuroglancer logo"
                 className="max-h-8 max-w-8 m-1 rounded-sm"
+                src={neuroglancer_logo}
               />
             </Link>
           </FgTooltip>
@@ -62,23 +62,23 @@ export default function DataToolLinks({
         {urls.vole !== null ? (
           <FgTooltip
             as={Button}
-            variant="ghost"
-            triggerClasses={tooltipTriggerClasses}
             label="View in Vol-E"
+            triggerClasses={tooltipTriggerClasses}
+            variant="ghost"
           >
             <Link
-              to={urls.vole}
-              target="_blank"
-              rel="noopener noreferrer"
               onClick={async e => {
                 e.preventDefault();
                 await onToolClick('vole');
               }}
+              rel="noopener noreferrer"
+              target="_blank"
+              to={urls.vole}
             >
               <img
-                src={volE_logo}
                 alt="Vol-E logo"
                 className="max-h-8 max-w-8 m-1 rounded-sm"
+                src={volE_logo}
               />
             </Link>
           </FgTooltip>
@@ -87,23 +87,23 @@ export default function DataToolLinks({
         {urls.avivator !== null ? (
           <FgTooltip
             as={Button}
-            variant="ghost"
-            triggerClasses={tooltipTriggerClasses}
             label="View in Avivator"
+            triggerClasses={tooltipTriggerClasses}
+            variant="ghost"
           >
             <Link
-              to={urls.avivator}
-              target="_blank"
-              rel="noopener noreferrer"
               onClick={async e => {
                 e.preventDefault();
                 await onToolClick('avivator');
               }}
+              rel="noopener noreferrer"
+              target="_blank"
+              to={urls.avivator}
             >
               <img
-                src={avivator_logo}
                 alt="Avivator logo"
                 className="max-h-8 max-w-8 m-1 rounded-sm"
+                src={avivator_logo}
               />
             </Link>
           </FgTooltip>
@@ -112,23 +112,23 @@ export default function DataToolLinks({
         {urls.validator !== null ? (
           <FgTooltip
             as={Button}
-            variant="ghost"
-            triggerClasses={tooltipTriggerClasses}
             label="View in OME-Zarr Validator"
+            triggerClasses={tooltipTriggerClasses}
+            variant="ghost"
           >
             <Link
-              to={urls.validator}
-              target="_blank"
-              rel="noopener noreferrer"
               onClick={async e => {
                 e.preventDefault();
                 await onToolClick('validator');
               }}
+              rel="noopener noreferrer"
+              target="_blank"
+              to={urls.validator}
             >
               <img
-                src={validator_logo}
                 alt="OME-Zarr Validator logo"
                 className="max-h-8 max-w-8 m-1 rounded-sm"
+                src={validator_logo}
               />
             </Link>
           </FgTooltip>
@@ -136,18 +136,18 @@ export default function DataToolLinks({
 
         <FgTooltip
           as={Button}
-          variant="ghost"
-          triggerClasses={tooltipTriggerClasses}
           label={showCopiedTooltip ? 'Copied!' : 'Copy data URL'}
           onClick={async () => {
             await onToolClick('copy');
           }}
           openCondition={showCopiedTooltip ? true : undefined}
+          triggerClasses={tooltipTriggerClasses}
+          variant="ghost"
         >
           <img
-            src={copy_logo}
             alt="Copy URL icon"
             className="max-h-8 max-w-8 m-1 rounded-sm"
+            src={copy_logo}
           />
         </FgTooltip>
       </ButtonGroup>
