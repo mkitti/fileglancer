@@ -9,10 +9,9 @@ export default function LegacyMultichannelToggle() {
   return (
     <div className="flex items-center gap-2">
       <input
-        className="icon-small checked:accent-secondary-light"
-        type="checkbox"
-        id="use_legacy_multichannel_approach"
         checked={useLegacyMultichannelApproach ?? false}
+        className="icon-small checked:accent-secondary-light"
+        id="use_legacy_multichannel_approach"
         onChange={async () => {
           const result = await toggleUseLegacyMultichannelApproach();
           if (result.success) {
@@ -25,11 +24,12 @@ export default function LegacyMultichannelToggle() {
             toast.error(result.error);
           }
         }}
+        type="checkbox"
       />
       <Typography
         as="label"
-        htmlFor="use_legacy_multichannel_approach"
         className="text-foreground"
+        htmlFor="use_legacy_multichannel_approach"
       >
         Use legacy multichannel approach for Neuroglancer
       </Typography>

@@ -13,7 +13,7 @@ import {
 import { FileSharePath } from '@/shared.types';
 import { FgStyledLink } from '../widgets/FgLink';
 
-function FilePathCell({ item }: { item: Ticket }) {
+function FilePathCell({ item }: { readonly item: Ticket }) {
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
   const { pathPreference } = usePreferencesContext();
 
@@ -35,7 +35,7 @@ function FilePathCell({ item }: { item: Ticket }) {
   );
 }
 
-function StatusCell({ status }: { status: string }) {
+function StatusCell({ status }: { readonly status: string }) {
   return (
     <div className="text-sm">
       <span
@@ -80,7 +80,7 @@ export const jobsColumns: ColumnDef<Ticket>[] = [
     accessorKey: 'status',
     header: 'Status',
     cell: ({ cell, getValue }) => (
-      <StatusCell status={getValue() as string} key={cell.id} />
+      <StatusCell key={cell.id} status={getValue() as string} />
     ),
     enableSorting: true
   },
