@@ -1,7 +1,6 @@
 # Fileglancer frontend extension
 
 [![Github Actions Status](https://github.com/JaneliaSciComp/fileglancer/workflows/Build/badge.svg)](https://github.com/JaneliaSciComp/fileglancer/actions/workflows/build.yml)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/JaneliaSciComp/fileglancer/main?urlpath=lab)
 
 React-based frontend extension for the Fileglancer app.
 
@@ -12,12 +11,6 @@ Clone the repo to your local environment and change directory to the new repo fo
 ```bash
 git clone git@github.com:JaneliaSciComp/fileglancer.git
 cd fileglancer
-```
-
-Copy the .env example and edit the environmental variable values for your setup:
-
-```bash
-cp .env.example .env
 ```
 
 If this is your first time installing the extension in dev mode, install package in development mode.
@@ -115,16 +108,22 @@ To execute the UI integration test, run:
 pixi run ui-test
 ```
 
-You can also run these in headed or debug mode using:
+You can also run these in UI debug mode using:
 
 ```bash
-pixi run ui-test -- --headed --debug
+pixi run ui-test -- --ui --debug
 ```
 
-or to run only a specific test:
+If you are unable to use the UI mode, record a trace for inspecting in the [Playwright trace viewer](https://trace.playwright.dev):
 
 ```bash
-pixi run ui-test -- --headed tests/fgzones.spec.ts
+pixi run ui-test -- --trace on
+```
+
+To run only a specific test:
+
+```bash
+pixi run ui-test -- --<optional-flag> tests/fgzones.spec.ts
 ```
 
 You can also use the name of the test:

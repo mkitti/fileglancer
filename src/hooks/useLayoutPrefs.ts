@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import { useCentralServerHealthContext } from '@/contexts/CentralServerHealthContext';
 import logger from '@/logger';
 /**
  * Custom hook that provides storage interface for react-resizable-panels
@@ -31,6 +32,7 @@ export default function useLayoutPrefs() {
   const [showSidebar, setShowSidebar] = React.useState(true);
   const { layout, handleUpdateLayout, isLayoutLoadedFromDB } =
     usePreferencesContext();
+  const { status: centralServerStatus } = useCentralServerHealthContext();
 
   const timerRef = React.useRef<number | null>(null);
 
@@ -103,22 +105,13 @@ export default function useLayoutPrefs() {
       getItem(name: string): string {
         // Don't try to parse layout until it's loaded from the database
         if (!isLayoutLoadedFromDB) {
-          logger.debug('Layout not loaded from DB yet, returning empty string');
           return '';
         }
         // If layout is empty, return default layout based on screen size
         if (layout === '') {
           if (window.innerWidth < 640) {
-            logger.debug(
-              'Layout is empty and screen is small, returning default layout',
-              DEFAULT_LAYOUT_SMALL_SCREENS
-            );
             return DEFAULT_LAYOUT_SMALL_SCREENS;
           } else {
-            logger.debug(
-              'Layout is empty, returning default layout',
-              DEFAULT_LAYOUT
-            );
             return DEFAULT_LAYOUT;
           }
         }
@@ -128,10 +121,8 @@ export default function useLayoutPrefs() {
           const storedLayout = JSON.stringify(layoutObj[name]);
 
           if (!storedLayout) {
-            logger.debug('No stored layout found for name:', name);
             return '';
           } else {
-            logger.debug('getItem returning storedLayout:', storedLayout);
             return storedLayout;
           }
         } catch (error) {
@@ -140,30 +131,26 @@ export default function useLayoutPrefs() {
         }
       },
       setItem(name: string, value: string) {
-        logger.debug('setItem called with name:', name, 'value:', value);
         if (!isLayoutLoadedFromDB) {
-          logger.debug('Layout not loaded from DB yet');
           return;
         }
+        // This check is here, because if the central server is down, we don't want to
+        // attempt to send additional requests to update the layout preference to a server
+        // that may be experiencing issues. The layout requests occur every time the site
+        // tries to check if the central server is back up, which can lead to a lot of
+        // unnecessary requests if the server is down for an extended period of time.
+        if (centralServerStatus === 'down') {
+          logger.debug('Central server is down, skipping layout update');
+          return;
+        }
+
         if (value === null || value === undefined || value === '') {
-          logger.debug('setItem called with empty value, ignoring');
           return;
         }
 
         try {
           const incomingLayout = JSON.parse(value);
           const incomingLayoutKeys = Object.keys(incomingLayout);
-          logger.debug(
-            'setItem called with name:',
-            name,
-            'parsed value:',
-            incomingLayout
-          );
-          logger.debug(
-            'Current showPropertiesDrawer state:',
-            showPropertiesDrawer
-          );
-          logger.debug('Current showSidebar state:', showSidebar);
           let newLayoutObj = {};
 
           // Find key to use
@@ -226,7 +213,6 @@ export default function useLayoutPrefs() {
           // Note: setItem has to be synchronous for react-resizable-panels,
           // which is there's no await here even though handleUpdateLayout is async
           const newLayoutString = JSON.stringify(newLayoutObj);
-          logger.debug('setting layout with newLayoutString:', newLayoutString);
           debouncedUpdateLayout(newLayoutString);
         } catch (error) {
           logger.debug('Error setting layout item:', error);
@@ -238,7 +224,8 @@ export default function useLayoutPrefs() {
       debouncedUpdateLayout,
       isLayoutLoadedFromDB,
       showPropertiesDrawer,
-      showSidebar
+      showSidebar,
+      centralServerStatus
     ]
   );
 

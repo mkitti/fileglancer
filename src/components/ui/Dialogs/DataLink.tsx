@@ -1,181 +1,220 @@
 import React from 'react';
 import { Button, Typography } from '@material-tailwind/react';
-import toast from 'react-hot-toast';
 
-import {
-  ProxiedPath,
-  useProxiedPathContext
-} from '@/contexts/ProxiedPathContext';
+import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
 import { getPreferredPathForDisplay, makeMapKey } from '@/utils';
 import type { FileSharePath } from '@/shared.types';
+import type { PendingToolKey } from '@/hooks/useZarrMetadata';
 import FgDialog from './FgDialog';
 import TextWithFilePath from './TextWithFilePath';
+import AutomaticLinksToggle from '@/components/ui/PreferencesPage/AutomaticLinksToggle';
 
-type DataLinkDialogProps = {
-  isImageShared: boolean;
-  setIsImageShared?: React.Dispatch<React.SetStateAction<boolean>>;
+interface CommonDataLinkDialogProps {
+  getDisplayPath?: () => string;
   showDataLinkDialog: boolean;
   setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
-  proxiedPath: ProxiedPath | null;
-};
+}
 
-export default function DataLinkDialog({
-  isImageShared,
-  setIsImageShared,
-  showDataLinkDialog,
-  setShowDataLinkDialog,
-  proxiedPath
-}: DataLinkDialogProps): JSX.Element {
-  const { createProxiedPath, deleteProxiedPath, refreshProxiedPaths } =
-    useProxiedPathContext();
-  const { fileBrowserState } = useFileBrowserContext();
-  const { pathPreference } = usePreferencesContext();
-  const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
+interface CreateLinkFromToolsProps extends CommonDataLinkDialogProps {
+  tools: true;
+  action: 'create';
+  onConfirm: () => Promise<void>;
+  onCancel: () => void;
+  setPendingToolKey: React.Dispatch<React.SetStateAction<PendingToolKey>>;
+}
 
-  const fspKey = proxiedPath
-    ? makeMapKey('fsp', proxiedPath.fsp_name)
-    : fileBrowserState.currentFileSharePath
-      ? makeMapKey('fsp', fileBrowserState.currentFileSharePath.name)
-      : '';
+interface CreateLinkNotFromToolsProps extends CommonDataLinkDialogProps {
+  tools: false;
+  action: 'create';
+  onConfirm: () => Promise<void>;
+  onCancel: () => void;
+}
 
-  if (fspKey === '') {
-    return <>{toast.error('Valid file share path or proxied path required')}</>;
-  }
+interface DeleteLinkDialogProps extends CommonDataLinkDialogProps {
+  action: 'delete';
+  proxiedPath: ProxiedPath;
+  handleDeleteDataLink: (proxiedPath: ProxiedPath) => Promise<void>;
+}
 
-  const pathFsp = zonesAndFileSharePathsMap[fspKey] as FileSharePath;
-  const targetPath = proxiedPath
-    ? proxiedPath.path
-    : fileBrowserState.currentFileOrFolder
-      ? fileBrowserState.currentFileOrFolder.path
-      : '';
+type DataLinkDialogProps =
+  | CreateLinkFromToolsProps
+  | CreateLinkNotFromToolsProps
+  | DeleteLinkDialogProps;
 
-  if (!targetPath) {
-    return <>{toast.error('Valid current folder or proxied path required')}</>;
-  }
-
-  const displayPath = getPreferredPathForDisplay(
-    pathPreference,
-    pathFsp,
-    targetPath
+function CreateLinkBtn({
+  onConfirm
+}: {
+  onConfirm: () => Promise<void>;
+}): JSX.Element {
+  return (
+    <Button
+      variant="outline"
+      color="error"
+      className="!rounded-md flex items-center gap-2"
+      onClick={async () => {
+        await onConfirm();
+      }}
+    >
+      Create Data Link
+    </Button>
   );
+}
+
+function DeleteLinkBtn({
+  proxiedPath,
+  setShowDataLinkDialog,
+  handleDeleteDataLink
+}: {
+  proxiedPath: ProxiedPath;
+  setShowDataLinkDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  handleDeleteDataLink: (proxiedPath: ProxiedPath) => Promise<void>;
+}): JSX.Element {
+  return (
+    <Button
+      variant="outline"
+      color="error"
+      className="!rounded-md flex items-center gap-2 hover:text-background focus:text-background"
+      onClick={async () => {
+        await handleDeleteDataLink(proxiedPath);
+        setShowDataLinkDialog(false);
+      }}
+    >
+      Delete Data Link
+    </Button>
+  );
+}
+
+function CancelBtn({
+  setPendingToolKey,
+  setShowDataLinkDialog,
+  onCancel
+}: {
+  setPendingToolKey?: React.Dispatch<React.SetStateAction<PendingToolKey>>;
+  setShowDataLinkDialog?: React.Dispatch<React.SetStateAction<boolean>>;
+  onCancel?: () => void;
+}): JSX.Element {
+  return (
+    <Button
+      variant="outline"
+      className="!rounded-md flex items-center gap-2"
+      onClick={() => {
+        if (onCancel) {
+          onCancel();
+        } else {
+          if (setPendingToolKey) {
+            setPendingToolKey(null);
+          }
+          if (setShowDataLinkDialog) {
+            setShowDataLinkDialog(false);
+          }
+        }
+      }}
+    >
+      Cancel
+    </Button>
+  );
+}
+
+function BtnContainer({
+  children
+}: {
+  children: React.ReactNode;
+}): JSX.Element {
+  return <div className="flex gap-4">{children}</div>;
+}
+
+export default function DataLinkDialog(
+  props: DataLinkDialogProps
+): JSX.Element {
+  const { fileBrowserState } = useFileBrowserContext();
+  const { pathPreference, areDataLinksAutomatic } = usePreferencesContext();
+  const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
+  const [localAreDataLinksAutomatic] = React.useState(areDataLinksAutomatic);
+
+  function getDisplayPath(): string {
+    const fspKey =
+      props.action === 'delete'
+        ? makeMapKey('fsp', props.proxiedPath.fsp_name)
+        : fileBrowserState.currentFileSharePath
+          ? makeMapKey('fsp', fileBrowserState.currentFileSharePath.name)
+          : '';
+
+    const pathFsp = fspKey
+      ? (zonesAndFileSharePathsMap[fspKey] as FileSharePath)
+      : null;
+    const targetPath =
+      props.action === 'delete'
+        ? props.proxiedPath.path
+        : fileBrowserState.currentFileOrFolder
+          ? fileBrowserState.currentFileOrFolder.path
+          : '';
+
+    return pathFsp && targetPath
+      ? getPreferredPathForDisplay(pathPreference, pathFsp, targetPath)
+      : '';
+  }
+  const displayPath = getDisplayPath();
 
   return (
     <FgDialog
-      open={showDataLinkDialog}
-      onClose={() => setShowDataLinkDialog(false)}
+      open={props.showDataLinkDialog}
+      onClose={() => {
+        if (props.action === 'create' && props.tools) {
+          props.setPendingToolKey(null);
+        }
+        props.setShowDataLinkDialog(false);
+      }}
     >
-      {/* TODO: Move Janelia-specific text elsewhere */}
-      {isImageShared ? (
-        <div className="my-8 text-foreground">
-          <TextWithFilePath
-            text="Are you sure you want to delete the data link for this path?"
-            path={displayPath}
-          />
-          <Typography className="mt-4">
-            Warning: The existing data link to this data will be deleted.
-            Collaborators who previously received the link will no longer be
-            able to access it. You can create a new data link at any time if
-            needed.
-          </Typography>
-        </div>
-      ) : (
-        <div className="my-8 text-foreground">
-          <TextWithFilePath
-            text="Are you sure you want to create a data link for this path?"
-            path={displayPath}
-          />
-          <Typography className="mt-4">
-            If you share the data link with internal collaborators, they will be
-            able to view this data.
-          </Typography>
-        </div>
-      )}
-
-      <div className="flex gap-2">
-        {!isImageShared ? (
-          <Button
-            variant="outline"
-            color="error"
-            className="!rounded-md flex items-center gap-2"
-            onClick={async () => {
-              const createProxiedPathResult = await createProxiedPath();
-              if (createProxiedPathResult.success) {
-                toast.success(
-                  `Successfully created data link for ${displayPath}`
-                );
-                const refreshResult = await refreshProxiedPaths();
-                if (!refreshResult.success) {
-                  toast.error(
-                    `Error refreshing proxied paths: ${refreshResult.error}`
-                  );
-                  return;
-                }
-              } else {
-                toast.error(
-                  `Error creating data link: ${createProxiedPathResult.error}`
-                );
-              }
-              setShowDataLinkDialog(false);
-              if (setIsImageShared) {
-                // setIsImageShared does not exist in props for proxied path row,
-                // where the image is always shared
-                setIsImageShared(true);
-              }
-            }}
-          >
-            Create Data Link
-          </Button>
+      <div className="flex flex-col gap-4 my-4">
+        {props.action === 'create' && localAreDataLinksAutomatic ? (
+          <> </>
+        ) : props.action === 'create' && !localAreDataLinksAutomatic ? (
+          <>
+            <TextWithFilePath
+              text="Are you sure you want to create a data link for this path?"
+              path={displayPath}
+            />
+            <Typography className="text-foreground">
+              If you share the data link with internal collaborators, they will
+              be able to view these data.
+            </Typography>
+            <div className="flex flex-col gap-2">
+              <Typography className="font-semibold text-foreground">
+                Don't ask me this again:
+              </Typography>
+              <AutomaticLinksToggle />
+            </div>
+            <BtnContainer>
+              <CreateLinkBtn onConfirm={props.onConfirm} />
+              <CancelBtn onCancel={props.onCancel} />
+            </BtnContainer>
+          </>
         ) : null}
-        {isImageShared ? (
-          <Button
-            variant="outline"
-            color="error"
-            className="!rounded-md flex items-center gap-2"
-            onClick={async () => {
-              if (!proxiedPath) {
-                toast.error('Proxied path not found');
-                return;
-              }
-
-              const deleteResult = await deleteProxiedPath(proxiedPath);
-              if (!deleteResult.success) {
-                toast.error(`Error deleting data link: ${deleteResult.error}`);
-                return;
-              } else {
-                toast.success(
-                  `Successfully deleted data link for ${displayPath}`
-                );
-
-                const refreshResult = await refreshProxiedPaths();
-                if (!refreshResult.success) {
-                  toast.error(
-                    `Error refreshing proxied paths: ${refreshResult.error}`
-                  );
-                  return;
-                }
-              }
-
-              setShowDataLinkDialog(false);
-              if (setIsImageShared) {
-                setIsImageShared(false);
-              }
-            }}
-          >
-            Delete Data Link
-          </Button>
+        {props.action === 'delete' ? (
+          <>
+            <TextWithFilePath
+              text="Are you sure you want to delete the data link for this path?"
+              path={displayPath}
+            />
+            <Typography className="text-foreground">
+              <span className="font-semibold">Warning:</span> The existing data
+              link will be deleted. Collaborators with the link will no longer
+              be able to use it to view these data. You can create a new data
+              link at any time.
+            </Typography>
+            <BtnContainer>
+              <DeleteLinkBtn
+                proxiedPath={props.proxiedPath}
+                setShowDataLinkDialog={props.setShowDataLinkDialog}
+                handleDeleteDataLink={props.handleDeleteDataLink}
+              />
+              <CancelBtn setShowDataLinkDialog={props.setShowDataLinkDialog} />
+            </BtnContainer>
+          </>
         ) : null}
-        <Button
-          variant="outline"
-          className="!rounded-md flex items-center gap-2"
-          onClick={() => {
-            setShowDataLinkDialog(false);
-          }}
-        >
-          Cancel
-        </Button>
       </div>
     </FgDialog>
   );
