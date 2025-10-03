@@ -56,6 +56,15 @@ def _get_mounted_filestore(fsp):
     return filestore
 
 
+def _should_show_fsp(fsp, user_groups):
+    """
+    Determine if a file share path should be shown to the user based on the user's groups.
+    """
+    if fsp.group == "public" or fsp.group in user_groups:
+        return True
+    return False
+
+
 class BaseHandler(APIHandler):
     _home_file_share_path_cache = {}
     _groups_cache = {}
@@ -163,15 +172,34 @@ class FileSharePathsHandler(BaseHandler):
     """
     @web.authenticated
     def get(self):
-        self.log.info("GET /api/fileglancer/file-share-paths")
+        username = self.get_current_user()
+        self.log.info("GET /api/fileglancer/file-share-paths username={username}")
         file_share_paths = get_fsp_manager(self.settings).get_file_share_paths()
+        
+        # Check user preference for group filtering
+        preference_manager = get_preference_manager(self.settings)
+        
+        try:
+            filter_by_groups = preference_manager.get_preference(username, "filter_zones_by_group")
+        except KeyError:
+            filter_by_groups = True  # Default to True if preference not set
+        except Exception as e:
+            self.log.error(f"Error getting user preference: {str(e)}")
+            filter_by_groups = False # Default to False on an error other than KeyError. Better to show too many zones than too few.
+
+        if filter_by_groups:
+            user_groups = self.get_user_groups()
+            filtered_paths = [fsp for fsp in file_share_paths if _should_show_fsp(fsp, user_groups)]
+            # Convert Pydantic objects to dicts before JSON serialization
+            response_data = {"paths": [fsp.model_dump() for fsp in filtered_paths]}
+        else:
+            # Convert Pydantic objects to dicts before JSON serialization
+            file_share_paths_json = {"paths": [fsp.model_dump() for fsp in file_share_paths]}
+
         self.set_header('Content-Type', 'application/json')
         self.set_status(200)
-        # Convert Pydantic objects to dicts before JSON serialization
-        file_share_paths_json = {"paths": [fsp.model_dump() for fsp in file_share_paths]}
-        self.write(json.dumps(file_share_paths_json))
+        self.write(json.dumps(response_data))
         self.finish()
-
 
 
 class FileShareHandler(BaseHandler, ABC):
