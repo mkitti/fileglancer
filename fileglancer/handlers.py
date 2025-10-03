@@ -194,7 +194,7 @@ class FileSharePathsHandler(BaseHandler):
             response_data = {"paths": [fsp.model_dump() for fsp in filtered_paths]}
         else:
             # Convert Pydantic objects to dicts before JSON serialization
-            file_share_paths_json = {"paths": [fsp.model_dump() for fsp in file_share_paths]}
+            response_data = {"paths": [fsp.model_dump() for fsp in file_share_paths]}
 
         self.set_header('Content-Type', 'application/json')
         self.set_status(200)
