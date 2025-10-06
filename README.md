@@ -12,7 +12,7 @@ Core features:
 - Integration with our help desk (JIRA) for file conversion requests
 - Integration with our [x2s3](https://github.com/JaneliaSciComp/x2s3) proxy service, to easily share data on the internet
 
-See the [Fileglancer User Guide](https://janeliascicomp.github.io/fileglancer-user-docs/) for more information.
+See the [Fileglancer User Guide](https://janeliascicomp.github.io/fileglancer-docs/) for more information.
 
 <img alt="Fileglancer screenshot" src="https://github.com/user-attachments/assets/e17079a6-66ca-4064-8568-7770c5af33d5" />
 
