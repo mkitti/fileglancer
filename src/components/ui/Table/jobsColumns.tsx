@@ -1,5 +1,6 @@
 import { Typography } from '@material-tailwind/react';
 import { type ColumnDef } from '@tanstack/react-table';
+import { useNavigate } from 'react-router';
 
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
@@ -12,10 +13,13 @@ import {
 } from '@/utils';
 import { FileSharePath } from '@/shared.types';
 import { FgStyledLink } from '../widgets/FgLink';
+import toast from 'react-hot-toast';
 
 function FilePathCell({ item }: { readonly item: Ticket }) {
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
-  const { pathPreference } = usePreferencesContext();
+  const { pathPreference, setLayoutWithPropertiesOpen } =
+    usePreferencesContext();
+  const navigate = useNavigate();
 
   const itemFsp = zonesAndFileSharePathsMap[
     makeMapKey('fsp', item.fsp_name)
@@ -25,6 +29,18 @@ function FilePathCell({ item }: { readonly item: Ticket }) {
     itemFsp,
     item.path
   );
+
+  const handleClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    const result = await setLayoutWithPropertiesOpen();
+    if (!result.success) {
+      toast.error(`Error opening properties for file: ${result.error}`);
+      return;
+    }
+    navigate(makeBrowseLink(item.fsp_name, item.path), {
+      state: { openConvertTab: true }
+    });
+  };
 
   return (
     <div className="line-clamp-2 max-w-full">
