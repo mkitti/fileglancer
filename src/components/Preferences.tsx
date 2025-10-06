@@ -11,11 +11,13 @@ export default function Preferences() {
     pathPreference,
     handlePathPreferenceSubmit,
     hideDotFiles,
+    isFilteredByGroups,
     toggleHideDotFiles,
     disableNeuroglancerStateGeneration,
     toggleDisableNeuroglancerStateGeneration,
     disableHeuristicalLayerTypeDetection,
-    toggleDisableHeuristicalLayerTypeDetection
+    toggleDisableHeuristicalLayerTypeDetection,
+    toggleFilterByGroups
   } = usePreferencesContext();
 
   return (
@@ -124,6 +126,34 @@ export default function Preferences() {
           <Typography className="font-semibold">Options:</Typography>
         </Card.Header>
         <Card.Body className="flex flex-col gap-4 pb-4">
+          <div className="flex items-center gap-2">
+            <input
+              checked={isFilteredByGroups}
+              className="icon-small checked:accent-secondary-light"
+              id="is_filtered_by_groups"
+              onChange={async () => {
+                const result = await toggleFilterByGroups();
+                if (result.success) {
+                  toast.success(
+                    !isFilteredByGroups
+                      ? 'Only Zones for groups you have membership in are now visible'
+                      : 'All Zones are now visible'
+                  );
+                } else {
+                  toast.error(result.error);
+                }
+              }}
+              type="checkbox"
+            />
+            <Typography
+              as="label"
+              className="text-foreground"
+              htmlFor="is_filtered_by_groups"
+            >
+              Filter Zones by group membership
+            </Typography>
+          </div>
+
           <div className="flex items-center gap-2">
             <input
               checked={hideDotFiles}
