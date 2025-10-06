@@ -56,6 +56,8 @@ type PreferencesContextType = {
   loadingRecentlyViewedFolders: boolean;
   isLayoutLoadedFromDB: boolean;
   handleContextMenuFavorite: () => Promise<Result<boolean>>;
+  isFilteredByGroups: boolean;
+  toggleFilterByGroups: () => Promise<Result<void>>;
 };
 
 const PreferencesContext = React.createContext<PreferencesContextType | null>(
@@ -93,6 +95,8 @@ export const PreferencesProvider = ({
   ] = React.useState<boolean>(false);
   const [useLegacyMultichannelApproach, setUseLegacyMultichannelApproach] =
     React.useState<boolean>(false);
+  const [isFilteredByGroups, setIsFilteredByGroups] =
+    React.useState<boolean>(true);
   const [zonePreferenceMap, setZonePreferenceMap] = React.useState<
     Record<string, ZonePreference>
   >({});
@@ -253,6 +257,12 @@ export const PreferencesProvider = ({
     },
     [savePreferencesToBackend]
   );
+
+  const toggleFilterByGroups = React.useCallback(async (): Promise<
+    Result<void>
+  > => {
+    return await togglePreference('isFilteredByGroups', setIsFilteredByGroups);
+  }, [togglePreference]);
 
   const toggleHideDotFiles = React.useCallback(async (): Promise<
     Result<void>
@@ -571,6 +581,9 @@ export const PreferencesProvider = ({
       }
 
       // Boolean preferences
+      if (allPrefs.isFilteredByGroups?.value !== undefined) {
+        setIsFilteredByGroups(allPrefs.isFilteredByGroups.value);
+      }
       if (allPrefs.hideDotFiles?.value !== undefined) {
         setHideDotFiles(allPrefs.hideDotFiles.value);
       }
@@ -695,7 +708,9 @@ export const PreferencesProvider = ({
         handleUpdateLayout,
         loadingRecentlyViewedFolders,
         isLayoutLoadedFromDB,
-        handleContextMenuFavorite
+        handleContextMenuFavorite,
+        isFilteredByGroups,
+        toggleFilterByGroups
       }}
     >
       {children}
