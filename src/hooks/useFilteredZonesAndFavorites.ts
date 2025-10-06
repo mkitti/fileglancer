@@ -51,8 +51,8 @@ export default function useFilteredZonesAndFavorites() {
 
             // Apply group filtering if enabled
             if (isFilteredByGroups && userGroups.length > 0) {
-              matchingFileSharePaths = matchingFileSharePaths.filter(fsp =>
-                userGroups.includes(fsp.group) || fsp.group === 'public'
+              matchingFileSharePaths = matchingFileSharePaths.filter(
+                fsp => userGroups.includes(fsp.group) || fsp.group === 'public'
               );
             }
 
@@ -134,8 +134,8 @@ export default function useFilteredZonesAndFavorites() {
         .map(([key, value]) => {
           if (key.startsWith('zone')) {
             const zone = value as Zone;
-            const matchingFileSharePaths = zone.fileSharePaths.filter(fsp =>
-              userGroups.includes(fsp.group) || fsp.group === 'public'
+            const matchingFileSharePaths = zone.fileSharePaths.filter(
+              fsp => userGroups.includes(fsp.group) || fsp.group === 'public'
             );
             if (matchingFileSharePaths.length > 0) {
               return [

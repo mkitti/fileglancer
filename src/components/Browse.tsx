@@ -67,9 +67,7 @@ export default function Browse() {
 
   return (
     <div
-      ref={containerRef}
       className="flex flex-col h-full max-h-full w-full max-w-full"
-      tabIndex={0}
       data-browse-container
       onPaste={async event => {
         log.debug('React paste event fired!', event);
@@ -108,6 +106,8 @@ export default function Browse() {
           log.debug('Text input is focused, ignoring paste');
         }
       }}
+      ref={containerRef}
+      tabIndex={0}
       tabIndex={0}
     >
       <Toolbar
