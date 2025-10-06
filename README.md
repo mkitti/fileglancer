@@ -18,7 +18,7 @@ See the [Fileglancer User Guide](https://janeliascicomp.github.io/fileglancer-us
 
 ## Software Architecture
 
-Fileglancer is built on top of JuptyerHub, which provides the infrastructure for allowing users to login and interact directly with their files on mounted network file systems. JupyterHub runs a "single user server" for each user who logs in, in a process owned by that user. The Fileglancer  plugin for JupyterHub replaces the UI with a new SPA webapp that connects back to a custom backend running inside the single user server. We also added a "central server" to serve shared data and to manage connections to a shared database for saving preferences, data links, and other persistent information. 
+Fileglancer is built on top of JuptyerHub, which provides the infrastructure for allowing users to login and interact directly with their files on mounted network file systems. JupyterHub runs a "single user server" for each user who logs in, in a process owned by that user. The Fileglancer plugin for JupyterHub replaces the UI with a new SPA webapp that connects back to a custom backend running inside the single user server. We also added a "central server" to serve shared data and to manage connections to a shared database for saving preferences, data links, and other persistent information.
 
 <img alt="Fileglancer architecture diagram" src="https://github.com/user-attachments/assets/fd39361d-ee62-422c-912a-5668c5ffdfb9" />
 
