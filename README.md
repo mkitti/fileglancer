@@ -27,7 +27,7 @@ The current code base is geared towards a Janelia deployment, but we are working
 ## Documentation
 
 - [User guide](https://janeliascicomp.github.io/fileglancer-user-docs/)
-- [Developer guide](docs/Development.md)
+- [Developer guide](./docs/Development.md)
 
 ## Related repositories
 
