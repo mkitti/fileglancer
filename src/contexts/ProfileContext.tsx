@@ -8,6 +8,7 @@ type Profile = {
   username: string;
   homeFileSharePathName: string;
   homeDirectoryName: string;
+  groups: string[];
 };
 
 type ProfileContextType = {
