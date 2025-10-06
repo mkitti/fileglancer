@@ -12,7 +12,7 @@ Core features:
 - Integration with our help desk (JIRA) for file conversion requests
 - Integration with our [x2s3](https://github.com/JaneliaSciComp/x2s3) proxy service, to easily share data on the internet
 
-See the [Fileglancer User Guide](https://janeliascicomp.github.io/fileglancer-user-docs/) for more information.
+See the [Fileglancer User Guide](https://janeliascicomp.github.io/fileglancer-docs/) for more information.
 
 <img alt="Fileglancer screenshot" src="https://github.com/user-attachments/assets/e17079a6-66ca-4064-8568-7770c5af33d5" />
 
@@ -26,11 +26,11 @@ The current code base is geared towards a Janelia deployment, but we are working
 
 ## Documentation
 
-- [User guide](https://janeliascicomp.github.io/fileglancer-user-docs/)
+- [User guide](https://janeliascicomp.github.io/fileglancer-docs/)
 - [Developer guide](docs/Development.md)
 
 ## Related repositories
 
 - [fileglancer-central](https://github.com/JaneliaSciComp/fileglancer-central) - Central server managing access to a shared database and other resources
 - [fileglancer-hub](https://github.com/JaneliaSciComp/fileglancer-hub) - Deployment of Fileglancer into JupyterHub
-- [fileglancer-user-docs](https://github.com/JaneliaSciComp/fileglancer-user-docs) - User guide
+- [fileglancer-user-docs](https://github.com/JaneliaSciComp/fileglancer-docs) - User guide

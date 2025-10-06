@@ -341,7 +341,11 @@ export default function useZarrMetadata() {
           // No proxied URL - show all tools as available but empty
           openWithToolUrls.validator = '';
           openWithToolUrls.vole = '';
-          openWithToolUrls.avivator = '';
+          // if this is a zarr version 2, then set the url to blank which will show
+          // the icon before a data link has been generated. Setting it to null for
+          // all other versions, eg zarr v3 means the icon will not be present before
+          // a data link is generated.
+          openWithToolUrls.avivator = metadata.zarrVersion === 2 ? '' : null;
           openWithToolUrls.neuroglancer = '';
         }
       } else {
