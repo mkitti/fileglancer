@@ -199,15 +199,15 @@ export const FileBrowserContextProvider = ({
 
       if (!response.ok) {
         if (response.status === 403) {
-          if (body.info && body.info.owner) {
-            throw new Error(
-              `You do not have permission to list this folder. Contact the owner (${body.info.owner}) for access.`
-            );
-          } else {
-            throw new Error(
-              'You do not have permission to list this folder. Contact the owner for access.'
-            );
-          }
+          const errorMessage =
+            body.info && body.info.owner
+              ? `You do not have permission to list this folder. Contact the owner (${body.info.owner}) for access.`
+              : 'You do not have permission to list this folder. Contact the owner for access.';
+
+          // Create custom error with additional info for fallback object
+          const error = new Error(errorMessage) as Error & { info?: any };
+          error.info = body.info;
+          throw error;
         } else if (response.status === 404) {
           throw new Error('Folder not found');
         } else {
@@ -270,25 +270,37 @@ export const FileBrowserContextProvider = ({
         );
       } catch (error) {
         log.error(error);
-        if (error instanceof Error) {
-          updateAllStates(
-            fsp,
-            fileOrFolder,
-            [],
-            fileOrFolder,
-            [],
-            error.message
-          );
-        } else {
-          updateAllStates(
-            fsp,
-            fileOrFolder,
-            [],
-            fileOrFolder,
-            [],
-            'An unknown error occurred'
-          );
-        }
+
+        // Check if error contains body.info from 403 response
+        const errorWithInfo = error as Error & { info?: any };
+        const bodyInfo = errorWithInfo.info;
+
+        // Create a minimal FileOrFolder object with the target path information
+        // Use body.info if available from 403 response, otherwise use fallback values
+        const fallbackFileOrFolder: FileOrFolder = {
+          name:
+            bodyInfo?.name ||
+            (targetPath === '.' ? '' : targetPath.split('/').pop() || ''),
+          path: normalizePosixStylePath(bodyInfo?.path || targetPath),
+          is_dir: bodyInfo?.is_dir ?? true,
+          size: bodyInfo?.size || 0,
+          last_modified: bodyInfo?.last_modified || 0,
+          owner: bodyInfo?.owner || '',
+          group: bodyInfo?.group || '',
+          permissions: bodyInfo?.permissions || ''
+        };
+
+        const errorMessage =
+          error instanceof Error ? error.message : 'An unknown error occurred';
+
+        updateAllStates(
+          fsp,
+          fallbackFileOrFolder,
+          [],
+          fallbackFileOrFolder,
+          [],
+          errorMessage
+        );
       } finally {
         setAreFileDataLoading(false);
       }

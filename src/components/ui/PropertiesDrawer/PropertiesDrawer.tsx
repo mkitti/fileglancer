@@ -143,125 +143,139 @@ export default function PropertiesDrawer({
           </Typography>
         )}
         {fileBrowserState.propertiesTarget ? (
-          <Tabs
-            className="flex flex-col flex-1 min-h-0 "
-            defaultValue="overview"
-            key="file-properties-tabs"
-          >
-            <Tabs.List className="justify-start items-stretch shrink-0 min-w-fit w-full py-2 bg-surface dark:bg-surface-light">
-              <Tabs.Trigger
-                className="!text-foreground h-full"
+          fileBrowserState.propertiesTarget.permissions === '' ? (
+            <div className="flex flex-col flex-1 min-h-0 gap-4 p-4 text-center">
+              <Typography className="text-foreground font-semibold">
+                Permission Denied
+              </Typography>
+              <Typography className="text-foreground">
+                You do not have permission to view the details of this item.
+              </Typography>
+            </div>
+          ) : (
+            <Tabs
+              className="flex flex-col flex-1 min-h-0 "
+              defaultValue="overview"
+              key="file-properties-tabs"
+            >
+              <Tabs.List className="justify-start items-stretch shrink-0 min-w-fit w-full py-2 bg-surface dark:bg-surface-light">
+                <Tabs.Trigger
+                  className="!text-foreground h-full"
+                  value="overview"
+                >
+                  Overview
+                </Tabs.Trigger>
+
+                <Tabs.Trigger
+                  className="!text-foreground h-full"
+                  value="permissions"
+                >
+                  Permissions
+                </Tabs.Trigger>
+
+                <Tabs.Trigger
+                  className="!text-foreground h-full"
+                  value="convert"
+                >
+                  Convert
+                </Tabs.Trigger>
+                <Tabs.TriggerIndicator className="h-full" />
+              </Tabs.List>
+
+              {/*Overview panel*/}
+              <Tabs.Panel
+                className="flex-1 flex flex-col gap-4 max-w-full p-2"
                 value="overview"
               >
-                Overview
-              </Tabs.Trigger>
-
-              <Tabs.Trigger
-                className="!text-foreground h-full"
-                value="permissions"
-              >
-                Permissions
-              </Tabs.Trigger>
-
-              <Tabs.Trigger className="!text-foreground h-full" value="convert">
-                Convert
-              </Tabs.Trigger>
-              <Tabs.TriggerIndicator className="h-full" />
-            </Tabs.List>
-
-            {/*Overview panel*/}
-            <Tabs.Panel
-              className="flex-1 flex flex-col gap-4 max-w-full p-2"
-              value="overview"
-            >
-              <CopyPathButton path={fullPath} />
-              <OverviewTable file={fileBrowserState.propertiesTarget} />
-              {fileBrowserState.propertiesTarget.is_dir ? (
-                <div className="flex flex-col gap-2 min-w-[175px] max-w-full pt-2">
-                  <div className="flex items-center gap-2 max-w-full">
-                    <Switch
-                      checked={externalDataUrl || proxiedPath ? true : false}
-                      className="before:bg-primary/50 after:border-primary/50 checked:disabled:before:bg-surface checked:disabled:before:border checked:disabled:before:border-surface-dark checked:disabled:after:border-surface-dark"
-                      disabled={externalDataUrl ? true : false}
-                      id="share-switch"
-                      onChange={async () => {
-                        if (areDataLinksAutomatic && !proxiedPath) {
-                          await handleCreateDataLink();
-                        } else {
-                          setShowDataLinkDialog(true);
-                        }
-                      }}
-                    />
+                <CopyPathButton path={fullPath} />
+                <OverviewTable file={fileBrowserState.propertiesTarget} />
+                {fileBrowserState.propertiesTarget.is_dir ? (
+                  <div className="flex flex-col gap-2 min-w-[175px] max-w-full pt-2">
+                    <div className="flex items-center gap-2 max-w-full">
+                      <Switch
+                        checked={externalDataUrl || proxiedPath ? true : false}
+                        className="before:bg-primary/50 after:border-primary/50 checked:disabled:before:bg-surface checked:disabled:before:border checked:disabled:before:border-surface-dark checked:disabled:after:border-surface-dark"
+                        disabled={externalDataUrl ? true : false}
+                        id="share-switch"
+                        onChange={async () => {
+                          if (areDataLinksAutomatic && !proxiedPath) {
+                            await handleCreateDataLink();
+                          } else {
+                            setShowDataLinkDialog(true);
+                          }
+                        }}
+                      />
+                      <Typography
+                        as="label"
+                        className={`${externalDataUrl ? 'cursor-default' : 'cursor-pointer'} text-foreground font-semibold`}
+                        htmlFor="share-switch"
+                      >
+                        {proxiedPath ? 'Delete data link' : 'Create data link'}
+                      </Typography>
+                    </div>
                     <Typography
-                      as="label"
-                      className={`${externalDataUrl ? 'cursor-default' : 'cursor-pointer'} text-foreground font-semibold`}
-                      htmlFor="share-switch"
+                      className="text-foreground whitespace-normal w-full"
+                      type="small"
                     >
-                      {proxiedPath ? 'Delete data link' : 'Create data link'}
+                      {externalDataUrl
+                        ? 'Public data link already exists since this data is on s3.janelia.org.'
+                        : proxiedPath
+                          ? 'Deleting the data link will remove data access for collaborators with the link.'
+                          : 'Creating a data link allows you to share the data at this path with internal collaborators or use tools to view the data.'}
                     </Typography>
                   </div>
-                  <Typography
-                    className="text-foreground whitespace-normal w-full"
-                    type="small"
-                  >
-                    {externalDataUrl
-                      ? 'Public data link already exists since this data is on s3.janelia.org.'
-                      : proxiedPath
-                        ? 'Deleting the data link will remove data access for collaborators with the link.'
-                        : 'Creating a data link allows you to share the data at this path with internal collaborators or use tools to view the data.'}
-                  </Typography>
-                </div>
-              ) : null}
-              {externalDataUrl ? (
-                <CopyPathButton isDataLink={true} path={externalDataUrl} />
-              ) : dataUrl ? (
-                <CopyPathButton isDataLink={true} path={dataUrl} />
-              ) : null}
-            </Tabs.Panel>
+                ) : null}
+                {externalDataUrl ? (
+                  <CopyPathButton isDataLink={true} path={externalDataUrl} />
+                ) : dataUrl ? (
+                  <CopyPathButton isDataLink={true} path={dataUrl} />
+                ) : null}
+              </Tabs.Panel>
 
-            {/*Permissions panel*/}
-            <Tabs.Panel
-              className="flex flex-col max-w-full gap-4 flex-1 p-2"
-              value="permissions"
-            >
-              <PermissionsTable file={fileBrowserState.propertiesTarget} />
-              <Button
-                className="!rounded-md !text-primary !text-nowrap !self-start"
-                onClick={() => {
-                  setShowPermissionsDialog(true);
-                }}
-                variant="outline"
+              {/*Permissions panel*/}
+              <Tabs.Panel
+                className="flex flex-col max-w-full gap-4 flex-1 p-2"
+                value="permissions"
               >
-                Change Permissions
-              </Button>
-            </Tabs.Panel>
+                <PermissionsTable file={fileBrowserState.propertiesTarget} />
+                <Button
+                  className="!rounded-md !text-primary !text-nowrap !self-start"
+                  onClick={() => {
+                    setShowPermissionsDialog(true);
+                  }}
+                  variant="outline"
+                >
+                  Change Permissions
+                </Button>
+              </Tabs.Panel>
 
-            {/*Task panel*/}
-            <Tabs.Panel
-              className="flex flex-col gap-4 flex-1 w-full p-2"
-              value="convert"
-            >
-              {ticket ? (
-                <TicketDetails />
-              ) : (
-                <>
-                  <Typography className="min-w-64">
-                    Scientific Computing can help you convert images to OME-Zarr
-                    format, suitable for viewing in external viewers like
-                    Neuroglancer.
-                  </Typography>
-                  <Button
-                    onClick={() => {
-                      setShowConvertFileDialog(true);
-                    }}
-                    variant="outline"
-                  >
-                    Open conversion request
-                  </Button>
-                </>
-              )}
-            </Tabs.Panel>
-          </Tabs>
+              {/*Task panel*/}
+              <Tabs.Panel
+                className="flex flex-col gap-4 flex-1 w-full p-2"
+                value="convert"
+              >
+                {ticket ? (
+                  <TicketDetails />
+                ) : (
+                  <>
+                    <Typography className="min-w-64">
+                      Scientific Computing can help you convert images to
+                      OME-Zarr format, suitable for viewing in external viewers
+                      like Neuroglancer.
+                    </Typography>
+                    <Button
+                      onClick={() => {
+                        setShowConvertFileDialog(true);
+                      }}
+                      variant="outline"
+                    >
+                      Open conversion request
+                    </Button>
+                  </>
+                )}
+              </Tabs.Panel>
+            </Tabs>
+          )
         ) : null}
       </Card>
       {showDataLinkDialog && !proxiedPath && !externalDataUrl ? (

@@ -18,14 +18,15 @@ const mockOpenWithToolUrls: OpenWithToolUrls = {
 // Test component that integrates the real hook with the dialog
 function TestDataLinkComponent() {
   const { handleDialogConfirm } = useDataToolLinks(
+    vi.fn(),
     mockOpenWithToolUrls,
     'copy',
-    vi.fn(),
     vi.fn()
   );
 
   return (
     <DataLinkDialog
+      tools={true}
       action="create"
       showDataLinkDialog={true}
       setShowDataLinkDialog={vi.fn()}
