@@ -27,10 +27,10 @@ The current code base is geared towards a Janelia deployment, but we are working
 ## Documentation
 
 - [User guide](https://janeliascicomp.github.io/fileglancer-user-docs/)
-- [Developer guide](./docs/Development.md)
+- [Developer guide](docs/Development.md)
 
 ## Related repositories
 
 - [fileglancer-central](https://github.com/JaneliaSciComp/fileglancer-central) - Central server managing access to a shared database and other resources
 - [fileglancer-hub](https://github.com/JaneliaSciComp/fileglancer-hub) - Deployment of Fileglancer into JupyterHub
-- [fileglancer-user-docs](https://github.com/JaneliaSciComp/fileglancer-user-docs) - User guide
+- [fileglancer-user-docs](https://github.com/JaneliaSciComp/fileglancer-docs) - User guide

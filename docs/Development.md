@@ -31,7 +31,7 @@ Saved changes in your directory should now be automatically built locally and av
 
 If everything has worked so far, you should see the Fileglancer widget on the Launcher pane:
 
-![Screenshot of the JupyterLab Launcher panel. In the bottom section, titled "Other", the square tile with the title "Fileglancer" is circled](./assets/img/launcher.png)
+![Screenshot of the JupyterLab Launcher panel. In the bottom section, titled "Other", the square tile with the title "Fileglancer" is circled](../assets/img/launcher.png)
 
 ### Troubleshooting the extension
 
@@ -96,9 +96,16 @@ pixi run test-frontend
 
 This extension uses [Playwright](https://playwright.dev/docs/intro) for the integration tests (aka user level tests).
 More precisely, the JupyterLab helper [Galata](https://github.com/jupyterlab/jupyterlab/tree/master/galata) is used to handle testing the extension in JupyterLab.
-More information are provided within the [ui-tests](./ui-tests/README.md) README.
 
-To execute the UI integration test, run:
+To execute the UI integration tests:
+
+Install test dependencies (needed only once):
+
+```bash
+pixi run npm --prefix ui-tests npx playwright install
+```
+
+Then run the tests with:
 
 ```bash
 pixi run ui-test
