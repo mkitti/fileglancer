@@ -8,6 +8,7 @@ type Profile = {
   username: string;
   homeFileSharePathName: string;
   homeDirectoryName: string;
+  groups: string[];
 };
 
 type ProfileContextType = {
@@ -31,7 +32,7 @@ export const useProfileContext = () => {
 export const ProfileContextProvider = ({
   children
 }: {
-  children: React.ReactNode;
+  readonly children: React.ReactNode;
 }) => {
   const [profile, setProfile] = React.useState<Profile | null>(null);
   const [loading, setLoading] = React.useState<boolean>(true);
