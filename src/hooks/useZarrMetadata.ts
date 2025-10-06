@@ -156,44 +156,44 @@ export default function useZarrMetadata() {
           fileBrowserState.currentFileOrFolder.path
         );
 
-        const zarrayFile = getFile('.zarray');
-        if (zarrayFile) {
-          await checkZarrArray(imageUrl, 2, signal);
-        } else {
-          const zattrsFile = getFile('.zattrs');
-          if (zattrsFile) {
-            const attrs = (await fetchFileAsJson(
-              fileBrowserState.currentFileSharePath.name,
-              zattrsFile.path,
-              cookies
-            )) as any;
-            if (signal.aborted) {
-              return;
-            }
-            if (attrs.multiscales) {
-              await checkOmeZarrMetadata(imageUrl, 2, signal);
+        const zarrJsonFile = getFile('zarr.json');
+        if (zarrJsonFile) {
+          const attrs = (await fetchFileAsJson(
+            fileBrowserState.currentFileSharePath.name,
+            zarrJsonFile.path,
+            cookies
+          )) as any;
+          if (signal.aborted) {
+            return;
+          }
+          if (attrs.node_type === 'array') {
+            await checkZarrArray(imageUrl, 3, signal);
+          } else if (attrs.node_type === 'group') {
+            if (attrs.attributes?.ome?.multiscales) {
+              await checkOmeZarrMetadata(imageUrl, 3, signal);
+            } else {
+              log.info('Zarrv3 group has no multiscales', attrs.attributes);
             }
           } else {
-            const zarrJsonFile = getFile('zarr.json');
-            if (zarrJsonFile) {
+            log.warn('Unknown Zarrv3 node type', attrs.node_type);
+          }
+        } else {
+          const zarrayFile = getFile('.zarray');
+          if (zarrayFile) {
+            await checkZarrArray(imageUrl, 2, signal);
+          } else {
+            const zattrsFile = getFile('.zattrs');
+            if (zattrsFile) {
               const attrs = (await fetchFileAsJson(
                 fileBrowserState.currentFileSharePath.name,
-                zarrJsonFile.path,
+                zattrsFile.path,
                 cookies
               )) as any;
               if (signal.aborted) {
                 return;
               }
-              if (attrs.node_type === 'array') {
-                await checkZarrArray(imageUrl, 3, signal);
-              } else if (attrs.node_type === 'group') {
-                if (attrs.attributes?.ome?.multiscales) {
-                  await checkOmeZarrMetadata(imageUrl, 3, signal);
-                } else {
-                  log.info('Zarrv3 group has no multiscales', attrs.attributes);
-                }
-              } else {
-                log.warn('Unknown Zarrv3 node type', attrs.node_type);
+              if (attrs.multiscales) {
+                await checkOmeZarrMetadata(imageUrl, 2, signal);
               }
             }
           }
