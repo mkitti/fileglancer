@@ -3,8 +3,9 @@ import { default as log } from '@/logger';
 
 import type { FileSharePath, Zone } from '@/shared.types';
 import { useCookiesContext } from '@/contexts/CookiesContext';
-import { useZoneAndFspMapContext } from './ZonesAndFspMapContext';
-import { useFileBrowserContext } from './FileBrowserContext';
+import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
+import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
+import { useCentralServerHealthContext } from '@/contexts/CentralServerHealthContext';
 import { sendFetchRequest, makeMapKey, HTTPError } from '@/utils';
 import { createSuccess, handleError, toHttpError } from '@/utils/errorHandling';
 import type { Result } from '@/shared.types';
@@ -95,8 +96,6 @@ export const PreferencesProvider = ({
   ] = React.useState<boolean>(false);
   const [useLegacyMultichannelApproach, setUseLegacyMultichannelApproach] =
     React.useState<boolean>(false);
-  const [isFilteredByGroups, setIsFilteredByGroups] =
-    React.useState<boolean>(true);
   const [zonePreferenceMap, setZonePreferenceMap] = React.useState<
     Record<string, ZonePreference>
   >({});
@@ -121,6 +120,12 @@ export const PreferencesProvider = ({
     React.useState(false);
   const [layout, setLayout] = React.useState<string>('');
   const [isLayoutLoadedFromDB, setIsLayoutLoadedFromDB] = React.useState(false);
+
+  const { status } = useCentralServerHealthContext();
+  // If Central Server status is 'ignore', default to false to skip filtering by groups
+  const [isFilteredByGroups, setIsFilteredByGroups] = React.useState<boolean>(
+    status === 'ignore' ? false : true
+  );
 
   const { cookies } = useCookiesContext();
   const { isZonesMapReady, zonesAndFileSharePathsMap } =
@@ -261,8 +266,13 @@ export const PreferencesProvider = ({
   const toggleFilterByGroups = React.useCallback(async (): Promise<
     Result<void>
   > => {
+    if (status === 'ignore') {
+      return handleError(
+        new Error('Cannot filter by groups; central server configuration issue')
+      );
+    }
     return await togglePreference('isFilteredByGroups', setIsFilteredByGroups);
-  }, [togglePreference]);
+  }, [togglePreference, status]);
 
   const toggleHideDotFiles = React.useCallback(async (): Promise<
     Result<void>
