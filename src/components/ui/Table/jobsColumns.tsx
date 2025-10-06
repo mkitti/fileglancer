@@ -28,7 +28,10 @@ function FilePathCell({ item }: { readonly item: Ticket }) {
 
   return (
     <div className="line-clamp-2 max-w-full">
-      <FgStyledLink to={makeBrowseLink(item.fsp_name, item.path)}>
+      <FgStyledLink
+        onClick={handleClick}
+        to={makeBrowseLink(item.fsp_name, item.path)}
+      >
         {displayPath}
       </FgStyledLink>
     </div>
