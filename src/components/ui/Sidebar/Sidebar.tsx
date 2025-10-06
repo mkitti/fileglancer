@@ -4,7 +4,7 @@ import { HiOutlineFunnel, HiXMark } from 'react-icons/hi2';
 
 import FavoritesBrowser from './FavoritesBrowser';
 import ZonesBrowser from './ZonesBrowser';
-import useSearchFilter from '@/hooks/useSearchFilter';
+import useFilteredZonesAndFavorites from '@/hooks/useFilteredZonesAndFavorites';
 
 export default function Sidebar() {
   const {
@@ -15,7 +15,8 @@ export default function Sidebar() {
     filteredZoneFavorites,
     filteredFileSharePathFavorites,
     filteredFolderFavorites
-  } = useSearchFilter();
+  } = useFilteredZonesAndFavorites();
+
   return (
     <Card className="min-w-full h-full overflow-hidden rounded-none bg-surface shadow-lg flex flex-col pl-3">
       <div className="my-3 short:my-1 relative">
