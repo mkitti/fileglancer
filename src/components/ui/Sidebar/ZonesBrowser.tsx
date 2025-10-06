@@ -4,9 +4,11 @@ import { HiSquares2X2 } from 'react-icons/hi2';
 
 import { ZonesAndFileSharePathsMap } from '@/shared.types';
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import useOpenZones from '@/hooks/useOpenZones';
 import Zone from './Zone';
 import { SidebarItemSkeleton } from '@/components/ui/widgets/Loaders';
+import { Link } from 'react-router';
 
 export default function ZonesBrowser({
   searchQuery,
@@ -17,6 +19,7 @@ export default function ZonesBrowser({
 }) {
   const { zonesAndFileSharePathsMap, areZoneDataLoading } =
     useZoneAndFspMapContext();
+  const { isFilteredByGroups } = usePreferencesContext();
   const { openZones, toggleOpenZones } = useOpenZones();
 
   const displayZones: ZonesAndFileSharePathsMap =
@@ -78,6 +81,36 @@ export default function ZonesBrowser({
                 }
               })
             )}
+
+            <div className="px-4 py-6 text-center">
+              {isFilteredByGroups ? (
+                <>
+                  <Typography className="text-sm text-gray-500">
+                    Showing only Zones for groups you have membership in.
+                  </Typography>
+                  <Typography className="text-xs text-gray-400 mt-1">
+                    Modify your{' '}
+                    <Link className="text-primary underline" to="/preferences">
+                      preferences
+                    </Link>{' '}
+                    to see all Zones.
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  <Typography className="text-sm text-gray-500">
+                    Showing all Zones.
+                  </Typography>
+                  <Typography className="text-xs text-gray-400 mt-1">
+                    Modify your{' '}
+                    <Link className="text-primary underline" to="/preferences">
+                      preferences
+                    </Link>{' '}
+                    to see only Zones for groups you have membership in.
+                  </Typography>
+                </>
+              )}
+            </div>
           </List>
         )}
       </Collapse>
