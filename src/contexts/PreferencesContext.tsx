@@ -8,6 +8,11 @@ import { useFileBrowserContext } from './FileBrowserContext';
 import { sendFetchRequest, makeMapKey, HTTPError } from '@/utils';
 import { createSuccess, handleError, toHttpError } from '@/utils/errorHandling';
 import type { Result } from '@/shared.types';
+import {
+  LAYOUT_NAME,
+  WITH_PROPERTIES_AND_SIDEBAR,
+  ONLY_PROPERTIES
+} from '@/constants/layoutConstants';
 
 export type FolderFavorite = {
   type: 'folder';
