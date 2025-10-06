@@ -91,7 +91,6 @@ export default function Folder({
   return (
     <>
       <List.Item
-        className="pl-6 w-full flex gap-2 items-center justify-between rounded-md cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 "
         className="group pl-6 w-full flex gap-2 items-center justify-between rounded-md cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 "
         key={mapKey}
         onClick={

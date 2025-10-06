@@ -108,7 +108,6 @@ export default function Browse() {
       }}
       ref={containerRef}
       tabIndex={0}
-      tabIndex={0}
     >
       <Toolbar
         showPropertiesDrawer={showPropertiesDrawer}
