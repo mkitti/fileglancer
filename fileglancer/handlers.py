@@ -1060,11 +1060,13 @@ class ProfileHandler(BaseHandler):
         username = self.get_current_user()
         home_fsp_name = self.get_home_file_share_path_name()
         home_directory_name = os.path.basename(self.get_home_directory_path())
-        self.log.info(f"GET /api/fileglancer/profile username={username} home_fsp_name={home_fsp_name} home_directory_name={home_directory_name}")
+        groups = self.get_user_groups()
+        self.log.info(f"GET /api/fileglancer/profile username={username} home_fsp_name={home_fsp_name} home_directory_name={home_directory_name} groups={groups}")
         response = {
             "username": username,
             "homeFileSharePathName": home_fsp_name,
             "homeDirectoryName": home_directory_name,
+            "groups": groups,
         }
         try:
             self.set_status(200)
