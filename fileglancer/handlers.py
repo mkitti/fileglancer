@@ -385,7 +385,8 @@ class FileMetadataHandler(FileShareHandler):
             return
 
         try:
-            file_info = filestore.get_file_info(subpath)
+            current_user = self.get_current_user()
+            file_info = filestore.get_file_info(subpath, current_user)
             self.log.info(f"File info: {file_info}")
 
             # Write JSON response, streaming the files one by one
@@ -397,7 +398,7 @@ class FileMetadataHandler(FileShareHandler):
             if file_info.is_dir:
                 self.write(",\n")
                 try:
-                    files = list(filestore.yield_file_infos(subpath))
+                    files = list(filestore.yield_file_infos(subpath, current_user))
                     self.write("\"files\": [\n")
                     for i, file in enumerate(files):
                         if i > 0:
@@ -479,7 +480,8 @@ class FileMetadataHandler(FileShareHandler):
         if file_info is None:
             raise web.HTTPError(400, "JSON body missing")
 
-        old_file_info = filestore.get_file_info(subpath)
+        current_user = self.get_current_user()
+        old_file_info = filestore.get_file_info(subpath, current_user)
         new_path = file_info.get("path")
         new_permissions = file_info.get("permissions")
 

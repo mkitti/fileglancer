@@ -287,6 +287,8 @@ export const FileBrowserContextProvider = ({
           last_modified: bodyInfo?.last_modified || 0,
           owner: bodyInfo?.owner || '',
           group: bodyInfo?.group || '',
+          hasRead: bodyInfo?.hasRead || false,
+          hasWrite: bodyInfo?.haswrite || false,
           permissions: bodyInfo?.permissions || ''
         };
 
