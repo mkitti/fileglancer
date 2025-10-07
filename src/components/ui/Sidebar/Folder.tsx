@@ -42,6 +42,10 @@ export default function Folder({
   const { pathPreference, handleFavoriteChange } = usePreferencesContext();
   const { cookies } = useCookiesContext();
 
+  if (!fsp) {
+    return null;
+  }
+
   const folderFavorite = React.useMemo(() => {
     if (isFavoritable) {
       return {
