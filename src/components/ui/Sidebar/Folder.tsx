@@ -42,10 +42,6 @@ export default function Folder({
   const { pathPreference, handleFavoriteChange } = usePreferencesContext();
   const { cookies } = useCookiesContext();
 
-  if (!fsp) {
-    return null;
-  }
-
   const folderFavorite = React.useMemo(() => {
     if (isFavoritable) {
       return {
@@ -65,6 +61,10 @@ export default function Folder({
   const mapKey = makeMapKey('folder', `${fsp.name}_${folderPath}`) as string;
 
   const link = makeBrowseLink(fsp.name, folderPath);
+
+  if (!fsp) {
+    return null;
+  }
 
   async function checkFavFolderExists() {
     if (!folderFavorite || !isFavoritable) {
