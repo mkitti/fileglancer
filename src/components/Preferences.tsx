@@ -150,7 +150,7 @@ export default function Preferences() {
               className="text-foreground"
               htmlFor="is_filtered_by_groups"
             >
-              Filter Zones by group membership
+              Display Zones for your groups only
             </Typography>
           </div>
 

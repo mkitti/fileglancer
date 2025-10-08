@@ -61,10 +61,10 @@ export default function ZonesBrowser({
             Object.keys(displayZones).length === 0 ? (
               <div className="px-4 py-6 text-center">
                 <Typography className="text-sm text-gray-500">
-                  No zones match your filter.
+                  No zones match your filter '{searchQuery}'
                 </Typography>
                 <Typography className="text-xs text-gray-400 mt-1">
-                  Try broadening your search to see more results.
+                  Try broadening your search to see more results
                 </Typography>
               </div>
             ) : (
@@ -86,27 +86,27 @@ export default function ZonesBrowser({
               {isFilteredByGroups ? (
                 <>
                   <Typography className="text-sm text-gray-500">
-                    Showing only Zones for groups you have membership in.
+                    Viewing Zones for your groups only
                   </Typography>
                   <Typography className="text-xs text-gray-400 mt-1">
                     Modify your{' '}
                     <Link className="text-primary underline" to="/preferences">
                       preferences
                     </Link>{' '}
-                    to see all Zones.
+                    to see all Zones
                   </Typography>
                 </>
               ) : (
                 <>
                   <Typography className="text-sm text-gray-500">
-                    Showing all Zones.
+                    Viewing all Zones
                   </Typography>
                   <Typography className="text-xs text-gray-400 mt-1">
                     Modify your{' '}
                     <Link className="text-primary underline" to="/preferences">
                       preferences
                     </Link>{' '}
-                    to see only Zones for groups you have membership in.
+                    to see Zones for your groups only
                   </Typography>
                 </>
               )}
