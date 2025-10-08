@@ -8,6 +8,11 @@ import { useFileBrowserContext } from './FileBrowserContext';
 import { sendFetchRequest, makeMapKey, HTTPError } from '@/utils';
 import { createSuccess, handleError, toHttpError } from '@/utils/errorHandling';
 import type { Result } from '@/shared.types';
+import {
+  LAYOUT_NAME,
+  WITH_PROPERTIES_AND_SIDEBAR,
+  ONLY_PROPERTIES
+} from '@/constants/layoutConstants';
 
 export type FolderFavorite = {
   type: 'folder';
@@ -53,6 +58,7 @@ type PreferencesContextType = {
   recentlyViewedFolders: FolderPreference[];
   layout: string;
   handleUpdateLayout: (layout: string) => Promise<void>;
+  setLayoutWithPropertiesOpen: () => Promise<Result<void>>;
   loadingRecentlyViewedFolders: boolean;
   isLayoutLoadedFromDB: boolean;
   handleContextMenuFavorite: () => Promise<Result<boolean>>;
@@ -221,6 +227,34 @@ export const PreferencesProvider = ({
   const handleUpdateLayout = async (layout: string): Promise<void> => {
     await savePreferencesToBackend('layout', layout);
     setLayout(layout);
+  };
+
+  const setLayoutWithPropertiesOpen = async (): Promise<Result<void>> => {
+    try {
+      // Keep sidebar in new layout if it is currently present
+      const hasSidebar = layout.includes('sidebar');
+
+      const layoutKey = hasSidebar
+        ? WITH_PROPERTIES_AND_SIDEBAR
+        : ONLY_PROPERTIES;
+
+      const layoutSizes = hasSidebar ? [24, 50, 26] : [75, 25];
+
+      const newLayout = {
+        [LAYOUT_NAME]: {
+          [layoutKey]: {
+            expandToSizes: {},
+            layout: layoutSizes
+          }
+        }
+      };
+      const newLayoutString = JSON.stringify(newLayout);
+      await savePreferencesToBackend('layout', newLayoutString);
+      setLayout(newLayoutString);
+      return createSuccess(undefined);
+    } catch (error) {
+      return handleError(error);
+    }
   };
 
   const handlePathPreferenceSubmit = React.useCallback(
@@ -750,6 +784,7 @@ export const PreferencesProvider = ({
         recentlyViewedFolders,
         layout,
         handleUpdateLayout,
+        setLayoutWithPropertiesOpen,
         loadingRecentlyViewedFolders,
         isLayoutLoadedFromDB,
         handleContextMenuFavorite
