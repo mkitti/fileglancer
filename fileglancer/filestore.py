@@ -1,5 +1,5 @@
 """
-A module that provides a simple interface for interacting with a file system, 
+A module that provides a simple interface for interacting with a file system,
 rooted at a specific directory.
 """
 
@@ -32,9 +32,11 @@ class FileInfo(BaseModel):
     owner: Optional[str] = None
     group: Optional[str] = None
     last_modified: Optional[float] = None
+    hasRead: Optional[bool] = None
+    hasWrite: Optional[bool] = None
 
     @classmethod
-    def from_stat(cls, path: str, full_path: str, stat_result: os.stat_result):
+    def from_stat(cls, path: str, full_path: str, stat_result: os.stat_result, current_user: str = None):
         """Create FileInfo from os.stat_result"""
         if path is None or path == "":
             raise ValueError("Path cannot be None or empty")
@@ -56,7 +58,14 @@ class FileInfo(BaseModel):
         except KeyError:
             # If the group ID is not found, use the group ID as the group
             group = str(stat_result.st_gid)
-        
+
+        # Calculate read/write permissions for current user
+        hasRead = None
+        hasWrite = None
+        if current_user is not None:
+            hasRead = cls._has_read_permission(stat_result, current_user, owner, group)
+            hasWrite = cls._has_write_permission(stat_result, current_user, owner, group)
+
         return cls(
             name=name,
             path=path,
@@ -65,13 +74,71 @@ class FileInfo(BaseModel):
             permissions=permissions,
             owner=owner,
             group=group,
-            last_modified=last_modified
+            last_modified=last_modified,
+            hasRead=hasRead,
+            hasWrite=hasWrite
         )
+
+    @staticmethod
+    def _has_read_permission(stat_result: os.stat_result, current_user: str, owner: str, group: str) -> bool:
+        """Check if current user has read permission"""
+        mode = stat_result.st_mode
+
+        # Check owner permissions
+        if current_user == owner:
+            return bool(mode & stat.S_IRUSR)
+
+        # Check group permissions
+        try:
+            user_groups = [g.gr_name for g in grp.getgrall() if current_user in g.gr_mem]
+            # Also add user's primary group
+            try:
+                primary_gid = pwd.getpwnam(current_user).pw_gid
+                primary_group = grp.getgrgid(primary_gid).gr_name
+                user_groups.append(primary_group)
+            except (KeyError, OSError):
+                pass
+
+            if group in user_groups:
+                return bool(mode & stat.S_IRGRP)
+        except (KeyError, OSError):
+            pass
+
+        # Check other permissions
+        return bool(mode & stat.S_IROTH)
+
+    @staticmethod
+    def _has_write_permission(stat_result: os.stat_result, current_user: str, owner: str, group: str) -> bool:
+        """Check if current user has write permission"""
+        mode = stat_result.st_mode
+
+        # Check owner permissions
+        if current_user == owner:
+            return bool(mode & stat.S_IWUSR)
+
+        # Check group permissions
+        try:
+            user_groups = [g.gr_name for g in grp.getgrall() if current_user in g.gr_mem]
+            # Also add user's primary group
+            try:
+                primary_gid = pwd.getpwnam(current_user).pw_gid
+                primary_group = grp.getgrgid(primary_gid).gr_name
+                user_groups.append(primary_group)
+            except (KeyError, OSError):
+                pass
+
+            if group in user_groups:
+                return bool(mode & stat.S_IWGRP)
+        except (KeyError, OSError):
+            pass
+
+        # Check other permissions
+        return bool(mode & stat.S_IWOTH)
 
 
 class Filestore:
     """
-    A class that provides a simple interface for interacting with a file system, 
+    A class that provides a simple interface for interacting with a file system,
     rooted at a specific directory.
     """
 
@@ -102,16 +169,16 @@ class Filestore:
             if not full_path.startswith(self.root_path):
                 raise ValueError(f"Path ({full_path}) attempts to escape root directory ({self.root_path})")
         return full_path
-    
 
-    def _get_file_info_from_path(self, full_path: str) -> FileInfo:
+
+    def _get_file_info_from_path(self, full_path: str, current_user: str = None) -> FileInfo:
         """
         Get the FileInfo for a file or directory at the given path.
         """
         stat_result = os.stat(full_path)
         # Regenerate the relative path to ensure it is not empty (None and empty string are converted to '.' here)
         rel_path = os.path.relpath(full_path, self.root_path)
-        return FileInfo.from_stat(rel_path, full_path, stat_result)
+        return FileInfo.from_stat(rel_path, full_path, stat_result, current_user)
 
 
     def get_root_path(self) -> str:
@@ -121,35 +188,39 @@ class Filestore:
         return self.root_path
 
 
-    def get_file_info(self, path: Optional[str] = None) -> FileInfo:
+    def get_file_info(self, path: Optional[str] = None, current_user: str = None) -> FileInfo:
         """
         Get the FileInfo for a file or directory at the given path.
 
         Args:
             path (str): The relative path to the file or directory to get the FileInfo for.
                 May be None, in which case the root directory is used.
-        
+            current_user (str): The username of the current user for permission checking.
+                May be None, in which case hasRead and hasWrite will be None.
+
         Raises:
             ValueError: If path attempts to escape root directory
         """
         full_path = self._check_path_in_root(path)
-        return self._get_file_info_from_path(full_path)
-    
+        return self._get_file_info_from_path(full_path, current_user)
 
-    def yield_file_infos(self, path: Optional[str] = None) -> Generator[FileInfo, None, None]:
+
+    def yield_file_infos(self, path: Optional[str] = None, current_user: str = None) -> Generator[FileInfo, None, None]:
         """
         Yield a FileInfo object for each child of the given path.
 
         Args:
-            path (str): The relative path to the directory to list. 
+            path (str): The relative path to the directory to list.
                 May be None, in which case the root directory is listed.
-            
+            current_user (str): The username of the current user for permission checking.
+                May be None, in which case hasRead and hasWrite will be None.
+
         Raises:
             PermissionError: If the path is not accessible due to permissions.
             FileNotFoundError: If the path does not exist.
         """
         full_path = self._check_path_in_root(path)
-    
+
         entries = os.listdir(full_path)
         # Sort entries in alphabetical order, with directories listed first
         entries.sort(key=lambda e: (not os.path.isdir(
@@ -157,7 +228,7 @@ class Filestore:
         for entry in entries:
             entry_path = os.path.join(full_path, entry)
             try:
-                yield self._get_file_info_from_path(entry_path)
+                yield self._get_file_info_from_path(entry_path, current_user)
             except (FileNotFoundError, PermissionError, OSError) as e:
                 log.error(f"Error accessing entry: {entry_path}: {e}")
                 continue
@@ -169,9 +240,9 @@ class Filestore:
 
         Args:
             path (str): The path to the file to stream.
-            buffer_size (int): The size of the buffer to use when reading the file. 
+            buffer_size (int): The size of the buffer to use when reading the file.
                 Defaults to DEFAULT_BUFFER_SIZE, which is 8192 bytes.
-                
+
         Raises:
             ValueError: If path attempts to escape root directory
         """
@@ -194,7 +265,7 @@ class Filestore:
             start (int): The starting byte position (inclusive).
             end (int): The ending byte position (inclusive).
             buffer_size (int): The size of the buffer to use when reading the file.
-                
+
         Raises:
             ValueError: If path attempts to escape root directory or if range is invalid
         """
@@ -204,12 +275,12 @@ class Filestore:
             raise ValueError("Start position cannot be negative")
         if end < start:
             raise ValueError("End position cannot be less than start position")
-        
+
         full_path = self._check_path_in_root(path)
         with open(full_path, 'rb') as file:
             file.seek(start)
             remaining = end - start + 1
-            
+
             while remaining > 0:
                 chunk_size = min(buffer_size, remaining)
                 chunk = file.read(chunk_size)
@@ -226,7 +297,7 @@ class Filestore:
         Args:
             old_path (str): The relative path to the file to rename.
             new_path (str): The new relative path for the file.
-            
+
         Raises:
             ValueError: If either path attempts to escape root directory
         """
@@ -245,7 +316,7 @@ class Filestore:
 
         Args:
             path (str): The relative path to the file to delete.
-            
+
         Raises:
             ValueError: If path is None or empty, or attempts to escape root directory
         """
@@ -298,9 +369,9 @@ class Filestore:
             path (str): The relative path to the file to change the permissions of.
             permissions (str): The new permissions to set for the file.
                 Must be a string of length 10, like '-rw-r--r--'.
-        
+
         Raises:
-            ValueError: If path is None or empty, or attempts to escape root directory, 
+            ValueError: If path is None or empty, or attempts to escape root directory,
                 or permissions is not a string of length 10.
         """
         if path is None or path == "":

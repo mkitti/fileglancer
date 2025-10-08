@@ -193,7 +193,10 @@ export default function PropertiesDrawer({
                     <Switch
                       checked={externalDataUrl || proxiedPath ? true : false}
                       className="before:bg-primary/50 after:border-primary/50 checked:disabled:before:bg-surface checked:disabled:before:border checked:disabled:before:border-surface-dark checked:disabled:after:border-surface-dark"
-                      disabled={externalDataUrl ? true : false}
+                      disabled={
+                        externalDataUrl ||
+                        fileBrowserState.propertiesTarget.hasWrite === false
+                      }
                       id="share-switch"
                       onChange={async () => {
                         if (areDataLinksAutomatic && !proxiedPath) {
@@ -205,7 +208,7 @@ export default function PropertiesDrawer({
                     />
                     <Typography
                       as="label"
-                      className={`${externalDataUrl ? 'cursor-default' : 'cursor-pointer'} text-foreground font-semibold`}
+                      className={`${externalDataUrl || fileBrowserState.propertiesTarget.hasWrite === false ? 'cursor-default' : 'cursor-pointer'} text-foreground font-semibold`}
                       htmlFor="share-switch"
                     >
                       {proxiedPath ? 'Delete data link' : 'Create data link'}
@@ -238,6 +241,7 @@ export default function PropertiesDrawer({
               <PermissionsTable file={fileBrowserState.propertiesTarget} />
               <Button
                 className="!rounded-md !text-primary !text-nowrap !self-start"
+                disabled={fileBrowserState.propertiesTarget.hasWrite === false}
                 onClick={() => {
                   setShowPermissionsDialog(true);
                 }}
@@ -262,6 +266,9 @@ export default function PropertiesDrawer({
                     Neuroglancer.
                   </Typography>
                   <Button
+                    disabled={
+                      fileBrowserState.propertiesTarget.hasWrite === false
+                    }
                     onClick={() => {
                       setShowConvertFileDialog(true);
                     }}
