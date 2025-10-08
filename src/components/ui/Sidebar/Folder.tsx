@@ -62,6 +62,10 @@ export default function Folder({
 
   const link = makeBrowseLink(fsp.name, folderPath);
 
+  if (!fsp) {
+    return null;
+  }
+
   async function checkFavFolderExists() {
     if (!folderFavorite || !isFavoritable) {
       return;
