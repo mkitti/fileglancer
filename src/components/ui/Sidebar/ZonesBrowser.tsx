@@ -70,9 +70,9 @@ export default function ZonesBrowser({
                   return (
                     <Zone
                       key={key}
-                      zone={value}
                       openZones={openZones}
                       toggleOpenZones={toggleOpenZones}
+                      zone={value}
                     />
                   );
                 }
