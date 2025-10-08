@@ -1,4 +1,5 @@
 import { Page } from '@playwright/test';
+import type { IJupyterLabPageFixture } from '@jupyterlab/galata';
 
 const sleepInSecs = (secs: number) =>
   new Promise(resolve => setTimeout(resolve, secs * 1000));

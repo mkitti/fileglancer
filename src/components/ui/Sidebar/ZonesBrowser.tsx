@@ -4,9 +4,11 @@ import { HiSquares2X2 } from 'react-icons/hi2';
 
 import { ZonesAndFileSharePathsMap } from '@/shared.types';
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import useOpenZones from '@/hooks/useOpenZones';
 import Zone from './Zone';
 import { SidebarItemSkeleton } from '@/components/ui/widgets/Loaders';
+import { Link } from 'react-router';
 
 export default function ZonesBrowser({
   searchQuery,
@@ -17,6 +19,7 @@ export default function ZonesBrowser({
 }) {
   const { zonesAndFileSharePathsMap, areZoneDataLoading } =
     useZoneAndFspMapContext();
+  const { isFilteredByGroups } = usePreferencesContext();
   const { openZones, toggleOpenZones } = useOpenZones();
 
   const displayZones: ZonesAndFileSharePathsMap =
@@ -58,10 +61,10 @@ export default function ZonesBrowser({
             Object.keys(displayZones).length === 0 ? (
               <div className="px-4 py-6 text-center">
                 <Typography className="text-sm text-gray-500">
-                  No zones match your filter.
+                  No zones match your filter '{searchQuery}'
                 </Typography>
                 <Typography className="text-xs text-gray-400 mt-1">
-                  Try broadening your search to see more results.
+                  Try broadening your search to see more results
                 </Typography>
               </div>
             ) : (
@@ -78,6 +81,36 @@ export default function ZonesBrowser({
                 }
               })
             )}
+
+            <div className="px-4 py-6 text-center">
+              {isFilteredByGroups ? (
+                <>
+                  <Typography className="text-sm text-gray-500">
+                    Viewing Zones for your groups only
+                  </Typography>
+                  <Typography className="text-xs text-gray-400 mt-1">
+                    Modify your{' '}
+                    <Link className="text-primary underline" to="/preferences">
+                      preferences
+                    </Link>{' '}
+                    to see all Zones
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  <Typography className="text-sm text-gray-500">
+                    Viewing all Zones
+                  </Typography>
+                  <Typography className="text-xs text-gray-400 mt-1">
+                    Modify your{' '}
+                    <Link className="text-primary underline" to="/preferences">
+                      preferences
+                    </Link>{' '}
+                    to see Zones for your groups only
+                  </Typography>
+                </>
+              )}
+            </div>
           </List>
         )}
       </Collapse>

@@ -6,7 +6,7 @@ test.beforeEach('Open fileglancer', async ({ page }) => {
 });
 
 test('Home becomes visible when Local is expanded', async ({ page }) => {
-  const zonesLocator = page.getByText('Zones');
+  const zonesLocator = page.getByText('Zones', { exact: true });
   const homeLocator = page.getByRole('link', { name: 'home', exact: true });
   const localZoneLocator = page.getByText('Local');
 
