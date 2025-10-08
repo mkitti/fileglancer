@@ -152,9 +152,9 @@ export const PreferencesProvider = ({
 
   const accessMapItems = React.useCallback(
     (keys: string[]) => {
-      const itemsArray = keys.map(key => {
-        return zonesAndFileSharePathsMap[key];
-      });
+      const itemsArray = keys
+        .map(key => zonesAndFileSharePathsMap[key])
+        .filter(item => item !== undefined);
       return itemsArray;
     },
     [zonesAndFileSharePathsMap]
