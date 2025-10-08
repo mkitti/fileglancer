@@ -157,28 +157,28 @@ export default function FileglancerNavbar() {
           <FgTooltip label="GitHub">
             <IconButton
               as={Link}
-              to="https://github.com/JaneliaSciComp/fileglancer"
-              target="_blank"
-              rel="noopener noreferrer"
-              size="sm"
-              variant="ghost"
+              className="text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
               color="secondary"
               onClick={() => trackEvent({ eventId: 'navbar_github_click' })}
-              className="text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
+              rel="noopener noreferrer"
+              size="sm"
+              target="_blank"
+              to="https://github.com/JaneliaSciComp/fileglancer"
+              variant="ghost"
             >
               <TbBrandGithub className="icon-large short:icon-default" />
             </IconButton>
           </FgTooltip>
           <FgTooltip label="Toggle light/dark themes">
             <IconButton
-              size="sm"
-              variant="ghost"
-              color="secondary"
               className="text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
+              color="secondary"
               onClick={() => {
                 trackEvent({ eventId: 'navbar_theme_toggle_click' });
                 toggleTheme();
               }}
+              size="sm"
+              variant="ghost"
             >
               {isLightTheme ? (
                 <HiOutlineSun className="stroke-2 icon-large short:icon-default" />
@@ -193,14 +193,14 @@ export default function FileglancerNavbar() {
           {/* Mobile menu links button */}
           <FgTooltip label="Navigation menu">
             <IconButton
-              size="sm"
-              variant="ghost"
+              className="mr-2 text-foreground hover:!text-foreground focus:!text-foreground lg:hidden hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
               color="secondary"
               onClick={() => {
                 trackEvent({ eventId: 'navbar_mobile_menu_toggle_click' });
                 setOpenNav(!openNav);
               }}
-              className="mr-2 text-foreground hover:!text-foreground focus:!text-foreground lg:hidden hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
+              size="sm"
+              variant="ghost"
             >
               {openNav ? (
                 <HiOutlineX className="stroke-2 icon-large short:icon-default" />
