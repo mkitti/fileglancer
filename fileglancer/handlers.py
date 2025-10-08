@@ -2,6 +2,8 @@ import os
 import json
 import requests
 import re
+import grp
+import pwd
 from datetime import datetime, timezone
 from abc import ABC
 from mimetypes import guess_type
@@ -52,10 +54,11 @@ def _get_mounted_filestore(fsp):
     except FileNotFoundError:
         return None
     return filestore
-
+    
 
 class BaseHandler(APIHandler):
     _home_file_share_path_cache = {}
+    _groups_cache = {}
 
     def get_current_user(self):
         """
@@ -98,6 +101,36 @@ class BaseHandler(APIHandler):
         return None
 
 
+    def get_user_groups(self):
+        """
+        Get the groups for the current user.
+        
+        Returns:
+            list: List of group names the user belongs to.
+        """
+        username = self.get_current_user()
+
+        if username in self._groups_cache:
+            return self._groups_cache[username]
+
+        try:
+            user_info = pwd.getpwnam(username)
+            user_groups = []
+            all_groups = grp.getgrall()  # Get all groups on the system
+            for group in all_groups:
+                if username in group.gr_mem:  # Check if user is a member of this group
+                    user_groups.append(group.gr_name)
+            primary_group = grp.getgrgid(user_info.pw_gid).gr_name
+            if primary_group not in user_groups: # Add primary group if not already included
+                user_groups.append(primary_group)
+            self._groups_cache[username] = user_groups
+            return user_groups
+        except Exception as e:
+            self.log.error(f"Error getting groups for user {username}: {str(e)}")
+            self._groups_cache[username] = []
+            return []
+
+
 class StreamingProxy(BaseHandler):
     """
     API handler for proxying responses from the central server
@@ -132,13 +165,13 @@ class FileSharePathsHandler(BaseHandler):
     def get(self):
         self.log.info("GET /api/fileglancer/file-share-paths")
         file_share_paths = get_fsp_manager(self.settings).get_file_share_paths()
+    
         self.set_header('Content-Type', 'application/json')
         self.set_status(200)
         # Convert Pydantic objects to dicts before JSON serialization
         file_share_paths_json = {"paths": [fsp.model_dump() for fsp in file_share_paths]}
         self.write(json.dumps(file_share_paths_json))
         self.finish()
-
 
 
 class FileShareHandler(BaseHandler, ABC):
@@ -385,7 +418,8 @@ class FileMetadataHandler(FileShareHandler):
             return
 
         try:
-            file_info = filestore.get_file_info(subpath)
+            current_user = self.get_current_user()
+            file_info = filestore.get_file_info(subpath, current_user)
             self.log.info(f"File info: {file_info}")
 
             # Write JSON response, streaming the files one by one
@@ -397,7 +431,7 @@ class FileMetadataHandler(FileShareHandler):
             if file_info.is_dir:
                 self.write(",\n")
                 try:
-                    files = list(filestore.yield_file_infos(subpath))
+                    files = list(filestore.yield_file_infos(subpath, current_user))
                     self.write("\"files\": [\n")
                     for i, file in enumerate(files):
                         if i > 0:
@@ -479,7 +513,8 @@ class FileMetadataHandler(FileShareHandler):
         if file_info is None:
             raise web.HTTPError(400, "JSON body missing")
 
-        old_file_info = filestore.get_file_info(subpath)
+        current_user = self.get_current_user()
+        old_file_info = filestore.get_file_info(subpath, current_user)
         new_path = file_info.get("path")
         new_permissions = file_info.get("permissions")
 
@@ -1028,11 +1063,13 @@ class ProfileHandler(BaseHandler):
         username = self.get_current_user()
         home_fsp_name = self.get_home_file_share_path_name()
         home_directory_name = os.path.basename(self.get_home_directory_path())
-        self.log.info(f"GET /api/fileglancer/profile username={username} home_fsp_name={home_fsp_name} home_directory_name={home_directory_name}")
+        groups = self.get_user_groups()
+        self.log.info(f"GET /api/fileglancer/profile username={username} home_fsp_name={home_fsp_name} home_directory_name={home_directory_name} groups={groups}")
         response = {
             "username": username,
             "homeFileSharePathName": home_fsp_name,
             "homeDirectoryName": home_directory_name,
+            "groups": groups,
         }
         try:
             self.set_status(200)

@@ -10,6 +10,7 @@ import {
 import toast from 'react-hot-toast';
 import { HiOutlineDocument, HiOutlineDuplicate, HiX } from 'react-icons/hi';
 import { HiOutlineFolder } from 'react-icons/hi2';
+import { useLocation } from 'react-router';
 
 import PermissionsTable from '@/components/ui/PropertiesDrawer/PermissionsTable';
 import OverviewTable from '@/components/ui/PropertiesDrawer/OverviewTable';
@@ -80,8 +81,10 @@ export default function PropertiesDrawer({
   setShowPermissionsDialog,
   setShowConvertFileDialog
 }: PropertiesDrawerProps): JSX.Element {
+  const location = useLocation();
   const [showDataLinkDialog, setShowDataLinkDialog] =
     React.useState<boolean>(false);
+  const [activeTab, setActiveTab] = React.useState<string>('overview');
 
   const { fileBrowserState } = useFileBrowserContext();
   const { pathPreference, areDataLinksAutomatic } = usePreferencesContext();
@@ -94,6 +97,13 @@ export default function PropertiesDrawer({
     handleCreateDataLink,
     handleDeleteDataLink
   } = useDataToolLinks(setShowDataLinkDialog);
+
+  // Set active tab to 'convert' when navigating from jobs page
+  React.useEffect(() => {
+    if (location.state?.openConvertTab) {
+      setActiveTab('convert');
+    }
+  }, [location.state]);
 
   const fullPath = getPreferredPathForDisplay(
     pathPreference,
@@ -145,8 +155,9 @@ export default function PropertiesDrawer({
         {fileBrowserState.propertiesTarget ? (
           <Tabs
             className="flex flex-col flex-1 min-h-0 "
-            defaultValue="overview"
             key="file-properties-tabs"
+            onValueChange={setActiveTab}
+            value={activeTab}
           >
             <Tabs.List className="justify-start items-stretch shrink-0 min-w-fit w-full py-2 bg-surface dark:bg-surface-light">
               <Tabs.Trigger
@@ -182,7 +193,10 @@ export default function PropertiesDrawer({
                     <Switch
                       checked={externalDataUrl || proxiedPath ? true : false}
                       className="before:bg-primary/50 after:border-primary/50 checked:disabled:before:bg-surface checked:disabled:before:border checked:disabled:before:border-surface-dark checked:disabled:after:border-surface-dark"
-                      disabled={externalDataUrl ? true : false}
+                      disabled={
+                        externalDataUrl ||
+                        fileBrowserState.propertiesTarget.hasWrite === false
+                      }
                       id="share-switch"
                       onChange={async () => {
                         if (areDataLinksAutomatic && !proxiedPath) {
@@ -194,7 +208,7 @@ export default function PropertiesDrawer({
                     />
                     <Typography
                       as="label"
-                      className={`${externalDataUrl ? 'cursor-default' : 'cursor-pointer'} text-foreground font-semibold`}
+                      className={`${externalDataUrl || fileBrowserState.propertiesTarget.hasWrite === false ? 'cursor-default' : 'cursor-pointer'} text-foreground font-semibold`}
                       htmlFor="share-switch"
                     >
                       {proxiedPath ? 'Delete data link' : 'Create data link'}
@@ -227,6 +241,7 @@ export default function PropertiesDrawer({
               <PermissionsTable file={fileBrowserState.propertiesTarget} />
               <Button
                 className="!rounded-md !text-primary !text-nowrap !self-start"
+                disabled={fileBrowserState.propertiesTarget.hasWrite === false}
                 onClick={() => {
                   setShowPermissionsDialog(true);
                 }}
@@ -251,6 +266,9 @@ export default function PropertiesDrawer({
                     Neuroglancer.
                   </Typography>
                   <Button
+                    disabled={
+                      fileBrowserState.propertiesTarget.hasWrite === false
+                    }
                     onClick={() => {
                       setShowConvertFileDialog(true);
                     }}

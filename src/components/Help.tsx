@@ -26,7 +26,7 @@ export default function Help() {
       title: 'User Manual',
       description:
         'Comprehensive guide to Fileglancer features and functionality',
-      url: `https://janeliascicomp.github.io/fileglancer-user-docs/`
+      url: `https://fileglancer-docs.janelia.org`
     },
     {
       icon: TbBrandGithub,

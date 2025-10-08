@@ -7,6 +7,8 @@ type FileOrFolder = {
   owner: string;
   group: string;
   last_modified: number;
+  hasRead?: boolean;
+  hasWrite?: boolean;
 };
 
 type FileSharePath = {

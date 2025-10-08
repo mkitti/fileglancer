@@ -75,10 +75,10 @@ export default function FavoritesBrowser({
           displayFolders.length === 0 ? (
             <div className="px-4 py-6 text-center">
               <Typography className="text-sm text-gray-500">
-                No favorites match your filter.
+                No favorites match your filter '{searchQuery}'
               </Typography>
               <Typography className="text-xs text-gray-400 mt-1">
-                Try broadening your search to see more results.
+                Try broadening your search to see more results
               </Typography>
             </div>
           ) : (

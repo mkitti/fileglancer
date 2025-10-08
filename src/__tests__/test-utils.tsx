@@ -14,6 +14,7 @@ import { OpenFavoritesProvider } from '@/contexts/OpenFavoritesContext';
 import { TicketProvider } from '@/contexts/TicketsContext';
 import { ProfileContextProvider } from '@/contexts/ProfileContext';
 import { ExternalBucketProvider } from '@/contexts/ExternalBucketContext';
+import { CentralServerHealthProvider } from '@/contexts/CentralServerHealthContext';
 import ErrorFallback from '@/components/ErrorFallback';
 
 interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
@@ -39,21 +40,23 @@ const FileBrowserTestingWrapper = ({
 const Browse = ({ children }: { children: React.ReactNode }) => {
   return (
     <CookiesProvider>
-      <ZonesAndFspMapContextProvider>
-        <OpenFavoritesProvider>
-          <FileBrowserTestingWrapper>
-            <PreferencesProvider>
-              <ExternalBucketProvider>
-                <ProxiedPathProvider>
-                  <ProfileContextProvider>
-                    <TicketProvider>{children}</TicketProvider>
-                  </ProfileContextProvider>
-                </ProxiedPathProvider>
-              </ExternalBucketProvider>
-            </PreferencesProvider>
-          </FileBrowserTestingWrapper>
-        </OpenFavoritesProvider>
-      </ZonesAndFspMapContextProvider>
+      <CentralServerHealthProvider>
+        <ZonesAndFspMapContextProvider>
+          <OpenFavoritesProvider>
+            <FileBrowserTestingWrapper>
+              <PreferencesProvider>
+                <ExternalBucketProvider>
+                  <ProxiedPathProvider>
+                    <ProfileContextProvider>
+                      <TicketProvider>{children}</TicketProvider>
+                    </ProfileContextProvider>
+                  </ProxiedPathProvider>
+                </ExternalBucketProvider>
+              </PreferencesProvider>
+            </FileBrowserTestingWrapper>
+          </OpenFavoritesProvider>
+        </ZonesAndFspMapContextProvider>
+      </CentralServerHealthProvider>
     </CookiesProvider>
   );
 };
