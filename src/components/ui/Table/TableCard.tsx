@@ -4,14 +4,27 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
+  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
   type Header,
   type SortingState
 } from '@tanstack/react-table';
-import { Card, Input, Tooltip } from '@material-tailwind/react';
 import {
+  ButtonGroup,
+  Card,
+  IconButton,
+  Input,
+  Select,
+  Tooltip,
+  Typography
+} from '@material-tailwind/react';
+import {
+  HiChevronDoubleLeft,
+  HiChevronLeft,
+  HiChevronDoubleRight,
+  HiChevronRight,
   HiSortAscending,
   HiSortDescending,
   HiOutlineSwitchVertical,
@@ -21,24 +34,24 @@ import {
 import { TableRowSkeleton } from '@/components/ui/widgets/Loaders';
 
 type TableProps<TData> = {
-  columns: ColumnDef<TData>[];
-  data: TData[];
-  gridColsClass: string;
-  loadingState?: boolean;
-  emptyText?: string;
-  enableColumnSearch?: boolean;
+  readonly columns: ColumnDef<TData>[];
+  readonly data: TData[];
+  readonly gridColsClass: string;
+  readonly loadingState?: boolean;
+  readonly emptyText?: string;
+  readonly enableColumnSearch?: boolean;
 };
 
 function TableRow({
   gridColsClass,
   children
 }: {
-  gridColsClass: string;
-  children: React.ReactNode;
+  readonly gridColsClass: string;
+  readonly children: React.ReactNode;
 }) {
   return (
     <div
-      className={`grid ${gridColsClass} justify-items-start gap-4 px-4 py-4 border-b border-surface last:border-0 items-start`}
+      className={`grid ${gridColsClass} justify-items-start items-center gap-4 px-4 py-4 border-b border-surface last:border-0 items-start`}
     >
       {children}
     </div>
@@ -48,7 +61,7 @@ function TableRow({
 function HeaderIcons<TData, TValue>({
   header
 }: {
-  header: Header<TData, TValue>;
+  readonly header: Header<TData, TValue>;
 }) {
   return (
     <div className="flex items-center">
@@ -72,30 +85,32 @@ function HeaderIcons<TData, TValue>({
 const DebouncedInput = React.forwardRef<
   HTMLInputElement,
   {
-    value: string;
-    setValue: (value: string) => void;
-    handleInputFocus: () => void;
+    readonly value: string;
+    readonly setValue: (value: string) => void;
+    readonly handleInputFocus: () => void;
   }
 >(({ value, setValue, handleInputFocus }, ref) => {
   return (
-    <div onClick={e => e.stopPropagation()} className="max-w-full">
+    <div className="max-w-full" onClick={e => e.stopPropagation()}>
       <Input
-        ref={ref}
-        type="search"
-        placeholder="Search..."
-        value={value}
+        className="w-36 max-w-full border shadow rounded"
         onChange={e => setValue(e.target.value)}
         onFocus={handleInputFocus}
-        className="w-36 max-w-full border shadow rounded"
+        placeholder="Search..."
+        ref={ref}
+        type="search"
+        value={value}
       />
     </div>
   );
 });
 
+DebouncedInput.displayName = 'DebouncedInput';
+
 function SearchPopover<TData, TValue>({
   header
 }: {
-  header: Header<TData, TValue>;
+  readonly header: Header<TData, TValue>;
 }) {
   const [isSearchFocused, setIsSearchFocused] = React.useState(false);
   const [forceOpen, setForceOpen] = React.useState(false);
@@ -193,20 +208,20 @@ function SearchPopover<TData, TValue>({
 
   return (
     <Tooltip
-      placement="top-start"
       interactive={true}
       open={forceOpen ? true : undefined}
+      placement="top-start"
     >
       {/** when open is undefined (forceOpen is false), then the interactive=true prop takes over.
        * This allows use of the safePolygon() function in tooltip.tsx, keeping the tooltip open
        * as the user moves towards it */}
       <Tooltip.Trigger
         as="div"
-        ref={tooltipRef}
         className={`flex flex-col ${
           header.column.getCanSort() ? 'cursor-pointer group/sort' : ''
         } group/filter`}
         onClick={header.column.getToggleSortingHandler()}
+        ref={tooltipRef}
       >
         <div className="flex items-center gap-2 font-semibold select-none">
           {flexRender(header.column.columnDef.header, header.getContext())}
@@ -218,10 +233,10 @@ function SearchPopover<TData, TValue>({
         onMouseEnter={() => inputRef.current?.focus()}
       >
         <DebouncedInput
-          ref={inputRef}
-          value={value}
-          setValue={setValue}
           handleInputFocus={handleInputFocus}
+          ref={inputRef}
+          setValue={setValue}
+          value={value}
         />
       </Tooltip.Content>
     </Tooltip>
@@ -253,38 +268,40 @@ function Table<TData>({
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel()
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel()
   });
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       <div
-        className={`grid ${gridColsClass} gap-4 px-4 py-2 border-b border-surface dark:border-foreground`}
+        className={`shrink-0 grid ${gridColsClass} gap-4 px-4 py-2 border-b border-surface dark:border-foreground`}
       >
         {table
           .getHeaderGroups()
           .map(headerGroup =>
             headerGroup.headers.map(header =>
               header.isPlaceholder ? null : (
-                <SearchPopover key={header.id} header={header} />
+                <SearchPopover header={header} key={header.id} />
               )
             )
           )}
       </div>
-
       {/* Body */}
       {loadingState ? (
         <TableRowSkeleton gridColsClass={gridColsClass} />
       ) : data && data.length > 0 ? (
-        table.getRowModel().rows.map(row => (
-          <TableRow key={row.id} gridColsClass={gridColsClass}>
-            {row
-              .getVisibleCells()
-              .map(cell =>
-                flexRender(cell.column.columnDef.cell, cell.getContext())
-              )}
-          </TableRow>
-        ))
+        <div className="max-h-full overflow-y-auto">
+          {table.getRowModel().rows.map(row => (
+            <TableRow gridColsClass={gridColsClass} key={row.id}>
+              {row.getVisibleCells().map(cell => (
+                <React.Fragment key={cell.id}>
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </React.Fragment>
+              ))}
+            </TableRow>
+          ))}
+        </div>
       ) : !data || data.length === 0 ? (
         <div className="px-4 py-8 text-center text-foreground">
           {emptyText || 'No data available'}
@@ -294,7 +311,64 @@ function Table<TData>({
           There was an error loading the data.
         </div>
       )}
-    </>
+      {/* https://tanstack.com/table/latest/docs/framework/react/examples/pagination */}
+      <div className="shrink-0 flex items-center gap-2 py-2 px-4">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <Typography variant="small">Page</Typography>
+            <Typography className="font-bold" variant="small">
+              {table.getPageCount() === 0
+                ? 0
+                : table.getState().pagination.pageIndex + 1}{' '}
+              of {table.getPageCount().toLocaleString()}
+            </Typography>
+          </div>
+          <ButtonGroup variant="ghost">
+            <IconButton
+              disabled={!table.getCanPreviousPage()}
+              onClick={() => table.firstPage()}
+            >
+              <HiChevronDoubleLeft className="icon-default" />
+            </IconButton>
+            <IconButton
+              disabled={!table.getCanPreviousPage()}
+              onClick={() => table.previousPage()}
+            >
+              <HiChevronLeft className="icon-default" />
+            </IconButton>
+            <IconButton
+              disabled={!table.getCanNextPage()}
+              onClick={() => table.nextPage()}
+            >
+              <HiChevronRight className="icon-default" />
+            </IconButton>
+            <IconButton
+              disabled={!table.getCanNextPage()}
+              onClick={() => table.lastPage()}
+            >
+              <HiChevronDoubleRight className="icon-default" />
+            </IconButton>
+          </ButtonGroup>
+        </div>
+        <div>
+          <Select
+            onValueChange={(value: string) => {
+              table.setPageSize(Number(value));
+            }}
+            value={table.getState().pagination.pageSize.toString()}
+          >
+            <Select.Trigger placeholder="Page size" />
+            <Select.List>
+              {['10', '20', '30', '40', '50'].map(pageSize => (
+                <Select.Option key={pageSize} value={pageSize}>
+                  {pageSize}/page
+                </Select.Option>
+              ))}
+            </Select.List>
+          </Select>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -307,14 +381,14 @@ function TableCard<TData>({
   enableColumnSearch
 }: TableProps<TData>) {
   return (
-    <Card className="min-h-32 overflow-y-auto">
+    <Card className="min-h-48">
       <Table
         columns={columns}
         data={data}
-        gridColsClass={gridColsClass}
-        loadingState={loadingState}
         emptyText={emptyText}
         enableColumnSearch={enableColumnSearch}
+        gridColsClass={gridColsClass}
+        loadingState={loadingState}
       />
     </Card>
   );

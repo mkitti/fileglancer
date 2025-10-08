@@ -7,31 +7,26 @@ import validator_logo from '@/assets/ome-ngff-validator.png';
 import volE_logo from '@/assets/aics_website-3d-cell-viewer.png';
 import avivator_logo from '@/assets/vizarr_logo.png';
 import copy_logo from '@/assets/copy-link-64.png';
-import type { OpenWithToolUrls } from '@/hooks/useZarrMetadata';
-import { copyToClipboard } from '@/utils/copyText';
-import FgTooltip from '../widgets/FgTooltip';
+import type { OpenWithToolUrls, PendingToolKey } from '@/hooks/useZarrMetadata';
+import FgTooltip from '@/components/ui/widgets/FgTooltip';
 
 export default function DataToolLinks({
+  onToolClick,
+  showCopiedTooltip,
   title,
   urls
 }: {
-  title: string;
-  urls: OpenWithToolUrls;
+  readonly onToolClick: (toolKey: PendingToolKey) => Promise<void>;
+  readonly showCopiedTooltip: boolean;
+  readonly title: string;
+  readonly urls: OpenWithToolUrls | null;
 }): React.ReactNode {
-  const [showCopiedTooltip, setShowCopiedTooltip] = React.useState(false);
-
-  const handleCopyUrl = async () => {
-    if (urls?.copy) {
-      await copyToClipboard(urls.copy);
-      setShowCopiedTooltip(true);
-      setTimeout(() => {
-        setShowCopiedTooltip(false);
-      }, 2000);
-    }
-  };
-
   const tooltipTriggerClasses =
     'rounded-sm m-0 p-0 transform active:scale-90 transition-transform duration-75';
+
+  if (!urls) {
+    return null;
+  }
 
   return (
     <div className="my-1">
@@ -39,97 +34,122 @@ export default function DataToolLinks({
         {title}
       </Typography>
       <ButtonGroup className="relative">
-        {urls.neuroglancer ? (
+        {urls.neuroglancer !== null ? (
           <FgTooltip
             as={Button}
-            variant="ghost"
-            triggerClasses={tooltipTriggerClasses}
             label="View in Neuroglancer"
+            triggerClasses={tooltipTriggerClasses}
+            variant="ghost"
           >
-            {' '}
             <Link
-              to={urls.neuroglancer}
-              target="_blank"
+              onClick={async e => {
+                e.preventDefault();
+                await onToolClick('neuroglancer');
+              }}
               rel="noopener noreferrer"
+              target="_blank"
+              to={urls.neuroglancer}
             >
               <img
-                src={neuroglancer_logo}
                 alt="Neuroglancer logo"
                 className="max-h-8 max-w-8 m-1 rounded-sm"
+                src={neuroglancer_logo}
               />
             </Link>
           </FgTooltip>
         ) : null}
 
-        {urls.vole ? (
+        {urls.vole !== null ? (
           <FgTooltip
             as={Button}
-            variant="ghost"
-            triggerClasses={tooltipTriggerClasses}
             label="View in Vol-E"
+            triggerClasses={tooltipTriggerClasses}
+            variant="ghost"
           >
-            {' '}
-            <Link to={urls.vole} target="_blank" rel="noopener noreferrer">
+            <Link
+              onClick={async e => {
+                e.preventDefault();
+                await onToolClick('vole');
+              }}
+              rel="noopener noreferrer"
+              target="_blank"
+              to={urls.vole}
+            >
               <img
-                src={volE_logo}
                 alt="Vol-E logo"
                 className="max-h-8 max-w-8 m-1 rounded-sm"
+                src={volE_logo}
               />
             </Link>
           </FgTooltip>
         ) : null}
 
-        {urls.avivator ? (
+        {urls.avivator !== null ? (
           <FgTooltip
             as={Button}
-            variant="ghost"
-            triggerClasses={tooltipTriggerClasses}
             label="View in Avivator"
+            triggerClasses={tooltipTriggerClasses}
+            variant="ghost"
           >
-            {' '}
-            <Link to={urls.avivator} target="_blank" rel="noopener noreferrer">
+            <Link
+              onClick={async e => {
+                e.preventDefault();
+                await onToolClick('avivator');
+              }}
+              rel="noopener noreferrer"
+              target="_blank"
+              to={urls.avivator}
+            >
               <img
-                src={avivator_logo}
                 alt="Avivator logo"
                 className="max-h-8 max-w-8 m-1 rounded-sm"
+                src={avivator_logo}
               />
             </Link>
           </FgTooltip>
         ) : null}
 
-        {urls.validator ? (
+        {urls.validator !== null ? (
           <FgTooltip
             as={Button}
-            variant="ghost"
-            triggerClasses={tooltipTriggerClasses}
             label="View in OME-Zarr Validator"
+            triggerClasses={tooltipTriggerClasses}
+            variant="ghost"
           >
-            <Link to={urls.validator} target="_blank" rel="noopener noreferrer">
+            <Link
+              onClick={async e => {
+                e.preventDefault();
+                await onToolClick('validator');
+              }}
+              rel="noopener noreferrer"
+              target="_blank"
+              to={urls.validator}
+            >
               <img
-                src={validator_logo}
                 alt="OME-Zarr Validator logo"
                 className="max-h-8 max-w-8 m-1 rounded-sm"
+                src={validator_logo}
               />
             </Link>
           </FgTooltip>
         ) : null}
 
-        {urls.copy ? (
-          <FgTooltip
-            as={Button}
-            variant="ghost"
-            triggerClasses={tooltipTriggerClasses}
-            label={showCopiedTooltip ? 'Copied!' : 'Copy data URL'}
-            onClick={handleCopyUrl}
-            openCondition={showCopiedTooltip ? true : undefined}
-          >
-            <img
-              src={copy_logo}
-              alt="Copy URL icon"
-              className="max-h-8 max-w-8 m-1 rounded-sm"
-            />
-          </FgTooltip>
-        ) : null}
+        <FgTooltip
+          as={Button}
+          label={showCopiedTooltip ? 'Copied!' : 'Copy data URL'}
+          onClick={async () => {
+            await onToolClick('copy');
+          }}
+          openCondition={showCopiedTooltip ? true : undefined}
+          triggerClasses={tooltipTriggerClasses}
+          variant="ghost"
+        >
+          <img
+            alt="Copy URL icon"
+            className="max-h-8 max-w-8 m-1 rounded-sm"
+            src={copy_logo}
+          />
+        </FgTooltip>
       </ButtonGroup>
     </div>
   );

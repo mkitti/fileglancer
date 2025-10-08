@@ -1,14 +1,8 @@
 import { expect, test } from '@jupyterlab/galata';
-import { openFileGlancer } from './testutils';
-
-test.use({ autoGoto: false });
+import { openFileGlancer } from '../testutils.ts';
 
 test.beforeEach('Open fileglancer', async ({ page }) => {
   await openFileGlancer(page);
-});
-
-test.afterAll('Close browser', ({ browser }) => {
-  browser.close();
 });
 
 test('Home becomes visible when Local is expanded', async ({ page }) => {

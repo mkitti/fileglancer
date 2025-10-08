@@ -195,7 +195,7 @@ function getLayerName(dataUrl: string): string {
   return dataUrl.split('/').filter(Boolean).pop() || 'Default';
 }
 
-function generateNeuroglancerStateForDataURL(dataUrl: string): string | null {
+function generateNeuroglancerStateForDataURL(dataUrl: string): string {
   log.debug('Generating Neuroglancer state for Zarr array:', dataUrl);
   const layer: Record<string, any> = {
     name: getLayerName(dataUrl),
@@ -223,7 +223,7 @@ function generateNeuroglancerStateForZarrArray(
   dataUrl: string,
   zarrVersion: 2 | 3,
   layerType: LayerType
-): string | null {
+): string {
   log.debug('Generating Neuroglancer state for Zarr array:', dataUrl);
 
   const layer: Record<string, any> = {
@@ -249,9 +249,58 @@ function generateNeuroglancerStateForZarrArray(
 }
 
 /**
- * Generate a Neuroglancer state for a given Zarr array.
+ * Generate a simple Neuroglancer state for a given Zarr array (non-legacy approach).
  */
-function generateNeuroglancerStateForOmeZarr(
+function generateSimpleNeuroglancerStateForOmeZarr(
+  dataUrl: string,
+  layerType: LayerType,
+  multiscale: omezarr.Multiscale,
+  arr: zarr.Array<any>
+): string {
+  log.debug('Generating simple Neuroglancer state for OME-Zarr:', dataUrl);
+
+  // Convert axes array to a map for easier access
+  const axesMap = getAxesMap(multiscale);
+
+  // Determine the layout based on the z-axis
+  let layout = '4panel-alt';
+  if ('z' in axesMap) {
+    const zAxisIndex = axesMap['z'].index;
+    const zDimension = arr.shape[zAxisIndex];
+    if (zDimension === 1) {
+      layout = 'xy';
+    }
+  }
+
+  // If the layer type is segmentation AND there is no channel axis or the channel axis has only one channel
+  const type =
+    layerType === 'segmentation' &&
+    (!axesMap['c'] || arr.shape[axesMap['c']?.index] === 1)
+      ? 'segmentation'
+      : 'auto';
+
+  const state = {
+    layout: layout,
+    layers: [
+      {
+        name: getLayerName(dataUrl),
+        source: 'zarr://' + dataUrl,
+        type
+      }
+    ]
+  };
+
+  log.debug('Simple Neuroglancer state: ', state);
+
+  // Convert the state to a URL-friendly format
+  const stateJson = JSON.stringify(state);
+  return encodeURIComponent(stateJson);
+}
+
+/**
+ * Generate a legacy Neuroglancer state for a given Zarr array (multichannel approach).
+ */
+function generateLegacyNeuroglancerStateForOmeZarr(
   dataUrl: string,
   zarrVersion: 2 | 3,
   layerType: LayerType,
@@ -432,20 +481,71 @@ function generateNeuroglancerStateForOmeZarr(
   return encodeURIComponent(stateJson);
 }
 
+/**
+ * Generate a Neuroglancer state for a given Zarr array.
+ */
+function generateNeuroglancerStateForOmeZarr(
+  dataUrl: string,
+  zarrVersion: 2 | 3,
+  layerType: LayerType,
+  multiscale: omezarr.Multiscale,
+  arr: zarr.Array<any>,
+  omero?: omezarr.Omero | null,
+  useLegacyMultichannelApproach: boolean = false
+): string | null {
+  // If using legacy multichannel approach, use the complex version
+  if (useLegacyMultichannelApproach) {
+    return generateLegacyNeuroglancerStateForOmeZarr(
+      dataUrl,
+      zarrVersion,
+      layerType,
+      multiscale,
+      arr,
+      omero
+    );
+  }
+
+  // Otherwise use the simpler version
+  return generateSimpleNeuroglancerStateForOmeZarr(
+    dataUrl,
+    layerType,
+    multiscale,
+    arr
+  );
+}
+
 async function getZarrArray(
   dataUrl: string,
-  zarrVersion: 2 | 3
+  zarrVersion: 2 | 3,
+  xrsfCookie: string
 ): Promise<zarr.Array<any>> {
-  const store = new zarr.FetchStore(dataUrl);
+  const store = new zarr.FetchStore(dataUrl, {
+    overrides: {
+      credentials: 'include',
+      headers: {
+        'X-Xsrftoken': xrsfCookie
+      }
+    }
+  });
   return await omezarr.getArray(store, '/', zarrVersion);
 }
 
 /**
  * Process the given OME-Zarr array and return the metadata, thumbnail, and Neuroglancer link.
  */
-async function getOmeZarrMetadata(dataUrl: string): Promise<Metadata> {
+async function getOmeZarrMetadata(
+  dataUrl: string,
+  xrsfCookie: string
+): Promise<Metadata> {
   log.debug('Getting OME-Zarr metadata for', dataUrl);
-  const store = new zarr.FetchStore(dataUrl);
+  const store = new zarr.FetchStore(dataUrl, {
+    overrides: {
+      credentials: 'include',
+      headers: {
+        'X-Xsrftoken': xrsfCookie
+      }
+    }
+  });
   const { arr, shapes, multiscale, omero, scales, zarr_version } =
     await omezarr.getMultiscaleWithArray(store, 0);
   log.debug(
@@ -479,12 +579,22 @@ type ThumbnailResult = [thumbnail: string | null, errorMessage: string | null];
 
 async function getOmeZarrThumbnail(
   dataUrl: string,
+  xrsfCookie: string,
+  signal: AbortSignal,
   thumbnailSize: number = 300,
   maxThumbnailSize: number = 1024,
   autoBoost: boolean = true
 ): Promise<ThumbnailResult> {
   log.debug('Getting OME-Zarr thumbnail for', dataUrl);
-  const store = new zarr.FetchStore(dataUrl);
+  const store = new zarr.FetchStore(dataUrl, {
+    overrides: {
+      credentials: 'include',
+      headers: {
+        'X-Xsrftoken': xrsfCookie
+      },
+      signal
+    }
+  });
   try {
     return [
       await omezarr.renderThumbnail(
@@ -594,7 +704,8 @@ async function determineLayerType(
         const edgeRatio = await analyzeThumbnailEdgeContent(thumbnailDataUrl);
         log.debug('Thumbnail edge detection ratio:', edgeRatio);
         // Segmentation data typically has low edge ratio
-        const layerType = edgeRatio < 0.05 ? 'segmentation' : 'image';
+        const layerType =
+          edgeRatio > 0.0 && edgeRatio < 0.05 ? 'segmentation' : 'image';
         log.debug(`Layer type set to ${layerType} based on edge analysis`);
         return layerType;
       } catch (error) {

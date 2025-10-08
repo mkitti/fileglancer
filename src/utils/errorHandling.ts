@@ -39,4 +39,4 @@ function handleError(error: unknown): Failure {
   return createFailure(errorString);
 }
 
-export { createSuccess, handleError, toHttpError };
+export { createSuccess, handleError, toHttpError, getErrorString };

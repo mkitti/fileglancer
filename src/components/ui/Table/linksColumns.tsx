@@ -1,6 +1,6 @@
+import React from 'react';
 import { Typography } from '@material-tailwind/react';
 import { FilterFn, type ColumnDef } from '@tanstack/react-table';
-import toast from 'react-hot-toast';
 
 import DataLinkDialog from '@/components/ui/Dialogs/DataLink';
 import DataLinksActionsMenu from '@/components/ui/Menus/DataLinksActions';
@@ -13,23 +13,23 @@ import {
   makeMapKey,
   makeBrowseLink
 } from '@/utils';
-import useDataLinkDialog from '@/hooks/useDataLinkDialog';
+import useDataToolLinks from '@/hooks/useDataToolLinks';
 import type { ProxiedPath } from '@/contexts/ProxiedPathContext';
-import type { FileSharePath, Result } from '@/shared.types';
+import type { FileSharePath } from '@/shared.types';
 import type { MenuItem } from '@/components/ui/Menus/FgMenuItems';
 import { FgStyledLink } from '../widgets/FgLink';
 import FgTooltip from '../widgets/FgTooltip';
 
 type ProxiedPathRowActionProps = {
-  handleCopyPath: (path: string) => Promise<Result<void>>;
-  handleCopyUrl: (item: ProxiedPath) => Promise<Result<void>>;
+  handleCopyPath: (path: string) => Promise<void>;
+  handleCopyUrl: (item: ProxiedPath) => Promise<void>;
   handleUnshare: () => void;
   item: ProxiedPath;
   displayPath: string;
   pathFsp: FileSharePath | undefined;
 };
 
-function PathCell({ item }: { item: ProxiedPath }) {
+function PathCell({ item }: { readonly item: ProxiedPath }) {
   const { pathPreference } = usePreferencesContext();
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
   const tooltipTriggerClasses = 'max-w-full truncate';
@@ -47,12 +47,12 @@ function PathCell({ item }: { item: ProxiedPath }) {
   const browseLink = makeBrowseLink(item.fsp_name, item.path);
 
   return (
-    <div className="min-w-0 max-w-full">
+    <div className="min-w-0 max-w-full flex" key={`path-${item.sharing_key}`}>
       <FgTooltip label={displayPath} triggerClasses={tooltipTriggerClasses}>
         <Typography
           as={FgStyledLink}
-          to={browseLink}
           className="text-left truncate block"
+          to={browseLink}
         >
           {displayPath}
         </Typography>
@@ -61,8 +61,10 @@ function PathCell({ item }: { item: ProxiedPath }) {
   );
 }
 
-function ActionsCell({ item }: { item: ProxiedPath }) {
-  const { showDataLinkDialog, setShowDataLinkDialog } = useDataLinkDialog();
+function ActionsCell({ item }: { readonly item: ProxiedPath }) {
+  const [showDataLinkDialog, setShowDataLinkDialog] =
+    React.useState<boolean>(false);
+  const { handleDeleteDataLink } = useDataToolLinks(setShowDataLinkDialog);
   const { pathPreference } = usePreferencesContext();
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
 
@@ -84,23 +86,13 @@ function ActionsCell({ item }: { item: ProxiedPath }) {
     {
       name: 'Copy path',
       action: async (props: ProxiedPathRowActionProps) => {
-        const result = await props.handleCopyPath(props.displayPath);
-        if (result.success) {
-          toast.success('Path copied!');
-        } else {
-          toast.error(`Error copying path: ${result.error}`);
-        }
+        await props.handleCopyPath(props.displayPath);
       }
     },
     {
       name: 'Copy sharing link (S3-compatible URL)',
       action: async (props: ProxiedPathRowActionProps) => {
-        const result = await props.handleCopyUrl(props.item);
-        if (result.success) {
-          toast.success('Sharing link copied!');
-        } else {
-          toast.error(`Error copying sharing link: ${result.error}`);
-        }
+        await props.handleCopyUrl(props.item);
       }
     },
     {
@@ -120,20 +112,21 @@ function ActionsCell({ item }: { item: ProxiedPath }) {
   };
 
   return (
-    <div className="min-w-0">
+    <div className="min-w-0 flex" key={`action-${item.sharing_key}`}>
       <div onClick={e => e.stopPropagation()}>
         <DataLinksActionsMenu<ProxiedPathRowActionProps>
-          menuItems={menuItems}
           actionProps={actionProps}
+          menuItems={menuItems}
         />
       </div>
       {/* Sharing dialog */}
       {showDataLinkDialog ? (
         <DataLinkDialog
-          isImageShared={true}
-          showDataLinkDialog={showDataLinkDialog}
-          setShowDataLinkDialog={setShowDataLinkDialog}
+          action="delete"
+          handleDeleteDataLink={handleDeleteDataLink}
           proxiedPath={item}
+          setShowDataLinkDialog={setShowDataLinkDialog}
+          showDataLinkDialog={showDataLinkDialog}
         />
       ) : null}
     </div>
@@ -167,10 +160,10 @@ export const linksColumns: ColumnDef<ProxiedPath>[] = [
   {
     accessorKey: 'sharing_name',
     header: 'Name',
-    cell: ({ row }) => {
+    cell: ({ cell, row }) => {
       const item = row.original;
       return (
-        <div className="min-w-0 max-w-full">
+        <div className="flex min-w-0 max-w-full" key={cell.id}>
           <FgTooltip
             label={item.sharing_name}
             triggerClasses={tooltipTriggerClasses}
@@ -197,17 +190,17 @@ export const linksColumns: ColumnDef<ProxiedPath>[] = [
   {
     accessorKey: 'created_at',
     header: 'Date Created',
-    cell: ({ getValue }) => {
+    cell: ({ cell, getValue }) => {
       const dateString = getValue() as string;
       return (
-        <div className="min-w-0 max-w-full">
+        <div className="flex min-w-0 max-w-full" key={cell.id}>
           <FgTooltip
             label={formatDateString(dateString)}
             triggerClasses={tooltipTriggerClasses}
           >
             <Typography
-              variant="small"
               className="text-left text-foreground truncate"
+              variant="small"
             >
               {formatDateString(dateString)}
             </Typography>
@@ -222,10 +215,10 @@ export const linksColumns: ColumnDef<ProxiedPath>[] = [
   {
     accessorKey: 'sharing_key',
     header: 'Key',
-    cell: ({ getValue }) => {
+    cell: ({ cell, getValue }) => {
       const key = getValue() as string;
       return (
-        <div className="min-w-0 max-w-full">
+        <div className="flex min-w-0 max-w-full" key={cell.id}>
           <FgTooltip label={key} triggerClasses={tooltipTriggerClasses}>
             <Typography className="text-foreground truncate">{key}</Typography>
           </FgTooltip>

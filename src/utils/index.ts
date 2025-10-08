@@ -1,3 +1,4 @@
+import { default as log } from '@/logger';
 import {
   escapePathForUrl,
   getFileContentPath,
@@ -11,6 +12,60 @@ import {
   makePathSegmentArray,
   removeLastSegmentFromPath
 } from './pathHandling';
+import { shouldTriggerHealthCheck } from './centralServerHealth';
+
+// Health check reporter registry with robust type safety
+export type HealthCheckReporter = (
+  apiPath: string,
+  responseStatus?: number
+) => Promise<void>;
+
+class HealthCheckRegistry {
+  private reporter: HealthCheckReporter | null = null;
+  private isEnabled: boolean = true;
+
+  setReporter(reporter: HealthCheckReporter): void {
+    if (typeof reporter !== 'function') {
+      throw new Error('Health check reporter must be a function');
+    }
+    this.reporter = reporter;
+  }
+
+  clearReporter(): void {
+    this.reporter = null;
+  }
+
+  getReporter(): HealthCheckReporter | null {
+    return this.isEnabled ? this.reporter : null;
+  }
+
+  disable(): void {
+    this.isEnabled = false;
+  }
+
+  enable(): void {
+    this.isEnabled = true;
+  }
+
+  isReporterSet(): boolean {
+    return this.reporter !== null;
+  }
+}
+
+// Create singleton instance
+const healthCheckRegistry = new HealthCheckRegistry();
+
+// Export convenience functions for backward compatibility
+export function setHealthCheckReporter(reporter: HealthCheckReporter): void {
+  healthCheckRegistry.setReporter(reporter);
+}
+
+export function clearHealthCheckReporter(): void {
+  healthCheckRegistry.clearReporter();
+}
+
+// Export registry for advanced usage
+export { healthCheckRegistry };
 
 const formatFileSize = (sizeInBytes: number): string => {
   if (sizeInBytes < 1024) {
@@ -71,15 +126,19 @@ async function checkSessionValidity(xrsfCookie: string): Promise<boolean> {
     });
     return response.ok;
   } catch (error) {
+    log.error('Error checking session validity:', error);
     return false;
   }
 }
+
+// Define a more specific type for request body
+type RequestBody = Record<string, unknown>;
 
 async function sendFetchRequest(
   apiPath: string,
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   xrsfCookie: string,
-  body?: { [key: string]: any }
+  body?: RequestBody
 ): Promise<Response> {
   const options: RequestInit = {
     method,
@@ -94,7 +153,25 @@ async function sendFetchRequest(
       body && { body: JSON.stringify(body) })
   };
 
-  const response = await fetch(getFullPath(apiPath), options);
+  let response: Response;
+  try {
+    response = await fetch(getFullPath(apiPath), options);
+  } catch (error) {
+    // Report network errors to central server health monitoring if applicable
+    const reporter = healthCheckRegistry.getReporter();
+    if (reporter && shouldTriggerHealthCheck(apiPath)) {
+      try {
+        await reporter(apiPath);
+      } catch (healthError) {
+        // Don't let health check errors interfere with the original request
+        log.debug(
+          'Error reporting network failure to health checker:',
+          healthError
+        );
+      }
+    }
+    throw error;
+  }
 
   // Check for 403 Forbidden - could be permission denied or session expired
   if (response.status === 403) {
@@ -106,6 +183,19 @@ async function sendFetchRequest(
       throw new HTTPError('Session expired', 401);
     }
     // If session is valid, this is just a permission denied for this specific resource
+  }
+
+  // Report failed requests to central server health monitoring if applicable
+  if (!response.ok) {
+    const reporter = healthCheckRegistry.getReporter();
+    if (reporter && shouldTriggerHealthCheck(apiPath, response.status)) {
+      try {
+        await reporter(apiPath, response.status);
+      } catch (error) {
+        // Don't let health check errors interfere with the original request
+        log.debug('Error reporting failed request to health checker:', error);
+      }
+    }
   }
 
   return response;
@@ -232,3 +322,11 @@ export {
   removeLastSegmentFromPath,
   sendFetchRequest
 };
+
+// Re-export retry utility
+export { createRetryWithBackoff } from './retryWithBackoff';
+export type {
+  RetryOptions,
+  RetryCallbacks,
+  RetryState
+} from './retryWithBackoff';

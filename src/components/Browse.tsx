@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router';
-
+import { default as log } from '@/logger';
 import type { OutletContextType } from '@/layouts/BrowseLayout';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import FileBrowser from './ui/BrowsePage/FileBrowser';
@@ -32,6 +32,8 @@ export default function Browse() {
   const [showRenameDialog, setShowRenameDialog] = React.useState(false);
   const [showNavigationDialog, setShowNavigationDialog] = React.useState(false);
   const [pastedPath, setPastedPath] = React.useState<string>('');
+  const [componentWidth, setComponentWidth] = useState<number>(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Auto-focus the container when component mounts so it can receive paste events
   useEffect(() => {
@@ -43,17 +45,36 @@ export default function Browse() {
     }
   }, []);
 
+  // Monitor component width changes
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+    const resizeObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        setComponentWidth(entry.contentRect.width);
+      }
+    });
+    resizeObserver.observe(container);
+    // Set initial width
+    setComponentWidth(container.offsetWidth);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   return (
     <div
-      className="flex flex-col h-full min-w-fit max-h-full"
-      tabIndex={0}
+      className="flex flex-col h-full max-h-full w-full max-w-full"
       data-browse-container
       onPaste={async event => {
-        console.log('React paste event fired!', event);
+        log.debug('React paste event fired!', event);
 
         // Check if any input, textarea, or contenteditable element is focused
         const activeElement = document.activeElement;
-        console.log('Active element:', activeElement);
+        log.debug('Active element:', activeElement);
 
         const isTextInputFocused =
           activeElement &&
@@ -61,96 +82,100 @@ export default function Browse() {
             activeElement.tagName === 'TEXTAREA' ||
             activeElement.getAttribute('contenteditable') === 'true');
 
-        console.log('Is text input focused:', isTextInputFocused);
+        log.debug('Is text input focused:', isTextInputFocused);
 
         // Only handle paste if no text input is focused
         if (!isTextInputFocused) {
-          console.log('Handling paste event');
+          log.debug('Handling paste event');
           event.preventDefault();
 
           try {
             const clipboardText = await navigator.clipboard.readText();
-            console.log('Clipboard text (API):', clipboardText);
+            log.debug('Clipboard text (API):', clipboardText);
             setPastedPath(clipboardText);
             setShowNavigationDialog(true);
           } catch (error) {
-            console.log('Clipboard API failed, using fallback:', error);
+            log.debug('Clipboard API failed, using fallback:', error);
             // Fallback to event.clipboardData if clipboard API fails
             const clipboardText = event.clipboardData?.getData('text') || '';
-            console.log('Clipboard text (fallback):', clipboardText);
+            log.debug('Clipboard text (fallback):', clipboardText);
             setPastedPath(clipboardText);
             setShowNavigationDialog(true);
           }
         } else {
-          console.log('Text input is focused, ignoring paste');
+          log.debug('Text input is focused, ignoring paste');
         }
       }}
+      ref={containerRef}
+      tabIndex={0}
     >
       <Toolbar
         showPropertiesDrawer={showPropertiesDrawer}
-        togglePropertiesDrawer={togglePropertiesDrawer}
         showSidebar={showSidebar}
+        togglePropertiesDrawer={togglePropertiesDrawer}
         toggleSidebar={toggleSidebar}
       />
       <div
-        className={`relative grow shrink-0 max-h-[calc(100%-55px)] flex flex-col overflow-y-auto px-2 ${!fileBrowserState.currentFileSharePath ? 'grid grid-cols-2 grid-rows-[60px_1fr] bg-surface-light gap-6 p-6' : ''}`}
+        className={`relative grow shrink-0 max-h-[calc(100%-55px)] flex flex-col overflow-y-auto px-2 ${!fileBrowserState.currentFileSharePath ? 'bg-surface-light py-6' : ''}`}
       >
         {!fileBrowserState.currentFileSharePath ? (
-          <>
-            <div className="col-span-2">
-              <NavigationInput location="dashboard" />
+          <div className="flex flex-col max-w-full gap-6 px-6">
+            <NavigationInput location="dashboard" />
+            <div
+              className={`flex gap-6 ${componentWidth > 800 ? '' : 'flex-col'}`}
+            >
+              <RecentlyViewedCard />
+              <RecentDataLinksCard />
             </div>
-            <RecentlyViewedCard />
-            <RecentDataLinksCard />
-          </>
+          </div>
         ) : (
           <FileBrowser
-            showPropertiesDrawer={showPropertiesDrawer}
-            togglePropertiesDrawer={togglePropertiesDrawer}
-            setShowRenameDialog={setShowRenameDialog}
+            setShowConvertFileDialog={setShowConvertFileDialog}
             setShowDeleteDialog={setShowDeleteDialog}
             setShowPermissionsDialog={setShowPermissionsDialog}
-            setShowConvertFileDialog={setShowConvertFileDialog}
+            setShowRenameDialog={setShowRenameDialog}
+            showPropertiesDrawer={showPropertiesDrawer}
+            togglePropertiesDrawer={togglePropertiesDrawer}
           />
         )}
       </div>
       {showRenameDialog ? (
         <RenameDialog
-          showRenameDialog={showRenameDialog}
           setShowRenameDialog={setShowRenameDialog}
+          showRenameDialog={showRenameDialog}
         />
       ) : null}
       {showDeleteDialog ? (
         <Delete
-          showDeleteDialog={showDeleteDialog}
           setShowDeleteDialog={setShowDeleteDialog}
+          showDeleteDialog={showDeleteDialog}
         />
       ) : null}
       {showPermissionsDialog ? (
         <ChangePermissions
-          showPermissionsDialog={showPermissionsDialog}
           setShowPermissionsDialog={setShowPermissionsDialog}
+          showPermissionsDialog={showPermissionsDialog}
         />
       ) : null}
       {showConvertFileDialog ? (
         <ConvertFileDialog
-          showConvertFileDialog={showConvertFileDialog}
           setShowConvertFileDialog={setShowConvertFileDialog}
+          showConvertFileDialog={showConvertFileDialog}
         />
       ) : null}
       {showNavigationDialog ? (
         <FgDialog
-          open={showNavigationDialog}
           onClose={() => {
             setShowNavigationDialog(false);
             setPastedPath('');
           }}
+          open={showNavigationDialog}
         >
           <NavigationInput
-            location="dialog"
-            setShowNavigationDialog={setShowNavigationDialog}
             initialValue={pastedPath}
+            location="dialog"
             onDialogClose={() => setPastedPath('')}
+            setShowNavigationDialog={setShowNavigationDialog}
           />
         </FgDialog>
       ) : null}

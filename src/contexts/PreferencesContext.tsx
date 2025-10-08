@@ -31,10 +31,14 @@ type PreferencesContextType = {
   ) => Promise<Result<void>>;
   hideDotFiles: boolean;
   toggleHideDotFiles: () => Promise<Result<void>>;
+  areDataLinksAutomatic: boolean;
+  toggleAutomaticDataLinks: () => Promise<Result<void>>;
   disableNeuroglancerStateGeneration: boolean;
   toggleDisableNeuroglancerStateGeneration: () => Promise<Result<void>>;
   disableHeuristicalLayerTypeDetection: boolean;
   toggleDisableHeuristicalLayerTypeDetection: () => Promise<Result<void>>;
+  useLegacyMultichannelApproach: boolean;
+  toggleUseLegacyMultichannelApproach: () => Promise<Result<void>>;
   zonePreferenceMap: Record<string, ZonePreference>;
   zoneFavorites: Zone[];
   fileSharePathPreferenceMap: Record<string, FileSharePathPreference>;
@@ -71,12 +75,14 @@ export const usePreferencesContext = () => {
 export const PreferencesProvider = ({
   children
 }: {
-  children: React.ReactNode;
+  readonly children: React.ReactNode;
 }) => {
   const [pathPreference, setPathPreference] = React.useState<
     ['linux_path'] | ['windows_path'] | ['mac_path']
   >(['linux_path']);
   const [hideDotFiles, setHideDotFiles] = React.useState<boolean>(false);
+  const [areDataLinksAutomatic, setAreDataLinksAutomatic] =
+    React.useState<boolean>(false);
   const [
     disableNeuroglancerStateGeneration,
     setDisableNeuroglancerStateGeneration
@@ -85,6 +91,8 @@ export const PreferencesProvider = ({
     disableHeuristicalLayerTypeDetection,
     setDisableHeuristicalLayerTypeDetection
   ] = React.useState<boolean>(false);
+  const [useLegacyMultichannelApproach, setUseLegacyMultichannelApproach] =
+    React.useState<boolean>(false);
   const [zonePreferenceMap, setZonePreferenceMap] = React.useState<
     Record<string, ZonePreference>
   >({});
@@ -126,7 +134,7 @@ export const PreferencesProvider = ({
         return data?.value;
       } catch (error) {
         if (error instanceof HTTPError && error.responseCode === 404) {
-          log.debug(`Preference '${key}' not found`);
+          return null; // Preference not found is not an error
         } else {
           log.error(`Error fetching preference '${key}':`, error);
         }
@@ -138,9 +146,9 @@ export const PreferencesProvider = ({
 
   const accessMapItems = React.useCallback(
     (keys: string[]) => {
-      const itemsArray = keys.map(key => {
-        return zonesAndFileSharePathsMap[key];
-      });
+      const itemsArray = keys
+        .map(key => zonesAndFileSharePathsMap[key])
+        .filter(item => item !== undefined);
       return itemsArray;
     },
     [zonesAndFileSharePathsMap]
@@ -230,39 +238,44 @@ export const PreferencesProvider = ({
     [savePreferencesToBackend]
   );
 
-  const toggleHideDotFiles = React.useCallback(async (): Promise<
-    Result<void>
-  > => {
-    try {
-      setHideDotFiles(prevHideDotFiles => {
-        const newValue = !prevHideDotFiles;
-        savePreferencesToBackend('hideDotFiles', newValue);
-        return newValue;
-      });
-    } catch (error) {
-      return handleError(error);
-    }
-    return createSuccess(undefined);
-  }, [savePreferencesToBackend]);
-
-  const toggleDisableNeuroglancerStateGeneration =
-    React.useCallback(async (): Promise<Result<void>> => {
+  const togglePreference = React.useCallback(
+    async <T extends boolean>(
+      key: string,
+      setter: React.Dispatch<React.SetStateAction<T>>
+    ): Promise<Result<void>> => {
       try {
-        setDisableNeuroglancerStateGeneration(
-          prevDisableNeuroglancerStateGeneration => {
-            const newValue = !prevDisableNeuroglancerStateGeneration;
-            savePreferencesToBackend(
-              'disableNeuroglancerStateGeneration',
-              newValue
-            );
-            return newValue;
-          }
-        );
+        setter((prevValue: T) => {
+          const newValue = !prevValue as T;
+          savePreferencesToBackend(key, newValue);
+          return newValue;
+        });
       } catch (error) {
         return handleError(error);
       }
       return createSuccess(undefined);
-    }, [savePreferencesToBackend]);
+    },
+    [savePreferencesToBackend]
+  );
+
+  const toggleHideDotFiles = React.useCallback(async (): Promise<
+    Result<void>
+  > => {
+    return togglePreference('hideDotFiles', setHideDotFiles);
+  }, [togglePreference]);
+
+  const toggleAutomaticDataLinks = React.useCallback(async (): Promise<
+    Result<void>
+  > => {
+    return togglePreference('areDataLinksAutomatic', setAreDataLinksAutomatic);
+  }, [togglePreference]);
+
+  const toggleDisableNeuroglancerStateGeneration =
+    React.useCallback(async (): Promise<Result<void>> => {
+      return togglePreference(
+        'disableNeuroglancerStateGeneration',
+        setDisableNeuroglancerStateGeneration
+      );
+    }, [togglePreference]);
 
   const toggleDisableHeuristicalLayerTypeDetection =
     React.useCallback(async (): Promise<Result<void>> => {
@@ -282,6 +295,14 @@ export const PreferencesProvider = ({
       }
       return createSuccess(undefined);
     }, [savePreferencesToBackend]);
+
+  const toggleUseLegacyMultichannelApproach =
+    React.useCallback(async (): Promise<Result<void>> => {
+      return togglePreference(
+        'useLegacyMultichannelApproach',
+        setUseLegacyMultichannelApproach
+      );
+    }, [togglePreference]);
 
   function updatePreferenceList<T>(
     key: string,
@@ -491,7 +512,6 @@ export const PreferencesProvider = ({
       }
       const rawLayoutPref = await fetchPreferences('layout');
       if (rawLayoutPref) {
-        log.debug('setting layout:', rawLayoutPref);
         setLayout(rawLayoutPref);
       }
       setIsLayoutLoadedFromDB(true);
@@ -502,7 +522,6 @@ export const PreferencesProvider = ({
     (async function () {
       const rawPathPreference = await fetchPreferences('path');
       if (rawPathPreference) {
-        log.debug('setting initial path preference:', rawPathPreference);
         setPathPreference(rawPathPreference);
       }
     })();
@@ -512,8 +531,18 @@ export const PreferencesProvider = ({
     (async function () {
       const rawHideDotFiles = await fetchPreferences('hideDotFiles');
       if (rawHideDotFiles !== null) {
-        log.debug('setting initial hideDotFiles preference:', rawHideDotFiles);
         setHideDotFiles(rawHideDotFiles);
+      }
+    })();
+  }, [fetchPreferences]);
+
+  React.useEffect(() => {
+    (async function () {
+      const rawAreDataLinksAutomatic = await fetchPreferences(
+        'areDataLinksAutomatic'
+      );
+      if (rawAreDataLinksAutomatic !== null) {
+        setAreDataLinksAutomatic(rawAreDataLinksAutomatic);
       }
     })();
   }, [fetchPreferences]);
@@ -524,10 +553,6 @@ export const PreferencesProvider = ({
         'disableNeuroglancerStateGeneration'
       );
       if (rawDisableNeuroglancerStateGeneration !== null) {
-        log.debug(
-          'setting initial disableNeuroglancerStateGeneration preference:',
-          rawDisableNeuroglancerStateGeneration
-        );
         setDisableNeuroglancerStateGeneration(
           rawDisableNeuroglancerStateGeneration
         );
@@ -541,13 +566,20 @@ export const PreferencesProvider = ({
         'disableHeuristicalLayerTypeDetection'
       );
       if (rawDisableHeuristicalLayerTypeDetection !== null) {
-        log.debug(
-          'setting initial disableHeuristicalLayerTypeDetection preference:',
-          rawDisableHeuristicalLayerTypeDetection
-        );
         setDisableHeuristicalLayerTypeDetection(
           rawDisableHeuristicalLayerTypeDetection
         );
+      }
+    })();
+  }, [fetchPreferences]);
+
+  React.useEffect(() => {
+    (async function () {
+      const rawUseLegacyMultichannelApproach = await fetchPreferences(
+        'useLegacyMultichannelApproach'
+      );
+      if (rawUseLegacyMultichannelApproach !== null) {
+        setUseLegacyMultichannelApproach(rawUseLegacyMultichannelApproach);
       }
     })();
   }, [fetchPreferences]);
@@ -699,10 +731,14 @@ export const PreferencesProvider = ({
         handlePathPreferenceSubmit,
         hideDotFiles,
         toggleHideDotFiles,
+        areDataLinksAutomatic,
+        toggleAutomaticDataLinks,
         disableNeuroglancerStateGeneration,
         toggleDisableNeuroglancerStateGeneration,
         disableHeuristicalLayerTypeDetection,
         toggleDisableHeuristicalLayerTypeDetection,
+        useLegacyMultichannelApproach,
+        toggleUseLegacyMultichannelApproach,
         zonePreferenceMap,
         zoneFavorites,
         fileSharePathPreferenceMap,

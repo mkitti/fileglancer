@@ -9,7 +9,7 @@ import useNewFolderDialog from '@/hooks/useNewFolderDialog';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 
 type NewFolderButtonProps = {
-  triggerClasses: string;
+  readonly triggerClasses: string;
 };
 
 export default function NewFolderButton({
@@ -17,24 +17,27 @@ export default function NewFolderButton({
 }: NewFolderButtonProps): JSX.Element {
   const [showNewFolderDialog, setShowNewFolderDialog] = React.useState(false);
   const { fileBrowserState } = useFileBrowserContext();
-  const { handleNewFolderSubmit, newName, setNewName } = useNewFolderDialog();
+  const { handleNewFolderSubmit, newName, setNewName, isDuplicateName } =
+    useNewFolderDialog();
+
+  const isSubmitDisabled = !newName.trim() || isDuplicateName;
 
   return (
     <>
       <FgTooltip
+        disabledCondition={!fileBrowserState.currentFileSharePath}
         icon={HiFolderAdd}
         label="New folder"
-        disabledCondition={!fileBrowserState.currentFileSharePath}
         onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
           setShowNewFolderDialog(true);
           e.currentTarget.blur();
         }}
         triggerClasses={triggerClasses}
       />
-      {showNewFolderDialog && (
+      {showNewFolderDialog ? (
         <FgDialog
-          open={showNewFolderDialog}
           onClose={() => setShowNewFolderDialog(false)}
+          open={showNewFolderDialog}
         >
           <form
             onSubmit={async event => {
@@ -52,29 +55,44 @@ export default function NewFolderButton({
             <div className="mt-8 flex flex-col gap-2">
               <Typography
                 as="label"
-                htmlFor="new_name"
                 className="text-foreground font-semibold"
+                htmlFor="new_name"
               >
-                New Folder Name
+                Create a New Folder
               </Typography>
               <input
-                type="text"
-                id="new_name"
                 autoFocus
-                value={newName}
-                placeholder="Enter name"
+                className="mb-4 p-2 text-foreground text-lg border border-primary-light rounded-sm focus:outline-none focus:border-primary bg-background"
+                id="new_name"
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                   setNewName(event.target.value);
                 }}
-                className="mb-4 p-2 text-foreground text-lg border border-primary-light rounded-sm focus:outline-none focus:border-primary bg-background"
+                placeholder="Folder name ..."
+                type="text"
+                value={newName}
               />
             </div>
-            <Button className="!rounded-md" type="submit">
-              Submit
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                className="!rounded-md"
+                disabled={isSubmitDisabled}
+                type="submit"
+              >
+                Submit
+              </Button>
+              {!newName.trim() ? (
+                <Typography className="text-sm text-gray-500">
+                  Please enter a folder name
+                </Typography>
+              ) : newName.trim() && isDuplicateName ? (
+                <Typography className="text-sm text-red-500">
+                  A file or folder with this name already exists
+                </Typography>
+              ) : null}
+            </div>
           </form>
         </FgDialog>
-      )}
+      ) : null}
     </>
   );
 }

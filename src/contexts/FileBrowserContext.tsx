@@ -20,9 +20,9 @@ type FileBrowserResponse = {
 };
 
 type FileBrowserContextProviderProps = {
-  children: React.ReactNode;
-  fspName: string | undefined;
-  filePath: string | undefined;
+  readonly children: React.ReactNode;
+  readonly fspName: string | undefined;
+  readonly filePath: string | undefined;
 };
 
 interface FileBrowserState {
@@ -87,7 +87,6 @@ export const FileBrowserContextProvider = ({
   // Function to update fileBrowserState with complete, consistent data
   const updateFileBrowserState = React.useCallback(
     (newState: Partial<FileBrowserState>) => {
-      log.debug('Updating fileBrowserState:', newState);
       setFileBrowserState(prev => ({
         ...prev,
         ...newState
@@ -134,9 +133,7 @@ export const FileBrowserContextProvider = ({
   const navigate = useNavigate();
 
   const handleLeftClick = (
-    // e: React.MouseEvent<HTMLDivElement>,
     file: FileOrFolder,
-    // displayFiles: FileOrFolder[],
     showFilePropertiesDrawer: boolean
   ) => {
     // If clicking on a file (not directory), navigate to the file URL
@@ -149,38 +146,7 @@ export const FileBrowserContextProvider = ({
       return;
     }
 
-    // For directories, handle selection as before
-    // if (e.shiftKey) {
-    //   // If shift key held down while clicking,
-    //   // add all files between the last selected and the current file
-    //   const lastSelectedIndex = selectedFiles.length
-    //     ? displayFiles.findIndex(
-    //         f => f === selectedFiles[selectedFiles.length - 1]
-    //       )
-    //     : -1;
-    //   const currentIndex = displayFiles.findIndex(f => f.name === file.name);
-    //   const start = Math.min(lastSelectedIndex, currentIndex);
-    //   const end = Math.max(lastSelectedIndex, currentIndex);
-    //   const newSelectedFiles = displayFiles.slice(start, end + 1);
-    //   setSelectedFiles(newSelectedFiles);
-    //   setPropertiesTarget(file);
-    // } else if (e.metaKey) {
-    //   // If  "Windows/Cmd" is held down while clicking,
-    //   // toggle the current file in the selection
-    //   // and set it as the properties target
-    //   const currentIndex = selectedFiles.indexOf(file);
-    //   const newSelectedFiles = [...selectedFiles];
-
-    //   if (currentIndex === -1) {
-    //     newSelectedFiles.push(file);
-    //   } else {
-    //     newSelectedFiles.splice(currentIndex, 1);
-    //   }
-
-    //   setSelectedFiles(newSelectedFiles);
-    //   setPropertiesTarget(file);
-    // } else {
-    // If no modifier keys are held down, select the current file
+    // Select the clicked file
     const currentIndex = fileBrowserState.selectedFiles.indexOf(file);
     const newSelectedFiles =
       currentIndex === -1 ||
@@ -206,19 +172,6 @@ export const FileBrowserContextProvider = ({
   };
 
   const updateFilesWithContextMenuClick = (file: FileOrFolder) => {
-    // Update file selection - if file is not already selected, select it; otherwise keep current selection
-    // if (fileBrowserState.selectedFiles.length === 0) {
-    //   updateAllStates(
-    //     fileBrowserState.currentFileSharePath,
-    //     fileBrowserState.currentFolder,
-    //     fileBrowserState.files,
-    //     file, // Set as properties target
-    //     [file], // Select the clicked file
-    //     fileBrowserState.uiErrorMsg
-    //   );
-    //   return;
-    // }
-
     const currentIndex = fileBrowserState.selectedFiles.indexOf(file);
     const newSelectedFiles =
       currentIndex === -1 ? [file] : [...fileBrowserState.selectedFiles];
@@ -273,12 +226,6 @@ export const FileBrowserContextProvider = ({
   const fetchAndUpdateFileBrowserState = React.useCallback(
     async (fsp: FileSharePath, targetPath: string): Promise<void> => {
       setAreFileDataLoading(true);
-      log.debug(
-        'Fetching metadata for FSP:',
-        fsp.name,
-        'and path:',
-        targetPath
-      );
       let fileOrFolder: FileOrFolder | null = null;
 
       try {
@@ -359,7 +306,6 @@ export const FileBrowserContextProvider = ({
         new Error('File share path and file/folder required to refresh')
       );
     }
-    log.debug('Refreshing file list');
     try {
       await fetchAndUpdateFileBrowserState(
         fileBrowserState.currentFileSharePath,
@@ -373,7 +319,6 @@ export const FileBrowserContextProvider = ({
 
   // Function to trigger a refresh of file content in FileViewer
   const triggerFileContentRefresh = React.useCallback(() => {
-    log.debug('Triggering file content refresh');
     setFileBrowserState(prev => ({
       ...prev,
       fileContentRefreshTrigger: prev.fileContentRefreshTrigger + 1
@@ -405,7 +350,6 @@ export const FileBrowserContextProvider = ({
       const fspKey = makeMapKey('fsp', fspName);
       const urlFsp = zonesAndFileSharePathsMap[fspKey] as FileSharePath;
       if (!urlFsp) {
-        log.error(`File share path not found for fspName: ${fspName}`);
         if (cancelled) {
           return;
         }

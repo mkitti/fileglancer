@@ -12,8 +12,8 @@ export default function ZonesBrowser({
   searchQuery,
   filteredZonesMap
 }: {
-  searchQuery: string;
-  filteredZonesMap: ZonesAndFileSharePathsMap;
+  readonly searchQuery: string;
+  readonly filteredZonesMap: ZonesAndFileSharePathsMap;
 }) {
   const { zonesAndFileSharePathsMap, areZoneDataLoading } =
     useZoneAndFspMapContext();
@@ -28,8 +28,8 @@ export default function ZonesBrowser({
     <div className="flex flex-col my-1 mx-1">
       <List className="!min-w-20">
         <List.Item
-          onClick={() => toggleOpenZones('all')}
           className="cursor-pointer rounded-md py-2 short:py-1 hover:!bg-surface-light focus:!bg-surface-light"
+          onClick={() => toggleOpenZones('all')}
         >
           <List.ItemStart>
             <HiSquares2X2 className="icon-default short:icon-small text-surface-foreground" />
@@ -45,8 +45,8 @@ export default function ZonesBrowser({
         </List.Item>
       </List>
       <Collapse
-        open={openZones['all'] ? true : false}
         className="overflow-x-hidden flex-grow w-full"
+        open={openZones['all'] ? true : false}
       >
         {areZoneDataLoading ? (
           Array.from({ length: 10 }, (_, index) => (
@@ -54,18 +54,30 @@ export default function ZonesBrowser({
           ))
         ) : (
           <List className="h-full py-0 gap-0 bg-background">
-            {Object.entries(displayZones).map(([key, value]) => {
-              if (key.startsWith('zone') && 'fileSharePaths' in value) {
-                return (
-                  <Zone
-                    key={key}
-                    zone={value}
-                    openZones={openZones}
-                    toggleOpenZones={toggleOpenZones}
-                  />
-                );
-              }
-            })}
+            {searchQuery.length > 0 &&
+            Object.keys(displayZones).length === 0 ? (
+              <div className="px-4 py-6 text-center">
+                <Typography className="text-sm text-gray-500">
+                  No zones match your filter.
+                </Typography>
+                <Typography className="text-xs text-gray-400 mt-1">
+                  Try broadening your search to see more results.
+                </Typography>
+              </div>
+            ) : (
+              Object.entries(displayZones).map(([key, value]) => {
+                if (key.startsWith('zone') && 'fileSharePaths' in value) {
+                  return (
+                    <Zone
+                      key={key}
+                      openZones={openZones}
+                      toggleOpenZones={toggleOpenZones}
+                      zone={value}
+                    />
+                  );
+                }
+              })
+            )}
           </List>
         )}
       </Collapse>

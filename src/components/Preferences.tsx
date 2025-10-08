@@ -3,6 +3,8 @@ import { Card, Typography } from '@material-tailwind/react';
 import toast from 'react-hot-toast';
 
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import AutomaticLinksToggle from '@/components/ui/PreferencesPage/AutomaticLinksToggle';
+import LegacyMultichannelToggle from '@/components/ui/PreferencesPage/LegacyMultichannelToggle';
 
 export default function Preferences() {
   const {
@@ -18,7 +20,7 @@ export default function Preferences() {
 
   return (
     <>
-      <Typography type="h5" className="text-foreground pb-6">
+      <Typography className="text-foreground pb-6" type="h5">
         Preferences
       </Typography>
 
@@ -31,11 +33,9 @@ export default function Preferences() {
         <Card.Body className="flex flex-col gap-4 pb-4">
           <div className="flex items-center gap-2">
             <input
-              className="icon-small checked:accent-secondary-light"
-              type="radio"
-              id="linux_path"
-              value="linux_path"
               checked={pathPreference[0] === 'linux_path'}
+              className="icon-small checked:accent-secondary-light"
+              id="linux_path"
               onChange={async (event: React.ChangeEvent<HTMLInputElement>) => {
                 if (event.target.checked) {
                   const result = await handlePathPreferenceSubmit([
@@ -48,12 +48,14 @@ export default function Preferences() {
                   }
                 }
               }}
+              type="radio"
+              value="linux_path"
             />
 
             <Typography
               as="label"
-              htmlFor="linux_path"
               className="text-foreground"
+              htmlFor="linux_path"
             >
               Cluster/Linux (e.g., /misc/public)
             </Typography>
@@ -61,11 +63,9 @@ export default function Preferences() {
 
           <div className="flex items-center gap-2">
             <input
-              className="icon-small checked:accent-secondary-light"
-              type="radio"
-              id="windows_path"
-              value="windows_path"
               checked={pathPreference[0] === 'windows_path'}
+              className="icon-small checked:accent-secondary-light"
+              id="windows_path"
               onChange={async (event: React.ChangeEvent<HTMLInputElement>) => {
                 if (event.target.checked) {
                   const result = await handlePathPreferenceSubmit([
@@ -78,11 +78,13 @@ export default function Preferences() {
                   }
                 }
               }}
+              type="radio"
+              value="windows_path"
             />
             <Typography
               as="label"
-              htmlFor="windows_path"
               className="text-foreground"
+              htmlFor="windows_path"
             >
               Windows/Linux SMB (e.g. \\prfs.hhmi.org\public)
             </Typography>
@@ -90,11 +92,9 @@ export default function Preferences() {
 
           <div className="flex items-center gap-2">
             <input
-              className="icon-small checked:accent-secondary-light"
-              type="radio"
-              id="mac_path"
-              value="mac_path"
               checked={pathPreference[0] === 'mac_path'}
+              className="icon-small checked:accent-secondary-light"
+              id="mac_path"
               onChange={async (event: React.ChangeEvent<HTMLInputElement>) => {
                 if (event.target.checked) {
                   const result = await handlePathPreferenceSubmit(['mac_path']);
@@ -105,11 +105,13 @@ export default function Preferences() {
                   }
                 }
               }}
+              type="radio"
+              value="mac_path"
             />
             <Typography
               as="label"
-              htmlFor="mac_path"
               className="text-foreground"
+              htmlFor="mac_path"
             >
               macOS (e.g. smb://prfs.hhmi.org/public)
             </Typography>
@@ -124,10 +126,9 @@ export default function Preferences() {
         <Card.Body className="flex flex-col gap-4 pb-4">
           <div className="flex items-center gap-2">
             <input
-              className="icon-small checked:accent-secondary-light"
-              type="checkbox"
-              id="hide_dot_files"
               checked={hideDotFiles}
+              className="icon-small checked:accent-secondary-light"
+              id="hide_dot_files"
               onChange={async () => {
                 const result = await toggleHideDotFiles();
                 if (result.success) {
@@ -140,22 +141,30 @@ export default function Preferences() {
                   toast.error(result.error);
                 }
               }}
+              type="checkbox"
             />
             <Typography
               as="label"
-              htmlFor="hide_dot_files"
               className="text-foreground"
+              htmlFor="hide_dot_files"
             >
               Hide dot files (files and folders starting with ".")
             </Typography>
           </div>
 
           <div className="flex items-center gap-2">
+            <AutomaticLinksToggle />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <LegacyMultichannelToggle />
+          </div>
+
+          <div className="flex items-center gap-2">
             <input
-              className="icon-small checked:accent-secondary-light"
-              type="checkbox"
-              id="disable_neuroglancer_state_generation"
               checked={disableNeuroglancerStateGeneration}
+              className="icon-small checked:accent-secondary-light"
+              id="disable_neuroglancer_state_generation"
               onChange={async () => {
                 const result = await toggleDisableNeuroglancerStateGeneration();
                 if (result.success) {
@@ -168,11 +177,12 @@ export default function Preferences() {
                   toast.error(result.error);
                 }
               }}
+              type="checkbox"
             />
             <Typography
               as="label"
-              htmlFor="disable_neuroglancer_state_generation"
               className="text-foreground"
+              htmlFor="disable_neuroglancer_state_generation"
             >
               Disable Neuroglancer state generation
             </Typography>
@@ -180,10 +190,9 @@ export default function Preferences() {
 
           <div className="flex items-center gap-2">
             <input
-              className="icon-small checked:accent-secondary-light"
-              type="checkbox"
-              id="disable_heuristical_layer_type_detection"
               checked={disableHeuristicalLayerTypeDetection ?? false}
+              className="icon-small checked:accent-secondary-light"
+              id="disable_heuristical_layer_type_detection"
               onChange={async () => {
                 const result =
                   await toggleDisableHeuristicalLayerTypeDetection();
@@ -197,11 +206,12 @@ export default function Preferences() {
                   toast.error(result.error);
                 }
               }}
+              type="checkbox"
             />
             <Typography
               as="label"
-              htmlFor="disable_heuristical_layer_type_detection"
               className="text-foreground"
+              htmlFor="disable_heuristical_layer_type_detection"
             >
               Disable heuristical layer type determination
             </Typography>

@@ -13,7 +13,7 @@ import {
 import { FileSharePath } from '@/shared.types';
 import { FgStyledLink } from '../widgets/FgLink';
 
-function FilePathCell({ item }: { item: Ticket }) {
+function FilePathCell({ item }: { readonly item: Ticket }) {
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
   const { pathPreference } = usePreferencesContext();
 
@@ -35,7 +35,7 @@ function FilePathCell({ item }: { item: Ticket }) {
   );
 }
 
-function StatusCell({ status }: { status: string }) {
+function StatusCell({ status }: { readonly status: string }) {
   return (
     <div className="text-sm">
       <span
@@ -61,14 +61,17 @@ export const jobsColumns: ColumnDef<Ticket>[] = [
   {
     accessorKey: 'path',
     header: 'File Path',
-    cell: ({ row }) => <FilePathCell item={row.original} />,
+    cell: ({ cell, row }) => <FilePathCell item={row.original} key={cell.id} />,
     enableSorting: true
   },
   {
     accessorKey: 'description',
     header: 'Job Description',
-    cell: ({ getValue }) => (
-      <Typography className="line-clamp-2 text-foreground max-w-full">
+    cell: ({ cell, getValue }) => (
+      <Typography
+        className="line-clamp-2 text-foreground max-w-full"
+        key={cell.id}
+      >
         {getValue() as string}
       </Typography>
     )
@@ -76,14 +79,16 @@ export const jobsColumns: ColumnDef<Ticket>[] = [
   {
     accessorKey: 'status',
     header: 'Status',
-    cell: ({ getValue }) => <StatusCell status={getValue() as string} />,
+    cell: ({ cell, getValue }) => (
+      <StatusCell key={cell.id} status={getValue() as string} />
+    ),
     enableSorting: true
   },
   {
     accessorKey: 'updated',
     header: 'Last Updated',
-    cell: ({ getValue }) => (
-      <div className="text-sm text-foreground-muted">
+    cell: ({ cell, getValue }) => (
+      <div className="text-sm text-foreground-muted" key={cell.id}>
         {formatDateString(getValue() as string)}
       </div>
     ),

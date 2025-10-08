@@ -20,12 +20,13 @@ import * as zarr from 'zarrita';
 
 export type OpenWithToolUrls = {
   copy: string;
-  validator: string;
+  validator: string | null;
   neuroglancer: string;
-  vole: string;
-  avivator: string;
+  vole: string | null;
+  avivator: string | null;
 };
 
+export type PendingToolKey = keyof OpenWithToolUrls | null;
 export type ZarrArray = zarr.Array<any>;
 export type ZarrMetadata = Metadata | null;
 
@@ -39,6 +40,7 @@ export default function useZarrMetadata() {
   const [thumbnailError, setThumbnailError] = React.useState<string | null>(
     null
   );
+  const notifiedPathRef = React.useRef<string | null>(null);
   const [layerType, setLayerType] = React.useState<
     'auto' | 'image' | 'segmentation' | null
   >(null);
@@ -46,73 +48,82 @@ export default function useZarrMetadata() {
   const validatorBaseUrl = 'https://ome.github.io/ome-ngff-validator/?source=';
   const neuroglancerBaseUrl = 'https://neuroglancer-demo.appspot.com/#!';
   const voleBaseUrl = 'https://volumeviewer.allencell.org/viewer?url=';
-  const avivatorBaseUrl = 'https://avivator.gehlenborglab.org/?image_url=';
+  const avivatorBaseUrl = 'https://janeliascicomp.github.io/viv/?image_url=';
   const { fileBrowserState, areFileDataLoading } = useFileBrowserContext();
   const { dataUrl } = useProxiedPathContext();
   const { externalDataUrl } = useExternalBucketContext();
   const {
     disableNeuroglancerStateGeneration,
-    disableHeuristicalLayerTypeDetection
+    disableHeuristicalLayerTypeDetection,
+    useLegacyMultichannelApproach
   } = usePreferencesContext();
   const [cookies] = useCookies(['_xsrf']);
 
-  const checkZarrArray = async (
-    imageUrl: string,
-    zarrVersion: 2 | 3,
-    cancelRef: { cancel: boolean }
-  ) => {
-    log.info(
-      'Getting Zarr array for',
-      imageUrl,
-      'with Zarr version',
-      zarrVersion
-    );
-    setThumbnailError(null);
-    try {
-      const arr = await getZarrArray(imageUrl, zarrVersion);
-      if (cancelRef.cancel) {
-        return;
+  const checkZarrArray = React.useCallback(
+    async (
+      imageUrl: string,
+      zarrVersion: 2 | 3,
+      signal: AbortSignal
+    ): Promise<void> => {
+      log.info(
+        'Getting Zarr array for',
+        imageUrl,
+        'with Zarr version',
+        zarrVersion
+      );
+      setThumbnailError(null);
+      try {
+        const arr = await getZarrArray(imageUrl, zarrVersion, cookies['_xsrf']);
+        if (signal.aborted) {
+          return;
+        }
+        const shapes = [arr.shape];
+        setMetadata({
+          arr,
+          shapes,
+          multiscale: undefined,
+          omero: undefined,
+          scales: undefined,
+          zarrVersion: zarrVersion
+        });
+      } catch (error) {
+        log.error('Error fetching Zarr array:', error);
+        if (signal.aborted) {
+          return;
+        }
+        setThumbnailError('Error fetching Zarr array');
       }
-      const shapes = [arr.shape];
-      setMetadata({
-        arr,
-        shapes,
-        multiscale: undefined,
-        omero: undefined,
-        scales: undefined,
-        zarrVersion: zarrVersion
-      });
-    } catch (error) {
-      log.error('Error fetching Zarr array:', error);
-      if (cancelRef.cancel) {
-        return;
-      }
-      setThumbnailError('Error fetching Zarr array');
-    }
-  };
+    },
+    [cookies]
+  );
 
-  const checkOmeZarrMetadata = async (
-    imageUrl: string,
-    zarrVersion: 2 | 3,
-    cancelRef: { cancel: boolean }
-  ) => {
-    setThumbnailError(null);
-    try {
-      setOmeZarrUrl(imageUrl);
-      const metadata = await getOmeZarrMetadata(imageUrl);
-      if (cancelRef.cancel) {
-        return;
+  const checkOmeZarrMetadata = React.useCallback(
+    async (imageUrl: string, zarrVersion: 2 | 3, signal: AbortSignal) => {
+      log.info(
+        'Getting OME-Zarr metadata for',
+        imageUrl,
+        'with Zarr version',
+        zarrVersion
+      );
+      setThumbnailError(null);
+      try {
+        setOmeZarrUrl(imageUrl);
+        const metadata = await getOmeZarrMetadata(imageUrl, cookies['_xsrf']);
+        if (signal.aborted) {
+          return;
+        }
+        setMetadata(metadata);
+        setLoadingThumbnail(true);
+      } catch (error) {
+        log.error('Exception fetching OME-Zarr metadata:', imageUrl, error);
+        if (signal.aborted) {
+          return;
+        }
+        setThumbnailError('Error fetching OME-Zarr metadata');
       }
-      setMetadata(metadata);
-      setLoadingThumbnail(true);
-    } catch (error) {
-      log.error('Exception fetching OME-Zarr metadata:', imageUrl, error);
-      if (cancelRef.cancel) {
-        return;
-      }
-      setThumbnailError('Error fetching OME-Zarr metadata');
-    }
-  };
+    },
+    [cookies]
+  );
 
   const getFile = React.useCallback(
     (fileName: string) => {
@@ -122,21 +133,10 @@ export default function useZarrMetadata() {
   );
 
   const checkZarrMetadata = React.useCallback(
-    async (cancelRef: { cancel: boolean }) => {
+    async (signal: AbortSignal) => {
       if (areFileDataLoading) {
         return;
       }
-
-      log.info(
-        'Checking Zarr metadata\nareFileDataLoading:',
-        areFileDataLoading,
-        '\nfileBrowserState.currentFileSharePath:',
-        fileBrowserState.currentFileSharePath,
-        '\nfileBrowserState.currentFileOrFolder:',
-        fileBrowserState.currentFileOrFolder,
-        '\nfileBrowserState.files:',
-        fileBrowserState.files
-      );
 
       setMetadata(null);
       setOmeZarrUrl(null);
@@ -145,6 +145,7 @@ export default function useZarrMetadata() {
       setLoadingThumbnail(false);
       setOpenWithToolUrls(null);
       setLayerType(null);
+      notifiedPathRef.current = null;
 
       if (
         fileBrowserState.currentFileSharePath &&
@@ -157,7 +158,7 @@ export default function useZarrMetadata() {
 
         const zarrayFile = getFile('.zarray');
         if (zarrayFile) {
-          checkZarrArray(imageUrl, 2, cancelRef);
+          await checkZarrArray(imageUrl, 2, signal);
         } else {
           const zattrsFile = getFile('.zattrs');
           if (zattrsFile) {
@@ -166,11 +167,11 @@ export default function useZarrMetadata() {
               zattrsFile.path,
               cookies
             )) as any;
-            if (cancelRef.cancel) {
+            if (signal.aborted) {
               return;
             }
             if (attrs.multiscales) {
-              checkOmeZarrMetadata(imageUrl, 2, cancelRef);
+              await checkOmeZarrMetadata(imageUrl, 2, signal);
             }
           } else {
             const zarrJsonFile = getFile('zarr.json');
@@ -180,14 +181,14 @@ export default function useZarrMetadata() {
                 zarrJsonFile.path,
                 cookies
               )) as any;
-              if (cancelRef.cancel) {
+              if (signal.aborted) {
                 return;
               }
               if (attrs.node_type === 'array') {
-                checkZarrArray(imageUrl, 3, cancelRef);
+                await checkZarrArray(imageUrl, 3, signal);
               } else if (attrs.node_type === 'group') {
                 if (attrs.attributes?.ome?.multiscales) {
-                  checkOmeZarrMetadata(imageUrl, 3, cancelRef);
+                  await checkOmeZarrMetadata(imageUrl, 3, signal);
                 } else {
                   log.info('Zarrv3 group has no multiscales', attrs.attributes);
                 }
@@ -200,6 +201,8 @@ export default function useZarrMetadata() {
       }
     },
     [
+      checkOmeZarrMetadata,
+      checkZarrArray,
       areFileDataLoading,
       fileBrowserState.currentFileSharePath,
       fileBrowserState.currentFileOrFolder,
@@ -210,10 +213,10 @@ export default function useZarrMetadata() {
 
   // When the file browser state changes, check for Zarr metadata
   React.useEffect(() => {
-    const cancelRef = { cancel: false };
-    checkZarrMetadata(cancelRef);
+    const controller = new AbortController();
+    checkZarrMetadata(controller.signal);
     return () => {
-      cancelRef.cancel = true;
+      controller.abort();
     };
   }, [checkZarrMetadata]);
 
@@ -222,37 +225,37 @@ export default function useZarrMetadata() {
     if (!omeZarrUrl) {
       return;
     }
-
     const controller = new AbortController();
-
     const loadThumbnail = async (signal: AbortSignal) => {
       try {
-        const [thumbnail, error] = await getOmeZarrThumbnail(omeZarrUrl);
+        const [thumbnail, error] = await getOmeZarrThumbnail(
+          omeZarrUrl,
+          cookies['_xsrf'],
+          signal
+        );
         if (signal.aborted) {
           return;
         }
-
         setLoadingThumbnail(false);
         if (error) {
-          console.error('Thumbnail load failed:', error);
+          log.error('Thumbnail load failed:', error);
           setThumbnailError(error);
         } else {
           setThumbnailSrc(thumbnail);
         }
       } catch (err) {
         if (!signal.aborted) {
-          console.error('Unexpected error loading thumbnail:', err);
+          log.error('Unexpected error loading thumbnail:', err);
           setThumbnailError(err instanceof Error ? err.message : String(err));
         }
       }
     };
-
     loadThumbnail(controller.signal);
 
     return () => {
       controller.abort();
     };
-  }, [omeZarrUrl]);
+  }, [omeZarrUrl, cookies]);
 
   // Determine layer type when thumbnail becomes available
   React.useEffect(() => {
@@ -293,76 +296,95 @@ export default function useZarrMetadata() {
 
   // Run tool url generation when the proxied path url or metadata changes
   React.useEffect(() => {
-    setOpenWithToolUrls(null);
-    console.log(
-      'Updating OpenWithToolUrls with metadata ',
-      metadata,
-      '\n  and dataUrl ',
-      dataUrl,
-      '\n  and externalDataUrl ',
-      externalDataUrl
-    );
-    const url = externalDataUrl || dataUrl;
-
-    if (metadata && url) {
+    // Always create openWithToolUrls data structure when metadata is available
+    if (metadata) {
+      const url = externalDataUrl || dataUrl;
       const openWithToolUrls = {
-        copy: url
+        copy: url || ''
       } as OpenWithToolUrls;
-      if (metadata && metadata?.multiscale) {
-        // OME-Zarr
-        openWithToolUrls.validator = validatorBaseUrl + url;
-        openWithToolUrls.vole = voleBaseUrl + url;
-        openWithToolUrls.avivator = avivatorBaseUrl + url;
-        if (disableNeuroglancerStateGeneration) {
-          openWithToolUrls.neuroglancer =
-            neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
-        } else {
-          try {
-            openWithToolUrls.neuroglancer =
-              neuroglancerBaseUrl +
-              generateNeuroglancerStateForOmeZarr(
-                url,
-                metadata.zarrVersion,
-                layerType || 'image',
-                metadata.multiscale,
-                metadata.arr,
-                metadata.omero
-              );
-          } catch (error) {
-            log.error(
-              'Error generating Neuroglancer state for OME-Zarr:',
-              error
-            );
+
+      // Determine which tools should be available based on metadata type
+      if (metadata?.multiscale) {
+        // OME-Zarr - all urls for v2; no avivator for v3
+        if (url) {
+          // Populate with actual URLs when proxied path is available
+          openWithToolUrls.validator = validatorBaseUrl + url;
+          openWithToolUrls.vole = voleBaseUrl + url;
+          openWithToolUrls.avivator =
+            metadata.zarrVersion === 2 ? avivatorBaseUrl + url : null;
+          if (disableNeuroglancerStateGeneration) {
             openWithToolUrls.neuroglancer =
               neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
+          } else {
+            try {
+              openWithToolUrls.neuroglancer =
+                neuroglancerBaseUrl +
+                generateNeuroglancerStateForOmeZarr(
+                  url,
+                  metadata.zarrVersion,
+                  layerType || 'image',
+                  metadata.multiscale,
+                  metadata.arr,
+                  metadata.omero,
+                  useLegacyMultichannelApproach
+                );
+            } catch (error) {
+              log.error(
+                'Error generating Neuroglancer state for OME-Zarr:',
+                error
+              );
+              openWithToolUrls.neuroglancer =
+                neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
+            }
           }
+        } else {
+          // No proxied URL - show all tools as available but empty
+          openWithToolUrls.validator = '';
+          openWithToolUrls.vole = '';
+          // if this is a zarr version 2, then set the url to blank which will show
+          // the icon before a data link has been generated. Setting it to null for
+          // all other versions, eg zarr v3 means the icon will not be present before
+          // a data link is generated.
+          openWithToolUrls.avivator = metadata.zarrVersion === 2 ? '' : null;
+          openWithToolUrls.neuroglancer = '';
         }
       } else {
-        // Zarr array
-        openWithToolUrls.validator = '';
-        openWithToolUrls.vole = '';
-        openWithToolUrls.avivator = '';
-        if (disableNeuroglancerStateGeneration) {
-          openWithToolUrls.neuroglancer =
-            neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
+        // Non-OME Zarr - only Neuroglancer available
+        if (url) {
+          openWithToolUrls.validator = null;
+          openWithToolUrls.vole = null;
+          openWithToolUrls.avivator = null;
+          if (disableNeuroglancerStateGeneration) {
+            openWithToolUrls.neuroglancer =
+              neuroglancerBaseUrl + generateNeuroglancerStateForDataURL(url);
+          } else {
+            openWithToolUrls.neuroglancer =
+              neuroglancerBaseUrl +
+              generateNeuroglancerStateForZarrArray(
+                url,
+                metadata.zarrVersion,
+                layerType || 'image'
+              );
+          }
         } else {
-          openWithToolUrls.neuroglancer =
-            neuroglancerBaseUrl +
-            generateNeuroglancerStateForZarrArray(
-              url,
-              metadata.zarrVersion,
-              layerType || 'image'
-            );
+          // No proxied URL - only show Neuroglancer as available but empty
+          openWithToolUrls.validator = null;
+          openWithToolUrls.vole = null;
+          openWithToolUrls.avivator = null;
+          openWithToolUrls.neuroglancer = '';
         }
       }
       setOpenWithToolUrls(openWithToolUrls);
+    } else {
+      setOpenWithToolUrls(null);
     }
   }, [
     metadata,
     dataUrl,
     externalDataUrl,
     disableNeuroglancerStateGeneration,
-    layerType
+    layerType,
+    useLegacyMultichannelApproach
   ]);
 
   return {

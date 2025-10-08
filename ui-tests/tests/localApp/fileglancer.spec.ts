@@ -1,5 +1,5 @@
 import { expect, test } from '@jupyterlab/galata';
-import { openFileGlancer } from './testutils';
+import { openFileGlancer } from '../testutils.ts';
 
 /**
  * Don't load JupyterLab webpage before running the tests.
