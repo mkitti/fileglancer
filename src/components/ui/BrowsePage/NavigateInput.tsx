@@ -34,7 +34,7 @@ export default function NavigationInput({
     pathPreference[0] === 'windows_path'
       ? '\\\\prfs.hhmi.org\\path\\to\\folder'
       : pathPreference[0] === 'linux_path'
-        ? '/groups/path/to/folder'
+        ? '/path/to/folder'
         : 'smb://prfs.hhmi.org/path/to/folder';
 
   return (
@@ -46,7 +46,7 @@ export default function NavigationInput({
         className="font-semibold text-foreground mr-2 whitespace-nowrap"
         htmlFor="navigation-input-form"
       >
-        Navigate to path:
+        Navigate:
       </Typography>
       <form
         className="flex items-center justify-center gap-2 bg-surface-light flex-1"
