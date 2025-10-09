@@ -506,10 +506,20 @@ export const PreferencesProvider = ({
 
   const updateRecentlyViewedFolders = React.useCallback(
     (folderPath: string, fspName: string): FolderPreference[] => {
+      log.info('[RecentlyViewed] updateRecentlyViewedFolders called', {
+        folderPath,
+        fspName,
+        currentListLength: recentlyViewedFolders.length,
+        currentList: JSON.stringify(recentlyViewedFolders, null, 2)
+      });
+
       const updatedFolders = [...recentlyViewedFolders];
 
       // Do not save file share paths in the recently viewed folders
       if (folderPath === '.') {
+        log.info(
+          '[RecentlyViewed] Skipping update - folderPath is "." (file share path root)'
+        );
         return updatedFolders;
       }
 
@@ -521,7 +531,12 @@ export const PreferencesProvider = ({
 
       // First, if length is 0, just add the new item
       if (updatedFolders.length === 0) {
+        log.info('[RecentlyViewed] List was empty, adding first item');
         updatedFolders.push(newItem);
+        log.info(
+          '[RecentlyViewed] Updated list:',
+          JSON.stringify(updatedFolders, null, 2)
+        );
         return updatedFolders;
       }
       // Check if folderPath is a descendant path of the most recently viewed folder path
@@ -532,7 +547,14 @@ export const PreferencesProvider = ({
           folderPath.startsWith(updatedFolders[0].folderPath)) ||
         updatedFolders[0].folderPath.startsWith(folderPath)
       ) {
+        log.info(
+          '[RecentlyViewed] New path is related to most recent item, replacing it'
+        );
         updatedFolders[0] = newItem;
+        log.info(
+          '[RecentlyViewed] Updated list:',
+          JSON.stringify(updatedFolders, null, 2)
+        );
         return updatedFolders;
       } else {
         const index = updatedFolders.findIndex(
@@ -541,15 +563,30 @@ export const PreferencesProvider = ({
             folder.fspName === newItem.fspName
         );
         if (index === -1) {
+          log.info('[RecentlyViewed] Adding new item to front of list');
           updatedFolders.unshift(newItem);
           if (updatedFolders.length > 10) {
+            log.info(
+              '[RecentlyViewed] List exceeded 10 items, removing oldest'
+            );
             updatedFolders.pop(); // Remove the oldest entry if we exceed the 10 item limit
           }
         } else if (index > 0) {
+          log.info(
+            `[RecentlyViewed] Item already exists at index ${index}, moving to front`
+          );
           // If the folder is already in the list, move it to the front
           updatedFolders.splice(index, 1);
           updatedFolders.unshift(newItem);
+        } else {
+          log.info(
+            '[RecentlyViewed] Item is already at front, no change needed'
+          );
         }
+        log.info(
+          '[RecentlyViewed] Updated list:',
+          JSON.stringify(updatedFolders, null, 2)
+        );
         return updatedFolders;
       }
     },
@@ -559,15 +596,21 @@ export const PreferencesProvider = ({
   // Fetch all preferences on mount
   React.useEffect(() => {
     if (!isZonesMapReady) {
+      log.info(
+        '[RecentlyViewed] Fetch preferences skipped - zones map not ready'
+      );
       return;
     }
     if (isLayoutLoadedFromDB) {
+      log.info('[RecentlyViewed] Fetch preferences skipped - already loaded');
       return; // Avoid re-fetching if already loaded
     }
+    log.info('[RecentlyViewed] Starting to fetch all preferences from backend');
     setLoadingRecentlyViewedFolders(true);
 
     (async function () {
       const allPrefs = await fetchPreferences();
+      log.info('[RecentlyViewed] Received preferences from backend');
 
       // Zone favorites
       const zoneBackendPrefs = allPrefs.zone?.value;
@@ -611,7 +654,15 @@ export const PreferencesProvider = ({
       // Recently viewed folders
       const recentlyViewedBackendPrefs = allPrefs.recentlyViewedFolders?.value;
       if (recentlyViewedBackendPrefs && recentlyViewedBackendPrefs.length > 0) {
+        log.info(
+          '[RecentlyViewed] Loading from database:',
+          JSON.stringify(recentlyViewedBackendPrefs, null, 2)
+        );
         setRecentlyViewedFolders(recentlyViewedBackendPrefs);
+      } else {
+        log.info(
+          '[RecentlyViewed] No data found in database, starting with empty list'
+        );
       }
 
       // Layout preference
@@ -672,17 +723,29 @@ export const PreferencesProvider = ({
       !fileBrowserState.currentFileSharePath ||
       !fileBrowserState.currentFileOrFolder
     ) {
+      log.info('[RecentlyViewed] Effect triggered but missing required data', {
+        hasFileSharePath: !!fileBrowserState.currentFileSharePath,
+        hasCurrentFileOrFolder: !!fileBrowserState.currentFileOrFolder
+      });
       return;
     }
 
     const fspName = fileBrowserState.currentFileSharePath.name;
     const folderPath = fileBrowserState.currentFileOrFolder.path;
 
+    log.info('[RecentlyViewed] Effect triggered for folder change', {
+      fspName,
+      folderPath,
+      lastFspName: lastFspNameRef.current,
+      lastFolderPath: lastFolderPathRef.current
+    });
+
     // Skip if this is the same folder we just processed
     if (
       lastFspNameRef.current === fspName &&
       lastFolderPathRef.current === folderPath
     ) {
+      log.info('[RecentlyViewed] Skipping - same folder as last processed');
       return;
     }
 
@@ -696,6 +759,7 @@ export const PreferencesProvider = ({
     const processUpdate = async () => {
       // If the effect was cleaned up before this async function runs, abort
       if (isCancelled) {
+        log.info('[RecentlyViewed] Update cancelled (effect cleaned up)');
         return;
       }
 
@@ -703,13 +767,22 @@ export const PreferencesProvider = ({
         const updatedFolders = updateRecentlyViewedFolders(folderPath, fspName);
         // Check again if cancelled before updating state
         if (isCancelled) {
+          log.info(
+            '[RecentlyViewed] Update cancelled before setState (effect cleaned up)'
+          );
           return;
         }
+        log.info('[RecentlyViewed] Setting state with updated folders');
         setRecentlyViewedFolders(updatedFolders);
+        log.info('[RecentlyViewed] Saving to backend...');
         await savePreferencesToBackend('recentlyViewedFolders', updatedFolders);
+        log.info('[RecentlyViewed] Successfully saved to backend');
       } catch (error) {
         if (!isCancelled) {
-          console.error('Error updating recently viewed folders:', error);
+          log.error(
+            '[RecentlyViewed] Error updating recently viewed folders:',
+            error
+          );
         }
       }
     };
