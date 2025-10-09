@@ -8,13 +8,18 @@ export default function DashboardCard({
   readonly children: React.ReactNode;
 }) {
   return (
-    <Card className="w-full border bg-background border-surface overflow-y-auto h-fit max-h-[50%]">
-      <Card.Header className="pt-4 pl-4">
-        <Typography className="font-semibold text-surface-foreground">
-          {title}
-        </Typography>
-      </Card.Header>
-      <Card.Body className="pt-0">{children}</Card.Body>
+    <Card className="flex flex-col w-full border bg-background border-surface h-[670px]">
+      <div className="mb-auto p-4">
+        <Card.Header className="px-8">
+          <Typography
+            className="font-semibold text-surface-foreground border-b-2 border-surface py-2"
+            type="lead"
+          >
+            {title}
+          </Typography>
+        </Card.Header>
+        <Card.Body className="py-1">{children}</Card.Body>
+      </div>
     </Card>
   );
 }
