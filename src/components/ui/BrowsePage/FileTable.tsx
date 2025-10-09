@@ -23,7 +23,7 @@ import {
 } from '@/utils/index';
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
 import { FgStyledLink } from '@/components/ui/widgets/FgLink';
-import { HeaderIcons } from '@/components/ui/Table/TableCard';
+import { SortIcons } from '@/components/ui/Table/TableCard';
 
 type TableProps = {
   readonly data: FileOrFolder[];
@@ -189,7 +189,7 @@ export default function Table({
                         header.column.columnDef.header,
                         header.getContext()
                       )}
-                      <HeaderIcons header={header} />
+                      <SortIcons header={header} />
                     </div>
                   )}
                   {header.column.getCanResize() ? (
