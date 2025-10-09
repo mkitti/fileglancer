@@ -58,7 +58,7 @@ function TableRow({
   );
 }
 
-function HeaderIcons<TData, TValue>({
+function SortIcons<TData, TValue>({
   header
 }: {
   readonly header: Header<TData, TValue>;
@@ -71,11 +71,8 @@ function HeaderIcons<TData, TValue>({
       }[header.column.getIsSorted() as string] ?? null}
       {header.column.getCanSort() ? (
         <HiOutlineSwitchVertical
-          className={`icon-default text-foreground opacity-40 dark:opacity-60 ${(header.column.getIsSorted() as string) ? 'hidden' : ''}`}
+          className={`icon-default text-foreground/40 dark:text-foreground/60 hover:text-foreground/100 group-hover/sort:text-foreground/100 ${(header.column.getIsSorted() as string) ? 'hidden' : ''}`}
         />
-      ) : null}
-      {header.column.getCanFilter() ? (
-        <HiOutlineSearch className="icon-default text-foreground opacity-40 dark:opacity-60" />
       ) : null}
     </div>
   );
@@ -169,10 +166,6 @@ function SearchPopover<TData, TValue>({
   }, [forceOpen, clearAndClose]);
 
   React.useEffect(() => {
-    setValue(initialValue);
-  }, [initialValue]);
-
-  React.useEffect(() => {
     const timeout = setTimeout(() => {
       header.column.setFilterValue(value);
     }, debounce);
@@ -189,23 +182,6 @@ function SearchPopover<TData, TValue>({
     }
   }, [value, isSearchFocused]);
 
-  if (!header.column.getCanFilter()) {
-    // Non-filterable column - just show header with sorting
-    return (
-      <div
-        className={`flex flex-col ${
-          header.column.getCanSort() ? 'cursor-pointer group/sort' : ''
-        }`}
-        onClick={header.column.getToggleSortingHandler()}
-      >
-        <div className="flex items-center gap-2 font-semibold select-none">
-          {flexRender(header.column.columnDef.header, header.getContext())}
-          <HeaderIcons header={header} />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <Tooltip
       interactive={true}
@@ -217,16 +193,10 @@ function SearchPopover<TData, TValue>({
        * as the user moves towards it */}
       <Tooltip.Trigger
         as="div"
-        className={`flex flex-col ${
-          header.column.getCanSort() ? 'cursor-pointer group/sort' : ''
-        } group/filter`}
-        onClick={header.column.getToggleSortingHandler()}
+        className="max-w-min flex flex-col"
         ref={tooltipRef}
       >
-        <div className="flex items-center gap-2 font-semibold select-none">
-          {flexRender(header.column.columnDef.header, header.getContext())}
-          <HeaderIcons header={header} />
-        </div>
+        <HiOutlineSearch className="icon-default text-foreground/40 dark:text-foreground/60 hover:text-foreground/100 hover:stroke-[3px]" />
       </Tooltip.Trigger>
       <Tooltip.Content
         className="z-10 min-w-36 border border-surface bg-background px-3 py-2.5 text-foreground"
@@ -240,6 +210,44 @@ function SearchPopover<TData, TValue>({
         />
       </Tooltip.Content>
     </Tooltip>
+  );
+}
+
+function HeaderIcons<TData, TValue>({
+  header
+}: {
+  readonly header: Header<TData, TValue>;
+}) {
+  if (!header.column.getCanFilter()) {
+    // Non-filterable column - just show header with sorting
+    return (
+      <div
+        className={`flex flex-col ${
+          header.column.getCanSort() ? 'cursor-pointer' : ''
+        }`}
+        onClick={header.column.getToggleSortingHandler()}
+      >
+        <div className="flex items-center gap-2 font-semibold select-none group/sort">
+          {flexRender(header.column.columnDef.header, header.getContext())}
+          <SortIcons header={header} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 font-semibold select-none text-nowrap">
+      <div
+        className={`flex items-center gap-2 group/sort ${
+          header.column.getCanSort() ? 'cursor-pointer' : ''
+        }`}
+        onClick={header.column.getToggleSortingHandler()}
+      >
+        {flexRender(header.column.columnDef.header, header.getContext())}
+        <SortIcons header={header} />
+      </div>
+      <SearchPopover header={header} />
+    </div>
   );
 }
 
@@ -274,45 +282,8 @@ function Table<TData>({
 
   return (
     <div className="flex flex-col h-full">
-      <div
-        className={`shrink-0 grid ${gridColsClass} gap-4 px-4 py-2 border-b border-surface dark:border-foreground`}
-      >
-        {table
-          .getHeaderGroups()
-          .map(headerGroup =>
-            headerGroup.headers.map(header =>
-              header.isPlaceholder ? null : (
-                <SearchPopover header={header} key={header.id} />
-              )
-            )
-          )}
-      </div>
-      {/* Body */}
-      {loadingState ? (
-        <TableRowSkeleton gridColsClass={gridColsClass} />
-      ) : data && data.length > 0 ? (
-        <div className="max-h-full overflow-y-auto">
-          {table.getRowModel().rows.map(row => (
-            <TableRow gridColsClass={gridColsClass} key={row.id}>
-              {row.getVisibleCells().map(cell => (
-                <React.Fragment key={cell.id}>
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </React.Fragment>
-              ))}
-            </TableRow>
-          ))}
-        </div>
-      ) : !data || data.length === 0 ? (
-        <div className="px-4 py-8 text-center text-foreground">
-          {emptyText || 'No data available'}
-        </div>
-      ) : (
-        <div className="px-4 py-8 text-center text-foreground">
-          There was an error loading the data.
-        </div>
-      )}
       {/* https://tanstack.com/table/latest/docs/framework/react/examples/pagination */}
-      <div className="shrink-0 flex items-center gap-2 py-2 px-4">
+      <div className="shrink-0 flex items-center gap-2 py-4 px-4">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">
             <Typography variant="small">Page</Typography>
@@ -368,6 +339,43 @@ function Table<TData>({
           </Select>
         </div>
       </div>
+      <div
+        className={`shrink-0 grid ${gridColsClass} gap-4 px-4 py-2 bg-surface/30`}
+      >
+        {table
+          .getHeaderGroups()
+          .map(headerGroup =>
+            headerGroup.headers.map(header =>
+              header.isPlaceholder ? null : (
+                <HeaderIcons header={header} key={header.id} />
+              )
+            )
+          )}
+      </div>
+      {/* Body */}
+      {loadingState ? (
+        <TableRowSkeleton gridColsClass={gridColsClass} />
+      ) : data && data.length > 0 ? (
+        <div className="max-h-full">
+          {table.getRowModel().rows.map(row => (
+            <TableRow gridColsClass={gridColsClass} key={row.id}>
+              {row.getVisibleCells().map(cell => (
+                <React.Fragment key={cell.id}>
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </React.Fragment>
+              ))}
+            </TableRow>
+          ))}
+        </div>
+      ) : !data || data.length === 0 ? (
+        <div className="px-4 py-8 text-center text-foreground">
+          {emptyText || 'No data available'}
+        </div>
+      ) : (
+        <div className="px-4 py-8 text-center text-foreground">
+          There was an error loading the data.
+        </div>
+      )}
     </div>
   );
 }
@@ -394,4 +402,4 @@ function TableCard<TData>({
   );
 }
 
-export { Table, TableRow, TableCard, HeaderIcons };
+export { Table, TableRow, TableCard, SortIcons };
