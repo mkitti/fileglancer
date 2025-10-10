@@ -31,7 +31,7 @@ export default function FgTooltip({
   return (
     <Tooltip open={openCondition} placement="top">
       <Tooltip.Trigger
-        as={Component}
+        as={Component || 'div'}
         className={triggerClasses || ''}
         disabled={Boolean(disabledCondition || false)}
         onClick={onClick ? onClick : undefined}

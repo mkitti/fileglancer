@@ -85,7 +85,7 @@ export default function ZonesBrowser({
             <div className="px-4 py-6 text-center">
               {isFilteredByGroups ? (
                 <>
-                  <Typography className="text-sm text-gray-500">
+                  <Typography className="text-sm text-gray-500 border-t border-gray-200 pt-4">
                     Viewing Zones for your groups only
                   </Typography>
                   <Typography className="text-xs text-gray-400 mt-1">
@@ -98,7 +98,7 @@ export default function ZonesBrowser({
                 </>
               ) : (
                 <>
-                  <Typography className="text-sm text-gray-500">
+                  <Typography className="text-sm text-gray-500 border-t border-gray-200 pt-4">
                     Viewing all Zones
                   </Typography>
                   <Typography className="text-xs text-gray-400 mt-1">

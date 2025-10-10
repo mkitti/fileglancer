@@ -504,58 +504,6 @@ export const PreferencesProvider = ({
     }
   };
 
-  const updateRecentlyViewedFolders = React.useCallback(
-    (folderPath: string, fspName: string): FolderPreference[] => {
-      const updatedFolders = [...recentlyViewedFolders];
-
-      // Do not save file share paths in the recently viewed folders
-      if (folderPath === '.') {
-        return updatedFolders;
-      }
-
-      const newItem = {
-        type: 'folder',
-        folderPath: folderPath,
-        fspName: fspName
-      } as FolderPreference;
-
-      // First, if length is 0, just add the new item
-      if (updatedFolders.length === 0) {
-        updatedFolders.push(newItem);
-        return updatedFolders;
-      }
-      // Check if folderPath is a descendant path of the most recently viewed folder path
-      // Or if it is a direct ancestor of the most recently viewed folder path
-      // If it is, replace the most recent item
-      if (
-        (updatedFolders.length > 0 &&
-          folderPath.startsWith(updatedFolders[0].folderPath)) ||
-        updatedFolders[0].folderPath.startsWith(folderPath)
-      ) {
-        updatedFolders[0] = newItem;
-        return updatedFolders;
-      } else {
-        const index = updatedFolders.findIndex(
-          folder =>
-            folder.folderPath === newItem.folderPath &&
-            folder.fspName === newItem.fspName
-        );
-        if (index === -1) {
-          updatedFolders.unshift(newItem);
-          if (updatedFolders.length > 10) {
-            updatedFolders.pop(); // Remove the oldest entry if we exceed the 10 item limit
-          }
-        } else if (index > 0) {
-          // If the folder is already in the list, move it to the front
-          updatedFolders.splice(index, 1);
-          updatedFolders.unshift(newItem);
-        }
-        return updatedFolders;
-      }
-    },
-    [recentlyViewedFolders]
-  );
-
   // Fetch all preferences on mount
   React.useEffect(() => {
     if (!isZonesMapReady) {
@@ -564,6 +512,7 @@ export const PreferencesProvider = ({
     if (isLayoutLoadedFromDB) {
       return; // Avoid re-fetching if already loaded
     }
+
     setLoadingRecentlyViewedFolders(true);
 
     (async function () {
@@ -665,6 +614,59 @@ export const PreferencesProvider = ({
   const lastFolderPathRef = React.useRef<string | null>(null);
   const lastFspNameRef = React.useRef<string | null>(null);
 
+  const updateRecentlyViewedFolders = (
+    folderPath: string,
+    fspName: string,
+    currentRecentlyViewedFolders: FolderPreference[]
+  ): FolderPreference[] => {
+    const updatedFolders = [...currentRecentlyViewedFolders];
+
+    // Do not save file share paths in the recently viewed folders
+    if (folderPath === '.') {
+      return updatedFolders;
+    }
+
+    const newItem = {
+      type: 'folder',
+      folderPath: folderPath,
+      fspName: fspName
+    } as FolderPreference;
+
+    // First, if length is 0, just add the new item
+    if (updatedFolders.length === 0) {
+      updatedFolders.push(newItem);
+      return updatedFolders;
+    }
+    // Check if folderPath is a descendant path of the most recently viewed folder path
+    // Or if it is a direct ancestor of the most recently viewed folder path
+    // If it is, replace the most recent item
+    if (
+      (updatedFolders.length > 0 &&
+        folderPath.startsWith(updatedFolders[0].folderPath)) ||
+      updatedFolders[0].folderPath.startsWith(folderPath)
+    ) {
+      updatedFolders[0] = newItem;
+      return updatedFolders;
+    } else {
+      const index = updatedFolders.findIndex(
+        folder =>
+          folder.folderPath === newItem.folderPath &&
+          folder.fspName === newItem.fspName
+      );
+      if (index === -1) {
+        updatedFolders.unshift(newItem);
+        if (updatedFolders.length > 10) {
+          updatedFolders.pop(); // Remove the oldest entry if we exceed the 10 item limit
+        }
+      } else if (index > 0) {
+        // If the folder is already in the list, move it to the front
+        updatedFolders.splice(index, 1);
+        updatedFolders.unshift(newItem);
+      }
+      return updatedFolders;
+    }
+  };
+
   // useEffect that runs when the current folder in fileBrowserState changes,
   // to update the recently viewed folder
   React.useEffect(() => {
@@ -672,6 +674,10 @@ export const PreferencesProvider = ({
       !fileBrowserState.currentFileSharePath ||
       !fileBrowserState.currentFileOrFolder
     ) {
+      return;
+    }
+
+    if (loadingRecentlyViewedFolders) {
       return;
     }
 
@@ -700,7 +706,11 @@ export const PreferencesProvider = ({
       }
 
       try {
-        const updatedFolders = updateRecentlyViewedFolders(folderPath, fspName);
+        const updatedFolders = updateRecentlyViewedFolders(
+          folderPath,
+          fspName,
+          recentlyViewedFolders
+        );
         // Check again if cancelled before updating state
         if (isCancelled) {
           return;
@@ -709,7 +719,7 @@ export const PreferencesProvider = ({
         await savePreferencesToBackend('recentlyViewedFolders', updatedFolders);
       } catch (error) {
         if (!isCancelled) {
-          console.error('Error updating recently viewed folders:', error);
+          log.error('Error updating recently viewed folders:', error);
         }
       }
     };
@@ -720,8 +730,9 @@ export const PreferencesProvider = ({
     };
   }, [
     fileBrowserState, // Include the whole state object to satisfy ESLint
-    updateRecentlyViewedFolders,
-    savePreferencesToBackend
+    recentlyViewedFolders,
+    savePreferencesToBackend,
+    loadingRecentlyViewedFolders
   ]);
 
   return (
