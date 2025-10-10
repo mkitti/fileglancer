@@ -1,6 +1,7 @@
 # Fileglancer
 
 [![Github Actions Status](https://github.com/JaneliaSciComp/fileglancer/workflows/Build/badge.svg)](https://github.com/JaneliaSciComp/fileglancer/actions/workflows/build.yml)
+[![DOI](https://zenodo.org/badge/918344432.svg)](https://doi.org/10.5281/zenodo.17314767)
 
 Fileglancer is a web application designed to allow researchers at Janelia Research Campus to easily browse, share, and manage large scientific imaging data using [OME-NGFF](https://github.com/ome/ngff) (i.e. OME-Zarr). Our goal is to reduce the friction experienced by users who want to easily share their data with their colleagues. Simply browse to your data, click on the Neuroglancer link, and send that link to your collaborator.
 

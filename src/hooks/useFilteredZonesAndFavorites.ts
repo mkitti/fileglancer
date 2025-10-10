@@ -40,30 +40,44 @@ export default function useFilteredZonesAndFavorites() {
 
       const matches = Object.entries(zonesAndFileSharePathsMap)
         .map(([key, value]) => {
+          // Map through zones only
           if (key.startsWith('zone')) {
             const zone = value as Zone;
             const zoneNameMatches = zone.name.toLowerCase().includes(query);
 
-            // Filter the file share paths inside the zone
+            // Start with file share paths that match the search query
             let matchingFileSharePaths = zone.fileSharePaths.filter(fsp =>
               fsp.name.toLowerCase().includes(query)
             );
 
-            // Apply group filtering if enabled
+            // If enabled, apply group filtering to search-matched FSPs
             if (isFilteredByGroups && userGroups.length > 0) {
               matchingFileSharePaths = matchingFileSharePaths.filter(
                 fsp => userGroups.includes(fsp.group) || fsp.group === 'public'
               );
             }
 
-            // If Zone.name matches or any FileSharePath.name inside the zone matches,
-            // return a modified Zone object with only the matching file share paths
-            if (zoneNameMatches || matchingFileSharePaths.length > 0) {
+            // Determine which FSPs to include in the result
+            let finalFileSharePaths = matchingFileSharePaths;
+            if (zoneNameMatches) {
+              // Zone name matches, so include all FSPs from this zone (not just search-matched ones)
+              finalFileSharePaths = zone.fileSharePaths;
+              // But still apply group filtering if enabled
+              if (isFilteredByGroups && userGroups.length > 0) {
+                finalFileSharePaths = finalFileSharePaths.filter(
+                  fsp =>
+                    userGroups.includes(fsp.group) || fsp.group === 'public'
+                );
+              }
+            }
+
+            // Return the zone if there are any file share paths left after filtering
+            if (finalFileSharePaths.length > 0) {
               return [
                 key,
                 {
                   ...zone,
-                  fileSharePaths: matchingFileSharePaths
+                  fileSharePaths: finalFileSharePaths
                 }
               ];
             }
