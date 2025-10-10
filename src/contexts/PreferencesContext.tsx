@@ -719,10 +719,7 @@ export const PreferencesProvider = ({
         await savePreferencesToBackend('recentlyViewedFolders', updatedFolders);
       } catch (error) {
         if (!isCancelled) {
-          log.error(
-            'Error updating recently viewed folders:',
-            error
-          );
+          log.error('Error updating recently viewed folders:', error);
         }
       }
     };
