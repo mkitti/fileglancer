@@ -34,20 +34,20 @@ import {
 import { TableRowSkeleton } from '@/components/ui/widgets/Loaders';
 
 type TableProps<TData> = {
-  columns: ColumnDef<TData>[];
-  data: TData[];
-  gridColsClass: string;
-  loadingState?: boolean;
-  emptyText?: string;
-  enableColumnSearch?: boolean;
+  readonly columns: ColumnDef<TData>[];
+  readonly data: TData[];
+  readonly gridColsClass: string;
+  readonly loadingState?: boolean;
+  readonly emptyText?: string;
+  readonly enableColumnSearch?: boolean;
 };
 
 function TableRow({
   gridColsClass,
   children
 }: {
-  gridColsClass: string;
-  children: React.ReactNode;
+  readonly gridColsClass: string;
+  readonly children: React.ReactNode;
 }) {
   return (
     <div
@@ -58,10 +58,10 @@ function TableRow({
   );
 }
 
-function HeaderIcons<TData, TValue>({
+function SortIcons<TData, TValue>({
   header
 }: {
-  header: Header<TData, TValue>;
+  readonly header: Header<TData, TValue>;
 }) {
   return (
     <div className="flex items-center">
@@ -71,11 +71,8 @@ function HeaderIcons<TData, TValue>({
       }[header.column.getIsSorted() as string] ?? null}
       {header.column.getCanSort() ? (
         <HiOutlineSwitchVertical
-          className={`icon-default text-foreground opacity-40 dark:opacity-60 ${(header.column.getIsSorted() as string) ? 'hidden' : ''}`}
+          className={`icon-default text-foreground/40 dark:text-foreground/60 hover:text-foreground/100 group-hover/sort:text-foreground/100 ${(header.column.getIsSorted() as string) ? 'hidden' : ''}`}
         />
-      ) : null}
-      {header.column.getCanFilter() ? (
-        <HiOutlineSearch className="icon-default text-foreground opacity-40 dark:opacity-60" />
       ) : null}
     </div>
   );
@@ -85,30 +82,32 @@ function HeaderIcons<TData, TValue>({
 const DebouncedInput = React.forwardRef<
   HTMLInputElement,
   {
-    value: string;
-    setValue: (value: string) => void;
-    handleInputFocus: () => void;
+    readonly value: string;
+    readonly setValue: (value: string) => void;
+    readonly handleInputFocus: () => void;
   }
 >(({ value, setValue, handleInputFocus }, ref) => {
   return (
-    <div onClick={e => e.stopPropagation()} className="max-w-full">
+    <div className="max-w-full" onClick={e => e.stopPropagation()}>
       <Input
-        ref={ref}
-        type="search"
-        placeholder="Search..."
-        value={value}
+        className="w-36 max-w-full border shadow rounded"
         onChange={e => setValue(e.target.value)}
         onFocus={handleInputFocus}
-        className="w-36 max-w-full border shadow rounded"
+        placeholder="Search..."
+        ref={ref}
+        type="search"
+        value={value}
       />
     </div>
   );
 });
 
+DebouncedInput.displayName = 'DebouncedInput';
+
 function SearchPopover<TData, TValue>({
   header
 }: {
-  header: Header<TData, TValue>;
+  readonly header: Header<TData, TValue>;
 }) {
   const [isSearchFocused, setIsSearchFocused] = React.useState(false);
   const [forceOpen, setForceOpen] = React.useState(false);
@@ -167,10 +166,6 @@ function SearchPopover<TData, TValue>({
   }, [forceOpen, clearAndClose]);
 
   React.useEffect(() => {
-    setValue(initialValue);
-  }, [initialValue]);
-
-  React.useEffect(() => {
     const timeout = setTimeout(() => {
       header.column.setFilterValue(value);
     }, debounce);
@@ -187,57 +182,72 @@ function SearchPopover<TData, TValue>({
     }
   }, [value, isSearchFocused]);
 
-  if (!header.column.getCanFilter()) {
-    // Non-filterable column - just show header with sorting
-    return (
-      <div
-        className={`flex flex-col ${
-          header.column.getCanSort() ? 'cursor-pointer group/sort' : ''
-        }`}
-        onClick={header.column.getToggleSortingHandler()}
-      >
-        <div className="flex items-center gap-2 font-semibold select-none">
-          {flexRender(header.column.columnDef.header, header.getContext())}
-          <HeaderIcons header={header} />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <Tooltip
-      placement="top-start"
       interactive={true}
       open={forceOpen ? true : undefined}
+      placement="top-start"
     >
       {/** when open is undefined (forceOpen is false), then the interactive=true prop takes over.
        * This allows use of the safePolygon() function in tooltip.tsx, keeping the tooltip open
        * as the user moves towards it */}
       <Tooltip.Trigger
         as="div"
+        className="max-w-min flex flex-col"
         ref={tooltipRef}
-        className={`flex flex-col ${
-          header.column.getCanSort() ? 'cursor-pointer group/sort' : ''
-        } group/filter`}
-        onClick={header.column.getToggleSortingHandler()}
       >
-        <div className="flex items-center gap-2 font-semibold select-none">
-          {flexRender(header.column.columnDef.header, header.getContext())}
-          <HeaderIcons header={header} />
-        </div>
+        <HiOutlineSearch className="icon-default text-foreground/40 dark:text-foreground/60 hover:text-foreground/100 hover:stroke-[3px]" />
       </Tooltip.Trigger>
       <Tooltip.Content
         className="z-10 min-w-36 border border-surface bg-background px-3 py-2.5 text-foreground"
         onMouseEnter={() => inputRef.current?.focus()}
       >
         <DebouncedInput
-          ref={inputRef}
-          value={value}
-          setValue={setValue}
           handleInputFocus={handleInputFocus}
+          ref={inputRef}
+          setValue={setValue}
+          value={value}
         />
       </Tooltip.Content>
     </Tooltip>
+  );
+}
+
+function HeaderIcons<TData, TValue>({
+  header
+}: {
+  readonly header: Header<TData, TValue>;
+}) {
+  if (!header.column.getCanFilter()) {
+    // Non-filterable column - just show header with sorting
+    return (
+      <div
+        className={`flex flex-col ${
+          header.column.getCanSort() ? 'cursor-pointer' : ''
+        }`}
+        onClick={header.column.getToggleSortingHandler()}
+      >
+        <div className="flex items-center gap-2 font-semibold select-none group/sort">
+          {flexRender(header.column.columnDef.header, header.getContext())}
+          <SortIcons header={header} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 font-semibold select-none text-nowrap">
+      <div
+        className={`flex items-center gap-2 group/sort ${
+          header.column.getCanSort() ? 'cursor-pointer' : ''
+        }`}
+        onClick={header.column.getToggleSortingHandler()}
+      >
+        {flexRender(header.column.columnDef.header, header.getContext())}
+        <SortIcons header={header} />
+      </div>
+      <SearchPopover header={header} />
+    </div>
   );
 }
 
@@ -272,15 +282,72 @@ function Table<TData>({
 
   return (
     <div className="flex flex-col h-full">
+      {/* https://tanstack.com/table/latest/docs/framework/react/examples/pagination */}
+      <div className="shrink-0 flex items-center gap-2 py-4 px-4">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <Typography variant="small">Page</Typography>
+            <Typography className="font-bold" variant="small">
+              {table.getPageCount() === 0
+                ? 0
+                : table.getState().pagination.pageIndex + 1}{' '}
+              of {table.getPageCount().toLocaleString()}
+            </Typography>
+          </div>
+          <ButtonGroup variant="ghost">
+            <IconButton
+              disabled={!table.getCanPreviousPage()}
+              onClick={() => table.firstPage()}
+            >
+              <HiChevronDoubleLeft className="icon-default" />
+            </IconButton>
+            <IconButton
+              disabled={!table.getCanPreviousPage()}
+              onClick={() => table.previousPage()}
+            >
+              <HiChevronLeft className="icon-default" />
+            </IconButton>
+            <IconButton
+              disabled={!table.getCanNextPage()}
+              onClick={() => table.nextPage()}
+            >
+              <HiChevronRight className="icon-default" />
+            </IconButton>
+            <IconButton
+              disabled={!table.getCanNextPage()}
+              onClick={() => table.lastPage()}
+            >
+              <HiChevronDoubleRight className="icon-default" />
+            </IconButton>
+          </ButtonGroup>
+        </div>
+        <div>
+          <Select
+            onValueChange={(value: string) => {
+              table.setPageSize(Number(value));
+            }}
+            value={table.getState().pagination.pageSize.toString()}
+          >
+            <Select.Trigger placeholder="Page size" />
+            <Select.List>
+              {['10', '20', '30', '40', '50'].map(pageSize => (
+                <Select.Option key={pageSize} value={pageSize}>
+                  {pageSize}/page
+                </Select.Option>
+              ))}
+            </Select.List>
+          </Select>
+        </div>
+      </div>
       <div
-        className={`shrink-0 grid ${gridColsClass} gap-4 px-4 py-2 border-b border-surface dark:border-foreground`}
+        className={`shrink-0 grid ${gridColsClass} gap-4 px-4 py-2 bg-surface/30`}
       >
         {table
           .getHeaderGroups()
           .map(headerGroup =>
             headerGroup.headers.map(header =>
               header.isPlaceholder ? null : (
-                <SearchPopover key={header.id} header={header} />
+                <HeaderIcons header={header} key={header.id} />
               )
             )
           )}
@@ -289,9 +356,9 @@ function Table<TData>({
       {loadingState ? (
         <TableRowSkeleton gridColsClass={gridColsClass} />
       ) : data && data.length > 0 ? (
-        <div className="max-h-full overflow-y-auto">
+        <div className="max-h-full">
           {table.getRowModel().rows.map(row => (
-            <TableRow key={row.id} gridColsClass={gridColsClass}>
+            <TableRow gridColsClass={gridColsClass} key={row.id}>
               {row.getVisibleCells().map(cell => (
                 <React.Fragment key={cell.id}>
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -309,61 +376,6 @@ function Table<TData>({
           There was an error loading the data.
         </div>
       )}
-      {/* https://tanstack.com/table/latest/docs/framework/react/examples/pagination */}
-      <div className="shrink-0 flex items-center gap-2 py-2 px-4">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            <Typography variant="small">Page</Typography>
-            <Typography variant="small" className="font-bold">
-              {table.getPageCount() === 0
-                ? 0
-                : table.getState().pagination.pageIndex + 1}{' '}
-              of {table.getPageCount().toLocaleString()}
-            </Typography>
-          </div>
-          <ButtonGroup variant="ghost">
-            <IconButton
-              onClick={() => table.firstPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              <HiChevronDoubleLeft className="icon-default" />
-            </IconButton>
-            <IconButton
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              <HiChevronLeft className="icon-default" />
-            </IconButton>
-            <IconButton
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              <HiChevronRight className="icon-default" />
-            </IconButton>
-            <IconButton
-              onClick={() => table.lastPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              <HiChevronDoubleRight className="icon-default" />
-            </IconButton>
-          </ButtonGroup>
-        </div>
-        <div>
-          <Select
-            value={table.getState().pagination.pageSize.toString()}
-            onValueChange={(value: string) => {
-              table.setPageSize(Number(value));
-            }}
-          >
-            <Select.Trigger placeholder="Page size" />
-            <Select.List>
-              {['10', '20', '30', '40', '50'].map(pageSize => (
-                <Select.Option value={pageSize}>{pageSize}/page</Select.Option>
-              ))}
-            </Select.List>
-          </Select>
-        </div>
-      </div>
     </div>
   );
 }
@@ -381,13 +393,13 @@ function TableCard<TData>({
       <Table
         columns={columns}
         data={data}
-        gridColsClass={gridColsClass}
-        loadingState={loadingState}
         emptyText={emptyText}
         enableColumnSearch={enableColumnSearch}
+        gridColsClass={gridColsClass}
+        loadingState={loadingState}
       />
     </Card>
   );
 }
 
-export { Table, TableRow, TableCard, HeaderIcons };
+export { Table, TableRow, TableCard, SortIcons };

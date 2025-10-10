@@ -48,13 +48,14 @@ export default function useZarrMetadata() {
   const validatorBaseUrl = 'https://ome.github.io/ome-ngff-validator/?source=';
   const neuroglancerBaseUrl = 'https://neuroglancer-demo.appspot.com/#!';
   const voleBaseUrl = 'https://volumeviewer.allencell.org/viewer?url=';
-  const avivatorBaseUrl = 'https://avivator.gehlenborglab.org/?image_url=';
+  const avivatorBaseUrl = 'https://janeliascicomp.github.io/viv/?image_url=';
   const { fileBrowserState, areFileDataLoading } = useFileBrowserContext();
   const { dataUrl } = useProxiedPathContext();
   const { externalDataUrl } = useExternalBucketContext();
   const {
     disableNeuroglancerStateGeneration,
-    disableHeuristicalLayerTypeDetection
+    disableHeuristicalLayerTypeDetection,
+    useLegacyMultichannelApproach
   } = usePreferencesContext();
   const [cookies] = useCookies(['_xsrf']);
 
@@ -62,7 +63,7 @@ export default function useZarrMetadata() {
     async (
       imageUrl: string,
       zarrVersion: 2 | 3,
-      cancelRef: { cancel: boolean }
+      signal: AbortSignal
     ): Promise<void> => {
       log.info(
         'Getting Zarr array for',
@@ -72,8 +73,8 @@ export default function useZarrMetadata() {
       );
       setThumbnailError(null);
       try {
-        const arr = await getZarrArray(imageUrl, zarrVersion);
-        if (cancelRef.cancel) {
+        const arr = await getZarrArray(imageUrl, zarrVersion, cookies['_xsrf']);
+        if (signal.aborted) {
           return;
         }
         const shapes = [arr.shape];
@@ -87,21 +88,17 @@ export default function useZarrMetadata() {
         });
       } catch (error) {
         log.error('Error fetching Zarr array:', error);
-        if (cancelRef.cancel) {
+        if (signal.aborted) {
           return;
         }
         setThumbnailError('Error fetching Zarr array');
       }
     },
-    []
+    [cookies]
   );
 
   const checkOmeZarrMetadata = React.useCallback(
-    async (
-      imageUrl: string,
-      zarrVersion: 2 | 3,
-      cancelRef: { cancel: boolean }
-    ) => {
+    async (imageUrl: string, zarrVersion: 2 | 3, signal: AbortSignal) => {
       log.info(
         'Getting OME-Zarr metadata for',
         imageUrl,
@@ -111,21 +108,21 @@ export default function useZarrMetadata() {
       setThumbnailError(null);
       try {
         setOmeZarrUrl(imageUrl);
-        const metadata = await getOmeZarrMetadata(imageUrl);
-        if (cancelRef.cancel) {
+        const metadata = await getOmeZarrMetadata(imageUrl, cookies['_xsrf']);
+        if (signal.aborted) {
           return;
         }
         setMetadata(metadata);
         setLoadingThumbnail(true);
       } catch (error) {
         log.error('Exception fetching OME-Zarr metadata:', imageUrl, error);
-        if (cancelRef.cancel) {
+        if (signal.aborted) {
           return;
         }
         setThumbnailError('Error fetching OME-Zarr metadata');
       }
     },
-    []
+    [cookies]
   );
 
   const getFile = React.useCallback(
@@ -136,7 +133,7 @@ export default function useZarrMetadata() {
   );
 
   const checkZarrMetadata = React.useCallback(
-    async (cancelRef: { cancel: boolean }) => {
+    async (signal: AbortSignal) => {
       if (areFileDataLoading) {
         return;
       }
@@ -159,44 +156,44 @@ export default function useZarrMetadata() {
           fileBrowserState.currentFileOrFolder.path
         );
 
-        const zarrayFile = getFile('.zarray');
-        if (zarrayFile) {
-          await checkZarrArray(imageUrl, 2, cancelRef);
-        } else {
-          const zattrsFile = getFile('.zattrs');
-          if (zattrsFile) {
-            const attrs = (await fetchFileAsJson(
-              fileBrowserState.currentFileSharePath.name,
-              zattrsFile.path,
-              cookies
-            )) as any;
-            if (cancelRef.cancel) {
-              return;
-            }
-            if (attrs.multiscales) {
-              await checkOmeZarrMetadata(imageUrl, 2, cancelRef);
+        const zarrJsonFile = getFile('zarr.json');
+        if (zarrJsonFile) {
+          const attrs = (await fetchFileAsJson(
+            fileBrowserState.currentFileSharePath.name,
+            zarrJsonFile.path,
+            cookies
+          )) as any;
+          if (signal.aborted) {
+            return;
+          }
+          if (attrs.node_type === 'array') {
+            await checkZarrArray(imageUrl, 3, signal);
+          } else if (attrs.node_type === 'group') {
+            if (attrs.attributes?.ome?.multiscales) {
+              await checkOmeZarrMetadata(imageUrl, 3, signal);
+            } else {
+              log.info('Zarrv3 group has no multiscales', attrs.attributes);
             }
           } else {
-            const zarrJsonFile = getFile('zarr.json');
-            if (zarrJsonFile) {
+            log.warn('Unknown Zarrv3 node type', attrs.node_type);
+          }
+        } else {
+          const zarrayFile = getFile('.zarray');
+          if (zarrayFile) {
+            await checkZarrArray(imageUrl, 2, signal);
+          } else {
+            const zattrsFile = getFile('.zattrs');
+            if (zattrsFile) {
               const attrs = (await fetchFileAsJson(
                 fileBrowserState.currentFileSharePath.name,
-                zarrJsonFile.path,
+                zattrsFile.path,
                 cookies
               )) as any;
-              if (cancelRef.cancel) {
+              if (signal.aborted) {
                 return;
               }
-              if (attrs.node_type === 'array') {
-                await checkZarrArray(imageUrl, 3, cancelRef);
-              } else if (attrs.node_type === 'group') {
-                if (attrs.attributes?.ome?.multiscales) {
-                  await checkOmeZarrMetadata(imageUrl, 3, cancelRef);
-                } else {
-                  log.info('Zarrv3 group has no multiscales', attrs.attributes);
-                }
-              } else {
-                log.warn('Unknown Zarrv3 node type', attrs.node_type);
+              if (attrs.multiscales) {
+                await checkOmeZarrMetadata(imageUrl, 2, signal);
               }
             }
           }
@@ -216,10 +213,10 @@ export default function useZarrMetadata() {
 
   // When the file browser state changes, check for Zarr metadata
   React.useEffect(() => {
-    const cancelRef = { cancel: false };
-    checkZarrMetadata(cancelRef);
+    const controller = new AbortController();
+    checkZarrMetadata(controller.signal);
     return () => {
-      cancelRef.cancel = true;
+      controller.abort();
     };
   }, [checkZarrMetadata]);
 
@@ -231,7 +228,11 @@ export default function useZarrMetadata() {
     const controller = new AbortController();
     const loadThumbnail = async (signal: AbortSignal) => {
       try {
-        const [thumbnail, error] = await getOmeZarrThumbnail(omeZarrUrl);
+        const [thumbnail, error] = await getOmeZarrThumbnail(
+          omeZarrUrl,
+          cookies['_xsrf'],
+          signal
+        );
         if (signal.aborted) {
           return;
         }
@@ -254,7 +255,7 @@ export default function useZarrMetadata() {
     return () => {
       controller.abort();
     };
-  }, [omeZarrUrl]);
+  }, [omeZarrUrl, cookies]);
 
   // Determine layer type when thumbnail becomes available
   React.useEffect(() => {
@@ -324,7 +325,8 @@ export default function useZarrMetadata() {
                   layerType || 'image',
                   metadata.multiscale,
                   metadata.arr,
-                  metadata.omero
+                  metadata.omero,
+                  useLegacyMultichannelApproach
                 );
             } catch (error) {
               log.error(
@@ -339,7 +341,11 @@ export default function useZarrMetadata() {
           // No proxied URL - show all tools as available but empty
           openWithToolUrls.validator = '';
           openWithToolUrls.vole = '';
-          openWithToolUrls.avivator = '';
+          // if this is a zarr version 2, then set the url to blank which will show
+          // the icon before a data link has been generated. Setting it to null for
+          // all other versions, eg zarr v3 means the icon will not be present before
+          // a data link is generated.
+          openWithToolUrls.avivator = metadata.zarrVersion === 2 ? '' : null;
           openWithToolUrls.neuroglancer = '';
         }
       } else {
@@ -377,7 +383,8 @@ export default function useZarrMetadata() {
     dataUrl,
     externalDataUrl,
     disableNeuroglancerStateGeneration,
-    layerType
+    layerType,
+    useLegacyMultichannelApproach
   ]);
 
   return {

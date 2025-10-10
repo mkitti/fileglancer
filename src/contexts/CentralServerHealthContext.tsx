@@ -47,7 +47,7 @@ export const useCentralServerHealthContext = () => {
 export const CentralServerHealthProvider = ({
   children
 }: {
-  children: React.ReactNode;
+  readonly children: React.ReactNode;
 }) => {
   const [status, setStatus] = React.useState<CentralServerStatus>('healthy');
   const [showWarningOverlay, setShowWarningOverlay] = React.useState(false);
@@ -190,6 +190,12 @@ export const CentralServerHealthProvider = ({
         stopRetrying();
         // reload the page to ensure full recovery
         window.location.reload();
+      } else if (healthStatus === 'ignore') {
+        // Configuration issue, not connectivity issue
+        setShowWarningOverlay(false);
+        logger.info('Central server configuration issue detected, ignoring');
+        // Stop retrying since this is not a connectivity issue
+        stopRetrying();
       }
     } catch (error) {
       logger.error('Error during health check:', error);

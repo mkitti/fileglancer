@@ -26,7 +26,7 @@ export default function RecentDataLinksCard() {
             <SidebarItemSkeleton key={index} withEndIcon={false} />
           ))
       ) : recentDataLinks.length === 0 ? (
-        <div className="px-4 pt-4 flex flex-col gap-4">
+        <div className="px-6 pt-2 flex flex-col gap-4">
           <Typography className="text-muted-foreground">
             No data links created yet.
           </Typography>
@@ -49,13 +49,13 @@ export default function RecentDataLinksCard() {
             }
             return (
               <Folder
-                key={item.sharing_key}
-                fsp={fsp}
                 folderPath={item.path}
-                isFavoritable={false}
+                fsp={fsp}
                 icon={
                   <PiLinkSimpleBold className="icon-small short:icon-xsmall stroke-2" />
                 }
+                isFavoritable={false}
+                key={item.sharing_key}
               />
             );
           })}

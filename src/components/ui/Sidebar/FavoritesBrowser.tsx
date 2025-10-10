@@ -13,10 +13,10 @@ import { useOpenFavoritesContext } from '@/contexts/OpenFavoritesContext';
 import { FileSharePath, Zone } from '@/shared.types';
 
 type FavoritesBrowserProps = {
-  searchQuery: string;
-  filteredZoneFavorites: Zone[];
-  filteredFileSharePathFavorites: FileSharePath[];
-  filteredFolderFavorites: FolderFavorite[];
+  readonly searchQuery: string;
+  readonly filteredZoneFavorites: Zone[];
+  readonly filteredFileSharePathFavorites: FileSharePath[];
+  readonly filteredFolderFavorites: FolderFavorite[];
 };
 
 export default function FavoritesBrowser({
@@ -48,8 +48,8 @@ export default function FavoritesBrowser({
     <div className="flex flex-col my-1 mx-1">
       <List className="!min-w-20">
         <List.Item
-          onClick={() => toggleOpenFavorites('all')}
           className="cursor-pointer rounded-md py-2 short:py-1 hover:!bg-surface-light focus:!bg-surface-light"
+          onClick={() => toggleOpenFavorites('all')}
         >
           <List.ItemStart>
             <HiStar className="icon-default short:icon-small text-surface-foreground" />
@@ -65,37 +65,55 @@ export default function FavoritesBrowser({
         </List.Item>
       </List>
       <Collapse
-        open={openFavorites['all'] ? true : false}
         className="overflow-x-hidden flex-grow w-full"
+        open={openFavorites['all'] ? true : false}
       >
         <List className="h-full py-0 gap-0 bg-background">
-          {/* Zone favorites */}
-          {displayZones.map(zone => {
-            return (
-              <ZoneComponent
-                key={zone.name}
-                zone={zone}
-                openZones={openFavorites}
-                toggleOpenZones={toggleOpenFavorites}
-              />
-            );
-          })}
+          {searchQuery.length > 0 &&
+          displayZones.length === 0 &&
+          displayFileSharePaths.length === 0 &&
+          displayFolders.length === 0 ? (
+            <div className="px-4 py-6 text-center">
+              <Typography className="text-sm text-gray-500">
+                No favorites match your filter '{searchQuery}'
+              </Typography>
+              <Typography className="text-xs text-gray-400 mt-1">
+                Try broadening your search to see more results
+              </Typography>
+            </div>
+          ) : (
+            <>
+              {/* Zone favorites */}
+              {displayZones.map(zone => {
+                return (
+                  <ZoneComponent
+                    key={zone.name}
+                    openZones={openFavorites}
+                    toggleOpenZones={toggleOpenFavorites}
+                    zone={zone}
+                  />
+                );
+              })}
 
-          {/* File share path favorites */}
-          {displayFileSharePaths.map((fsp, index) => {
-            return <FileSharePathComponent key={fsp.name} fsp={fsp} />;
-          })}
+              {/* File share path favorites */}
+              {displayFileSharePaths.map((fsp, index) => {
+                return <FileSharePathComponent fsp={fsp} key={fsp.name} />;
+              })}
 
-          {/* Directory favorites */}
-          {displayFolders.map(folderFavorite => {
-            return (
-              <Folder
-                key={folderFavorite.fsp.name + '-' + folderFavorite.folderPath}
-                fsp={folderFavorite.fsp}
-                folderPath={folderFavorite.folderPath}
-              />
-            );
-          })}
+              {/* Directory favorites */}
+              {displayFolders.map(folderFavorite => {
+                return (
+                  <Folder
+                    folderPath={folderFavorite.folderPath}
+                    fsp={folderFavorite.fsp}
+                    key={
+                      folderFavorite.fsp.name + '-' + folderFavorite.folderPath
+                    }
+                  />
+                );
+              })}
+            </>
+          )}
         </List>
       </Collapse>
     </div>

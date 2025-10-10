@@ -3,22 +3,22 @@ import { Typography } from '@material-tailwind/react';
 
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 
-export default function AutomaticLinksToggle() {
-  const { areDataLinksAutomatic, toggleAutomaticDataLinks } =
+export default function LegacyMultichannelToggle() {
+  const { useLegacyMultichannelApproach, toggleUseLegacyMultichannelApproach } =
     usePreferencesContext();
   return (
     <div className="flex items-center gap-2">
       <input
-        checked={areDataLinksAutomatic}
+        checked={useLegacyMultichannelApproach ?? false}
         className="icon-small checked:accent-secondary-light"
-        id="automatic_data_links"
+        id="use_legacy_multichannel_approach"
         onChange={async () => {
-          const result = await toggleAutomaticDataLinks();
+          const result = await toggleUseLegacyMultichannelApproach();
           if (result.success) {
             toast.success(
-              areDataLinksAutomatic
-                ? 'Disabled automatic data links'
-                : 'Enabled automatic data links'
+              useLegacyMultichannelApproach
+                ? 'Disabled legacy multichannel approach for Neuroglancer'
+                : 'Enabled legacy multichannel approach for Neuroglancer'
             );
           } else {
             toast.error(result.error);
@@ -29,9 +29,9 @@ export default function AutomaticLinksToggle() {
       <Typography
         as="label"
         className="text-foreground"
-        htmlFor="automatic_data_links"
+        htmlFor="use_legacy_multichannel_approach"
       >
-        Enable automatic data link creation
+        Use legacy multichannel approach for Neuroglancer
       </Typography>
     </div>
   );

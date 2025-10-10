@@ -25,10 +25,10 @@ import {
 import toast from 'react-hot-toast';
 
 type FolderProps = {
-  fsp: FileSharePath;
-  folderPath: string;
-  isFavoritable?: boolean;
-  icon?: React.ReactNode;
+  readonly fsp: FileSharePath;
+  readonly folderPath: string;
+  readonly isFavoritable?: boolean;
+  readonly icon?: React.ReactNode;
 };
 
 export default function Folder({
@@ -62,6 +62,10 @@ export default function Folder({
 
   const link = makeBrowseLink(fsp.name, folderPath);
 
+  if (!fsp) {
+    return null;
+  }
+
   async function checkFavFolderExists() {
     if (!folderFavorite || !isFavoritable) {
       return;
@@ -91,6 +95,7 @@ export default function Folder({
   return (
     <>
       <List.Item
+        className="group pl-6 w-full flex gap-2 items-center justify-between rounded-md cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 "
         key={mapKey}
         onClick={
           isFavoritable
@@ -107,11 +112,10 @@ export default function Folder({
               }
             : undefined
         }
-        className="pl-6 w-full flex gap-2 items-center justify-between rounded-md cursor-pointer text-foreground hover:bg-primary-light/30 focus:bg-primary-light/30 "
       >
         <Link
-          to={link}
           className="w-[calc(100%-2rem)] flex flex-col items-start gap-2 short:gap-1 !text-foreground hover:!text-black focus:!text-black hover:dark:!text-white focus:dark:!text-white"
+          to={link}
         >
           <div className="w-full flex gap-1 items-center">
             {icon || (
@@ -122,7 +126,9 @@ export default function Folder({
             </Typography>
           </div>
           <FgTooltip label={displayPath} triggerClasses="w-full">
-            <Typography className="text-left text-sm short:text-xs truncate">
+            <Typography
+              className={`text-left text-sm short:text-xs truncate ${isFavoritable ? '' : 'text-foreground/60 group-hover:text-black group-hover:dark:text-white'}`}
+            >
               {displayPath}
             </Typography>
           </FgTooltip>
@@ -136,7 +142,6 @@ export default function Folder({
           >
             <IconButton
               className="min-w-0 min-h-0"
-              variant="ghost"
               isCircular
               onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
                 e.stopPropagation();
@@ -152,6 +157,7 @@ export default function Folder({
                   toast.error(`Error adding favorite: ${result.error}`);
                 }
               }}
+              variant="ghost"
             >
               <HiStar className="icon-small short:icon-xsmall mb-[2px]" />
             </IconButton>
@@ -161,10 +167,10 @@ export default function Folder({
       {showMissingFolderFavoriteDialog && folderFavorite ? (
         <MissingFolderFavoriteDialog
           folderFavorite={folderFavorite}
-          showMissingFolderFavoriteDialog={showMissingFolderFavoriteDialog}
           setShowMissingFolderFavoriteDialog={
             setShowMissingFolderFavoriteDialog
           }
+          showMissingFolderFavoriteDialog={showMissingFolderFavoriteDialog}
         />
       ) : null}
     </>

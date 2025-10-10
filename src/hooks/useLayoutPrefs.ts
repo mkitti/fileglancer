@@ -3,6 +3,14 @@ import React from 'react';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useCentralServerHealthContext } from '@/contexts/CentralServerHealthContext';
 import logger from '@/logger';
+import {
+  LAYOUT_NAME,
+  WITH_PROPERTIES_AND_SIDEBAR,
+  ONLY_SIDEBAR,
+  ONLY_PROPERTIES,
+  DEFAULT_LAYOUT,
+  DEFAULT_LAYOUT_SMALL_SCREENS
+} from '@/constants/layoutConstants';
 /**
  * Custom hook that provides storage interface for react-resizable-panels
  * with debounced updates to reduce API calls when resizing panels
@@ -11,20 +19,6 @@ import logger from '@/logger';
  */
 
 const DEBOUNCE_MS = 500;
-
-// Name is set by the autosaveId prop in PanelGroup
-const LAYOUT_NAME = 'react-resizable-panels:layout';
-// Confusingly, the names are in alphabetical order, but the order of the sizes is set by the order prop
-// in the respective Panel components
-const DEFAULT_LAYOUT =
-  '{"main,properties,sidebar":{"expandToSizes":{},"layout":[24,50,24]}}';
-const DEFAULT_LAYOUT_SMALL_SCREENS =
-  '{"main":{"expandToSizes":{},"layout":[100]}}';
-
-// Layout keys for the two possible panel combinations
-const WITH_PROPERTIES_AND_SIDEBAR = 'main,properties,sidebar';
-const ONLY_SIDEBAR = 'main,sidebar';
-const ONLY_PROPERTIES = 'main,properties';
 
 export default function useLayoutPrefs() {
   const [showPropertiesDrawer, setShowPropertiesDrawer] =

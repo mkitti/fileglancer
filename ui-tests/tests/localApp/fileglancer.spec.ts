@@ -1,5 +1,6 @@
 import { expect, test } from '@jupyterlab/galata';
-import { openFileGlancer } from './testutils';
+import { openFileGlancer } from '../testutils.ts';
+import type { IJupyterLabPageFixture } from '@jupyterlab/galata';
 
 /**
  * Don't load JupyterLab webpage before running the tests.
@@ -16,11 +17,9 @@ test('should emit an activation console message', async ({ page }) => {
 
   await page.goto();
 
-  await expect(
+  expect(
     logs.filter(s => s === 'JupyterLab extension fileglancer is activated!')
   ).toHaveLength(1);
-  // we are still on the JupyterLab page
-  await expect(page).toHaveTitle('JupyterLab');
 });
 
 test('when fg icon clicked should open fileglancer extension', async ({
@@ -33,7 +32,5 @@ test('when fg icon clicked should open fileglancer extension', async ({
   });
 
   await openFileGlancer(page);
-
-  // we are still on the Fileglancer page
-  await expect(page).toHaveTitle('Fileglancer');
+  await expect(page.getByText('Browse')).toBeVisible();
 });

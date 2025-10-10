@@ -10,11 +10,17 @@ import {
   FolderFavorite,
   usePreferencesContext
 } from '@/contexts/PreferencesContext';
+import { useProfileContext } from '@/contexts/ProfileContext';
 
-export default function useSearchFilter() {
+export default function useFilteredZonesAndFavorites() {
   const { zonesAndFileSharePathsMap } = useZoneAndFspMapContext();
-  const { zoneFavorites, fileSharePathFavorites, folderFavorites } =
-    usePreferencesContext();
+  const {
+    zoneFavorites,
+    fileSharePathFavorites,
+    folderFavorites,
+    isFilteredByGroups
+  } = usePreferencesContext();
+  const { profile } = useProfileContext();
 
   const [searchQuery, setSearchQuery] = React.useState<string>('');
   const [filteredZonesMap, setFilteredZonesMap] =
@@ -30,6 +36,8 @@ export default function useSearchFilter() {
 
   const filterZonesMap = React.useCallback(
     (query: string) => {
+      const userGroups = profile?.groups || [];
+
       const matches = Object.entries(zonesAndFileSharePathsMap)
         .map(([key, value]) => {
           if (key.startsWith('zone')) {
@@ -37,9 +45,16 @@ export default function useSearchFilter() {
             const zoneNameMatches = zone.name.toLowerCase().includes(query);
 
             // Filter the file share paths inside the zone
-            const matchingFileSharePaths = zone.fileSharePaths.filter(fsp =>
+            let matchingFileSharePaths = zone.fileSharePaths.filter(fsp =>
               fsp.name.toLowerCase().includes(query)
             );
+
+            // Apply group filtering if enabled
+            if (isFilteredByGroups && userGroups.length > 0) {
+              matchingFileSharePaths = matchingFileSharePaths.filter(
+                fsp => userGroups.includes(fsp.group) || fsp.group === 'public'
+              );
+            }
 
             // If Zone.name matches or any FileSharePath.name inside the zone matches,
             // return a modified Zone object with only the matching file share paths
@@ -59,7 +74,7 @@ export default function useSearchFilter() {
 
       setFilteredZonesMap(Object.fromEntries(matches as [string, Zone][]));
     },
-    [zonesAndFileSharePathsMap]
+    [zonesAndFileSharePathsMap, isFilteredByGroups, profile]
   );
 
   const filterAllFavorites = React.useCallback(
@@ -104,12 +119,45 @@ export default function useSearchFilter() {
     setSearchQuery(searchQuery.trim().toLowerCase());
   };
 
+  const clearSearch = (): void => {
+    setSearchQuery('');
+  };
+
   React.useEffect(() => {
     if (searchQuery !== '') {
       filterZonesMap(searchQuery);
       filterAllFavorites(searchQuery);
-    } else if (searchQuery === '') {
-      // When search query is empty, use all the original paths
+    } else if (searchQuery === '' && isFilteredByGroups && profile?.groups) {
+      // When search query is empty but group filtering is enabled, apply group filter
+      const userGroups = profile.groups;
+      const groupFilteredMap = Object.entries(zonesAndFileSharePathsMap)
+        .map(([key, value]) => {
+          if (key.startsWith('zone')) {
+            const zone = value as Zone;
+            const matchingFileSharePaths = zone.fileSharePaths.filter(
+              fsp => userGroups.includes(fsp.group) || fsp.group === 'public'
+            );
+            if (matchingFileSharePaths.length > 0) {
+              return [
+                key,
+                {
+                  ...zone,
+                  fileSharePaths: matchingFileSharePaths
+                }
+              ];
+            }
+          }
+          return null;
+        })
+        .filter(Boolean);
+      setFilteredZonesMap(
+        Object.fromEntries(groupFilteredMap as [string, Zone][])
+      );
+      setFilteredZoneFavorites([]);
+      setFilteredFileSharePathFavorites([]);
+      setFilteredFolderFavorites([]);
+    } else {
+      // When search query is empty and group filtering is disabled, use all the original paths
       setFilteredZonesMap({});
       setFilteredZoneFavorites([]);
       setFilteredFileSharePathFavorites([]);
@@ -122,7 +170,9 @@ export default function useSearchFilter() {
     fileSharePathFavorites,
     folderFavorites,
     filterAllFavorites,
-    filterZonesMap
+    filterZonesMap,
+    isFilteredByGroups,
+    profile
   ]);
 
   return {
@@ -131,6 +181,7 @@ export default function useSearchFilter() {
     filteredZoneFavorites,
     filteredFileSharePathFavorites,
     filteredFolderFavorites,
-    handleSearchChange
+    handleSearchChange,
+    clearSearch
   };
 }
