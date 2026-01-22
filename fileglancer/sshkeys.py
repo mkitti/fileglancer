@@ -104,24 +104,30 @@ def _wipe_bytearray(data: bytearray) -> None:
 class SSHKeyContentResponse(Response):
     """Secure streaming response for SSH key content that minimizes memory exposure.
 
-    This response class streams the key content line-by-line via ASGI to minimize
-    buffering in h11/uvicorn. By sending each chunk with "more_body": True, h11
-    can flush each line immediately rather than buffering the entire key in memory.
+    This response class streams the key content in small fixed-size chunks via ASGI
+    to minimize buffering in h11/uvicorn. By sending each chunk with "more_body": True,
+    h11 can flush each chunk immediately rather than buffering the entire key in memory.
+
+    Uses application/octet-stream without Content-Length header to enable chunked
+    transfer encoding, which prevents clients and intermediaries from buffering
+    the entire response.
 
     After streaming completes, the original bytearray is wiped with zeros and
     garbage collection is triggered to clean up any intermediate copies.
 
-    Uses memoryview to avoid creating unnecessary copies when iterating over lines.
+    Uses memoryview to avoid creating unnecessary copies when iterating over chunks.
     """
 
-    media_type = "text/plain"
-    charset = "utf-8"
+    media_type = "application/octet-stream"
+    # Default chunk size: ~22 bytes (half of typical h11 buffer observation)
+    DEFAULT_CHUNK_SIZE = 22
 
     def __init__(
         self,
         key_content: bytearray,
         status_code: int = 200,
         headers: Optional[Dict[str, str]] = None,
+        chunk_size: Optional[int] = None,
     ):
         """Initialize the response with key content stored in a bytearray.
 
@@ -129,14 +135,15 @@ class SSHKeyContentResponse(Response):
             key_content: The SSH key content as a mutable bytearray
             status_code: HTTP status code (default 200)
             headers: Optional additional headers
+            chunk_size: Size of chunks to stream (default 22 bytes)
         """
         # Store the key buffer - do NOT convert to bytes
         self._key_buffer = key_content
+        self._chunk_size = chunk_size if chunk_size is not None else self.DEFAULT_CHUNK_SIZE
 
-        # Merge Content-Length header with any provided headers
-        # This is required because we don't pass content to the parent
+        # Merge any provided headers - do NOT set Content-Length
+        # This enables chunked transfer encoding, preventing buffering
         all_headers = dict(headers) if headers else {}
-        all_headers["content-length"] = str(len(key_content))
 
         # Initialize parent without content - we'll send body directly in __call__
         super().__init__(
@@ -145,49 +152,48 @@ class SSHKeyContentResponse(Response):
             media_type=self.media_type,
         )
 
-    def _iter_lines(self):
-        """Yield memoryview slices of the key buffer line by line.
+    def _iter_chunks(self):
+        """Yield memoryview slices of the key buffer in fixed-size chunks.
 
         Using memoryview avoids creating copies of the data. Each yielded
         view is a reference to a slice of the original bytearray.
 
         Yields:
-            memoryview: A view into the buffer for each line (including newline)
+            memoryview: A view into the buffer for each chunk
         """
         buffer = self._key_buffer
         view = memoryview(buffer)
-        start = 0
+        chunk_size = self._chunk_size
 
-        while start < len(buffer):
-            # Find next newline
-            try:
-                end = buffer.index(b'\n', start) + 1
-            except ValueError:
-                # No more newlines, yield the rest
-                end = len(buffer)
-
+        for start in range(0, len(buffer), chunk_size):
+            end = min(start + chunk_size, len(buffer))
             yield view[start:end]
-            start = end
 
     async def __call__(self, scope, receive, send):
-        """Stream the response line-by-line, then wipe the sensitive buffer.
+        """Stream the response in fixed-size chunks, then wipe the sensitive buffer.
 
-        Sends each line with "more_body": True to signal h11 that it can flush
-        immediately, reducing memory buffering. After all lines are sent, sends
+        Sends each chunk with "more_body": True to signal h11 that it can flush
+        immediately, reducing memory buffering. After all chunks are sent, sends
         an empty body with "more_body": False to complete the response.
 
         The bytearray is wiped in the finally block regardless of success or error.
         """
+        # Filter out content-length to enable chunked transfer encoding
+        headers = [
+            (name, value) for name, value in self.raw_headers
+            if name.lower() != b"content-length"
+        ]
+
         await send({
             "type": "http.response.start",
             "status": self.status_code,
-            "headers": self.raw_headers,
+            "headers": headers,
         })
         try:
-            for line in self._iter_lines():
+            for chunk in self._iter_chunks():
                 await send({
                     "type": "http.response.body",
-                    "body": line,
+                    "body": chunk,
                     "more_body": True,
                 })
             # Final empty body to signal end of response

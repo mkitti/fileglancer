@@ -165,9 +165,10 @@ class TestSSHKeyContentResponse:
     """Tests for the SSHKeyContentResponse secure streaming response class."""
 
     @pytest.mark.asyncio
-    async def test_response_streams_content_line_by_line(self):
-        """Verify the response streams content line by line with more_body flag."""
-        key_content = bytearray(b"line1\nline2\nline3\n")
+    async def test_response_streams_content_in_chunks(self):
+        """Verify the response streams content in fixed-size chunks with more_body flag."""
+        # 44 bytes total, with default chunk_size=22, should be 2 chunks
+        key_content = bytearray(b"A" * 22 + b"B" * 22)
         response = SSHKeyContentResponse(key_content)
 
         sent_messages = []
@@ -190,10 +191,9 @@ class TestSSHKeyContentResponse:
         assert sent_messages[0]["type"] == "http.response.start"
         assert sent_messages[0]["status"] == 200
 
-        # Verify streaming: multiple body messages with more_body=True
-        # 3 lines + 1 final empty message = 4 body messages
+        # Verify streaming: 2 chunks + 1 final empty message = 3 body messages
         body_messages = [m for m in sent_messages if m.get("type") == "http.response.body"]
-        assert len(body_messages) == 4
+        assert len(body_messages) == 3
 
         # All but the last should have more_body=True
         for msg in body_messages[:-1]:
@@ -203,14 +203,19 @@ class TestSSHKeyContentResponse:
         assert body_messages[-1]["more_body"] is False
         assert captured_bodies[-1] == b""
 
+        # Each chunk should be exactly 22 bytes
+        assert len(captured_bodies[0]) == 22
+        assert len(captured_bodies[1]) == 22
+
         # Reassembled content should match original
         reassembled = b"".join(captured_bodies[:-1])  # Exclude final empty
-        assert reassembled == b"line1\nline2\nline3\n"
+        assert reassembled == b"A" * 22 + b"B" * 22
 
     @pytest.mark.asyncio
-    async def test_response_sends_single_line_content(self):
-        """Verify the response handles content without newlines."""
-        key_content = bytearray(b"single line no newline")
+    async def test_response_handles_partial_final_chunk(self):
+        """Verify the response handles content that doesn't divide evenly into chunks."""
+        # 50 bytes with chunk_size=22: chunks of 22, 22, 6
+        key_content = bytearray(b"X" * 50)
         response = SSHKeyContentResponse(key_content)
 
         sent_messages = []
@@ -232,22 +237,24 @@ class TestSSHKeyContentResponse:
         assert sent_messages[0]["type"] == "http.response.start"
         assert sent_messages[0]["status"] == 200
 
-        # 1 content chunk + 1 final empty = 2 body messages
+        # 3 content chunks + 1 final empty = 4 body messages
         body_messages = [m for m in sent_messages if m.get("type") == "http.response.body"]
-        assert len(body_messages) == 2
+        assert len(body_messages) == 4
 
-        # First should have more_body=True, second more_body=False
-        assert body_messages[0]["more_body"] is True
-        assert body_messages[1]["more_body"] is False
+        # Chunk sizes: 22, 22, 6
+        assert len(captured_bodies[0]) == 22
+        assert len(captured_bodies[1]) == 22
+        assert len(captured_bodies[2]) == 6
+        assert captured_bodies[3] == b""
 
-        # Content should match
-        assert captured_bodies[0] == b"single line no newline"
-        assert captured_bodies[1] == b""
+        # Reassembled content should match original
+        reassembled = b"".join(captured_bodies[:-1])
+        assert reassembled == b"X" * 50
 
     @pytest.mark.asyncio
     async def test_response_wipes_bytearray_after_streaming(self):
         """Verify the bytearray is wiped after streaming completes."""
-        key_content = bytearray(b"sensitive\nprivate\nkey\n")
+        key_content = bytearray(b"sensitive private key data here")
         original_length = len(key_content)
         response = SSHKeyContentResponse(key_content)
 
@@ -268,7 +275,7 @@ class TestSSHKeyContentResponse:
     @pytest.mark.asyncio
     async def test_response_wipes_bytearray_even_on_error(self):
         """Verify the bytearray is wiped even if streaming fails."""
-        key_content = bytearray(b"sensitive\ndata\n")
+        key_content = bytearray(b"sensitive data for testing")
         response = SSHKeyContentResponse(key_content)
 
         async def mock_receive():
@@ -287,11 +294,11 @@ class TestSSHKeyContentResponse:
         assert all(b == 0 for b in key_content)
 
     def test_response_has_correct_content_type(self):
-        """Verify the response has text/plain content type."""
+        """Verify the response has application/octet-stream content type for streaming."""
         key_content = bytearray(b"test")
         response = SSHKeyContentResponse(key_content)
 
-        assert response.media_type == "text/plain"
+        assert response.media_type == "application/octet-stream"
 
         # Clean up
         _wipe_bytearray(key_content)
@@ -317,6 +324,7 @@ class TestSSHKeyContentResponse:
             b"-----END OPENSSH PRIVATE KEY-----\n"
         )
         expected_content = bytes(key_content)
+        total_len = len(key_content)
         response = SSHKeyContentResponse(key_content)
 
         sent_messages = []
@@ -334,11 +342,14 @@ class TestSSHKeyContentResponse:
 
         await response(scope, mock_receive, mock_send)
 
-        # Should have 5 lines + 1 final empty = 6 body messages
-        body_messages = [m for m in sent_messages if m.get("type") == "http.response.body"]
-        assert len(body_messages) == 6
+        # Calculate expected number of chunks (22 bytes each, plus final empty)
+        import math
+        expected_chunks = math.ceil(total_len / 22) + 1  # +1 for final empty
 
-        # Verify each line message has more_body=True
+        body_messages = [m for m in sent_messages if m.get("type") == "http.response.body"]
+        assert len(body_messages) == expected_chunks
+
+        # Verify each chunk message has more_body=True (except last)
         for msg in body_messages[:-1]:
             assert msg["more_body"] is True
 
@@ -353,41 +364,58 @@ class TestSSHKeyContentResponse:
         # Verify bytearray was wiped
         assert all(b == 0 for b in key_content)
 
-    def test_iter_lines_yields_memoryview_slices(self):
-        """Verify _iter_lines yields memoryview slices without copying."""
-        key_content = bytearray(b"line1\nline2\nline3\n")
+    def test_iter_chunks_yields_memoryview_slices(self):
+        """Verify _iter_chunks yields memoryview slices without copying."""
+        key_content = bytearray(b"A" * 22 + b"B" * 22 + b"C" * 10)
         response = SSHKeyContentResponse(key_content)
 
-        lines = list(response._iter_lines())
+        chunks = list(response._iter_chunks())
 
-        # Should have 3 lines
-        assert len(lines) == 3
+        # Should have 3 chunks: 22, 22, 10
+        assert len(chunks) == 3
 
         # Each should be a memoryview
-        for line in lines:
-            assert isinstance(line, memoryview)
+        for chunk in chunks:
+            assert isinstance(chunk, memoryview)
 
-        # Content should be correct
-        assert bytes(lines[0]) == b"line1\n"
-        assert bytes(lines[1]) == b"line2\n"
-        assert bytes(lines[2]) == b"line3\n"
+        # Content and sizes should be correct
+        assert len(chunks[0]) == 22
+        assert len(chunks[1]) == 22
+        assert len(chunks[2]) == 10
+        assert bytes(chunks[0]) == b"A" * 22
+        assert bytes(chunks[1]) == b"B" * 22
+        assert bytes(chunks[2]) == b"C" * 10
 
         # Clean up
         _wipe_bytearray(key_content)
 
-    def test_iter_lines_handles_no_trailing_newline(self):
-        """Verify _iter_lines handles content without trailing newline."""
-        key_content = bytearray(b"line1\nline2\nfinal")
+    def test_iter_chunks_with_custom_chunk_size(self):
+        """Verify _iter_chunks respects custom chunk size."""
+        key_content = bytearray(b"X" * 100)
+        response = SSHKeyContentResponse(key_content, chunk_size=25)
+
+        chunks = list(response._iter_chunks())
+
+        # Should have 4 chunks of 25 bytes each
+        assert len(chunks) == 4
+
+        for chunk in chunks:
+            assert isinstance(chunk, memoryview)
+            assert len(chunk) == 25
+
+        # Clean up
+        _wipe_bytearray(key_content)
+
+    def test_iter_chunks_with_small_content(self):
+        """Verify _iter_chunks handles content smaller than chunk size."""
+        key_content = bytearray(b"small")
         response = SSHKeyContentResponse(key_content)
 
-        lines = list(response._iter_lines())
+        chunks = list(response._iter_chunks())
 
-        # Should have 3 lines
-        assert len(lines) == 3
-
-        assert bytes(lines[0]) == b"line1\n"
-        assert bytes(lines[1]) == b"line2\n"
-        assert bytes(lines[2]) == b"final"  # No newline
+        # Should have 1 chunk
+        assert len(chunks) == 1
+        assert bytes(chunks[0]) == b"small"
 
         # Clean up
         _wipe_bytearray(key_content)
@@ -418,10 +446,9 @@ class TestSSHKeyContentResponse:
         )
 
     @pytest.mark.asyncio
-    async def test_response_sets_correct_content_length(self):
-        """Verify Content-Length header matches the bytearray length."""
+    async def test_response_omits_content_length_for_chunked_encoding(self):
+        """Verify Content-Length header is NOT set to enable chunked transfer encoding."""
         key_content = bytearray(b"test private key with specific length")
-        expected_length = len(key_content)
         response = SSHKeyContentResponse(key_content)
 
         sent_messages = []
@@ -436,15 +463,11 @@ class TestSSHKeyContentResponse:
 
         await response(scope, mock_receive, mock_send)
 
-        # Find Content-Length in headers
+        # Verify Content-Length is NOT in headers (enables chunked encoding)
         headers = sent_messages[0]["headers"]
-        content_length = None
-        for header_name, header_value in headers:
-            if header_name == b"content-length":
-                content_length = int(header_value.decode())
-                break
+        header_names = [header_name for header_name, _ in headers]
 
-        assert content_length == expected_length
+        assert b"content-length" not in header_names
 
 
 class TestGenerateSSHKey:
