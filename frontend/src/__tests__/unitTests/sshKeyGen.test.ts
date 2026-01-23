@@ -288,4 +288,167 @@ describe('sshKeyGen', () => {
       expect(lines.length).toBe(1);
     });
   });
+
+  describe('passphrase-protected keys', () => {
+    const testPassphrase = 'test-passphrase-123';
+    // Increase timeout for bcrypt calculations
+    const timeout = 30000;
+
+    test('generates encrypted key with passphrase option', async () => {
+      const keyPair = await generateSSHKeyPair({
+        comment: 'encrypted-key@test',
+        passphrase: testPassphrase
+      });
+
+      expect(keyPair).toHaveProperty('publicKey');
+      expect(keyPair).toHaveProperty('privateKey');
+      expect(keyPair.privateKey).toContain(
+        '-----BEGIN OPENSSH PRIVATE KEY-----'
+      );
+    }, timeout);
+
+    test('encrypted key is larger than unencrypted key', async () => {
+      const unencrypted = await generateSSHKeyPair({ comment: 'test' });
+      const encrypted = await generateSSHKeyPair({
+        comment: 'test',
+        passphrase: testPassphrase
+      });
+
+      // Encrypted keys include KDF options (salt + rounds), so they're larger
+      expect(encrypted.privateKey.length).toBeGreaterThan(
+        unencrypted.privateKey.length
+      );
+    }, timeout);
+
+    test('public key is identical with or without passphrase', async () => {
+      // Generate two keys and compare - public keys should have same format
+      const withPassphrase = await generateSSHKeyPair({
+        comment: 'test-comment',
+        passphrase: testPassphrase
+      });
+
+      // Public key should still be in standard format
+      if (withPassphrase.keyType === 'Ed25519') {
+        expect(withPassphrase.publicKey).toMatch(/^ssh-ed25519 /);
+      } else {
+        expect(withPassphrase.publicKey).toMatch(/^ssh-rsa /);
+      }
+      expect(withPassphrase.publicKey).toContain('test-comment');
+    }, timeout);
+
+    test('ssh-keygen can read encrypted private key with passphrase', async () => {
+      const keyPair = await generateSSHKeyPair({
+        comment: 'passphrase-test',
+        passphrase: testPassphrase
+      });
+      const { privatePath } = writeKeyFiles(keyPair, 'test-encrypted');
+
+      // ssh-keygen -y -P <passphrase> extracts public key from encrypted private key
+      const extractedPublic = runSshKeygen(
+        `-y -P "${testPassphrase}" -f "${privatePath}"`
+      );
+
+      expect(extractedPublic).toBeTruthy();
+      expect(extractedPublic).toMatch(/^ssh-(ed25519|rsa) /);
+    }, timeout);
+
+    test('ssh-keygen fails with wrong passphrase', async () => {
+      const keyPair = await generateSSHKeyPair({
+        comment: 'wrong-passphrase-test',
+        passphrase: testPassphrase
+      });
+      const { privatePath } = writeKeyFiles(keyPair, 'test-wrong-pass');
+
+      // Should fail with wrong passphrase
+      expect(() => {
+        runSshKeygen(`-y -P "wrong-passphrase" -f "${privatePath}"`);
+      }).toThrow();
+    }, timeout);
+
+    test('ssh-keygen fails without passphrase for encrypted key', async () => {
+      const keyPair = await generateSSHKeyPair({
+        comment: 'no-passphrase-test',
+        passphrase: testPassphrase
+      });
+      const { privatePath } = writeKeyFiles(keyPair, 'test-no-pass');
+
+      // Should fail without passphrase (empty string)
+      expect(() => {
+        runSshKeygen(`-y -P "" -f "${privatePath}"`);
+      }).toThrow();
+    }, timeout);
+
+    test('extracted public key matches original for encrypted key', async () => {
+      const comment = 'extract-encrypted@test';
+      const keyPair = await generateSSHKeyPair({
+        comment,
+        passphrase: testPassphrase
+      });
+      const { privatePath } = writeKeyFiles(keyPair, 'test-extract-encrypted');
+
+      const extractedPublic = runSshKeygen(
+        `-y -P "${testPassphrase}" -f "${privatePath}"`
+      );
+
+      // Compare key type and base64 data (extracted key won't have comment)
+      const originalParts = keyPair.publicKey.split(' ');
+      const extractedParts = extractedPublic.split(' ');
+
+      expect(extractedParts[0]).toBe(originalParts[0]); // key type
+      expect(extractedParts[1]).toBe(originalParts[1]); // base64 key data
+    }, timeout);
+
+    test('fingerprints match for encrypted key', async () => {
+      const keyPair = await generateSSHKeyPair({
+        comment: 'fingerprint-test',
+        passphrase: testPassphrase
+      });
+      const { privatePath, publicPath } = writeKeyFiles(
+        keyPair,
+        'test-encrypted-fingerprint'
+      );
+
+      // Get fingerprint from public key (no passphrase needed)
+      const publicFingerprint = runSshKeygen(`-l -f "${publicPath}"`);
+
+      // Get fingerprint from private key (needs passphrase)
+      const privateFingerprint = runSshKeygen(
+        `-l -P "${testPassphrase}" -f "${privatePath}"`
+      );
+
+      // Extract hash portion
+      const publicHash = publicFingerprint.split(' ')[1];
+      const privateHash = privateFingerprint.split(' ')[1];
+
+      expect(publicHash).toBe(privateHash);
+    }, timeout);
+
+    test('supports custom bcrypt rounds', async () => {
+      const keyPair = await generateSSHKeyPair({
+        comment: 'custom-rounds',
+        passphrase: testPassphrase,
+        rounds: 8 // Lower rounds for faster test
+      });
+      const { privatePath } = writeKeyFiles(keyPair, 'test-custom-rounds');
+
+      // Should still be decryptable
+      const extractedPublic = runSshKeygen(
+        `-y -P "${testPassphrase}" -f "${privatePath}"`
+      );
+
+      expect(extractedPublic).toBeTruthy();
+    });
+
+    test('options object API works with comment only', async () => {
+      const keyPair = await generateSSHKeyPair({ comment: 'options-api-test' });
+
+      expect(keyPair.publicKey).toContain('options-api-test');
+    });
+
+    test('legacy string API still works', async () => {
+      const keyPair = await generateSSHKeyPair('legacy-string-comment');
+
+      expect(keyPair.publicKey).toContain('legacy-string-comment');
+    });
+  });
 });

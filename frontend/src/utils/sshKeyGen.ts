@@ -3,9 +3,12 @@
  *
  * Generates OpenSSH-compatible key pairs using the Web Crypto API.
  * Supports Ed25519 (preferred) with RSA-4096 fallback for older browsers.
+ * Supports passphrase encryption using AES-256-CTR with bcrypt key derivation.
  *
  * Keys are generated entirely in the browser - nothing is sent to any server.
  */
+
+import { bcryptPbkdf } from './bcryptPbkdf';
 
 /** Result of SSH key generation */
 export type SSHKeyPair = {
@@ -13,6 +16,94 @@ export type SSHKeyPair = {
   privateKey: string;
   keyType: 'Ed25519' | 'RSA-4096';
 };
+
+/** Options for SSH key generation */
+export type SSHKeyGenOptions = {
+  /** Optional comment to include in the key (e.g., "user@hostname") */
+  comment?: string;
+  /** Optional passphrase to encrypt the private key */
+  passphrase?: string;
+  /** Number of bcrypt rounds for key derivation (default: 16) */
+  rounds?: number;
+};
+
+/** Encryption parameters for private key */
+type EncryptionParams = {
+  cipherName: string;
+  kdfName: string;
+  kdfOptions: Uint8Array;
+  encrypt: (data: Uint8Array) => Promise<Uint8Array>;
+};
+
+// =============================================================================
+// Encryption Helpers
+// =============================================================================
+
+/** Default number of bcrypt rounds for key derivation */
+const DEFAULT_BCRYPT_ROUNDS = 16;
+
+/** Salt size for bcrypt key derivation */
+const BCRYPT_SALT_SIZE = 16;
+
+/** AES-256-CTR key size in bytes */
+const AES256_KEY_SIZE = 32;
+
+/** AES block size / IV size in bytes */
+const AES_BLOCK_SIZE = 16;
+
+/**
+ * Sets up encryption parameters for passphrase-protected keys.
+ * Uses AES-256-CTR with bcrypt key derivation (OpenSSH standard).
+ */
+async function setupEncryption(
+  passphrase: string,
+  rounds: number = DEFAULT_BCRYPT_ROUNDS
+): Promise<EncryptionParams> {
+  // Generate random salt
+  const salt = crypto.getRandomValues(new Uint8Array(BCRYPT_SALT_SIZE));
+
+  // Derive key material using bcrypt_pbkdf
+  // We need key (32 bytes) + IV (16 bytes) = 48 bytes
+  const keyMaterial = bcryptPbkdf(
+    new TextEncoder().encode(passphrase),
+    salt,
+    rounds,
+    AES256_KEY_SIZE + AES_BLOCK_SIZE
+  );
+
+  const aesKey = keyMaterial.slice(0, AES256_KEY_SIZE);
+  const iv = keyMaterial.slice(AES256_KEY_SIZE);
+
+  // Import AES key for Web Crypto
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    aesKey,
+    { name: 'AES-CTR' },
+    false,
+    ['encrypt']
+  );
+
+  // Build KDF options: salt length (4 bytes) + salt + rounds (4 bytes)
+  const kdfOptions = new Uint8Array(4 + salt.length + 4);
+  const kdfView = new DataView(kdfOptions.buffer);
+  kdfView.setUint32(0, salt.length, false);
+  kdfOptions.set(salt, 4);
+  kdfView.setUint32(4 + salt.length, rounds, false);
+
+  return {
+    cipherName: 'aes256-ctr',
+    kdfName: 'bcrypt',
+    kdfOptions,
+    encrypt: async (data: Uint8Array): Promise<Uint8Array> => {
+      const encrypted = await crypto.subtle.encrypt(
+        { name: 'AES-CTR', counter: iv, length: 64 },
+        cryptoKey,
+        data
+      );
+      return new Uint8Array(encrypted);
+    }
+  };
+}
 
 // =============================================================================
 // Ed25519 Key Generation
@@ -51,18 +142,25 @@ function encodeOpenSSHPublicKeyEd25519(
 
 /**
  * Encodes Ed25519 key pair in OpenSSH private key format.
+ * Supports optional passphrase encryption.
  */
-function encodeOpenSSHPrivateKeyEd25519(
+async function encodeOpenSSHPrivateKeyEd25519(
   rawPrivateKey: Uint8Array,
   rawPublicKey: Uint8Array,
-  comment: string
-): string {
+  comment: string,
+  encryption?: EncryptionParams
+): Promise<string> {
   const keyType = 'ssh-ed25519';
   const keyTypeBytes = new TextEncoder().encode(keyType);
   const commentBytes = new TextEncoder().encode(comment);
   const authMagic = new TextEncoder().encode('openssh-key-v1\0');
-  const cipherName = new TextEncoder().encode('none');
-  const kdfName = new TextEncoder().encode('none');
+
+  // Use encryption params or defaults for unencrypted
+  const cipherNameStr = encryption?.cipherName ?? 'none';
+  const kdfNameStr = encryption?.kdfName ?? 'none';
+  const cipherNameBytes = new TextEncoder().encode(cipherNameStr);
+  const kdfNameBytes = new TextEncoder().encode(kdfNameStr);
+  const kdfOptions = encryption?.kdfOptions ?? new Uint8Array(0);
 
   const checkInt = crypto.getRandomValues(new Uint32Array(1))[0];
 
@@ -70,19 +168,23 @@ function encodeOpenSSHPrivateKeyEd25519(
   privateKeyWithPublic.set(rawPrivateKey, 0);
   privateKeyWithPublic.set(rawPublicKey, 32);
 
+  // Build private section
   const privateSectionLength =
+    4 + // checkInt
+    4 + // checkInt (repeated)
     4 +
+    keyTypeBytes.length + // key type
     4 +
+    rawPublicKey.length + // public key
     4 +
-    keyTypeBytes.length +
+    privateKeyWithPublic.length + // private key (includes public)
     4 +
-    rawPublicKey.length +
-    4 +
-    privateKeyWithPublic.length +
-    4 +
-    commentBytes.length;
+    commentBytes.length; // comment
 
-  const paddingLength = (8 - (privateSectionLength % 8)) % 8;
+  // Padding to cipher block size (16 for AES, 8 for unencrypted)
+  const blockSize = encryption ? AES_BLOCK_SIZE : 8;
+  const paddingLength =
+    (blockSize - (privateSectionLength % blockSize)) % blockSize;
   const paddedPrivateSectionLength = privateSectionLength + paddingLength;
 
   const privateSection = new Uint8Array(paddedPrivateSectionLength);
@@ -110,10 +212,17 @@ function encodeOpenSSHPrivateKeyEd25519(
   privateSection.set(commentBytes, pOffset);
   pOffset += commentBytes.length;
 
+  // Add padding bytes (1, 2, 3, ...)
   for (let i = 0; i < paddingLength; i++) {
-    privateSection[pOffset + i] = i + 1;
+    privateSection[pOffset + i] = (i + 1) & 0xff;
   }
 
+  // Encrypt private section if passphrase provided
+  const finalPrivateSection = encryption
+    ? await encryption.encrypt(privateSection)
+    : privateSection;
+
+  // Build public section
   const publicSectionLength = 4 + keyTypeBytes.length + 4 + rawPublicKey.length;
   const publicSection = new Uint8Array(publicSectionLength);
   const publicView = new DataView(publicSection.buffer);
@@ -127,44 +236,49 @@ function encodeOpenSSHPrivateKeyEd25519(
   pubOffset += 4;
   publicSection.set(rawPublicKey, pubOffset);
 
+  // Calculate total length
   const totalLength =
     authMagic.length +
     4 +
-    cipherName.length +
+    cipherNameBytes.length +
     4 +
-    kdfName.length +
+    kdfNameBytes.length +
     4 +
-    4 +
+    kdfOptions.length +
+    4 + // number of keys
     4 +
     publicSectionLength +
     4 +
-    paddedPrivateSectionLength;
+    finalPrivateSection.length;
 
+  // Build full key
   const fullKey = new Uint8Array(totalLength);
   const fullView = new DataView(fullKey.buffer);
   let fOffset = 0;
 
   fullKey.set(authMagic, fOffset);
   fOffset += authMagic.length;
-  fullView.setUint32(fOffset, cipherName.length, false);
+  fullView.setUint32(fOffset, cipherNameBytes.length, false);
   fOffset += 4;
-  fullKey.set(cipherName, fOffset);
-  fOffset += cipherName.length;
-  fullView.setUint32(fOffset, kdfName.length, false);
+  fullKey.set(cipherNameBytes, fOffset);
+  fOffset += cipherNameBytes.length;
+  fullView.setUint32(fOffset, kdfNameBytes.length, false);
   fOffset += 4;
-  fullKey.set(kdfName, fOffset);
-  fOffset += kdfName.length;
-  fullView.setUint32(fOffset, 0, false);
+  fullKey.set(kdfNameBytes, fOffset);
+  fOffset += kdfNameBytes.length;
+  fullView.setUint32(fOffset, kdfOptions.length, false);
   fOffset += 4;
-  fullView.setUint32(fOffset, 1, false);
+  fullKey.set(kdfOptions, fOffset);
+  fOffset += kdfOptions.length;
+  fullView.setUint32(fOffset, 1, false); // number of keys
   fOffset += 4;
   fullView.setUint32(fOffset, publicSectionLength, false);
   fOffset += 4;
   fullKey.set(publicSection, fOffset);
   fOffset += publicSectionLength;
-  fullView.setUint32(fOffset, paddedPrivateSectionLength, false);
+  fullView.setUint32(fOffset, finalPrivateSection.length, false);
   fOffset += 4;
-  fullKey.set(privateSection, fOffset);
+  fullKey.set(finalPrivateSection, fOffset);
 
   const base64 = btoa(String.fromCharCode(...fullKey));
   const wrapped = base64.match(/.{1,70}/g)!.join('\n');
@@ -175,7 +289,10 @@ function encodeOpenSSHPrivateKeyEd25519(
 /**
  * Generates an Ed25519 SSH key pair using the Web Crypto API.
  */
-async function generateEd25519KeyPair(comment: string): Promise<SSHKeyPair> {
+async function generateEd25519KeyPair(
+  comment: string,
+  encryption?: EncryptionParams
+): Promise<SSHKeyPair> {
   const keyPair = await crypto.subtle.generateKey({ name: 'Ed25519' }, true, [
     'sign',
     'verify'
@@ -193,10 +310,11 @@ async function generateEd25519KeyPair(comment: string): Promise<SSHKeyPair> {
 
   return {
     publicKey: encodeOpenSSHPublicKeyEd25519(publicKeyBytes, comment),
-    privateKey: encodeOpenSSHPrivateKeyEd25519(
+    privateKey: await encodeOpenSSHPrivateKeyEd25519(
       rawPrivateKey,
       publicKeyBytes,
-      comment
+      comment,
+      encryption
     ),
     keyType: 'Ed25519'
   };
@@ -400,18 +518,24 @@ function encodeOpenSSHPublicKeyRSA(
 
 /**
  * Encodes RSA key pair in OpenSSH private key format.
+ * Supports optional passphrase encryption.
  */
-function encodeOpenSSHPrivateKeyRSA(
+async function encodeOpenSSHPrivateKeyRSA(
   rsaKey: RSAKeyComponents,
-  comment: string
-): string {
+  comment: string,
+  encryption?: EncryptionParams
+): Promise<string> {
   const keyType = 'ssh-rsa';
   const authMagic = new TextEncoder().encode('openssh-key-v1\0');
-  const cipherName = 'none';
-  const kdfName = 'none';
+
+  // Use encryption params or defaults for unencrypted
+  const cipherNameStr = encryption?.cipherName ?? 'none';
+  const kdfNameStr = encryption?.kdfName ?? 'none';
+  const kdfOptions = encryption?.kdfOptions ?? new Uint8Array(0);
 
   const checkInt = crypto.getRandomValues(new Uint32Array(1))[0];
 
+  // Build public blob
   const pubTypeBytes = sshString(keyType);
   const pubEBytes = sshMpint(rsaKey.e);
   const pubNBytes = sshMpint(rsaKey.n);
@@ -425,6 +549,7 @@ function encodeOpenSSHPrivateKeyRSA(
   pubOffset += pubEBytes.length;
   publicBlob.set(pubNBytes, pubOffset);
 
+  // Build private section components
   const privTypeBytes = sshString(keyType);
   const privNBytes = sshMpint(rsaKey.n);
   const privEBytes = sshMpint(rsaKey.e);
@@ -435,8 +560,8 @@ function encodeOpenSSHPrivateKeyRSA(
   const privCommentBytes = sshString(comment);
 
   const privateSectionLength =
-    4 +
-    4 +
+    4 + // checkInt
+    4 + // checkInt (repeated)
     privTypeBytes.length +
     privNBytes.length +
     privEBytes.length +
@@ -446,7 +571,10 @@ function encodeOpenSSHPrivateKeyRSA(
     privQBytes.length +
     privCommentBytes.length;
 
-  const paddingLength = (8 - (privateSectionLength % 8)) % 8;
+  // Padding to cipher block size (16 for AES, 8 for unencrypted)
+  const blockSize = encryption ? AES_BLOCK_SIZE : 8;
+  const paddingLength =
+    (blockSize - (privateSectionLength % blockSize)) % blockSize;
   const paddedLength = privateSectionLength + paddingLength;
 
   const privateSection = new Uint8Array(paddedLength);
@@ -474,30 +602,44 @@ function encodeOpenSSHPrivateKeyRSA(
   privateSection.set(privCommentBytes, pOffset);
   pOffset += privCommentBytes.length;
 
+  // Add padding bytes (1, 2, 3, ...)
   for (let i = 0; i < paddingLength; i++) {
-    privateSection[pOffset + i] = i + 1;
+    privateSection[pOffset + i] = (i + 1) & 0xff;
   }
 
-  const cipherBytes = sshString(cipherName);
-  const kdfBytes = sshString(kdfName);
-  const kdfOptions = new Uint8Array([0, 0, 0, 0]);
+  // Encrypt private section if passphrase provided
+  const finalPrivateSection = encryption
+    ? await encryption.encrypt(privateSection)
+    : privateSection;
+
+  // Build header components
+  const cipherBytes = sshString(cipherNameStr);
+  const kdfBytes = sshString(kdfNameStr);
+  const kdfOptionsWithLen = new Uint8Array(4 + kdfOptions.length);
+  new DataView(kdfOptionsWithLen.buffer).setUint32(0, kdfOptions.length, false);
+  kdfOptionsWithLen.set(kdfOptions, 4);
+
   const numKeys = new Uint8Array(4);
   new DataView(numKeys.buffer).setUint32(0, 1, false);
   const publicBlobLen = new Uint8Array(4);
   new DataView(publicBlobLen.buffer).setUint32(0, publicBlob.length, false);
   const privateSectionLen = new Uint8Array(4);
-  new DataView(privateSectionLen.buffer).setUint32(0, paddedLength, false);
+  new DataView(privateSectionLen.buffer).setUint32(
+    0,
+    finalPrivateSection.length,
+    false
+  );
 
   const totalLength =
     authMagic.length +
     cipherBytes.length +
     kdfBytes.length +
-    kdfOptions.length +
+    kdfOptionsWithLen.length +
     numKeys.length +
     publicBlobLen.length +
     publicBlob.length +
     privateSectionLen.length +
-    privateSection.length;
+    finalPrivateSection.length;
 
   const fullKey = new Uint8Array(totalLength);
   let fOffset = 0;
@@ -507,8 +649,8 @@ function encodeOpenSSHPrivateKeyRSA(
   fOffset += cipherBytes.length;
   fullKey.set(kdfBytes, fOffset);
   fOffset += kdfBytes.length;
-  fullKey.set(kdfOptions, fOffset);
-  fOffset += kdfOptions.length;
+  fullKey.set(kdfOptionsWithLen, fOffset);
+  fOffset += kdfOptionsWithLen.length;
   fullKey.set(numKeys, fOffset);
   fOffset += numKeys.length;
   fullKey.set(publicBlobLen, fOffset);
@@ -517,7 +659,7 @@ function encodeOpenSSHPrivateKeyRSA(
   fOffset += publicBlob.length;
   fullKey.set(privateSectionLen, fOffset);
   fOffset += privateSectionLen.length;
-  fullKey.set(privateSection, fOffset);
+  fullKey.set(finalPrivateSection, fOffset);
 
   const base64 = btoa(String.fromCharCode(...fullKey));
   const wrapped = base64.match(/.{1,70}/g)!.join('\n');
@@ -529,7 +671,10 @@ function encodeOpenSSHPrivateKeyRSA(
  * Generates an RSA-4096 SSH key pair using the Web Crypto API.
  * Used as fallback when Ed25519 is not supported by the browser.
  */
-async function generateRSAKeyPair(comment: string): Promise<SSHKeyPair> {
+async function generateRSAKeyPair(
+  comment: string,
+  encryption?: EncryptionParams
+): Promise<SSHKeyPair> {
   const keyPair = await crypto.subtle.generateKey(
     {
       name: 'RSASSA-PKCS1-v1_5',
@@ -549,7 +694,7 @@ async function generateRSAKeyPair(comment: string): Promise<SSHKeyPair> {
 
   return {
     publicKey: encodeOpenSSHPublicKeyRSA(rsaKey.n, rsaKey.e, comment),
-    privateKey: encodeOpenSSHPrivateKeyRSA(rsaKey, comment),
+    privateKey: await encodeOpenSSHPrivateKeyRSA(rsaKey, comment, encryption),
     keyType: 'RSA-4096'
   };
 }
@@ -567,21 +712,44 @@ async function generateRSAKeyPair(comment: string): Promise<SSHKeyPair> {
  * Keys are generated entirely in the browser using the Web Crypto API.
  * Nothing is sent to any server.
  *
- * @param comment - Optional comment to include in the key (e.g., "user@hostname")
+ * @param options - Generation options (comment, passphrase, rounds)
  * @returns Promise resolving to the generated key pair
  *
  * @example
+ * // Without passphrase
+ * const keyPair = await generateSSHKeyPair({ comment: 'user@example.com' });
+ *
+ * @example
+ * // With passphrase encryption
+ * const keyPair = await generateSSHKeyPair({
+ *   comment: 'user@example.com',
+ *   passphrase: 'my-secret-passphrase'
+ * });
+ *
+ * @example
+ * // Legacy: just pass a comment string
  * const keyPair = await generateSSHKeyPair('user@example.com');
- * console.log(keyPair.publicKey);  // ssh-ed25519 AAAA... user@example.com
- * console.log(keyPair.privateKey); // -----BEGIN OPENSSH PRIVATE KEY-----...
- * console.log(keyPair.keyType);    // 'Ed25519' or 'RSA-4096'
  */
-export async function generateSSHKeyPair(comment = ''): Promise<SSHKeyPair> {
+export async function generateSSHKeyPair(
+  options: SSHKeyGenOptions | string = {}
+): Promise<SSHKeyPair> {
+  // Support legacy string argument for backwards compatibility
+  const opts: SSHKeyGenOptions =
+    typeof options === 'string' ? { comment: options } : options;
+
+  const comment = opts.comment ?? '';
+
+  // Setup encryption if passphrase provided
+  let encryption: EncryptionParams | undefined;
+  if (opts.passphrase) {
+    encryption = await setupEncryption(opts.passphrase, opts.rounds);
+  }
+
   try {
-    return await generateEd25519KeyPair(comment);
+    return await generateEd25519KeyPair(comment, encryption);
   } catch (e) {
     if (e instanceof Error && e.name === 'NotSupportedError') {
-      return await generateRSAKeyPair(comment);
+      return await generateRSAKeyPair(comment, encryption);
     }
     throw e;
   }
