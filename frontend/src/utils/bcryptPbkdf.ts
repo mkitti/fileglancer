@@ -203,22 +203,9 @@ const BLOWFISH_P_ORIG: number[] = [
   0xc0ac29b7, 0xc97c50dd, 0x3f84d5b5, 0xb5470917, 0x9216d5d9, 0x8979fb1b,
 ];
 
-// Magic string for bcrypt_pbkdf: "OxychromaticBlowfishSwatDynamite" (32 bytes)
-/* prettier-ignore */
-const BCRYPT_CIPHERTEXT: number[] = [
-  0x4f787963, 0x68726f6d, 0x61746963, 0x426c6f77,
-  0x66697368, 0x53776174, 0x44796e61, 0x6d697465,
-];
-
 // =============================================================================
 // Blowfish Implementation (Ported from bcrypt-pbkdf)
 // =============================================================================
-
-function F(S: Uint32Array[], x8: Uint8Array, i: number): number {
-  return (
-    ((S[0][x8[i + 3]] + S[1][x8[i + 2]]) ^ S[2][x8[i + 1]]) + S[3][x8[i]]
-  ) >>> 0;
-}
 
 class Blowfish {
   private P: Uint32Array;
@@ -227,14 +214,11 @@ class Blowfish {
 
   constructor() {
     this.P = new Uint32Array(BLOWFISH_P_ORIG);
-    this.S = BLOWFISH_S_ORIG.map((s) => new Uint32Array(s));
+    this.S = BLOWFISH_S_ORIG.map(s => new Uint32Array(s));
   }
 
   // Encryption for a single 64-bit block. Returns [L, R]
   encrypt(xl: number, xr: number): [number, number] {
-    // Manually putting it into a buffer to reuse encipher
-    const x = new Uint32Array([xl, xr]);
-    const x8 = new Uint8Array(x.buffer);
     // Note: Uint32Array is platform endianness.
     // encipher expects big-endian behavior?
     // JS lib encipher uses byte access.
@@ -242,7 +226,7 @@ class Blowfish {
     // Let's implement encipher directly on xl/xr to avoid endianness confusion if possible?
     // JS lib uses Uint8Array view of Uint32Array. This depends on endianness!
     // But it works in Node/Browser.
-    
+
     // However, my previous implementation worked fine with >>> 0.
     // JS lib `encipher` logic:
     /*
@@ -256,28 +240,28 @@ class Blowfish {
     // `x8[0]` is LSB of `x[0]` on little-endian.
     // Blowfish expects big-endian words.
     // If I use my `f` function (which decomposes manually), I avoid endianness issues.
-    
+
     // I will rewrite encipher to use my manual decomposition logic but match JS lib structure.
     // JS lib F: uses x8[3], x8[2]...
     // If LE: x8[3] is MSB.
     // So `S[0][x8[3]]` -> S[0][MSB].
     // My code `(x >>> 24)` -> MSB.
     // So my code is correct for BE interpretation.
-    
+
     // I will reimplement `encipher` logic using number variables.
-    
+
     xl ^= this.P[0];
     for (let i = 1; i < 16; i += 2) {
-        xr ^= this.f(xl) ^ this.P[i];
-        xl ^= this.f(xr) ^ this.P[i+1];
+      xr ^= this.f(xl) ^ this.P[i];
+      xl ^= this.f(xr) ^ this.P[i + 1];
     }
     const t = xl;
     xl = xr ^ this.P[17];
     xr = t;
-    
+
     // Wait, JS lib swaps: x[0] = x[1] ^ P[17]; x[1] = t;
     // My previous code returned [xl, xr] (which was [x0, x1]?)
-    
+
     return [xl >>> 0, xr >>> 0];
   }
 
@@ -295,9 +279,12 @@ class Blowfish {
   }
 
   private stream2word(data: Uint8Array, databytes: number): number {
-    let i, temp = 0;
+    let i,
+      temp = 0;
     for (i = 0; i < 4; i++, this.J++) {
-      if (this.J >= databytes) this.J = 0;
+      if (this.J >= databytes) {
+        this.J = 0;
+      }
       temp = (temp << 8) | data[this.J];
     }
     return temp >>> 0;
@@ -308,56 +295,63 @@ class Blowfish {
     // P array XOR
     this.J = 0;
     for (i = 0; i < 18; i++) {
-        this.P[i] ^= this.stream2word(key, keybytes);
+      this.P[i] ^= this.stream2word(key, keybytes);
     }
-    
+
     this.J = 0; // Not used in encipher loop but reset for consistency? JS lib doesn't reset J here.
     // Wait, JS lib resets BLF_J = 0 before P loop.
     // Then resets BLF_J = 0 AFTER P loop?
     // "BLF_J = 0;" (line 277).
-    
-    let xl = 0, xr = 0;
+
+    let xl = 0,
+      xr = 0;
     for (i = 0; i < 18; i += 2) {
-        [xl, xr] = this.encrypt(xl, xr);
-        this.P[i] = xl;
-        this.P[i+1] = xr;
+      [xl, xr] = this.encrypt(xl, xr);
+      this.P[i] = xl;
+      this.P[i + 1] = xr;
     }
-    
+
     for (i = 0; i < 4; i++) {
-        for (j = 0; j < 256; j += 2) {
-            [xl, xr] = this.encrypt(xl, xr);
-            this.S[i][j] = xl;
-            this.S[i][j+1] = xr;
-        }
+      for (j = 0; j < 256; j += 2) {
+        [xl, xr] = this.encrypt(xl, xr);
+        this.S[i][j] = xl;
+        this.S[i][j + 1] = xr;
+      }
     }
   }
 
-  expandstate(data: Uint8Array, databytes: number, key: Uint8Array, keybytes: number): void {
+  expandstate(
+    data: Uint8Array,
+    databytes: number,
+    key: Uint8Array,
+    keybytes: number
+  ): void {
     let i, j;
-    
+
     this.J = 0;
     for (i = 0; i < 18; i++) {
-        this.P[i] ^= this.stream2word(key, keybytes);
+      this.P[i] ^= this.stream2word(key, keybytes);
     }
-    
+
     this.J = 0;
-    let xl = 0, xr = 0;
+    let xl = 0,
+      xr = 0;
     for (i = 0; i < 18; i += 2) {
+      xl ^= this.stream2word(data, databytes);
+      xr ^= this.stream2word(data, databytes);
+      [xl, xr] = this.encrypt(xl, xr);
+      this.P[i] = xl;
+      this.P[i + 1] = xr;
+    }
+
+    for (i = 0; i < 4; i++) {
+      for (j = 0; j < 256; j += 2) {
         xl ^= this.stream2word(data, databytes);
         xr ^= this.stream2word(data, databytes);
         [xl, xr] = this.encrypt(xl, xr);
-        this.P[i] = xl;
-        this.P[i+1] = xr;
-    }
-    
-    for (i = 0; i < 4; i++) {
-        for (j = 0; j < 256; j += 2) {
-            xl ^= this.stream2word(data, databytes);
-            xr ^= this.stream2word(data, databytes);
-            [xl, xr] = this.encrypt(xl, xr);
-            this.S[i][j] = xl;
-            this.S[i][j+1] = xr;
-        }
+        this.S[i][j] = xl;
+        this.S[i][j + 1] = xr;
+      }
     }
     this.J = 0;
   }
@@ -367,57 +361,63 @@ class Blowfish {
 // bcrypt_pbkdf Implementation
 // =============================================================================
 
-function bcryptHash(sha2pass: Uint8Array, sha2salt: Uint8Array, out: Uint8Array): void {
-    const bf = new Blowfish();
-    const ciphertext = new Uint8Array([
-        79,120,121,99,104,114,111,109,97,116,105,
-        99,66,108,111,119,102,105,115,104,83,119,97,116,68,121,110,97,109,
-        105,116,101
-    ]); // "OxychromaticBlowfishSwatDynamite"
-    
-    const cdata = new Uint32Array(8);
-    // stream2word for ciphertext init?
-    // JS lib:
-    // for (i = 0; i < BCRYPT_BLOCKS; i++)
-    //   cdata[i] = stream2word(ciphertext, ciphertext.byteLength);
-    // stream2word is static/helper.
-    // I'll reuse my helper.
-    // Need a temporary J.
-    let J = 0;
-    function s2w(data: Uint8Array): number {
-        let i, temp = 0;
-        for (i = 0; i < 4; i++, J++) {
-            if (J >= data.length) J = 0;
-            temp = (temp << 8) | data[J];
-        }
-        return temp >>> 0;
+function bcryptHash(
+  sha2pass: Uint8Array,
+  sha2salt: Uint8Array,
+  out: Uint8Array
+): void {
+  const bf = new Blowfish();
+  const ciphertext = new Uint8Array([
+    79, 120, 121, 99, 104, 114, 111, 109, 97, 116, 105, 99, 66, 108, 111, 119,
+    102, 105, 115, 104, 83, 119, 97, 116, 68, 121, 110, 97, 109, 105, 116, 101
+  ]); // "OxychromaticBlowfishSwatDynamite"
+
+  const cdata = new Uint32Array(8);
+  // stream2word for ciphertext init?
+  // JS lib:
+  // for (i = 0; i < BCRYPT_BLOCKS; i++)
+  //   cdata[i] = stream2word(ciphertext, ciphertext.byteLength);
+  // stream2word is static/helper.
+  // I'll reuse my helper.
+  // Need a temporary J.
+  let J = 0;
+  function s2w(data: Uint8Array): number {
+    let i,
+      temp = 0;
+    for (i = 0; i < 4; i++, J++) {
+      if (J >= data.length) {
+        J = 0;
+      }
+      temp = (temp << 8) | data[J];
     }
-    
-    bf.expandstate(sha2salt, 64, sha2pass, 64);
-    for (let i = 0; i < 64; i++) {
-        bf.expand0state(sha2salt, 64);
-        bf.expand0state(sha2pass, 64);
+    return temp >>> 0;
+  }
+
+  bf.expandstate(sha2salt, 64, sha2pass, 64);
+  for (let i = 0; i < 64; i++) {
+    bf.expand0state(sha2salt, 64);
+    bf.expand0state(sha2pass, 64);
+  }
+
+  for (let i = 0; i < 8; i++) {
+    cdata[i] = s2w(ciphertext);
+  }
+
+  // Encrypt 64 times
+  for (let i = 0; i < 64; i++) {
+    for (let j = 0; j < 8; j += 2) {
+      const [l, r] = bf.encrypt(cdata[j], cdata[j + 1]);
+      cdata[j] = l;
+      cdata[j + 1] = r;
     }
-    
-    for (let i = 0; i < 8; i++) {
-        cdata[i] = s2w(ciphertext);
-    }
-    
-    // Encrypt 64 times
-    for (let i = 0; i < 64; i++) {
-        for (let j = 0; j < 8; j += 2) {
-            const [l, r] = bf.encrypt(cdata[j], cdata[j+1]);
-            cdata[j] = l;
-            cdata[j+1] = r;
-        }
-    }
-    
-    for (let i = 0; i < 8; i++) {
-        out[4*i+3] = (cdata[i] >>> 24) & 0xff;
-        out[4*i+2] = (cdata[i] >>> 16) & 0xff;
-        out[4*i+1] = (cdata[i] >>> 8) & 0xff;
-        out[4*i+0] = cdata[i] & 0xff;
-    }
+  }
+
+  for (let i = 0; i < 8; i++) {
+    out[4 * i + 3] = (cdata[i] >>> 24) & 0xff;
+    out[4 * i + 2] = (cdata[i] >>> 16) & 0xff;
+    out[4 * i + 1] = (cdata[i] >>> 8) & 0xff;
+    out[4 * i + 0] = cdata[i] & 0xff;
+  }
 }
 
 export function bcryptPbkdf(
@@ -426,10 +426,18 @@ export function bcryptPbkdf(
   rounds: number,
   keyLength: number
 ): Uint8Array {
-  if (rounds < 1) throw new Error('Rounds must be at least 1');
-  if (password.length === 0) throw new Error('Password cannot be empty');
-  if (salt.length === 0) throw new Error('Salt cannot be empty');
-  if (keyLength === 0 || keyLength > 1024) throw new Error('Key length must be between 1 and 1024');
+  if (rounds < 1) {
+    throw new Error('Rounds must be at least 1');
+  }
+  if (password.length === 0) {
+    throw new Error('Password cannot be empty');
+  }
+  if (salt.length === 0) {
+    throw new Error('Salt cannot be empty');
+  }
+  if (keyLength === 0 || keyLength > 1024) {
+    throw new Error('Key length must be between 1 and 1024');
+  }
 
   const sha2pass = sha512(password); // 64 bytes
   const sha2salt = new Uint8Array(64);
@@ -437,12 +445,12 @@ export function bcryptPbkdf(
   const tmpout = new Uint8Array(32);
   const countsalt = new Uint8Array(salt.length + 4);
   const key = new Uint8Array(keyLength);
-  
+
   const stride = Math.floor((keyLength + 32 - 1) / 32);
   const amt = Math.floor((keyLength + stride - 1) / stride);
-  
+
   countsalt.set(salt);
-  
+
   let keylen = keyLength;
   for (let count = 1; keylen > 0; count++) {
     // Big-endian count at end of countsalt
@@ -450,32 +458,32 @@ export function bcryptPbkdf(
     countsalt[salt.length + 1] = (count >>> 16) & 0xff;
     countsalt[salt.length + 2] = (count >>> 8) & 0xff;
     countsalt[salt.length + 3] = count & 0xff;
-    
+
     const s2s = sha512(countsalt);
     sha2salt.set(s2s);
-    
+
     bcryptHash(sha2pass, sha2salt, tmpout);
     out.set(tmpout);
-    
+
     for (let i = 1; i < rounds; i++) {
-        const s2s_inner = sha512(tmpout);
-        sha2salt.set(s2s_inner);
-        bcryptHash(sha2pass, sha2salt, tmpout);
-        for (let j = 0; j < 32; j++) {
-            out[j] ^= tmpout[j];
-        }
+      const s2s_inner = sha512(tmpout);
+      sha2salt.set(s2s_inner);
+      bcryptHash(sha2pass, sha2salt, tmpout);
+      for (let j = 0; j < 32; j++) {
+        out[j] ^= tmpout[j];
+      }
     }
-    
+
     const curAmt = Math.min(amt, keylen);
     for (let i = 0; i < curAmt; i++) {
-        const dest = i * stride + (count - 1);
-        if (dest < keyLength) {
-            key[dest] = out[i];
-        }
+      const dest = i * stride + (count - 1);
+      if (dest < keyLength) {
+        key[dest] = out[i];
+      }
     }
     keylen -= curAmt;
   }
-  
+
   return key;
 }
 
