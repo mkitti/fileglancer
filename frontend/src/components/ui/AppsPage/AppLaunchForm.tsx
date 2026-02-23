@@ -845,7 +845,9 @@ export default function AppLaunchForm({
           ? 'Validating...'
           : submitting
             ? 'Submitting...'
-            : 'Submit Job'}
+            : entryPoint.type === 'service'
+              ? 'Start Service'
+              : 'Submit Job'}
       </Button>
     </div>
   );

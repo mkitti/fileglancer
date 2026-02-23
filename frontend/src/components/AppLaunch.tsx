@@ -119,7 +119,8 @@ export default function AppLaunch() {
         pre_run: preRun,
         post_run: postRun
       });
-      toast.success('Job submitted');
+      const isService = selectedEntryPoint.type === 'service';
+      toast.success(isService ? 'Service started' : 'Job submitted');
       navigate('/apps/jobs');
     } catch (error) {
       const message =
@@ -244,12 +245,19 @@ export default function AppLaunch() {
                 key={ep.id}
               >
                 <div className="flex-1 min-w-0">
-                  <Typography
-                    className="text-foreground font-medium"
-                    type="small"
-                  >
-                    {ep.name}
-                  </Typography>
+                  <div className="flex items-center gap-2">
+                    <Typography
+                      className="text-foreground font-medium"
+                      type="small"
+                    >
+                      {ep.name}
+                    </Typography>
+                    {ep.type === 'service' ? (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-info/10 text-info border border-info/30">
+                        Service
+                      </span>
+                    ) : null}
+                  </div>
                   {ep.description ? (
                     <Typography className="text-secondary mt-1" type="small">
                       {ep.description}

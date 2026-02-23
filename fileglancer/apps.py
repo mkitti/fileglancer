@@ -627,6 +627,7 @@ async def submit_job(
             app_name=manifest.name,
             entry_point_id=entry_point.id,
             entry_point_name=entry_point.name,
+            entry_point_type=entry_point.type,
             parameters=parameters,
             resources=resources_dict,
             manifest_path=manifest_path,
@@ -798,8 +799,37 @@ def _make_file_info(file_path: str, exists: bool) -> dict:
     }
 
 
+def get_service_url(db_job: db.JobDB) -> Optional[str]:
+    """Read the service URL from a job's work directory.
+
+    Only returns a URL when the job is a service type and is currently RUNNING.
+    The service writes its URL to a plain text file named 'service_url' in the
+    job's work directory.
+    """
+    if getattr(db_job, 'entry_point_type', 'job') != 'service':
+        return None
+    if db_job.status != 'RUNNING':
+        return None
+
+    work_dir = _resolve_work_dir(db_job)
+    url_file = work_dir / "service_url"
+
+    if not url_file.is_file():
+        return None
+
+    try:
+        url = url_file.read_text().strip()
+    except OSError:
+        return None
+
+    if not url.startswith(("http://", "https://")):
+        return None
+
+    return url
+
+
 def get_job_file_paths(db_job: db.JobDB) -> dict[str, dict]:
-    """Return file path info for a job's files (script, stdout, stderr).
+    """Return file path info for a job's files (script, stdout, stderr, service_url).
 
     Returns a dict keyed by file type with path and existence info.
     """
@@ -812,11 +842,18 @@ def get_job_file_paths(db_job: db.JobDB) -> dict[str, dict]:
     stdout_path = work_dir / "stdout.log"
     stderr_path = work_dir / "stderr.log"
 
-    return {
+    files = {
         "script": _make_file_info(script_path, len(scripts) > 0),
         "stdout": _make_file_info(str(stdout_path), stdout_path.is_file()),
         "stderr": _make_file_info(str(stderr_path), stderr_path.is_file()),
     }
+
+    # Include service_url file info for service-type jobs
+    if getattr(db_job, 'entry_point_type', 'job') == 'service':
+        service_url_path = work_dir / "service_url"
+        files["service_url"] = _make_file_info(str(service_url_path), service_url_path.is_file())
+
+    return files
 
 
 async def get_job_file_content(job_id: int, username: str, file_type: str) -> Optional[str]:

@@ -382,6 +382,7 @@ class AppEntryPoint(BaseModel):
     """An entry point (command) within an app"""
     id: str = Field(description="Unique identifier for the entry point")
     name: str = Field(description="Display name of the entry point")
+    type: Literal["job", "service"] = Field(description="Whether this is a batch job or long-running service", default="job")
     description: Optional[str] = Field(description="Description of the entry point", default=None)
     command: str = Field(description="The base CLI command to execute")
     parameters: List[AppParameterItem] = Field(description="Parameters for this entry point", default=[])
@@ -489,6 +490,7 @@ class Job(BaseModel):
     manifest_path: str = Field(description="Relative manifest path within the app repo", default="")
     entry_point_id: str = Field(description="Entry point that was executed")
     entry_point_name: str = Field(description="Display name of the entry point")
+    entry_point_type: str = Field(description="Whether this is a batch job or long-running service", default="job")
     parameters: Dict = Field(description="Parameters used for the job")
     status: str = Field(description="Job status (PENDING, RUNNING, DONE, FAILED, KILLED)")
     exit_code: Optional[int] = Field(description="Exit code of the job", default=None)
@@ -498,6 +500,7 @@ class Job(BaseModel):
     post_run: Optional[str] = Field(description="Script run after the main command", default=None)
     pull_latest: bool = Field(description="Whether pull latest was enabled", default=False)
     cluster_job_id: Optional[str] = Field(description="Cluster-assigned job ID", default=None)
+    service_url: Optional[str] = Field(description="URL of the running service (for service-type jobs)", default=None)
     created_at: datetime = Field(description="When the job was created")
     started_at: Optional[datetime] = Field(description="When the job started running", default=None)
     finished_at: Optional[datetime] = Field(description="When the job finished", default=None)

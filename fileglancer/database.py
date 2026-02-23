@@ -148,6 +148,7 @@ class JobDB(Base):
     manifest_path = Column(String, nullable=False, server_default="")
     entry_point_id = Column(String, nullable=False)
     entry_point_name = Column(String, nullable=False)
+    entry_point_type = Column(String, nullable=False, server_default="job")
     parameters = Column(JSON, nullable=False)
     status = Column(String, nullable=False, default="PENDING")
     exit_code = Column(Integer, nullable=True)
@@ -828,6 +829,7 @@ def delete_expired_sessions(session: Session):
 def create_job(session: Session, username: str, app_url: str, app_name: str,
                entry_point_id: str, entry_point_name: str, parameters: Dict,
                resources: Optional[Dict] = None, manifest_path: str = "",
+               entry_point_type: str = "job",
                env: Optional[Dict] = None, pre_run: Optional[str] = None,
                post_run: Optional[str] = None, pull_latest: bool = False) -> JobDB:
     """Create a new job record"""
@@ -839,6 +841,7 @@ def create_job(session: Session, username: str, app_url: str, app_name: str,
         manifest_path=manifest_path,
         entry_point_id=entry_point_id,
         entry_point_name=entry_point_name,
+        entry_point_type=entry_point_type,
         parameters=parameters,
         resources=resources,
         env=env,

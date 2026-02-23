@@ -97,11 +97,25 @@ export function createAppsJobsColumns(
     {
       accessorKey: 'status',
       header: 'Status',
-      cell: ({ getValue }) => {
+      cell: ({ getValue, row }) => {
         const status = getValue() as Job['status'];
+        const job = row.original;
+        const hasServiceUrl =
+          job.entry_point_type === 'service' && job.service_url;
         return (
-          <div className="flex items-center h-full">
+          <div className="flex items-center gap-2 h-full">
             <JobStatusBadge status={status} />
+            {hasServiceUrl ? (
+              <a
+                className="text-xs text-primary hover:underline"
+                href={job.service_url}
+                onClick={e => e.stopPropagation()}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                Open
+              </a>
+            ) : null}
           </div>
         );
       },
@@ -148,6 +162,7 @@ export function createAppsJobsColumns(
         const job = row.original;
         const canCancel = job.status === 'PENDING' || job.status === 'RUNNING';
 
+        const isService = job.entry_point_type === 'service';
         const menuItems: MenuItem<JobRowActionProps>[] = [
           {
             name: 'View Details',
@@ -158,7 +173,7 @@ export function createAppsJobsColumns(
             action: props => props.onRelaunch(props.job)
           },
           {
-            name: 'Cancel',
+            name: isService ? 'Stop Service' : 'Cancel',
             action: props => props.onCancel(props.job.id),
             shouldShow: canCancel
           },

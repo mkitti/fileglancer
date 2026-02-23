@@ -5,7 +5,9 @@ import { Button, Tabs, Typography } from '@material-tailwind/react';
 import {
   HiOutlineArrowLeft,
   HiOutlineDownload,
-  HiOutlineRefresh
+  HiOutlineExternalLink,
+  HiOutlineRefresh,
+  HiOutlineStop
 } from 'react-icons/hi';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import {
@@ -22,7 +24,11 @@ import {
 } from '@/utils/pathHandling';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
-import { useJobQuery, useJobFileQuery } from '@/queries/jobsQueries';
+import {
+  useJobQuery,
+  useJobFileQuery,
+  useCancelJobMutation
+} from '@/queries/jobsQueries';
 
 function FilePreview({
   content,
@@ -140,6 +146,11 @@ export default function JobDetail() {
   const scriptQuery = useJobFileQuery(id, 'script');
   const stdoutQuery = useJobFileQuery(id, 'stdout');
   const stderrQuery = useJobFileQuery(id, 'stderr');
+  const cancelMutation = useCancelJobMutation();
+
+  const isService = jobQuery.data?.entry_point_type === 'service';
+  const isActive =
+    jobQuery.data?.status === 'PENDING' || jobQuery.data?.status === 'RUNNING';
 
   useEffect(() => {
     const checkDarkMode = () => {
@@ -259,6 +270,64 @@ export default function JobDetail() {
               ) : null}
             </div>
           </div>
+
+          {/* Service URL banner */}
+          {isService && job.status === 'RUNNING' ? (
+            job.service_url ? (
+              <div className="mb-4 p-3 flex items-center gap-3 border border-success rounded-lg bg-success/10">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-success" />
+                </span>
+                <Typography className="text-foreground flex-1" type="small">
+                  Service is running at{' '}
+                  <a
+                    className="text-primary-light hover:underline font-mono"
+                    href={job.service_url}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    {job.service_url}
+                  </a>
+                </Typography>
+                <a
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md bg-success text-white hover:bg-success/90 transition-colors"
+                  href={job.service_url}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  <HiOutlineExternalLink className="h-4 w-4" />
+                  Open Service
+                </a>
+              </div>
+            ) : (
+              <div className="mb-4 p-3 flex items-center gap-3 border border-warning rounded-lg bg-warning/10">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-warning opacity-75" />
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-warning" />
+                </span>
+                <Typography className="text-foreground flex-1" type="small">
+                  Service is starting up...
+                </Typography>
+              </div>
+            )
+          ) : null}
+
+          {/* Stop Service button for active services */}
+          {isService && isActive ? (
+            <div className="mb-4">
+              <Button
+                className="!rounded-md"
+                color="error"
+                disabled={cancelMutation.isPending}
+                onClick={() => cancelMutation.mutate(job.id)}
+                variant="outline"
+              >
+                <HiOutlineStop className="icon-small mr-2" />
+                {cancelMutation.isPending ? 'Stopping...' : 'Stop Service'}
+              </Button>
+            </div>
+          ) : null}
 
           {/* Tabs */}
           <Tabs onValueChange={setActiveTab} value={activeTab}>
