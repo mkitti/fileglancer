@@ -97,25 +97,11 @@ export function createAppsJobsColumns(
     {
       accessorKey: 'status',
       header: 'Status',
-      cell: ({ getValue, row }) => {
+      cell: ({ getValue }) => {
         const status = getValue() as Job['status'];
-        const job = row.original;
-        const hasServiceUrl =
-          job.entry_point_type === 'service' && job.service_url;
         return (
           <div className="flex items-center gap-2 h-full">
             <JobStatusBadge status={status} />
-            {hasServiceUrl ? (
-              <a
-                className="text-xs text-primary hover:underline"
-                href={job.service_url}
-                onClick={e => e.stopPropagation()}
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                Open
-              </a>
-            ) : null}
           </div>
         );
       },
