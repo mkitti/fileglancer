@@ -15,6 +15,7 @@ import {
   coy
 } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
+import FgDialog from '@/components/ui/Dialogs/FgDialog';
 import type { JobFileInfo, FileSharePath } from '@/shared.types';
 import JobStatusBadge from '@/components/ui/AppsPage/JobStatusBadge';
 import { formatDateString, buildRelaunchPath, parseGithubUrl } from '@/utils';
@@ -137,6 +138,7 @@ export default function JobDetail() {
   const navigate = useNavigate();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [activeTab, setActiveTab] = useState('parameters');
+  const [showStopConfirm, setShowStopConfirm] = useState(false);
 
   const { pathPreference } = usePreferencesContext();
   const { zonesAndFspQuery } = useZoneAndFspMapContext();
@@ -149,8 +151,6 @@ export default function JobDetail() {
   const cancelMutation = useCancelJobMutation();
 
   const isService = jobQuery.data?.entry_point_type === 'service';
-  const isActive =
-    jobQuery.data?.status === 'PENDING' || jobQuery.data?.status === 'RUNNING';
 
   useEffect(() => {
     const checkDarkMode = () => {
@@ -290,6 +290,17 @@ export default function JobDetail() {
                     {job.service_url}
                   </a>
                 </Typography>
+                <Button
+                  className="!rounded-md"
+                  color="error"
+                  disabled={cancelMutation.isPending}
+                  onClick={() => setShowStopConfirm(true)}
+                  size="sm"
+                  variant="outline"
+                >
+                  <HiOutlineStop className="icon-small mr-1" />
+                  {cancelMutation.isPending ? 'Stopping...' : 'Stop Service'}
+                </Button>
                 <a
                   className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md bg-success text-white hover:bg-success/90 transition-colors"
                   href={job.service_url}
@@ -309,25 +320,55 @@ export default function JobDetail() {
                 <Typography className="text-foreground flex-1" type="small">
                   Service is starting up...
                 </Typography>
+                <Button
+                  className="!rounded-md"
+                  color="error"
+                  disabled={cancelMutation.isPending}
+                  onClick={() => setShowStopConfirm(true)}
+                  size="sm"
+                  variant="outline"
+                >
+                  <HiOutlineStop className="icon-small mr-1" />
+                  {cancelMutation.isPending ? 'Stopping...' : 'Stop Service'}
+                </Button>
               </div>
             )
           ) : null}
 
-          {/* Stop Service button for active services */}
-          {isService && isActive ? (
-            <div className="mb-4">
+          {/* Stop Service confirmation dialog */}
+          <FgDialog
+            onClose={() => setShowStopConfirm(false)}
+            open={showStopConfirm}
+          >
+            <Typography className="text-foreground font-bold mb-2" type="h6">
+              Stop Service
+            </Typography>
+            <Typography className="text-secondary mb-4" type="small">
+              Are you sure you want to stop this service? It will be terminated
+              and the URL will no longer be accessible.
+            </Typography>
+            <div className="flex justify-end gap-2">
+              <Button
+                className="!rounded-md"
+                onClick={() => setShowStopConfirm(false)}
+                variant="outline"
+              >
+                Cancel
+              </Button>
               <Button
                 className="!rounded-md"
                 color="error"
                 disabled={cancelMutation.isPending}
-                onClick={() => cancelMutation.mutate(job.id)}
-                variant="outline"
+                onClick={() => {
+                  cancelMutation.mutate(job.id);
+                  setShowStopConfirm(false);
+                }}
               >
-                <HiOutlineStop className="icon-small mr-2" />
+                <HiOutlineStop className="icon-small mr-1" />
                 {cancelMutation.isPending ? 'Stopping...' : 'Stop Service'}
               </Button>
             </div>
-          ) : null}
+          </FgDialog>
 
           {/* Tabs */}
           <Tabs onValueChange={setActiveTab} value={activeTab}>

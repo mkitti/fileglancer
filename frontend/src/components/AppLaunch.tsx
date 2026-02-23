@@ -202,16 +202,6 @@ export default function AppLaunch() {
         </div>
       ) : manifest && selectedEntryPoint ? (
         <>
-          {manifest.runnables.length > 1 ? (
-            <Button
-              className="!rounded-md mb-4"
-              onClick={() => setSelectedEntryPoint(null)}
-              variant="outline"
-            >
-              <HiOutlineArrowLeft className="icon-small mr-2" />
-              Choose a different entry point
-            </Button>
-          ) : null}
           <AppLaunchForm
             entryPoint={selectedEntryPoint}
             initialEnv={relaunchEnv}
