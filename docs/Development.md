@@ -37,6 +37,17 @@ Copy the configuration file and edit as desired.
 cp docs/config.yaml.template config.yaml
 ```
 
+Optionally, to run Playwright tests against a development deployment with OKTA authentication enabled, add the below to the configuration file.
+**Note:** Do NOT add this configuration to a production deployment.
+
+```yaml
+#
+# Bypass OKTA multifactor authentication for integration tests against a development deployment
+#
+enable_test_api_key: true
+test_api_key: "<your-generated-key>"
+```
+
 ### File Share Paths
 
 By default, Fileglancer provides access to each user's home directory without requiring any configuration. The default configuration includes:
