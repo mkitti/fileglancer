@@ -139,6 +139,8 @@ type UserApp = {
 type JobFileInfo = {
   path: string;
   exists: boolean;
+  fsp_name?: string;
+  subpath?: string;
 };
 
 type Job = {

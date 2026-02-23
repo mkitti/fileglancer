@@ -648,16 +648,13 @@ async def submit_job(
         tool_repo_dir = await _ensure_repo_cache(manifest.repo_url, pull=pull_latest)
         repo_link = work_dir / "repo"
         repo_link.symlink_to(tool_repo_dir)
-        cd_target = repo_link
+        cd_suffix = "repo"
     else:
         # Tool code is in the discovery repo — cd into manifest's subdirectory
         repo_dir = await _ensure_repo_cache(app_url, pull=pull_latest)
         repo_link = work_dir / "repo"
         repo_link.symlink_to(repo_dir)
-        if manifest_path:
-            cd_target = repo_link / manifest_path
-        else:
-            cd_target = repo_link
+        cd_suffix = f"repo/{manifest_path}" if manifest_path else "repo"
 
     # Build environment variable export lines
     env_lines = ""
@@ -669,10 +666,19 @@ async def submit_job(
             parts.append(f"export {var_name}={shlex.quote(var_value)}")
         env_lines = "\n".join(parts) + "\n"
 
-    # Wrap command with cd into the repo symlink
-    # Unset PIXI_PROJECT_MANIFEST so pixi uses the repo's own manifest
-    # instead of inheriting fileglancer's from the dev server environment
-    script_parts = [f"unset PIXI_PROJECT_MANIFEST\ncd {cd_target}"]
+    # Set up the script preamble:
+    # - FG_WORK_DIR: the job's working directory (used by subsequent variables)
+    # - Unset PIXI_PROJECT_MANIFEST so pixi uses the repo's own manifest
+    # - SERVICE_URL_PATH: for service-type jobs, where to write the service URL
+    # - cd into the repo so commands can find project files (pixi.toml, scripts, etc.)
+    preamble_lines = [
+        "unset PIXI_PROJECT_MANIFEST",
+        f"export FG_WORK_DIR={shlex.quote(str(work_dir))}",
+    ]
+    if entry_point.type == "service":
+        preamble_lines.append('export SERVICE_URL_PATH="$FG_WORK_DIR/service_url"')
+    preamble_lines.append(f'cd "$FG_WORK_DIR/{cd_suffix}"')
+    script_parts = ["\n".join(preamble_lines)]
     if env_lines:
         script_parts.append(env_lines.rstrip())
     if effective_pre_run:
