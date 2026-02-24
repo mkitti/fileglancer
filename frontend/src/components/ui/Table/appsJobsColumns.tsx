@@ -7,12 +7,19 @@ import { formatDateString } from '@/utils';
 import type { MenuItem } from '@/components/ui/Menus/FgMenuItems';
 import type { Job } from '@/shared.types';
 
+function parseAsUtc(dateStr: string): number {
+  // Server timestamps are UTC but may lack a "Z" suffix
+  if (!/Z$|[+-]\d{2}:\d{2}$/.test(dateStr)) {
+    return new Date(dateStr + 'Z').getTime();
+  }
+  return new Date(dateStr).getTime();
+}
+
 function formatDuration(job: Job): string {
   const start = job.started_at || job.created_at;
-  const end = job.finished_at || new Date().toISOString();
-  const startDate = new Date(start);
-  const endDate = new Date(end);
-  const diffMs = endDate.getTime() - startDate.getTime();
+  const startMs = parseAsUtc(start);
+  const endMs = job.finished_at ? parseAsUtc(job.finished_at) : Date.now();
+  const diffMs = endMs - startMs;
 
   if (diffMs < 0) {
     return '-';
