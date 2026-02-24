@@ -67,12 +67,14 @@ async def _run_git(args: list[str], timeout: int = 60):
 
     Raises ValueError with a readable message on failure.
     """
+    env = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
     try:
         proc = await asyncio.wait_for(
             asyncio.create_subprocess_exec(
                 *args,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                env=env,
             ),
             timeout=timeout,
         )
