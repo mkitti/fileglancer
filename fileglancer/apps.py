@@ -502,11 +502,15 @@ async def _reconcile_jobs(settings):
             # Terminal transitions are handled by the on_exit callback.
             new_status = _map_status(tracked.status)
             if new_status != db_job.status:
+                # Only store finished_at for terminal states. LSF may report
+                # a FINISH_TIME for running jobs (projected walltime end),
+                # which we must not store as an actual finish time.
+                is_terminal = new_status in ("DONE", "FAILED", "KILLED")
                 db.update_job_status(
                     session, db_job.id, new_status,
-                    exit_code=tracked.exit_code,
+                    exit_code=tracked.exit_code if is_terminal else None,
                     started_at=tracked.start_time,
-                    finished_at=tracked.finish_time,
+                    finished_at=tracked.finish_time if is_terminal else None,
                 )
                 logger.info(f"Job {db_job.id} status updated: {db_job.status} -> {new_status}")
 

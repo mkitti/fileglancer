@@ -1716,6 +1716,19 @@ def create_app(settings):
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e))
 
+    def _ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:
+        """Re-attach UTC timezone to naive datetimes from the DB.
+
+        SQLAlchemy's DateTime column strips tzinfo, so datetimes come back
+        naive even though they were stored as UTC. Re-attaching ensures
+        Pydantic serializes with '+00:00' so JS parses them correctly.
+        """
+        if dt is None:
+            return None
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=UTC)
+        return dt
+
     def _convert_job(db_job: db.JobDB, include_files: bool = False) -> Job:
         """Convert a database JobDB to a Pydantic Job model."""
         files = None
@@ -1739,9 +1752,9 @@ def create_app(settings):
             pull_latest=db_job.pull_latest,
             cluster_job_id=db_job.cluster_job_id,
             service_url=apps_module.get_service_url(db_job),
-            created_at=db_job.created_at,
-            started_at=db_job.started_at,
-            finished_at=db_job.finished_at,
+            created_at=_ensure_utc(db_job.created_at),
+            started_at=_ensure_utc(db_job.started_at),
+            finished_at=_ensure_utc(db_job.finished_at),
             files=files,
         )
 
