@@ -4,9 +4,7 @@ import { Typography } from '@material-tailwind/react';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import DataLinkDialog from '@/components/ui/Dialogs/DataLink';
-import DataLinkUsageDialog, {
-  inferDataType
-} from '@/components/ui/Dialogs/DataLinkUsageDialog';
+import DataLinkUsageDialog from '@/components/ui/Dialogs/DataLinkUsageDialog';
 import DataLinksActionsMenu from '@/components/ui/Menus/DataLinksActions';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';
@@ -189,9 +187,10 @@ function ActionsCell({ item }: { readonly item: ProxiedPath }) {
       {showDataLinkUsageDialog ? (
         <DataLinkUsageDialog
           dataLinkUrl={item.url}
-          dataType={inferDataType(item.path)}
+          fspName={item.fsp_name}
           onClose={() => setShowDataLinkUsageDialog(false)}
           open={showDataLinkUsageDialog}
+          path={item.path}
         />
       ) : null}
     </div>

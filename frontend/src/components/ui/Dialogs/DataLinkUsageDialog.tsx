@@ -10,18 +10,11 @@ import {
 import FgDialog from './FgDialog';
 import useDarkMode from '@/hooks/useDarkMode';
 import CopyTooltip from '@/components/ui/widgets/CopyTooltip';
+import useFileQuery from '@/queries/fileQueries';
+import { detectZarrVersions } from '@/queries/zarrQueries';
+import { detectN5 } from '@/queries/n5Queries';
 
-export type DataLinkType = 'directory' | 'zarr' | 'n5';
-
-export function inferDataType(path: string): DataLinkType {
-  if (/\.zarr(\/|$)/.test(path)) {
-    return 'zarr';
-  }
-  if (/\.n5(\/|$)/.test(path)) {
-    return 'n5';
-  }
-  return 'directory';
-}
+type DataLinkType = 'directory' | 'zarr' | 'n5';
 
 type CodeBlockProps = {
   readonly code: string;
@@ -131,10 +124,32 @@ function InstructionBlock({ steps }: InstructionBlockProps) {
 
 type DataLinkUsageDialogProps = {
   readonly dataLinkUrl: string;
-  readonly dataType: DataLinkType;
+  readonly fspName: string;
+  readonly path: string;
   readonly open: boolean;
   readonly onClose: () => void;
 };
+
+function TabsSkeleton() {
+  return (
+    <div className="w-[95%] self-center animate-pulse">
+      <div className="flex gap-2 py-2 px-2 rounded-t-lg bg-surface dark:bg-surface-light">
+        <div className="w-16 h-8 bg-surface-light dark:bg-surface rounded" />
+        <div className="w-16 h-8 bg-surface-light dark:bg-surface rounded" />
+        <div className="w-20 h-8 bg-surface-light dark:bg-surface rounded" />
+        <div className="w-16 h-8 bg-surface-light dark:bg-surface rounded" />
+      </div>
+      <div className="flex flex-col gap-3 p-4 rounded-b-lg border border-t-0 border-surface dark:border-foreground/30 bg-surface-light dark:bg-surface">
+        <div className="w-full h-4 bg-surface dark:bg-surface-light rounded" />
+        <div className="w-3/4 h-4 bg-surface dark:bg-surface-light rounded" />
+        <div className="w-5/6 h-4 bg-surface dark:bg-surface-light rounded" />
+        <div className="w-2/3 h-4 bg-surface dark:bg-surface-light rounded" />
+        <div className="w-full h-4 bg-surface dark:bg-surface-light rounded" />
+        <div className="w-4/5 h-4 bg-surface dark:bg-surface-light rounded" />
+      </div>
+    </div>
+  );
+}
 
 function getNapariZarrTab(dataLinkUrl: string) {
   return {
@@ -536,18 +551,65 @@ print(f'Voxels:\\n{data}')`}
   ];
 }
 
-export default function DataLinkUsageDialog({
+function DataLinkTabs({
   dataLinkUrl,
-  dataType,
-  open,
-  onClose
-}: DataLinkUsageDialogProps) {
+  dataType
+}: {
+  readonly dataLinkUrl: string;
+  readonly dataType: DataLinkType;
+}) {
   const tabs = getTabsForDataType(dataType, dataLinkUrl);
   const [activeTab, setActiveTab] = useState<string>(tabs[0]?.id ?? '');
 
   const TAB_TRIGGER_CLASSES = '!text-foreground h-full';
   const PANEL_CLASSES =
     'flex flex-col gap-4 max-w-full max-h-[65vh] p-4 rounded-b-lg border border-t-0 border-surface dark:border-foreground/30 bg-surface-light dark:bg-surface overflow-y-auto overflow-x-hidden';
+
+  return (
+    <Tabs
+      className="flex flex-col flex-1 min-h-0 gap-0 max-h-[75vh] w-[95%] self-center"
+      onValueChange={setActiveTab}
+      value={activeTab}
+    >
+      <Tabs.List className="justify-start items-stretch shrink-0 min-w-fit w-full py-2 rounded-b-none bg-surface dark:bg-surface-light">
+        {tabs.map(tab => (
+          <Tabs.Trigger
+            className={TAB_TRIGGER_CLASSES}
+            key={tab.id}
+            value={tab.id}
+          >
+            {tab.label}
+          </Tabs.Trigger>
+        ))}
+        <Tabs.TriggerIndicator className="h-full" />
+      </Tabs.List>
+
+      {tabs.map(tab => (
+        <Tabs.Panel className={PANEL_CLASSES} key={tab.id} value={tab.id}>
+          {tab.content}
+        </Tabs.Panel>
+      ))}
+    </Tabs>
+  );
+}
+
+export default function DataLinkUsageDialog({
+  dataLinkUrl,
+  fspName,
+  path,
+  open,
+  onClose
+}: DataLinkUsageDialogProps) {
+  const targetFileQuery = useFileQuery(fspName, path);
+  const files = targetFileQuery.data?.files ?? [];
+
+  // Detect data type from directory contents (same logic as metadata panel)
+  const dataType: DataLinkType =
+    detectZarrVersions(files).length > 0
+      ? 'zarr'
+      : detectN5(files)
+        ? 'n5'
+        : 'directory';
 
   return (
     <FgDialog
@@ -571,31 +633,15 @@ export default function DataLinkUsageDialog({
             <HiOutlineClipboardCopy className="icon-default text-foreground shrink-0" />
           </CopyTooltip>
         </div>
-        <Tabs
-          className="flex flex-col flex-1 min-h-0 gap-0 max-h-[75vh] w-[95%] self-center"
-          key="data-link-usage-tabs"
-          onValueChange={setActiveTab}
-          value={activeTab}
-        >
-          <Tabs.List className="justify-start items-stretch shrink-0 min-w-fit w-full py-2 rounded-b-none bg-surface dark:bg-surface-light">
-            {tabs.map(tab => (
-              <Tabs.Trigger
-                className={TAB_TRIGGER_CLASSES}
-                key={tab.id}
-                value={tab.id}
-              >
-                {tab.label}
-              </Tabs.Trigger>
-            ))}
-            <Tabs.TriggerIndicator className="h-full" />
-          </Tabs.List>
-
-          {tabs.map(tab => (
-            <Tabs.Panel className={PANEL_CLASSES} key={tab.id} value={tab.id}>
-              {tab.content}
-            </Tabs.Panel>
-          ))}
-        </Tabs>
+        {targetFileQuery.isPending ? (
+          <TabsSkeleton />
+        ) : (
+          <DataLinkTabs
+            dataLinkUrl={dataLinkUrl}
+            dataType={dataType}
+            key={dataType}
+          />
+        )}
       </div>
     </FgDialog>
   );

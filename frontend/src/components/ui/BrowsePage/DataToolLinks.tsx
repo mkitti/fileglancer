@@ -11,7 +11,6 @@ import type { OpenWithToolUrls, PendingToolKey } from '@/hooks/useZarrMetadata';
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
 import DialogIconBtn from '@/components/ui/buttons/DialogIconBtn';
 import DataLinkUsageDialog from '@/components/ui/Dialogs/DataLinkUsageDialog';
-import type { DataLinkType } from '@/components/ui/Dialogs/DataLinkUsageDialog';
 
 const CIRCLE_CLASSES =
   'rounded-full bg-surface-light dark:bg-surface-light hover:bg-surface dark:hover:bg-surface w-12 h-12 flex items-center justify-center cursor-pointer transform active:scale-90 transition-all duration-75';
@@ -21,16 +20,18 @@ const LABEL_CLASSES = 'text-xs text-center text-foreground mt-1';
 export default function DataToolLinks({
   compact = false,
   dataLinkUrl,
-  dataType,
+  fspName,
   onToolClick,
+  path,
   showCopiedTooltip,
   title,
   urls
 }: {
   readonly compact?: boolean;
   readonly dataLinkUrl?: string;
-  readonly dataType?: DataLinkType;
+  readonly fspName?: string;
   readonly onToolClick: (toolKey: PendingToolKey) => Promise<void>;
+  readonly path?: string;
   readonly showCopiedTooltip: boolean;
   readonly title: string;
   readonly urls: OpenWithToolUrls | null;
@@ -160,7 +161,7 @@ export default function DataToolLinks({
           <span className={LABEL_CLASSES}>Copy</span>
         </div>
 
-        {dataLinkUrl && dataType ? (
+        {dataLinkUrl && fspName && path ? (
           <div className="flex flex-col items-center w-16">
             <DialogIconBtn
               icon={HiOutlineEllipsisHorizontalCircle}
@@ -170,9 +171,10 @@ export default function DataToolLinks({
               {closeDialog => (
                 <DataLinkUsageDialog
                   dataLinkUrl={dataLinkUrl}
-                  dataType={dataType}
+                  fspName={fspName}
                   onClose={closeDialog}
                   open={true}
+                  path={path}
                 />
               )}
             </DialogIconBtn>
