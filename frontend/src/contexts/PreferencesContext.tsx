@@ -53,6 +53,7 @@ type PreferencesContextType = {
   useLegacyMultichannelApproach: boolean;
   isFilteredByGroups: boolean;
   showTutorial: boolean;
+  defaultExtraArgs: string;
 
   // Favorites
   zoneFavorites: Zone[];
@@ -80,6 +81,7 @@ type PreferencesContextType = {
   toggleUseLegacyMultichannelApproach: () => Promise<Result<void>>;
   toggleFilterByGroups: () => Promise<Result<void>>;
   toggleShowTutorial: () => Promise<Result<void>>;
+  updateDefaultExtraArgs: (args: string) => Promise<Result<void>>;
   handleFavoriteChange: (
     item: Zone | FileSharePath | FolderFavorite,
     type: 'zone' | 'fileSharePath' | 'folder'
@@ -240,6 +242,20 @@ export const PreferencesProvider = ({
       'showTutorial',
       preferencesQuery.data?.showTutorial ?? true
     );
+  };
+
+  const updateDefaultExtraArgs = async (
+    args: string
+  ): Promise<Result<void>> => {
+    try {
+      await updatePreferenceMutation.mutateAsync({
+        key: 'defaultExtraArgs',
+        value: args
+      });
+      return createSuccess(undefined);
+    } catch (error) {
+      return handleError(error);
+    }
   };
 
   function updatePreferenceList<T>(
@@ -500,6 +516,7 @@ export const PreferencesProvider = ({
       preferencesQuery.data?.useLegacyMultichannelApproach || false,
     isFilteredByGroups: preferencesQuery.data?.isFilteredByGroups ?? true,
     showTutorial: preferencesQuery.data?.showTutorial ?? true,
+    defaultExtraArgs: preferencesQuery.data?.defaultExtraArgs || '',
 
     // Favorites
     zoneFavorites: preferencesQuery.data?.zoneFavorites || [],
@@ -526,6 +543,7 @@ export const PreferencesProvider = ({
     toggleUseLegacyMultichannelApproach,
     toggleFilterByGroups,
     toggleShowTutorial,
+    updateDefaultExtraArgs,
     handleFavoriteChange,
     handleContextMenuFavorite
   };

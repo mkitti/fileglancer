@@ -10,7 +10,9 @@ import {
 } from 'react-icons/hi';
 
 import FileSelectorButton from '@/components/ui/BrowsePage/FileSelector/FileSelectorButton';
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { validatePaths } from '@/queries/appsQueries';
+import { useClusterDefaultsQuery } from '@/queries/jobsQueries';
 import { convertBackToForwardSlash } from '@/utils/pathHandling';
 import { flattenParameters, isParameterSection } from '@/shared.types';
 import type {
@@ -27,6 +29,7 @@ interface AppLaunchFormProps {
   readonly onSubmit: (
     parameters: Record<string, unknown>,
     resources?: AppResourceDefaults,
+    extraArgs?: string,
     pullLatest?: boolean,
     env?: Record<string, string>,
     preRun?: string,
@@ -35,6 +38,7 @@ interface AppLaunchFormProps {
   readonly submitting: boolean;
   readonly initialValues?: Record<string, unknown>;
   readonly initialResources?: AppResourceDefaults;
+  readonly initialExtraArgs?: string;
   readonly initialEnv?: Record<string, string>;
   readonly initialPreRun?: string;
   readonly initialPostRun?: string;
@@ -411,6 +415,61 @@ function ResourcesSectionContent({
   );
 }
 
+function SubmitOptionsSectionContent({
+  resources,
+  setResources,
+  extraArgs,
+  setExtraArgs
+}: {
+  readonly resources: AppResourceDefaults;
+  readonly setResources: Dispatch<SetStateAction<AppResourceDefaults>>;
+  readonly extraArgs: string;
+  readonly setExtraArgs: Dispatch<SetStateAction<string>>;
+}) {
+  const inputClass =
+    'w-full p-2 text-foreground border rounded-sm focus:outline-none bg-background border-primary-light focus:border-primary';
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-foreground text-sm font-medium mb-1">
+          Queue
+        </label>
+        <Typography className="text-secondary mb-1" type="small">
+          Cluster queue/partition to submit the job to
+        </Typography>
+        <input
+          className={inputClass}
+          onChange={e =>
+            setResources(prev => ({
+              ...prev,
+              queue: e.target.value || undefined
+            }))
+          }
+          placeholder="e.g. normal"
+          type="text"
+          value={resources.queue ?? ''}
+        />
+      </div>
+      <div>
+        <label className="block text-foreground text-sm font-medium mb-1">
+          Extra Arguments
+        </label>
+        <Typography className="text-secondary mb-1" type="small">
+          Additional CLI arguments for the submit command
+        </Typography>
+        <input
+          className={`max-w-md ${inputClass} font-mono text-sm`}
+          onChange={e => setExtraArgs(e.target.value)}
+          placeholder='e.g. -P your_project -R "select[mem>8000]"'
+          type="text"
+          value={extraArgs}
+        />
+      </div>
+    </div>
+  );
+}
+
 function EnvironmentTabContent({
   envVars,
   setEnvVars,
@@ -418,8 +477,6 @@ function EnvironmentTabContent({
   setPreRun,
   postRun,
   setPostRun,
-  resources,
-  setResources,
   openEnvSections,
   setOpenEnvSections
 }: {
@@ -429,8 +486,6 @@ function EnvironmentTabContent({
   readonly setPreRun: Dispatch<SetStateAction<string>>;
   readonly postRun: string;
   readonly setPostRun: Dispatch<SetStateAction<string>>;
-  readonly resources: AppResourceDefaults;
-  readonly setResources: Dispatch<SetStateAction<AppResourceDefaults>>;
   readonly openEnvSections: string[];
   readonly setOpenEnvSections: Dispatch<SetStateAction<string[]>>;
 }) {
@@ -444,7 +499,7 @@ function EnvironmentTabContent({
     >
       <Accordion.Item value="environment">
         <Accordion.Trigger className="flex w-full items-center justify-between py-3 border-b border-primary-light">
-          <div className="text-foreground font-medium text-sm">Environment</div>
+          <div className="text-foreground font-bold text-sm">Environment</div>
           <HiChevronDown
             className={`h-4 w-4 text-secondary transition-transform ${
               openEnvSections.includes('environment') ? 'rotate-180' : ''
@@ -462,19 +517,66 @@ function EnvironmentTabContent({
           />
         </Accordion.Content>
       </Accordion.Item>
+    </Accordion>
+  );
+}
 
+function ClusterTabContent({
+  resources,
+  setResources,
+  extraArgs,
+  setExtraArgs,
+  openClusterSections,
+  setOpenClusterSections
+}: {
+  readonly resources: AppResourceDefaults;
+  readonly setResources: Dispatch<SetStateAction<AppResourceDefaults>>;
+  readonly extraArgs: string;
+  readonly setExtraArgs: Dispatch<SetStateAction<string>>;
+  readonly openClusterSections: string[];
+  readonly setOpenClusterSections: Dispatch<SetStateAction<string[]>>;
+}) {
+  return (
+    <Accordion
+      onValueChange={
+        setOpenClusterSections as Dispatch<SetStateAction<string | string[]>>
+      }
+      type="multiple"
+      value={openClusterSections}
+    >
       <Accordion.Item value="resources">
         <Accordion.Trigger className="flex w-full items-center justify-between py-3 border-b border-primary-light">
-          <div className="text-foreground font-medium text-sm">Resources</div>
+          <div className="text-foreground font-bold text-sm">Resources</div>
           <HiChevronDown
             className={`h-4 w-4 text-secondary transition-transform ${
-              openEnvSections.includes('resources') ? 'rotate-180' : ''
+              openClusterSections.includes('resources') ? 'rotate-180' : ''
             }`}
           />
         </Accordion.Trigger>
         <Accordion.Content className="pt-4 pb-2 pl-4">
           <ResourcesSectionContent
             resources={resources}
+            setResources={setResources}
+          />
+        </Accordion.Content>
+      </Accordion.Item>
+
+      <Accordion.Item value="submitOptions">
+        <Accordion.Trigger className="flex w-full items-center justify-between py-3 border-b border-primary-light">
+          <div className="text-foreground font-bold text-sm">
+            Submit Options
+          </div>
+          <HiChevronDown
+            className={`h-4 w-4 text-secondary transition-transform ${
+              openClusterSections.includes('submitOptions') ? 'rotate-180' : ''
+            }`}
+          />
+        </Accordion.Trigger>
+        <Accordion.Content className="pt-4 pb-2 pl-4">
+          <SubmitOptionsSectionContent
+            extraArgs={extraArgs}
+            resources={resources}
+            setExtraArgs={setExtraArgs}
             setResources={setResources}
           />
         </Accordion.Content>
@@ -490,11 +592,14 @@ export default function AppLaunchForm({
   submitting,
   initialValues: externalValues,
   initialResources,
+  initialExtraArgs: externalExtraArgs,
   initialEnv,
   initialPreRun,
   initialPostRun,
   initialPullLatest
 }: AppLaunchFormProps) {
+  const { defaultExtraArgs } = usePreferencesContext();
+  const clusterDefaultsQuery = useClusterDefaultsQuery();
   const allParams = flattenParameters(entryPoint.parameters);
 
   // Initialize parameter values: external values override defaults
@@ -513,6 +618,11 @@ export default function AppLaunchForm({
     .filter(item => isParameterSection(item) && !item.collapsed)
     .map(item => (item as AppParameterSection).section);
 
+  // extra_args priority: relaunch > user preference > config.yaml
+  const configExtraArgs = clusterDefaultsQuery.data?.extra_args ?? '';
+  const resolvedExtraArgs =
+    externalExtraArgs ?? (defaultExtraArgs || configExtraArgs);
+
   const [values, setValues] = useState<Record<string, unknown>>(startingValues);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState('parameters');
@@ -523,9 +633,11 @@ export default function AppLaunchForm({
     initialResources ?? {
       cpus: entryPoint.resources?.cpus,
       memory: entryPoint.resources?.memory,
-      walltime: entryPoint.resources?.walltime
+      walltime: entryPoint.resources?.walltime,
+      queue: entryPoint.resources?.queue
     }
   );
+  const [extraArgs, setExtraArgs] = useState<string>(resolvedExtraArgs);
 
   // Environment tab state — relaunch values override entry point defaults
   const [envVars, setEnvVars] = useState<EnvVar[]>(() => {
@@ -542,8 +654,11 @@ export default function AppLaunchForm({
     initialPostRun ?? entryPoint.post_run ?? ''
   );
   const [openEnvSections, setOpenEnvSections] = useState<string[]>([
-    'environment',
-    'resources'
+    'environment'
+  ]);
+  const [openClusterSections, setOpenClusterSections] = useState<string[]>([
+    'resources',
+    'submitOptions'
   ]);
 
   const handleChange = (paramId: string, value: unknown) => {
@@ -671,7 +786,10 @@ export default function AppLaunchForm({
 
     // Only pass resources if user provided values
     const hasResourceOverrides =
-      resources.cpus || resources.memory || resources.walltime;
+      resources.cpus ||
+      resources.memory ||
+      resources.walltime ||
+      resources.queue;
 
     // Convert envVars array to Record, filtering empty keys
     const envRecord: Record<string, string> = {};
@@ -685,6 +803,7 @@ export default function AppLaunchForm({
     await onSubmit(
       params,
       hasResourceOverrides ? resources : undefined,
+      extraArgs.trim() || undefined,
       pullLatest,
       hasEnv ? envRecord : undefined,
       preRun.trim() || undefined,
@@ -717,6 +836,9 @@ export default function AppLaunchForm({
           </Tabs.Trigger>
           <Tabs.Trigger className="!text-foreground h-full" value="environment">
             Environment
+          </Tabs.Trigger>
+          <Tabs.Trigger className="!text-foreground h-full" value="cluster">
+            Cluster
           </Tabs.Trigger>
           <Tabs.TriggerIndicator className="h-full" />
         </Tabs.List>
@@ -817,11 +939,20 @@ export default function AppLaunchForm({
             openEnvSections={openEnvSections}
             postRun={postRun}
             preRun={preRun}
-            resources={resources}
             setEnvVars={setEnvVars}
             setOpenEnvSections={setOpenEnvSections}
             setPostRun={setPostRun}
             setPreRun={setPreRun}
+          />
+        </Tabs.Panel>
+
+        <Tabs.Panel className="pt-4 max-w-2xl" value="cluster">
+          <ClusterTabContent
+            extraArgs={extraArgs}
+            openClusterSections={openClusterSections}
+            resources={resources}
+            setExtraArgs={setExtraArgs}
+            setOpenClusterSections={setOpenClusterSections}
             setResources={setResources}
           />
         </Tabs.Panel>

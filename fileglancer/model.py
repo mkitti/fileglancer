@@ -376,6 +376,7 @@ class AppResourceDefaults(BaseModel):
     cpus: Optional[int] = Field(description="Number of CPUs", default=None)
     memory: Optional[str] = Field(description="Memory allocation (e.g. '16 GB')", default=None)
     walltime: Optional[str] = Field(description="Wall time limit (e.g. '04:00')", default=None)
+    queue: Optional[str] = Field(description="Cluster queue/partition name", default=None)
 
 
 class AppEntryPoint(BaseModel):
@@ -514,6 +515,7 @@ class JobSubmitRequest(BaseModel):
     entry_point_id: str = Field(description="Entry point to execute")
     parameters: Dict = Field(description="Parameter values keyed by parameter key")
     resources: Optional[AppResourceDefaults] = Field(description="Resource overrides", default=None)
+    extra_args: Optional[str] = Field(description="Extra CLI args for the submit command (replaces config defaults)", default=None)
     pull_latest: bool = Field(
         description="Pull latest code from GitHub before running",
         default=False,

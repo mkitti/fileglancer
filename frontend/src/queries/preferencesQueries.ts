@@ -38,6 +38,7 @@ type PreferencesApiResponse = {
   useLegacyMultichannelApproach?: { value: boolean };
   isFilteredByGroups?: { value: boolean };
   showTutorial?: { value: boolean };
+  defaultExtraArgs?: { value: string };
   zone?: { value: ZonePreference[] };
   fileSharePath?: { value: FileSharePathPreference[] };
   folder?: { value: FolderPreference[] };
@@ -68,6 +69,7 @@ export type PreferencesQueryData = {
   useLegacyMultichannelApproach: boolean;
   isFilteredByGroups: boolean;
   showTutorial: boolean;
+  defaultExtraArgs: string;
 };
 
 /**
@@ -232,7 +234,8 @@ const createTransformPreferences = (
       useLegacyMultichannelApproach:
         rawData.useLegacyMultichannelApproach?.value || false,
       isFilteredByGroups: rawData.isFilteredByGroups?.value ?? true,
-      showTutorial: rawData.showTutorial?.value ?? true
+      showTutorial: rawData.showTutorial?.value ?? true,
+      defaultExtraArgs: rawData.defaultExtraArgs?.value || ''
     };
   };
 };

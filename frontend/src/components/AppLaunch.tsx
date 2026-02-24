@@ -58,6 +58,10 @@ export default function AppLaunch() {
   const relaunchResources = relaunchState?.resources as
     | AppResourceDefaults
     | undefined;
+  // extra_args stored in resources dict from previous job
+  const relaunchExtraArgs = relaunchState?.resources?.extra_args as
+    | string
+    | undefined;
   const relaunchEnv = relaunchState?.env;
   const relaunchPreRun = relaunchState?.pre_run;
   const relaunchPostRun = relaunchState?.post_run;
@@ -99,6 +103,7 @@ export default function AppLaunch() {
   const handleSubmit = async (
     parameters: Record<string, unknown>,
     resources?: AppResourceDefaults,
+    extraArgs?: string,
     pullLatest?: boolean,
     env?: Record<string, string>,
     preRun?: string,
@@ -114,6 +119,7 @@ export default function AppLaunch() {
         entry_point_id: selectedEntryPoint.id,
         parameters,
         resources,
+        extra_args: extraArgs,
         pull_latest: pullLatest,
         env,
         pre_run: preRun,
@@ -201,20 +207,19 @@ export default function AppLaunch() {
           {manifestMutation.error?.message || 'Unknown error'}
         </div>
       ) : manifest && selectedEntryPoint ? (
-        <>
-          <AppLaunchForm
-            entryPoint={selectedEntryPoint}
-            initialEnv={relaunchEnv}
-            initialPostRun={relaunchPostRun}
-            initialPreRun={relaunchPreRun}
-            initialPullLatest={relaunchPullLatest}
-            initialResources={relaunchResources}
-            initialValues={relaunchParameters}
-            manifest={manifest}
-            onSubmit={handleSubmit}
-            submitting={submitJobMutation.isPending}
-          />
-        </>
+        <AppLaunchForm
+          entryPoint={selectedEntryPoint}
+          initialEnv={relaunchEnv}
+          initialExtraArgs={relaunchExtraArgs}
+          initialPostRun={relaunchPostRun}
+          initialPreRun={relaunchPreRun}
+          initialPullLatest={relaunchPullLatest}
+          initialResources={relaunchResources}
+          initialValues={relaunchParameters}
+          manifest={manifest}
+          onSubmit={handleSubmit}
+          submitting={submitJobMutation.isPending}
+        />
       ) : manifest ? (
         <div className="max-w-2xl">
           <Typography className="text-foreground font-bold mb-1" type="h5">

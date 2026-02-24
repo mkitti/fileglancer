@@ -103,6 +103,7 @@ type AppResourceDefaults = {
   cpus?: number;
   memory?: string;
   walltime?: string;
+  queue?: string;
 };
 
 type AppEntryPoint = {
@@ -173,6 +174,7 @@ type JobSubmitRequest = {
   entry_point_id: string;
   parameters: Record<string, unknown>;
   resources?: AppResourceDefaults;
+  extra_args?: string;
   pull_latest?: boolean;
   env?: Record<string, string>;
   pre_run?: string;

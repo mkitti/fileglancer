@@ -573,6 +573,7 @@ async def submit_job(
     entry_point_id: str,
     parameters: dict,
     resources: Optional[dict] = None,
+    extra_args: Optional[str] = None,
     pull_latest: bool = False,
     manifest_path: str = "",
     env: Optional[dict] = None,
@@ -605,8 +606,11 @@ async def submit_job(
     # Build command
     command = build_command(entry_point, parameters)
 
-    # Build resource spec
-    resource_spec = _build_resource_spec(entry_point, resources, settings)
+    # Build resource spec (extra_args passed separately, not from manifest)
+    overrides = dict(resources) if resources else {}
+    if extra_args is not None:
+        overrides["extra_args"] = extra_args
+    resource_spec = _build_resource_spec(entry_point, overrides or None, settings)
 
     # Merge env/pre_run/post_run: manifest defaults overridden by user values
     merged_env = dict(entry_point.env or {})
@@ -623,6 +627,7 @@ async def submit_job(
             "memory": resource_spec.memory,
             "walltime": resource_spec.walltime,
             "queue": resource_spec.queue,
+            "extra_args": " ".join(resource_spec.extra_args) if resource_spec.extra_args else None,
         }
 
     with db.get_db_session(settings.db_url) as session:
@@ -739,8 +744,12 @@ def _build_resource_spec(entry_point: AppEntryPoint, overrides: Optional[dict], 
             memory = entry_point.resources.memory
         if entry_point.resources.walltime is not None:
             walltime = entry_point.resources.walltime
+        if entry_point.resources.queue is not None:
+            queue = entry_point.resources.queue
 
     # Apply user overrides
+    # Note: extra_args replaces (not extends) config defaults via ResourceSpec
+    extra_args = None
     if overrides:
         if overrides.get("cpus") is not None:
             cpus = overrides["cpus"]
@@ -748,12 +757,17 @@ def _build_resource_spec(entry_point: AppEntryPoint, overrides: Optional[dict], 
             memory = overrides["memory"]
         if overrides.get("walltime") is not None:
             walltime = overrides["walltime"]
+        if overrides.get("queue") is not None:
+            queue = overrides["queue"]
+        if overrides.get("extra_args") is not None:
+            extra_args = [overrides["extra_args"]]
 
     return ResourceSpec(
         cpus=cpus,
         memory=memory,
         walltime=walltime,
         queue=queue,
+        extra_args=extra_args,
     )
 
 

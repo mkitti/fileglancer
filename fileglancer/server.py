@@ -1634,6 +1634,13 @@ def create_app(settings):
                 errors[param_key] = f"Path is not accessible: {normalized}"
         return PathValidationResponse(errors=errors)
 
+    @app.get("/api/cluster-defaults",
+             description="Get cluster configuration defaults")
+    async def get_cluster_defaults():
+        return {
+            "extra_args": " ".join(settings.cluster.extra_args),
+        }
+
     @app.post("/api/jobs", response_model=Job,
               description="Submit a new job")
     async def submit_job(body: JobSubmitRequest,
@@ -1649,6 +1656,7 @@ def create_app(settings):
                 entry_point_id=body.entry_point_id,
                 parameters=body.parameters,
                 resources=resources_dict,
+                extra_args=body.extra_args,
                 pull_latest=body.pull_latest,
                 manifest_path=body.manifest_path,
                 env=body.env,
