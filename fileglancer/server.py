@@ -1520,7 +1520,7 @@ def create_app(settings):
             raise HTTPException(status_code=400, detail=f"Failed to clone or scan repo: {str(e)}")
 
         if not discovered:
-            filenames = ", ".join(apps_module._MANIFEST_FILENAMES)
+            filenames = apps_module._MANIFEST_FILENAME
             raise HTTPException(
                 status_code=404,
                 detail=f"No manifest files found ({filenames}). "
