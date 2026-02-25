@@ -13,7 +13,7 @@ import DialogIconBtn from '@/components/ui/buttons/DialogIconBtn';
 import DataLinkUsageDialog from '@/components/ui/Dialogs/DataLinkUsageDialog';
 
 const CIRCLE_CLASSES =
-  'rounded-full bg-surface-light dark:bg-surface-light hover:bg-surface dark:hover:bg-surface w-12 h-12 flex items-center justify-center cursor-pointer transform active:scale-90 transition-all duration-75';
+  'rounded-full bg-surface-light dark:bg-primary/15 hover:bg-surface dark:hover:bg-primary/25 w-12 h-12 flex items-center justify-center cursor-pointer transform active:scale-90 transition-all duration-75';
 
 const LABEL_CLASSES = 'text-xs text-center text-foreground mt-1';
 
