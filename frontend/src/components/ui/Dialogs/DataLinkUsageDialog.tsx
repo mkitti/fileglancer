@@ -77,7 +77,7 @@ function CodeBlock({
   };
 
   return (
-    <div className="relative w-full min-w-0 rounded-lg border border-surface dark:border-foreground/30">
+    <div className="relative w-full min-w-0 rounded-lg border border-surface dark:border-foreground/30 bg-[#fdfdfd] dark:bg-[#2f2f2f] [&_pre]:!bg-[#fdfdfd] dark:[&_pre]:!bg-[#2f2f2f]">
       <SyntaxHighlighter
         codeTagProps={mergedCodeTagProps}
         customStyle={mergedCustomStyle}
