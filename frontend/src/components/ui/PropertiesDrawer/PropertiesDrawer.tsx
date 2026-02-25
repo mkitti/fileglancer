@@ -329,34 +329,15 @@ export default function PropertiesDrawer({
                       </a>
                     ) : null}
                   </div>
-                  {externalDataUrlQuery.data ? (
+                  {(externalDataUrlQuery.data ??
+                  proxiedPathByFspAndPathQuery.data?.url) ? (
                     <>
                       <CopyPathButton
                         isDataLink={true}
-                        path={externalDataUrlQuery.data}
-                      />
-                      <TextDialogBtn
-                        label="How to use your data link"
-                        variant="solid"
-                      >
-                        {closeDialog => (
-                          <DataLinkUsageDialog
-                            dataLinkUrl={externalDataUrlQuery.data ?? ''}
-                            fspName={
-                              fileQuery.data?.currentFileSharePath?.name ?? ''
-                            }
-                            onClose={closeDialog}
-                            open={true}
-                            path={fileBrowserState.propertiesTarget?.path ?? ''}
-                          />
-                        )}
-                      </TextDialogBtn>
-                    </>
-                  ) : proxiedPathByFspAndPathQuery.data?.url ? (
-                    <>
-                      <CopyPathButton
-                        isDataLink={true}
-                        path={proxiedPathByFspAndPathQuery.data.url}
+                        path={
+                          (externalDataUrlQuery.data ??
+                            proxiedPathByFspAndPathQuery.data?.url)!
+                        }
                       />
                       <TextDialogBtn
                         label="How to use your data link"
@@ -365,7 +346,9 @@ export default function PropertiesDrawer({
                         {closeDialog => (
                           <DataLinkUsageDialog
                             dataLinkUrl={
-                              proxiedPathByFspAndPathQuery.data?.url ?? ''
+                              externalDataUrlQuery.data ??
+                              proxiedPathByFspAndPathQuery.data?.url ??
+                              ''
                             }
                             fspName={
                               fileQuery.data?.currentFileSharePath?.name ?? ''
