@@ -104,6 +104,26 @@ function CodeBlock({
   );
 }
 
+function ExternalLink({
+  href,
+  children
+}: {
+  readonly href: string;
+  readonly children: ReactNode;
+}) {
+  return (
+    <a
+      className="flex items-center gap-1 text-primary hover:underline"
+      href={href}
+      rel="noopener noreferrer"
+      target="_blank"
+    >
+      <span>{children}</span>
+      <HiExternalLink className="icon-xsmall" />
+    </a>
+  );
+}
+
 type InstructionBlockProps = {
   readonly steps: ReactNode[];
 };
@@ -175,15 +195,9 @@ conda install -c conda-forge napari pyqt`}
               copyable={true}
               language="bash"
             />
-            <a
-              className="flex items-center gap-1 text-primary hover:underline"
-              href="https://napari.org/stable/tutorials/fundamentals/installation.html"
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              <span>Full installation instructions</span>
-              <HiExternalLink className="icon-xsmall" />
-            </a>
+            <ExternalLink href="https://napari.org/stable/tutorials/fundamentals/installation.html">
+              Full installation instructions
+            </ExternalLink>
           </Fragment>,
           <Fragment key="install-plugin">
             <span>
@@ -207,7 +221,7 @@ conda install -c conda-forge napari pyqt`}
             />
           </Fragment>,
           'Copy the data link to your clipboard using the copy icon at the top of this dialog.',
-          'From the napari control panel, select File \u2192 New Image from Clipboard.',
+          'From the napari toolbar, select File \u2192 New Image from Clipboard.',
           'In the pop-up, select the napari-ome-zarr plugin to open the image. Optionally, save this as the default choice for all files ending with .zarr.',
           <Fragment key="open-from-cli">
             <span>
@@ -245,6 +259,36 @@ function getFijiTab() {
           'Navigate to Plugins \u2192 BigDataViewer \u2192 HDF5/N5/Zarr/OME-NGFF Viewer',
           'Paste your data link into the text input area located at the top of the "Main" tab of the resulting dialog. Then click "Detect datasets"',
           'In the text area under where you pasted the data link, you should now see the image file name, followed by "multiscale". Click on this entry, then click "OK"'
+        ]}
+      />
+    )
+  };
+}
+
+function getVvdViewerTab() {
+  return {
+    id: 'vvdviewer',
+    label: 'VVDViewer',
+    content: (
+      <InstructionBlock
+        steps={[
+          <Fragment key="install">
+            <span>
+              Install VVDViewer using the latest pre-compiled binary for your
+              operating system.
+            </span>
+            <ExternalLink href="https://github.com/JaneliaSciComp/VVDViewer/releases">
+              Releases
+            </ExternalLink>
+          </Fragment>,
+          <Fragment key="launch">
+            <span>Launch VVDViewer.</span>
+            <ExternalLink href="https://github.com/JaneliaSciComp/VVDViewer?tab=readme-ov-file#known-issues-for-mac">
+              MacOS users - see the known issues on GitHub
+            </ExternalLink>
+          </Fragment>,
+          'In the VVDViewer tool bar, select File \u2192 Open URL.',
+          'Paste the data link in the dialog and click "Ok" to view the image.'
         ]}
       />
     )
@@ -443,7 +487,8 @@ print(f'Voxels:\\n{data}')`}
             />
           </>
         )
-      }
+      },
+      getVvdViewerTab()
     ];
   }
 
