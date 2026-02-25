@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Typography, Tabs } from '@material-tailwind/react';
 import { HiExternalLink, HiOutlineClipboardCopy } from 'react-icons/hi';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -104,7 +105,7 @@ function CodeBlock({
 }
 
 type InstructionBlockProps = {
-  readonly steps: string[];
+  readonly steps: ReactNode[];
 };
 
 function InstructionBlock({ steps }: InstructionBlockProps) {
@@ -115,7 +116,13 @@ function InstructionBlock({ steps }: InstructionBlockProps) {
           <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-xs font-semibold">
             {index + 1}
           </span>
-          <span className="pt-0.5">{step}</span>
+          {typeof step === 'string' ? (
+            <span className="pt-0.5 text-base">{step}</span>
+          ) : (
+            <div className="flex flex-col gap-2 pt-0.5 min-w-0 flex-1 text-base">
+              {step}
+            </div>
+          )}
         </li>
       ))}
     </ol>
@@ -156,12 +163,9 @@ function getNapariZarrTab(dataLinkUrl: string) {
     id: 'napari',
     label: 'Napari',
     content: (
-      <ol className="space-y-6 text-foreground">
-        <li className="flex items-start gap-3 text-sm">
-          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-xs font-semibold">
-            1
-          </span>
-          <div className="flex flex-col gap-2 pt-0.5 min-w-0 flex-1">
+      <InstructionBlock
+        steps={[
+          <Fragment key="install-napari">
             <span>Install napari.</span>
             <CodeBlock
               code={`conda create -y -n napari-env -c conda-forge python=3.11
@@ -180,13 +184,8 @@ conda install -c conda-forge napari pyqt`}
               <span>Full installation instructions</span>
               <HiExternalLink className="icon-xsmall" />
             </a>
-          </div>
-        </li>
-        <li className="flex items-start gap-3 text-sm">
-          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-xs font-semibold">
-            2
-          </span>
-          <div className="flex flex-col gap-2 pt-0.5 min-w-0 flex-1">
+          </Fragment>,
+          <Fragment key="install-plugin">
             <span>
               Install the napari-ome-zarr plugin. Assuming you are in the conda
               environment, from the command line:
@@ -197,24 +196,26 @@ conda install -c conda-forge napari pyqt`}
               copyable={true}
               language="bash"
             />
-          </div>
-        </li>
-        <li className="flex items-start gap-3 text-sm">
-          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-xs font-semibold">
-            3
-          </span>
-          <div className="flex flex-col gap-2 pt-0.5 min-w-0 flex-1">
-            <span>
-              Launch napari and open the data link using the napari-ome-zarr
-              plugin. From the command line:
-            </span>
+          </Fragment>,
+          <Fragment key="launch-napari">
+            <span>Launch napari from the command line.</span>
             <CodeBlock
-              code={`napari --plugin napari-ome-zarr '${dataLinkUrl}'`}
+              code="napari"
               copyLabel="Copy code"
               copyable={true}
               language="bash"
             />
-            <span>Or in Python:</span>
+          </Fragment>,
+          'Copy the data link to your clipboard using the copy icon at the top of this dialog.',
+          'From the napari control panel, select File \u2192 New Image from Clipboard.',
+          'In the pop-up, select the napari-ome-zarr plugin to open the image. Optionally, save this as the default choice for all files ending with .zarr.',
+          <Fragment key="open-from-cli">
+            <span>
+              Alternatively, you can open the image in napari from the command
+              line. Assuming you&apos;re in the activated napari-env conda
+              environment, run the following script to open this data link in
+              napari:
+            </span>
             <CodeBlock
               code={`import napari
 
@@ -226,9 +227,9 @@ napari.run()`}
               copyable={true}
               language="python"
             />
-          </div>
-        </li>
-      </ol>
+          </Fragment>
+        ]}
+      />
     )
   };
 }
@@ -561,7 +562,7 @@ function DataLinkTabs({
   const tabs = getTabsForDataType(dataType, dataLinkUrl);
   const [activeTab, setActiveTab] = useState<string>(tabs[0]?.id ?? '');
 
-  const TAB_TRIGGER_CLASSES = '!text-foreground h-full';
+  const TAB_TRIGGER_CLASSES = '!text-foreground h-full text-base';
   const PANEL_CLASSES =
     'flex flex-col gap-4 max-w-full max-h-[65vh] p-4 rounded-b-lg border border-t-0 border-surface dark:border-foreground/30 bg-surface-light dark:bg-surface overflow-y-auto overflow-x-hidden';
 
