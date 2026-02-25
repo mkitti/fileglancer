@@ -564,7 +564,7 @@ function DataLinkTabs({
 
   const TAB_TRIGGER_CLASSES = '!text-foreground h-full text-base';
   const PANEL_CLASSES =
-    'flex flex-col gap-4 max-w-full max-h-[65vh] p-4 rounded-b-lg border border-t-0 border-surface dark:border-foreground/30 bg-surface-light dark:bg-surface overflow-y-auto overflow-x-hidden';
+    'flex flex-col gap-4 max-w-full h-[60vh] p-4 rounded-b-lg border border-t-0 border-surface dark:border-foreground/30 bg-surface-light dark:bg-surface overflow-y-auto overflow-x-hidden';
 
   return (
     <Tabs
