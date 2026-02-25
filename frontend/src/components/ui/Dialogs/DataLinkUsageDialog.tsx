@@ -188,24 +188,25 @@ function getNapariZarrTab(dataLinkUrl: string) {
           <Fragment key="install-napari">
             <span>Install napari.</span>
             <CodeBlock
-              code={`conda create -y -n napari-env -c conda-forge python=3.11
-conda activate napari-env
-conda install -c conda-forge napari pyqt`}
+              code={`pixi init napari-env
+cd napari-env
+pixi add "python=3.12.*"
+pixi add napari pyqt`}
               copyLabel="Copy code"
               copyable={true}
               language="bash"
             />
             <ExternalLink href="https://napari.org/stable/tutorials/fundamentals/installation.html">
-              Full installation instructions
+              Napari documentation
             </ExternalLink>
           </Fragment>,
           <Fragment key="install-plugin">
             <span>
-              Install the napari-ome-zarr plugin. Assuming you are in the conda
-              environment, from the command line:
+              Install the napari-ome-zarr plugin. From within the napari-env
+              project directory:
             </span>
             <CodeBlock
-              code="pip install napari-ome-zarr"
+              code="pixi add napari-ome-zarr"
               copyLabel="Copy code"
               copyable={true}
               language="bash"
@@ -214,7 +215,7 @@ conda install -c conda-forge napari pyqt`}
           <Fragment key="launch-napari">
             <span>Launch napari from the command line.</span>
             <CodeBlock
-              code="napari"
+              code="pixi run napari"
               copyLabel="Copy code"
               copyable={true}
               language="bash"
@@ -226,20 +227,21 @@ conda install -c conda-forge napari pyqt`}
           <Fragment key="open-from-cli">
             <span>
               Alternatively, you can open the image in napari from the command
-              line. Assuming you&apos;re in the activated napari-env conda
-              environment, run the following script to open this data link in
-              napari:
+              line. From within the napari-env pixi project directory, run the
+              following command:
             </span>
             <CodeBlock
-              code={`import napari
+              code={`pixi run python -c "
+import napari
 
 viewer = napari.Viewer()
 viewer.open('${dataLinkUrl}', plugin='napari-ome-zarr')
 
-napari.run()`}
+napari.run()
+"`}
               copyLabel="Copy code"
               copyable={true}
-              language="python"
+              language="bash"
             />
           </Fragment>
         ]}
