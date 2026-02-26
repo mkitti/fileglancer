@@ -117,6 +117,7 @@ type AppEntryPoint = {
   env?: Record<string, string>;
   pre_run?: string;
   post_run?: string;
+  conda_env?: string;
 };
 
 type AppManifest = {

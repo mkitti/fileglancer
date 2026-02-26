@@ -391,6 +391,29 @@ class AppEntryPoint(BaseModel):
     env: Optional[Dict[str, str]] = Field(description="Default environment variables", default=None)
     pre_run: Optional[str] = Field(description="Script to run before the main command", default=None)
     post_run: Optional[str] = Field(description="Script to run after the main command", default=None)
+    conda_env: Optional[str] = Field(
+        description="Conda environment name or path to activate before running",
+        default=None,
+    )
+
+    @field_validator("conda_env")
+    @classmethod
+    def validate_conda_env(cls, v):
+        if v is None:
+            return v
+        if v.startswith("/"):
+            # Absolute path: reject shell metacharacters
+            if _CONDA_ENV_PATH_FORBIDDEN.search(v):
+                raise ValueError(
+                    f"conda_env path contains forbidden characters: {v!r}"
+                )
+        else:
+            # Name: must be alphanumeric, dots, dashes, underscores
+            if not _CONDA_ENV_NAME_PATTERN.match(v):
+                raise ValueError(
+                    f"conda_env name must match [a-zA-Z0-9_.-]+, got: {v!r}"
+                )
+        return v
 
     def flat_parameters(self) -> List[AppParameter]:
         """Return a flat list of all parameters, traversing sections."""
@@ -421,7 +444,10 @@ class AppEntryPoint(BaseModel):
         return self
 
 
-SUPPORTED_TOOLS = {"pixi", "npm", "maven"}
+SUPPORTED_TOOLS = {"pixi", "npm", "maven", "miniforge"}
+
+_CONDA_ENV_NAME_PATTERN = re.compile(r'^[a-zA-Z0-9_.-]+$')
+_CONDA_ENV_PATH_FORBIDDEN = re.compile(r'[;&|`$(){}!<>\n\r]')
 
 
 class AppManifest(BaseModel):

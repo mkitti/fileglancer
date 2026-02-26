@@ -64,9 +64,10 @@ requirements:
   - "pixi>=0.40"
   - npm
   - "maven>=3.9"
+  - miniforge
 ```
 
-**Supported tools:** `pixi`, `npm`, `maven`
+**Supported tools:** `pixi`, `npm`, `maven`, `miniforge`
 
 **Supported version operators:** `>=`, `<=`, `!=`, `==`, `>`, `<`
 
@@ -88,6 +89,7 @@ Each runnable defines a single command that users can launch. If the manifest ha
 | `env` | object | no | Default environment variables to export (see [Environment Variables](#environment-variables)) |
 | `pre_run` | string | no | Shell script to run before the main command (see [Pre/Post-Run Scripts](#prepost-run-scripts)) |
 | `post_run` | string | no | Shell script to run after the main command (see [Pre/Post-Run Scripts](#prepost-run-scripts)) |
+| `conda_env` | string | no | Conda environment name or absolute path to activate before running (see [Conda Environments](#conda-environments)) |
 
 ### Parameters
 
@@ -220,9 +222,13 @@ Users can override these in the UI. If a user provides their own pre/post-run sc
 The generated job script has the following structure:
 
 ```bash
-export FG_WORK_DIR='/home/user/.fileglancer/jobs/42-MyApp-convert'
 unset PIXI_PROJECT_MANIFEST
+export FG_WORK_DIR='/home/user/.fileglancer/jobs/42-MyApp-convert'
 cd "$FG_WORK_DIR/repo"
+
+# Conda activation (if conda_env is set)
+eval "$(conda shell.bash hook)"
+conda activate myenv
 
 # Environment variables
 export JAVA_HOME='/opt/java'
@@ -241,6 +247,45 @@ echo "Conversion complete"
 ```
 
 `FG_WORK_DIR` is always exported and points to the job's working directory. See [Environment Variables Set by Fileglancer](#environment-variables-set-by-fileglancer) for the full list.
+
+### Conda Environments
+
+The `conda_env` field specifies a conda environment to activate before running the command. This requires `miniforge` (or any conda distribution providing the `conda` binary) in the `requirements` list.
+
+The value can be either:
+- **An environment name** (e.g. `myenv`): must match `[a-zA-Z0-9_.-]+`
+- **An absolute path** (e.g. `/opt/envs/myenv`): must not contain shell metacharacters
+
+```yaml
+name: My Analysis Tool
+requirements:
+  - miniforge
+runnables:
+  - id: analyze
+    name: Run Analysis
+    command: python analyze.py
+    conda_env: my-analysis-env
+    parameters:
+      - flag: --input
+        name: Input
+        type: file
+        required: true
+```
+
+When `conda_env` is set, the generated script initializes conda and activates the environment before any env vars, pre_run, or the main command:
+
+```bash
+eval "$(conda shell.bash hook)"
+conda activate my-analysis-env
+```
+
+> **Tip:** If the conda environment needs to be created before use (e.g. from an `environment.yml`), use `pre_run` to create it first:
+>
+> ```yaml
+> conda_env: my-tool-env
+> pre_run: |
+>   conda env create -f environment.yml -n my-tool-env --yes 2>/dev/null || true
+> ```
 
 ## Command Building
 

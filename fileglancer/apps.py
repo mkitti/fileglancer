@@ -188,6 +188,10 @@ _TOOL_REGISTRY = {
         "version_args": ["mvn", "--version"],
         "version_pattern": r"Apache Maven (\S+)",
     },
+    "miniforge": {
+        "version_args": ["conda", "--version"],
+        "version_pattern": r"conda (\S+)",
+    },
 }
 
 _REQ_PATTERN = re.compile(r"^([a-zA-Z][a-zA-Z0-9_-]*)\s*((?:>=|<=|!=|==|>|<)\s*\S+)?$")
@@ -690,6 +694,15 @@ async def submit_job(
         preamble_lines.append('export SERVICE_URL_PATH="$FG_WORK_DIR/service_url"')
     preamble_lines.append(f'cd "$FG_WORK_DIR/{cd_suffix}"')
     script_parts = ["\n".join(preamble_lines)]
+
+    # Conda environment activation
+    if entry_point.conda_env:
+        conda_activation = (
+            'eval "$(conda shell.bash hook)"\n'
+            f'conda activate {shlex.quote(entry_point.conda_env)}'
+        )
+        script_parts.append(conda_activation)
+
     if env_lines:
         script_parts.append(env_lines.rstrip())
     if effective_pre_run:
