@@ -185,13 +185,13 @@ function getNapariZarrTab(dataLinkUrl: string) {
     content: (
       <InstructionBlock
         steps={[
-          <Fragment key="install-napari">
-            <span>Install napari.</span>
+          <Fragment key="one-line-command">
+            <span>
+              Run this command to use pixi to install the required dependencies
+              and launch napari:
+            </span>
             <CodeBlock
-              code={`pixi init napari-env
-cd napari-env
-pixi add "python=3.12.*"
-pixi add napari pyqt`}
+              code={`pixi exec --spec python=3.12 --spec napari --spec pyqt --spec napari-ome-zarr -- napari ${dataLinkUrl}`}
               copyLabel="Copy code"
               copyable={true}
               language="bash"
@@ -200,50 +200,7 @@ pixi add napari pyqt`}
               Napari documentation
             </ExternalLink>
           </Fragment>,
-          <Fragment key="install-plugin">
-            <span>
-              Install the napari-ome-zarr plugin. From within the napari-env
-              project directory:
-            </span>
-            <CodeBlock
-              code="pixi add napari-ome-zarr"
-              copyLabel="Copy code"
-              copyable={true}
-              language="bash"
-            />
-          </Fragment>,
-          <Fragment key="launch-napari">
-            <span>Launch napari from the command line.</span>
-            <CodeBlock
-              code="pixi run napari"
-              copyLabel="Copy code"
-              copyable={true}
-              language="bash"
-            />
-          </Fragment>,
-          'Copy the data link to your clipboard using the copy icon at the top of this dialog.',
-          'From the napari toolbar, select File \u2192 New Image from Clipboard.',
-          'In the pop-up, select the napari-ome-zarr plugin to open the image. Optionally, save this as the default choice for all files ending with .zarr.',
-          <Fragment key="open-from-cli">
-            <span>
-              Alternatively, you can open the image in napari from the command
-              line. From within the napari-env pixi project directory, run the
-              following command:
-            </span>
-            <CodeBlock
-              code={`pixi run python -c "
-import napari
-
-viewer = napari.Viewer()
-viewer.open('${dataLinkUrl}', plugin='napari-ome-zarr')
-
-napari.run()
-"`}
-              copyLabel="Copy code"
-              copyable={true}
-              language="bash"
-            />
-          </Fragment>
+          'In the pop-up, select the napari-ome-zarr plugin to open the image. Optionally, save this as the default choice for all files ending with .zarr.'
         ]}
       />
     )
