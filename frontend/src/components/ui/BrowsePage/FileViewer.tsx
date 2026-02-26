@@ -5,14 +5,18 @@ import {
   materialDark,
   coy
 } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { HiOutlineDownload } from 'react-icons/hi';
 
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
-import { formatFileSize, formatUnixTimestamp } from '@/utils';
+import { formatFileSize, formatUnixTimestamp, getFileURL } from '@/utils';
 import type { FileOrFolder } from '@/shared.types';
 import {
   useFileContentQuery,
-  useFileMetadataQuery
+  useFileMetadataQuery,
+  useFileBinaryPreviewQuery,
+  isKnownBinaryExtension
 } from '@/queries/fileContentQueries';
+import HexDump from './HexDump';
 
 type FileViewerProps = {
   readonly file: FileOrFolder;
@@ -83,12 +87,30 @@ export default function FileViewer({ file }: FileViewerProps) {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [formatJson, setFormatJson] = useState<boolean>(true);
 
-  // First, fetch metadata to check if file is binary
-  const metadataQuery = useFileMetadataQuery(fspName, file.path);
+  // Instant binary detection by file extension — no server round-trip needed
+  const knownBinary = isKnownBinaryExtension(file.name);
 
-  // Only fetch content if metadata indicates it's not binary
-  const shouldFetchContent =
-    metadataQuery.isSuccess && !metadataQuery.data.isBinary;
+  // HEAD request for accurate binary detection on unknown extensions.
+  // Skip it when the extension already tells us it's binary.
+  const metadataQuery = useFileMetadataQuery(
+    knownBinary ? undefined : fspName,
+    file.path
+  );
+
+  // True as soon as we have a definitive answer from either source
+  const isBinary = knownBinary || metadataQuery.data?.isBinary === true;
+
+  // Fetch first 512 bytes immediately for binary files (or likely-binary files)
+  // so the hex preview appears without waiting for HEAD.
+  const binaryPreviewQuery = useFileBinaryPreviewQuery(
+    fspName,
+    file.path,
+    knownBinary || isBinary
+  );
+
+  // Only fetch full text content once we know the file is not binary
+  const metadataSettled = knownBinary || metadataQuery.isSuccess;
+  const shouldFetchContent = metadataSettled && !isBinary;
   const contentQuery = useFileContentQuery(
     shouldFetchContent ? fspName : undefined,
     file.path
@@ -114,7 +136,32 @@ export default function FileViewer({ file }: FileViewerProps) {
   }, []);
 
   const renderViewer = () => {
-    if (metadataQuery.isLoading) {
+    // Binary file: show hex preview as soon as the first bytes arrive
+    if (isBinary) {
+      if (binaryPreviewQuery.isPending) {
+        return (
+          <Typography className="p-4 text-foreground">
+            Loading binary preview...
+          </Typography>
+        );
+      }
+      if (binaryPreviewQuery.error) {
+        return (
+          <Typography className="p-4 text-foreground/60">
+            Binary file — preview unavailable
+          </Typography>
+        );
+      }
+      return (
+        <HexDump
+          bytes={binaryPreviewQuery.data!}
+          totalFileSize={file.size ?? undefined}
+        />
+      );
+    }
+
+    // Not-yet-determined: waiting for HEAD on an unknown extension
+    if (!metadataSettled || metadataQuery.isLoading) {
       return (
         <Typography className="p-4 text-foreground">
           Loading file content...
@@ -126,15 +173,6 @@ export default function FileViewer({ file }: FileViewerProps) {
       return (
         <Typography className="p-4 text-error">
           Error: {metadataQuery.error.message}
-        </Typography>
-      );
-    }
-
-    // If file is binary, show a message instead of trying to load content
-    if (metadataQuery.data?.isBinary) {
-      return (
-        <Typography className="p-4 text-foreground">
-          Binary file - preview not available
         </Typography>
       );
     }
@@ -204,8 +242,9 @@ export default function FileViewer({ file }: FileViewerProps) {
   };
 
   // Determine if we should show JSON format toggle
-  const showJsonToggle =
-    isJsonFile && metadataQuery.isSuccess && !metadataQuery.data.isBinary;
+  const showJsonToggle = isJsonFile && !isBinary;
+
+  const downloadUrl = fspName ? getFileURL(fspName, file.path) : null;
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
@@ -220,17 +259,24 @@ export default function FileViewer({ file }: FileViewerProps) {
             {formatUnixTimestamp(file.last_modified)}
           </Typography>
         </div>
-        {showJsonToggle ? (
-          <div className="flex items-center gap-2 shrink-0">
-            <Typography className="text-foreground text-sm whitespace-nowrap">
-              Format JSON
-            </Typography>
-            <Switch
-              checked={formatJson}
-              onChange={() => setFormatJson(!formatJson)}
-            />
-          </div>
-        ) : null}
+        <div className="flex items-center gap-3 shrink-0">
+          {showJsonToggle ? (
+            <div className="flex items-center gap-2">
+              <Typography className="text-foreground text-sm whitespace-nowrap">
+                Format JSON
+              </Typography>
+              <Switch
+                checked={formatJson}
+                onChange={() => setFormatJson(!formatJson)}
+              />
+            </div>
+          ) : null}
+          {downloadUrl ? (
+            <a download={file.name} href={downloadUrl} title="Download file">
+              <HiOutlineDownload className="text-foreground hover:text-primary text-xl" />
+            </a>
+          ) : null}
+        </div>
       </div>
 
       {/* File content viewer */}

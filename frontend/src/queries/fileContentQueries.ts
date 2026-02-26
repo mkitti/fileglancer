@@ -8,6 +8,78 @@ import { buildUrl, sendFetchRequest } from '@/utils';
 import { fetchFileContent } from './queryUtils';
 import type { FetchRequestOptions } from '@/shared.types';
 
+// Number of bytes to fetch for binary hex preview
+const BINARY_PREVIEW_BYTES = 512;
+
+// Extensions that are always treated as binary without a HEAD request
+const KNOWN_BINARY_EXTENSIONS = new Set([
+  // Archives
+  'zip',
+  'ozx',
+  'gz',
+  'tar',
+  'bz2',
+  'xz',
+  'zst',
+  '7z',
+  'rar',
+  // Images
+  'png',
+  'jpg',
+  'jpeg',
+  'gif',
+  'tiff',
+  'tif',
+  'bmp',
+  'webp',
+  'ico',
+  // Scientific / volumetric data
+  'h5',
+  'hdf5',
+  'nc',
+  'cdf',
+  'nrrd',
+  'mha',
+  'mhd',
+  'nii',
+  'nii.gz',
+  // Native binaries
+  'exe',
+  'dll',
+  'so',
+  'dylib',
+  'bin',
+  'dat',
+  'o',
+  'a',
+  // Media
+  'mp4',
+  'avi',
+  'mov',
+  'mkv',
+  'webm',
+  'mp3',
+  'wav',
+  'ogg',
+  'flac',
+  // Documents
+  'pdf'
+]);
+
+/**
+ * Returns true if the filename has a well-known binary extension,
+ * allowing the UI to skip the HEAD request for binary detection.
+ */
+export function isKnownBinaryExtension(filename: string): boolean {
+  const lower = filename.toLowerCase();
+  // Handle compound extensions like .nii.gz
+  if (lower.endsWith('.nii.gz')) {
+    return true;
+  }
+  const ext = lower.split('.').pop() ?? '';
+  return KNOWN_BINARY_EXTENSIONS.has(ext);
+}
+
 // Query keys for file content and metadata
 export const fileContentQueryKeys = {
   detail: (fspName: string, filePath: string) =>
@@ -97,5 +169,38 @@ export function useFileContentQuery(
       }
       return failureCount < 3; // Default retry behavior
     }
+  });
+}
+
+/**
+ * Fetch the first BINARY_PREVIEW_BYTES bytes of a file using an HTTP Range
+ * request. Starts immediately — does not wait for HEAD/binary detection.
+ * Used to render a hex preview for binary files.
+ */
+export function useFileBinaryPreviewQuery(
+  fspName: string | undefined,
+  filePath: string,
+  enabled: boolean = true
+): UseQueryResult<Uint8Array, Error> {
+  return useQuery<Uint8Array, Error>({
+    queryKey: ['fileBinaryPreview', fspName || '', filePath],
+    queryFn: async ({ signal }: QueryFunctionContext) => {
+      const url = buildUrl('/api/content/', fspName!, { subpath: filePath });
+      const response = await fetch(url, {
+        credentials: 'include',
+        headers: { Range: `bytes=0-${BINARY_PREVIEW_BYTES - 1}` },
+        signal
+      });
+      // 206 Partial Content or 200 OK (if server ignores Range) are both fine
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch binary preview: ${response.statusText}`
+        );
+      }
+      return new Uint8Array(await response.arrayBuffer());
+    },
+    enabled: !!fspName && !!filePath && enabled,
+    staleTime: 5 * 60 * 1000,
+    retry: false
   });
 }
