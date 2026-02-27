@@ -10,7 +10,7 @@ import avivator_logo from '@/assets/vizarr_logo.png';
 import type { OpenWithToolUrls, PendingToolKey } from '@/hooks/useZarrMetadata';
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
 import DialogIconBtn from '@/components/ui/buttons/DialogIconBtn';
-import DataLinkUsageDialog from '@/components/ui/Dialogs/DataLinkUsageDialog';
+import DataLinkUsageDialog from '@/components/ui/Dialogs/dataLinkUsage/DataLinkUsageDialog';
 
 const CIRCLE_CLASSES =
   'rounded-full bg-surface-light dark:bg-primary/15 hover:bg-surface dark:hover:bg-primary/25 w-12 h-12 flex items-center justify-center cursor-pointer transform active:scale-90 transition-all duration-75';

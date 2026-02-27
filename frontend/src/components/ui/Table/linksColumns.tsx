@@ -4,7 +4,7 @@ import { Typography } from '@material-tailwind/react';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import DataLinkDialog from '@/components/ui/Dialogs/DataLink';
-import DataLinkUsageDialog from '@/components/ui/Dialogs/DataLinkUsageDialog';
+import DataLinkUsageDialog from '@/components/ui/Dialogs/dataLinkUsage/DataLinkUsageDialog';
 import DataLinksActionsMenu from '@/components/ui/Menus/DataLinksActions';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
 import { useZoneAndFspMapContext } from '@/contexts/ZonesAndFspMapContext';

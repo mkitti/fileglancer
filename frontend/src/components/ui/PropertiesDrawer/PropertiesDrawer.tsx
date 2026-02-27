@@ -22,7 +22,7 @@ import OverviewTable from '@/components/ui/PropertiesDrawer/OverviewTable';
 import TicketDetails from '@/components/ui/PropertiesDrawer/TicketDetails';
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
 import DataLinkDialog from '@/components/ui/Dialogs/DataLink';
-import DataLinkUsageDialog from '@/components/ui/Dialogs/DataLinkUsageDialog';
+import DataLinkUsageDialog from '@/components/ui/Dialogs/dataLinkUsage/DataLinkUsageDialog';
 import TextDialogBtn from '@/components/ui/buttons/DialogTextBtn';
 import { getPreferredPathForDisplay } from '@/utils';
 import { copyToClipboard } from '@/utils/copyText';
