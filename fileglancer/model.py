@@ -376,12 +376,14 @@ class AppResourceDefaults(BaseModel):
     cpus: Optional[int] = Field(description="Number of CPUs", default=None)
     memory: Optional[str] = Field(description="Memory allocation (e.g. '16 GB')", default=None)
     walltime: Optional[str] = Field(description="Wall time limit (e.g. '04:00')", default=None)
+    queue: Optional[str] = Field(description="Cluster queue/partition name", default=None)
 
 
 class AppEntryPoint(BaseModel):
     """An entry point (command) within an app"""
     id: str = Field(description="Unique identifier for the entry point")
     name: str = Field(description="Display name of the entry point")
+    type: Literal["job", "service"] = Field(description="Whether this is a batch job or long-running service", default="job")
     description: Optional[str] = Field(description="Description of the entry point", default=None)
     command: str = Field(description="The base CLI command to execute")
     parameters: List[AppParameterItem] = Field(description="Parameters for this entry point", default=[])
@@ -389,6 +391,60 @@ class AppEntryPoint(BaseModel):
     env: Optional[Dict[str, str]] = Field(description="Default environment variables", default=None)
     pre_run: Optional[str] = Field(description="Script to run before the main command", default=None)
     post_run: Optional[str] = Field(description="Script to run after the main command", default=None)
+    conda_env: Optional[str] = Field(
+        description="Conda environment name or path to activate before running",
+        default=None,
+    )
+    container: Optional[str] = Field(
+        description="Container image URL for Apptainer (e.g. 'ghcr.io/org/image:tag')",
+        default=None,
+    )
+    bind_paths: Optional[List[str]] = Field(
+        description="Additional paths to bind-mount into the container",
+        default=None,
+    )
+    container_args: Optional[str] = Field(
+        description="Default extra arguments for container exec (e.g. '--nv')",
+        default=None,
+    )
+
+    @field_validator("conda_env")
+    @classmethod
+    def validate_conda_env(cls, v):
+        if v is None:
+            return v
+        if v.startswith("/"):
+            # Absolute path: reject shell metacharacters
+            if _CONDA_ENV_PATH_FORBIDDEN.search(v):
+                raise ValueError(
+                    f"conda_env path contains forbidden characters: {v!r}"
+                )
+        else:
+            # Name: must be alphanumeric, dots, dashes, underscores
+            if not _CONDA_ENV_NAME_PATTERN.match(v):
+                raise ValueError(
+                    f"conda_env name must match [a-zA-Z0-9_.-]+, got: {v!r}"
+                )
+        return v
+
+    @field_validator("container")
+    @classmethod
+    def validate_container(cls, v):
+        if v is None:
+            return v
+        if _SHELL_METACHAR_PATTERN.search(v):
+            raise ValueError(f"container URL contains forbidden characters: {v!r}")
+        return v
+
+    @field_validator("bind_paths")
+    @classmethod
+    def validate_bind_paths(cls, v):
+        if v is None:
+            return v
+        for p in v:
+            if _SHELL_METACHAR_PATTERN.search(p):
+                raise ValueError(f"bind_paths entry contains forbidden characters: {p!r}")
+        return v
 
     def flat_parameters(self) -> List[AppParameter]:
         """Return a flat list of all parameters, traversing sections."""
@@ -418,8 +474,20 @@ class AppEntryPoint(BaseModel):
             keys_seen[param.key] = param.name
         return self
 
+    @model_validator(mode='after')
+    def check_conda_container_exclusive(self):
+        if self.conda_env and self.container:
+            raise ValueError("conda_env and container are mutually exclusive — use one or the other")
+        if self.bind_paths and not self.container:
+            raise ValueError("bind_paths requires container to be set")
+        return self
 
-SUPPORTED_TOOLS = {"pixi", "npm", "maven"}
+
+SUPPORTED_TOOLS = {"pixi", "npm", "maven", "miniforge", "apptainer", "nextflow"}
+
+_SHELL_METACHAR_PATTERN = re.compile(r'[;&|`$(){}!<>\n\r]')
+_CONDA_ENV_NAME_PATTERN = re.compile(r'^[a-zA-Z0-9_.-]+$')
+_CONDA_ENV_PATH_FORBIDDEN = re.compile(r'[;&|`$(){}!<>\n\r]')
 
 
 class AppManifest(BaseModel):
@@ -454,6 +522,7 @@ class UserApp(BaseModel):
     name: str = Field(description="App name from manifest")
     description: Optional[str] = Field(description="App description from manifest", default=None)
     added_at: datetime = Field(description="When the app was added")
+    updated_at: Optional[datetime] = Field(description="When the app was last updated", default=None)
     manifest: Optional[AppManifest] = Field(description="Cached manifest data", default=None)
 
 
@@ -489,6 +558,7 @@ class Job(BaseModel):
     manifest_path: str = Field(description="Relative manifest path within the app repo", default="")
     entry_point_id: str = Field(description="Entry point that was executed")
     entry_point_name: str = Field(description="Display name of the entry point")
+    entry_point_type: str = Field(description="Whether this is a batch job or long-running service", default="job")
     parameters: Dict = Field(description="Parameters used for the job")
     status: str = Field(description="Job status (PENDING, RUNNING, DONE, FAILED, KILLED)")
     exit_code: Optional[int] = Field(description="Exit code of the job", default=None)
@@ -496,8 +566,11 @@ class Job(BaseModel):
     env: Optional[Dict[str, str]] = Field(description="Environment variables used for the job", default=None)
     pre_run: Optional[str] = Field(description="Script run before the main command", default=None)
     post_run: Optional[str] = Field(description="Script run after the main command", default=None)
+    container: Optional[str] = Field(description="Container image URL used for this job", default=None)
+    container_args: Optional[str] = Field(description="Extra arguments for container exec (e.g. '--nv' for GPU)", default=None)
     pull_latest: bool = Field(description="Whether pull latest was enabled", default=False)
     cluster_job_id: Optional[str] = Field(description="Cluster-assigned job ID", default=None)
+    service_url: Optional[str] = Field(description="URL of the running service (for service-type jobs)", default=None)
     created_at: datetime = Field(description="When the job was created")
     started_at: Optional[datetime] = Field(description="When the job started running", default=None)
     finished_at: Optional[datetime] = Field(description="When the job finished", default=None)
@@ -511,6 +584,7 @@ class JobSubmitRequest(BaseModel):
     entry_point_id: str = Field(description="Entry point to execute")
     parameters: Dict = Field(description="Parameter values keyed by parameter key")
     resources: Optional[AppResourceDefaults] = Field(description="Resource overrides", default=None)
+    extra_args: Optional[str] = Field(description="Extra CLI args for the submit command (replaces config defaults)", default=None)
     pull_latest: bool = Field(
         description="Pull latest code from GitHub before running",
         default=False,
@@ -518,6 +592,14 @@ class JobSubmitRequest(BaseModel):
     env: Optional[Dict[str, str]] = Field(description="Environment variables to export", default=None)
     pre_run: Optional[str] = Field(description="Script to run before the main command", default=None)
     post_run: Optional[str] = Field(description="Script to run after the main command", default=None)
+    container: Optional[str] = Field(
+        description="Container image URL override (defaults to manifest value)",
+        default=None,
+    )
+    container_args: Optional[str] = Field(
+        description="Extra arguments for container exec (e.g. '--nv' for GPU)",
+        default=None,
+    )
 
 
 class PathValidationRequest(BaseModel):

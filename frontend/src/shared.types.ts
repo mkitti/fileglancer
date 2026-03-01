@@ -103,11 +103,13 @@ type AppResourceDefaults = {
   cpus?: number;
   memory?: string;
   walltime?: string;
+  queue?: string;
 };
 
 type AppEntryPoint = {
   id: string;
   name: string;
+  type?: 'job' | 'service';
   description?: string;
   command: string;
   parameters: AppParameterItem[];
@@ -115,6 +117,9 @@ type AppEntryPoint = {
   env?: Record<string, string>;
   pre_run?: string;
   post_run?: string;
+  conda_env?: string;
+  container?: string;
+  container_args?: string;
 };
 
 type AppManifest = {
@@ -132,12 +137,15 @@ type UserApp = {
   name: string;
   description?: string;
   added_at: string;
+  updated_at?: string;
   manifest?: AppManifest;
 };
 
 type JobFileInfo = {
   path: string;
   exists: boolean;
+  fsp_name?: string;
+  subpath?: string;
 };
 
 type Job = {
@@ -147,6 +155,7 @@ type Job = {
   manifest_path: string;
   entry_point_id: string;
   entry_point_name: string;
+  entry_point_type?: 'job' | 'service';
   parameters: Record<string, unknown>;
   status: 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED' | 'KILLED';
   exit_code?: number;
@@ -154,8 +163,11 @@ type Job = {
   env?: Record<string, string>;
   pre_run?: string;
   post_run?: string;
+  container?: string;
+  container_args?: string;
   pull_latest: boolean;
   cluster_job_id?: string;
+  service_url?: string;
   created_at: string;
   started_at?: string;
   finished_at?: string;
@@ -168,10 +180,13 @@ type JobSubmitRequest = {
   entry_point_id: string;
   parameters: Record<string, unknown>;
   resources?: AppResourceDefaults;
+  extra_args?: string;
   pull_latest?: boolean;
   env?: Record<string, string>;
   pre_run?: string;
   post_run?: string;
+  container?: string;
+  container_args?: string;
 };
 
 export type {

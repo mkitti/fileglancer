@@ -67,12 +67,14 @@ async def _run_git(args: list[str], timeout: int = 60):
 
     Raises ValueError with a readable message on failure.
     """
+    env = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
     try:
         proc = await asyncio.wait_for(
             asyncio.create_subprocess_exec(
                 *args,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                env=env,
             ),
             timeout=timeout,
         )
@@ -186,9 +188,28 @@ _TOOL_REGISTRY = {
         "version_args": ["mvn", "--version"],
         "version_pattern": r"Apache Maven (\S+)",
     },
+    "miniforge": {
+        "version_args": ["conda", "--version"],
+        "version_pattern": r"conda (\S+)",
+    },
+    "apptainer": {
+        "version_args": ["apptainer", "--version"],
+        "version_pattern": r"apptainer version (\S+)",
+    },
+    "nextflow": {
+        "version_args": ["nextflow", "-version"],
+        "version_pattern": r"version (\S+)",
+    },
 }
 
 _REQ_PATTERN = re.compile(r"^([a-zA-Z][a-zA-Z0-9_-]*)\s*((?:>=|<=|!=|==|>|<)\s*\S+)?$")
+
+
+def _augmented_path(extra_paths: list[str]) -> str:
+    """Build a PATH string with extra_paths appended (user's PATH takes precedence)."""
+    if not extra_paths:
+        return os.environ.get("PATH", "")
+    return os.environ.get("PATH", "") + os.pathsep + os.pathsep.join(extra_paths)
 
 
 def verify_requirements(requirements: list[str]):
@@ -198,6 +219,10 @@ def verify_requirements(requirements: list[str]):
     """
     if not requirements:
         return
+
+    settings = get_settings()
+    search_path = _augmented_path(settings.cluster.extra_paths)
+    env = {**os.environ, "PATH": search_path} if settings.cluster.extra_paths else None
 
     errors = []
 
@@ -211,11 +236,11 @@ def verify_requirements(requirements: list[str]):
         version_spec = match.group(2)
 
         # Check tool exists on PATH
-        if shutil.which(tool) is None:
+        if shutil.which(tool, path=search_path) is None:
             # For maven, the binary is 'mvn' not 'maven'
             registry_entry = _TOOL_REGISTRY.get(tool)
             binary = registry_entry["version_args"][0] if registry_entry else tool
-            if binary != tool and shutil.which(binary) is not None:
+            if binary != tool and shutil.which(binary, path=search_path) is not None:
                 pass  # binary found under alternate name
             else:
                 errors.append(f"Required tool '{tool}' is not installed or not on PATH")
@@ -231,6 +256,7 @@ def verify_requirements(requirements: list[str]):
                 result = subprocess.run(
                     registry_entry["version_args"],
                     capture_output=True, text=True, timeout=10,
+                    env=env,
                 )
                 output = result.stdout.strip() or result.stderr.strip()
                 ver_match = re.search(registry_entry["version_pattern"], output)
@@ -365,17 +391,7 @@ def build_command(entry_point: AppEntryPoint, parameters: dict) -> str:
     # Start with the base command
     parts = [entry_point.command]
 
-    # Pass 1: Positional args in declaration order
-    for param in flat_params:
-        if param.flag is not None:
-            continue
-        if param.key not in effective:
-            continue
-        p, value = effective[param.key]
-        validated = _validate_parameter_value(p, value)
-        parts.append(shlex.quote(validated))
-
-    # Pass 2: Flagged args in declaration order
+    # Pass 1: Flagged args in declaration order
     for param in flat_params:
         if param.flag is None:
             continue
@@ -388,6 +404,16 @@ def build_command(entry_point: AppEntryPoint, parameters: dict) -> str:
                 parts.append(p.flag)
         else:
             parts.append(f"{p.flag} {shlex.quote(validated)}")
+
+    # Pass 2: Positional args in declaration order
+    for param in flat_params:
+        if param.flag is not None:
+            continue
+        if param.key not in effective:
+            continue
+        p, value = effective[param.key]
+        validated = _validate_parameter_value(p, value)
+        parts.append(shlex.quote(validated))
 
     return (" \\\n  ").join(parts)
 
@@ -500,11 +526,15 @@ async def _reconcile_jobs(settings):
             # Terminal transitions are handled by the on_exit callback.
             new_status = _map_status(tracked.status)
             if new_status != db_job.status:
+                # Only store finished_at for terminal states. LSF may report
+                # a FINISH_TIME for running jobs (projected walltime end),
+                # which we must not store as an actual finish time.
+                is_terminal = new_status in ("DONE", "FAILED", "KILLED")
                 db.update_job_status(
                     session, db_job.id, new_status,
-                    exit_code=tracked.exit_code,
+                    exit_code=tracked.exit_code if is_terminal else None,
                     started_at=tracked.start_time,
-                    finished_at=tracked.finish_time,
+                    finished_at=tracked.finish_time if is_terminal else None,
                 )
                 logger.info(f"Job {db_job.id} status updated: {db_job.status} -> {new_status}")
 
@@ -554,6 +584,52 @@ def _sanitize_for_path(s: str) -> str:
     return re.sub(r'[^a-zA-Z0-9._-]', '_', s)
 
 
+_CONTAINER_SIF_SAFE = re.compile(r'[^a-zA-Z0-9._-]')
+
+
+def _container_sif_name(container_url: str) -> str:
+    """Derive a safe SIF filename from a container URL."""
+    url = container_url.removeprefix("docker://")
+    return _CONTAINER_SIF_SAFE.sub('_', url) + ".sif"
+
+
+_DEFAULT_CONTAINER_CACHE_DIR = "$HOME/.fileglancer/apptainer_cache"
+
+
+def _build_container_script(
+    container_url: str,
+    command: str,
+    work_dir: str,
+    bind_paths: list[str],
+    container_args: Optional[str] = None,
+    cache_dir: Optional[str] = None,
+) -> str:
+    """Build shell script for running a command inside an Apptainer container."""
+    sif_name = _container_sif_name(container_url)
+    docker_url = container_url if container_url.startswith("docker://") else f"docker://{container_url}"
+
+    # Deduplicate and sort bind paths
+    all_binds = sorted(set([work_dir] + bind_paths))
+    bind_flags = " ".join(f"--bind {shlex.quote(p)}" for p in all_binds)
+
+    extra = f" {container_args}" if container_args else ""
+
+    resolved_dir = shlex.quote(cache_dir) if cache_dir else _DEFAULT_CONTAINER_CACHE_DIR
+
+    lines = [
+        "# Apptainer container setup",
+        f'APPTAINER_CACHE_DIR={resolved_dir}',
+        'mkdir -p "$APPTAINER_CACHE_DIR"',
+        f'SIF_PATH="$APPTAINER_CACHE_DIR/{sif_name}"',
+        'if [ ! -f "$SIF_PATH" ]; then',
+        f'  apptainer pull "$SIF_PATH" {shlex.quote(docker_url)}',
+        'fi',
+        f'apptainer exec {bind_flags}{extra} "$SIF_PATH" \\',
+        f'  {command}',
+    ]
+    return "\n".join(lines)
+
+
 def _build_work_dir(job_id: int, app_name: str, entry_point_id: str) -> Path:
     """Build a working directory path under ~/.fileglancer/jobs/."""
     safe_app = _sanitize_for_path(app_name)
@@ -567,11 +643,14 @@ async def submit_job(
     entry_point_id: str,
     parameters: dict,
     resources: Optional[dict] = None,
+    extra_args: Optional[str] = None,
     pull_latest: bool = False,
     manifest_path: str = "",
     env: Optional[dict] = None,
     pre_run: Optional[str] = None,
     post_run: Optional[str] = None,
+    container: Optional[str] = None,
+    container_args: Optional[str] = None,
 ) -> db.JobDB:
     """Submit a new job to the cluster.
 
@@ -599,8 +678,11 @@ async def submit_job(
     # Build command
     command = build_command(entry_point, parameters)
 
-    # Build resource spec
-    resource_spec = _build_resource_spec(entry_point, resources, settings)
+    # Build resource spec (extra_args passed separately, not from manifest)
+    overrides = dict(resources) if resources else {}
+    if extra_args is not None:
+        overrides["extra_args"] = extra_args
+    resource_spec = _build_resource_spec(entry_point, overrides or None, settings)
 
     # Merge env/pre_run/post_run: manifest defaults overridden by user values
     merged_env = dict(entry_point.env or {})
@@ -608,6 +690,8 @@ async def submit_job(
         merged_env.update(env)
     effective_pre_run = pre_run if pre_run is not None else (entry_point.pre_run or None)
     effective_post_run = post_run if post_run is not None else (entry_point.post_run or None)
+    effective_container = container if container is not None else (entry_point.container or None)
+    effective_container_args = container_args if container_args is not None else (entry_point.container_args or None)
 
     # Create DB record first to get job ID for the work directory
     resources_dict = None
@@ -617,9 +701,14 @@ async def submit_job(
             "memory": resource_spec.memory,
             "walltime": resource_spec.walltime,
             "queue": resource_spec.queue,
+            "extra_args": " ".join(resource_spec.extra_args) if resource_spec.extra_args else None,
         }
 
     with db.get_db_session(settings.db_url) as session:
+        # Read user's container cache dir preference
+        cache_dir_pref = db.get_user_preference(session, username, "apptainerCacheDir")
+        container_cache_dir = cache_dir_pref.get("value") if cache_dir_pref else None
+
         db_job = db.create_job(
             session=session,
             username=username,
@@ -627,6 +716,7 @@ async def submit_job(
             app_name=manifest.name,
             entry_point_id=entry_point.id,
             entry_point_name=entry_point.name,
+            entry_point_type=entry_point.type,
             parameters=parameters,
             resources=resources_dict,
             manifest_path=manifest_path,
@@ -634,6 +724,8 @@ async def submit_job(
             pre_run=effective_pre_run,
             post_run=effective_post_run,
             pull_latest=pull_latest,
+            container=effective_container,
+            container_args=effective_container_args,
         )
         job_id = db_job.id
 
@@ -647,16 +739,13 @@ async def submit_job(
         tool_repo_dir = await _ensure_repo_cache(manifest.repo_url, pull=pull_latest)
         repo_link = work_dir / "repo"
         repo_link.symlink_to(tool_repo_dir)
-        cd_target = repo_link
+        cd_suffix = "repo"
     else:
         # Tool code is in the discovery repo — cd into manifest's subdirectory
         repo_dir = await _ensure_repo_cache(app_url, pull=pull_latest)
         repo_link = work_dir / "repo"
         repo_link.symlink_to(repo_dir)
-        if manifest_path:
-            cd_target = repo_link / manifest_path
-        else:
-            cd_target = repo_link
+        cd_suffix = f"repo/{manifest_path}" if manifest_path else "repo"
 
     # Build environment variable export lines
     env_lines = ""
@@ -668,10 +757,54 @@ async def submit_job(
             parts.append(f"export {var_name}={shlex.quote(var_value)}")
         env_lines = "\n".join(parts) + "\n"
 
-    # Wrap command with cd into the repo symlink
-    # Unset PIXI_PROJECT_MANIFEST so pixi uses the repo's own manifest
-    # instead of inheriting fileglancer's from the dev server environment
-    script_parts = [f"unset PIXI_PROJECT_MANIFEST\ncd {cd_target}"]
+    # Set up the script preamble:
+    # - FG_WORK_DIR: the job's working directory (used by subsequent variables)
+    # - Unset PIXI_PROJECT_MANIFEST so pixi uses the repo's own manifest
+    # - SERVICE_URL_PATH: for service-type jobs, where to write the service URL
+    # - cd into the repo so commands can find project files (pixi.toml, scripts, etc.)
+    preamble_lines = [
+        "unset PIXI_PROJECT_MANIFEST",
+        f"export FG_WORK_DIR={shlex.quote(str(work_dir))}",
+    ]
+    if settings.cluster.extra_paths:
+        path_suffix = os.pathsep.join(shlex.quote(p) for p in settings.cluster.extra_paths)
+        preamble_lines.append(f"export PATH=$PATH:{path_suffix}")
+    if entry_point.type == "service":
+        preamble_lines.append('export SERVICE_URL_PATH="$FG_WORK_DIR/service_url"')
+    preamble_lines.append(f'cd "$FG_WORK_DIR/{cd_suffix}"')
+    script_parts = ["\n".join(preamble_lines)]
+
+    # Conda environment activation
+    if entry_point.conda_env:
+        conda_activation = (
+            'eval "$(conda shell.bash hook)"\n'
+            f'conda activate {shlex.quote(entry_point.conda_env)}'
+        )
+        script_parts.append(conda_activation)
+
+    # If container is defined, wrap command in apptainer exec
+    if effective_container:
+        bind_paths = []
+        for param in entry_point.flat_parameters():
+            if param.type in ("file", "directory") and param.key in parameters:
+                path_val = str(parameters[param.key])
+                expanded = os.path.expanduser(path_val)
+                if param.type == "directory":
+                    bind_paths.append(expanded)
+                else:
+                    bind_paths.append(str(Path(expanded).parent))
+        if entry_point.bind_paths:
+            bind_paths.extend(entry_point.bind_paths)
+
+        command = _build_container_script(
+            container_url=effective_container,
+            command=command,
+            work_dir=str(work_dir),
+            bind_paths=bind_paths,
+            container_args=effective_container_args,
+            cache_dir=container_cache_dir,
+        )
+
     if env_lines:
         script_parts.append(env_lines.rstrip())
     if effective_pre_run:
@@ -707,7 +840,7 @@ async def submit_job(
         db_job = db.get_job(session, job_id, username)
         session.expunge(db_job)
 
-    logger.info(f"Job {db_job.id} submitted for user {username} in {work_dir}: {command}")
+    logger.info(f"Job {db_job.id} submitted for user {username} in {work_dir}")
     return db_job
 
 
@@ -726,8 +859,12 @@ def _build_resource_spec(entry_point: AppEntryPoint, overrides: Optional[dict], 
             memory = entry_point.resources.memory
         if entry_point.resources.walltime is not None:
             walltime = entry_point.resources.walltime
+        if entry_point.resources.queue is not None:
+            queue = entry_point.resources.queue
 
     # Apply user overrides
+    # Note: extra_args replaces (not extends) config defaults via ResourceSpec
+    extra_args = None
     if overrides:
         if overrides.get("cpus") is not None:
             cpus = overrides["cpus"]
@@ -735,12 +872,17 @@ def _build_resource_spec(entry_point: AppEntryPoint, overrides: Optional[dict], 
             memory = overrides["memory"]
         if overrides.get("walltime") is not None:
             walltime = overrides["walltime"]
+        if overrides.get("queue") is not None:
+            queue = overrides["queue"]
+        if overrides.get("extra_args") is not None:
+            extra_args = [overrides["extra_args"]]
 
     return ResourceSpec(
         cpus=cpus,
         memory=memory,
         walltime=walltime,
         queue=queue,
+        extra_args=extra_args,
     )
 
 
@@ -798,8 +940,37 @@ def _make_file_info(file_path: str, exists: bool) -> dict:
     }
 
 
+def get_service_url(db_job: db.JobDB) -> Optional[str]:
+    """Read the service URL from a job's work directory.
+
+    Only returns a URL when the job is a service type and is currently RUNNING.
+    The service writes its URL to a plain text file named 'service_url' in the
+    job's work directory.
+    """
+    if getattr(db_job, 'entry_point_type', 'job') != 'service':
+        return None
+    if db_job.status != 'RUNNING':
+        return None
+
+    work_dir = _resolve_work_dir(db_job)
+    url_file = work_dir / "service_url"
+
+    if not url_file.is_file():
+        return None
+
+    try:
+        url = url_file.read_text().strip()
+    except OSError:
+        return None
+
+    if not url.startswith(("http://", "https://")):
+        return None
+
+    return url
+
+
 def get_job_file_paths(db_job: db.JobDB) -> dict[str, dict]:
-    """Return file path info for a job's files (script, stdout, stderr).
+    """Return file path info for a job's files (script, stdout, stderr, service_url).
 
     Returns a dict keyed by file type with path and existence info.
     """
@@ -812,11 +983,18 @@ def get_job_file_paths(db_job: db.JobDB) -> dict[str, dict]:
     stdout_path = work_dir / "stdout.log"
     stderr_path = work_dir / "stderr.log"
 
-    return {
+    files = {
         "script": _make_file_info(script_path, len(scripts) > 0),
         "stdout": _make_file_info(str(stdout_path), stdout_path.is_file()),
         "stderr": _make_file_info(str(stderr_path), stderr_path.is_file()),
     }
+
+    # Include service_url file info for service-type jobs
+    if getattr(db_job, 'entry_point_type', 'job') == 'service':
+        service_url_path = work_dir / "service_url"
+        files["service_url"] = _make_file_info(str(service_url_path), service_url_path.is_file())
+
+    return files
 
 
 async def get_job_file_content(job_id: int, username: str, file_type: str) -> Optional[str]:

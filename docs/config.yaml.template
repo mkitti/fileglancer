@@ -129,8 +129,8 @@ session_cookie_secure: true
 # Mirrors py-cluster-api ClusterConfig - all fields are optional
 # See: https://github.com/JaneliaSciComp/py-cluster-api
 #
-# cluster:
-#   executor: local            # "local" or "lsf"
+cluster:
+  executor: local            # "local" or "lsf"
 #   job_name_prefix: fg        # Prefix for cluster job names. REQUIRED for job
 #                              # reconnection after server restarts. Without this,
 #                              # active jobs will not be re-tracked and will
@@ -149,3 +149,6 @@ session_cookie_secure: true
 #     - "your_project"
 #   script_prologue:            # Commands to run before each job
 #     - "module load java/11"
+#   extra_paths:                # Paths appended to $PATH in every job script
+#     - /opt/nextflow/bin       # and used when verifying tool requirements
+#     - /opt/pixi/bin

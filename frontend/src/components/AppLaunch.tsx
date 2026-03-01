@@ -52,16 +52,24 @@ export default function AppLaunch() {
         pre_run?: string;
         post_run?: string;
         pull_latest?: boolean;
+        container?: string;
+        container_args?: string;
       } | null)
     : null;
   const relaunchParameters = relaunchState?.parameters;
   const relaunchResources = relaunchState?.resources as
     | AppResourceDefaults
     | undefined;
+  // extra_args stored in resources dict from previous job
+  const relaunchExtraArgs = relaunchState?.resources?.extra_args as
+    | string
+    | undefined;
   const relaunchEnv = relaunchState?.env;
   const relaunchPreRun = relaunchState?.pre_run;
   const relaunchPostRun = relaunchState?.post_run;
   const relaunchPullLatest = relaunchState?.pull_latest;
+  const relaunchContainer = relaunchState?.container;
+  const relaunchContainerArgs = relaunchState?.container_args;
 
   // Check if app is in user's library
   const isInstalled = appsQuery.data?.some(
@@ -99,10 +107,13 @@ export default function AppLaunch() {
   const handleSubmit = async (
     parameters: Record<string, unknown>,
     resources?: AppResourceDefaults,
+    extraArgs?: string,
     pullLatest?: boolean,
     env?: Record<string, string>,
     preRun?: string,
-    postRun?: string
+    postRun?: string,
+    container?: string,
+    containerArgs?: string
   ) => {
     if (!selectedEntryPoint) {
       return;
@@ -114,12 +125,16 @@ export default function AppLaunch() {
         entry_point_id: selectedEntryPoint.id,
         parameters,
         resources,
+        extra_args: extraArgs,
         pull_latest: pullLatest,
         env,
         pre_run: preRun,
-        post_run: postRun
+        post_run: postRun,
+        container,
+        container_args: containerArgs
       });
-      toast.success('Job submitted');
+      const isService = selectedEntryPoint.type === 'service';
+      toast.success(isService ? 'Service started' : 'Job submitted');
       navigate('/apps/jobs');
     } catch (error) {
       const message =
@@ -200,30 +215,21 @@ export default function AppLaunch() {
           {manifestMutation.error?.message || 'Unknown error'}
         </div>
       ) : manifest && selectedEntryPoint ? (
-        <>
-          {manifest.runnables.length > 1 ? (
-            <Button
-              className="!rounded-md mb-4"
-              onClick={() => setSelectedEntryPoint(null)}
-              variant="outline"
-            >
-              <HiOutlineArrowLeft className="icon-small mr-2" />
-              Choose a different entry point
-            </Button>
-          ) : null}
-          <AppLaunchForm
-            entryPoint={selectedEntryPoint}
-            initialEnv={relaunchEnv}
-            initialPostRun={relaunchPostRun}
-            initialPreRun={relaunchPreRun}
-            initialPullLatest={relaunchPullLatest}
-            initialResources={relaunchResources}
-            initialValues={relaunchParameters}
-            manifest={manifest}
-            onSubmit={handleSubmit}
-            submitting={submitJobMutation.isPending}
-          />
-        </>
+        <AppLaunchForm
+          entryPoint={selectedEntryPoint}
+          initialContainer={relaunchContainer}
+          initialContainerArgs={relaunchContainerArgs}
+          initialEnv={relaunchEnv}
+          initialExtraArgs={relaunchExtraArgs}
+          initialPostRun={relaunchPostRun}
+          initialPreRun={relaunchPreRun}
+          initialPullLatest={relaunchPullLatest}
+          initialResources={relaunchResources}
+          initialValues={relaunchParameters}
+          manifest={manifest}
+          onSubmit={handleSubmit}
+          submitting={submitJobMutation.isPending}
+        />
       ) : manifest ? (
         <div className="max-w-2xl">
           <Typography className="text-foreground font-bold mb-1" type="h5">
@@ -244,12 +250,19 @@ export default function AppLaunch() {
                 key={ep.id}
               >
                 <div className="flex-1 min-w-0">
-                  <Typography
-                    className="text-foreground font-medium"
-                    type="small"
-                  >
-                    {ep.name}
-                  </Typography>
+                  <div className="flex items-center gap-2">
+                    <Typography
+                      className="text-foreground font-medium"
+                      type="small"
+                    >
+                      {ep.name}
+                    </Typography>
+                    {ep.type === 'service' ? (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-info/10 text-info border border-info/30">
+                        Service
+                      </span>
+                    ) : null}
+                  </div>
                   {ep.description ? (
                     <Typography className="text-secondary mt-1" type="small">
                       {ep.description}

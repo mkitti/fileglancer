@@ -1492,6 +1492,7 @@ def create_app(settings):
                 name=app_entry.get("name", "Unknown"),
                 description=app_entry.get("description"),
                 added_at=app_entry.get("added_at", datetime.now(UTC).isoformat()),
+                updated_at=app_entry.get("updated_at"),
             )
             # Try to fetch manifest from local clone
             try:
@@ -1520,7 +1521,7 @@ def create_app(settings):
             raise HTTPException(status_code=400, detail=f"Failed to clone or scan repo: {str(e)}")
 
         if not discovered:
-            filenames = ", ".join(apps_module._MANIFEST_FILENAMES)
+            filenames = apps_module._MANIFEST_FILENAME
             raise HTTPException(
                 status_code=404,
                 detail=f"No manifest files found ({filenames}). "
@@ -1590,30 +1591,47 @@ def create_app(settings):
 
         return {"message": "App removed"}
 
-    @app.post("/api/apps/update", response_model=AppManifest,
+    @app.post("/api/apps/update", response_model=UserApp,
               description="Pull latest code and re-read the manifest for an app")
     async def update_user_app(body: ManifestFetchRequest,
                               username: str = Depends(get_current_user)):
         try:
             await apps_module._ensure_repo_cache(body.url, pull=True)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to pull latest code: {str(e)}")
+
+        try:
             manifest = await apps_module.fetch_app_manifest(body.url, body.manifest_path)
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e))
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Failed to update app: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Failed to read manifest after update: {str(e)}")
 
-        # Update stored name/description from refreshed manifest
+        now = datetime.now(UTC)
+
+        # Update stored name/description/updated_at from refreshed manifest
         with db.get_db_session(settings.db_url) as session:
             pref = db.get_user_preference(session, username, "apps")
             app_list = pref.get("apps", []) if pref else []
+            added_at = now  # fallback
             for entry in app_list:
                 if entry["url"] == body.url and entry.get("manifest_path", "") == body.manifest_path:
                     entry["name"] = manifest.name
                     entry["description"] = manifest.description
+                    entry["updated_at"] = now.isoformat()
+                    added_at = entry.get("added_at", now.isoformat())
                     break
             db.set_user_preference(session, username, "apps", {"apps": app_list})
 
-        return manifest
+        return UserApp(
+            url=body.url,
+            manifest_path=body.manifest_path,
+            name=manifest.name,
+            description=manifest.description,
+            added_at=added_at,
+            updated_at=now,
+            manifest=manifest,
+        )
 
     @app.post("/api/apps/validate-paths", response_model=PathValidationResponse,
               description="Validate file/directory paths for app parameters")
@@ -1634,6 +1652,13 @@ def create_app(settings):
                 errors[param_key] = f"Path is not accessible: {normalized}"
         return PathValidationResponse(errors=errors)
 
+    @app.get("/api/cluster-defaults",
+             description="Get cluster configuration defaults")
+    async def get_cluster_defaults():
+        return {
+            "extra_args": " ".join(settings.cluster.extra_args),
+        }
+
     @app.post("/api/jobs", response_model=Job,
               description="Submit a new job")
     async def submit_job(body: JobSubmitRequest,
@@ -1649,11 +1674,14 @@ def create_app(settings):
                 entry_point_id=body.entry_point_id,
                 parameters=body.parameters,
                 resources=resources_dict,
+                extra_args=body.extra_args,
                 pull_latest=body.pull_latest,
                 manifest_path=body.manifest_path,
                 env=body.env,
                 pre_run=body.pre_run,
                 post_run=body.post_run,
+                container=body.container,
+                container_args=body.container_args,
             )
             return _convert_job(db_job)
         except ValueError as e:
@@ -1716,6 +1744,19 @@ def create_app(settings):
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e))
 
+    def _ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:
+        """Re-attach UTC timezone to naive datetimes from the DB.
+
+        SQLAlchemy's DateTime column strips tzinfo, so datetimes come back
+        naive even though they were stored as UTC. Re-attaching ensures
+        Pydantic serializes with '+00:00' so JS parses them correctly.
+        """
+        if dt is None:
+            return None
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=UTC)
+        return dt
+
     def _convert_job(db_job: db.JobDB, include_files: bool = False) -> Job:
         """Convert a database JobDB to a Pydantic Job model."""
         files = None
@@ -1728,6 +1769,7 @@ def create_app(settings):
             manifest_path=db_job.manifest_path,
             entry_point_id=db_job.entry_point_id,
             entry_point_name=db_job.entry_point_name,
+            entry_point_type=getattr(db_job, 'entry_point_type', 'job'),
             parameters=db_job.parameters,
             status=db_job.status,
             exit_code=db_job.exit_code,
@@ -1735,11 +1777,14 @@ def create_app(settings):
             env=db_job.env,
             pre_run=db_job.pre_run,
             post_run=db_job.post_run,
+            container=getattr(db_job, 'container', None),
+            container_args=getattr(db_job, 'container_args', None),
             pull_latest=db_job.pull_latest,
             cluster_job_id=db_job.cluster_job_id,
-            created_at=db_job.created_at,
-            started_at=db_job.started_at,
-            finished_at=db_job.finished_at,
+            service_url=apps_module.get_service_url(db_job),
+            created_at=_ensure_utc(db_job.created_at),
+            started_at=_ensure_utc(db_job.started_at),
+            finished_at=_ensure_utc(db_job.finished_at),
             files=files,
         )
 

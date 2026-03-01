@@ -8,11 +8,14 @@ import type { MenuItem } from '@/components/ui/Menus/FgMenuItems';
 import type { Job } from '@/shared.types';
 
 function formatDuration(job: Job): string {
-  const start = job.started_at || job.created_at;
-  const end = job.finished_at || new Date().toISOString();
-  const startDate = new Date(start);
-  const endDate = new Date(end);
-  const diffMs = endDate.getTime() - startDate.getTime();
+  if (!job.started_at) {
+    return '-';
+  }
+  const startMs = new Date(job.started_at).getTime();
+  const endMs = job.finished_at
+    ? new Date(job.finished_at).getTime()
+    : new Date().getTime();
+  const diffMs = endMs - startMs;
 
   if (diffMs < 0) {
     return '-';
@@ -100,7 +103,7 @@ export function createAppsJobsColumns(
       cell: ({ getValue }) => {
         const status = getValue() as Job['status'];
         return (
-          <div className="flex items-center h-full">
+          <div className="flex items-center gap-2 h-full">
             <JobStatusBadge status={status} />
           </div>
         );
@@ -148,6 +151,7 @@ export function createAppsJobsColumns(
         const job = row.original;
         const canCancel = job.status === 'PENDING' || job.status === 'RUNNING';
 
+        const isService = job.entry_point_type === 'service';
         const menuItems: MenuItem<JobRowActionProps>[] = [
           {
             name: 'View Details',
@@ -158,7 +162,7 @@ export function createAppsJobsColumns(
             action: props => props.onRelaunch(props.job)
           },
           {
-            name: 'Cancel',
+            name: isService ? 'Stop Service' : 'Cancel',
             action: props => props.onCancel(props.job.id),
             shouldShow: canCancel
           },

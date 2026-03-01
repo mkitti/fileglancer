@@ -8,7 +8,17 @@ import {
 } from '@/queries/queryUtils';
 import type { Job, JobSubmitRequest } from '@/shared.types';
 
+// --- Types ---
+
+type ClusterDefaults = {
+  extra_args: string;
+};
+
 // --- Query Keys ---
+
+export const clusterDefaultsQueryKeys = {
+  all: ['cluster-defaults'] as const
+};
 
 export const jobsQueryKeys = {
   all: ['cluster-jobs'] as const,
@@ -17,6 +27,22 @@ export const jobsQueryKeys = {
 };
 
 // --- Fetch Helpers ---
+
+async function fetchClusterDefaults(
+  signal?: AbortSignal
+): Promise<ClusterDefaults> {
+  const response = await sendFetchRequest(
+    '/api/cluster-defaults',
+    'GET',
+    undefined,
+    { signal }
+  );
+  const data = await getResponseJsonOrError(response);
+  if (!response.ok) {
+    throwResponseNotOkError(response, data);
+  }
+  return data as ClusterDefaults;
+}
 
 async function fetchJobs(signal?: AbortSignal): Promise<Job[]> {
   const response = await sendFetchRequest('/api/jobs', 'GET', undefined, {
@@ -67,6 +93,17 @@ async function fetchJobFile(
 
 // --- Query Hooks ---
 
+export function useClusterDefaultsQuery(): UseQueryResult<
+  ClusterDefaults,
+  Error
+> {
+  return useQuery({
+    queryKey: clusterDefaultsQueryKeys.all,
+    queryFn: ({ signal }) => fetchClusterDefaults(signal),
+    staleTime: 1000 * 60 * 60 // 1 hour — cluster config rarely changes
+  });
+}
+
 export function useJobsQuery(): UseQueryResult<Job[], Error> {
   return useQuery({
     queryKey: jobsQueryKeys.list(),
@@ -103,14 +140,16 @@ export function useJobQuery(jobId: number): UseQueryResult<Job, Error> {
 
 export function useJobFileQuery(
   jobId: number,
-  fileType: string
+  fileType: string,
+  jobStatus?: string
 ): UseQueryResult<string | null, Error> {
+  const isActive = jobStatus === 'PENDING' || jobStatus === 'RUNNING';
   return useQuery({
     queryKey: [...jobsQueryKeys.detail(jobId), 'file', fileType],
     queryFn: ({ signal }) => fetchJobFile(jobId, fileType, signal),
-    refetchInterval: query => {
-      // Only auto-refresh if file doesn't exist yet (null) - it may appear later
-      return query.state.data === null ? 10000 : false;
+    refetchInterval: () => {
+      // Auto-refresh while job is active, or if file doesn't exist yet
+      return isActive ? 5000 : false;
     }
   });
 }
