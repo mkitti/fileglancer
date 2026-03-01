@@ -1513,15 +1513,14 @@ def create_app(settings):
                            username: str = Depends(get_current_user)):
         # Clone the repo and discover all manifests
         try:
-            repo_dir = await apps_module._ensure_repo_cache(body.url, pull=True)
-            discovered = apps_module._find_manifests_in_repo(repo_dir)
+            discovered = await apps_module.discover_app_manifests(body.url)
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e))
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Failed to clone or scan repo: {str(e)}")
 
         if not discovered:
-            filenames = apps_module._MANIFEST_FILENAME
+            filenames = apps_module.MANIFEST_FILENAME
             raise HTTPException(
                 status_code=404,
                 detail=f"No manifest files found ({filenames}). "

@@ -163,6 +163,19 @@ def _find_manifests_in_repo(repo_dir: Path) -> list[tuple[str, AppManifest]]:
     return results
 
 
+MANIFEST_FILENAME = _MANIFEST_FILENAME
+
+
+async def discover_app_manifests(url: str) -> list[tuple[str, AppManifest]]:
+    """Clone/pull a GitHub repo and discover all manifest files.
+
+    Returns a list of (relative_dir_path, AppManifest) tuples.
+    Raises ValueError if the URL is invalid or the clone fails.
+    """
+    repo_dir = await _ensure_repo_cache(url, pull=True)
+    return _find_manifests_in_repo(repo_dir)
+
+
 async def fetch_app_manifest(url: str, manifest_path: str = "") -> AppManifest:
     """Fetch and validate an app manifest from a cloned repo.
 
