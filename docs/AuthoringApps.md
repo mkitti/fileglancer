@@ -529,6 +529,33 @@ Fileglancer exports the following environment variables in every job script:
 
 These are available to `pre_run` scripts, the main command, and `post_run` scripts.
 
+## Server Configuration for Apps
+
+Some aspects of app execution are controlled by the Fileglancer server's `config.yaml`, not by individual app manifests. These settings are managed by the system administrator.
+
+### Extra Paths (`extra_paths`)
+
+The `extra_paths` cluster setting lets administrators add directories to `$PATH` for all job scripts. This is useful for making tools like `nextflow`, `pixi`, or `apptainer` available without requiring users to configure their own environments.
+
+```yaml
+cluster:
+  extra_paths:
+    - /opt/nextflow/bin
+    - /opt/pixi/bin
+    - /usr/local/apptainer/bin
+```
+
+These paths are:
+
+1. **Appended to `$PATH` in every generated job script** — the user's own `$PATH` entries take precedence
+2. **Used when verifying tool requirements** — so `requirements: [nextflow]` can find `/opt/nextflow/bin/nextflow` even if it's not on the server process's default `$PATH`
+
+### Container Cache Directory
+
+By default, Apptainer container images (SIF files) are cached at `~/.fileglancer/apptainer_cache/`. Users can override this per-user in the Preferences page under "Container cache directory".
+
+See the [config.yaml.template](config.yaml.template) for all available cluster settings.
+
 ## Full Example
 
 ```yaml

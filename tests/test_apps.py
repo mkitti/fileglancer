@@ -80,7 +80,7 @@ class TestVerifyRequirementsMiniforge:
     @patch("fileglancer.apps.shutil.which")
     def test_miniforge_found_via_conda(self, mock_which):
         """miniforge binary doesn't exist, but conda does — should pass."""
-        def which_side_effect(name):
+        def which_side_effect(name, **kwargs):
             if name == "miniforge":
                 return None
             if name == "conda":
@@ -100,7 +100,7 @@ class TestVerifyRequirementsMiniforge:
     @patch("fileglancer.apps.subprocess.run")
     @patch("fileglancer.apps.shutil.which")
     def test_miniforge_version_check(self, mock_which, mock_run):
-        def which_side_effect(name):
+        def which_side_effect(name, **kwargs):
             if name == "miniforge":
                 return None
             if name == "conda":
@@ -116,7 +116,7 @@ class TestVerifyRequirementsMiniforge:
     @patch("fileglancer.apps.subprocess.run")
     @patch("fileglancer.apps.shutil.which")
     def test_miniforge_version_too_old(self, mock_which, mock_run):
-        def which_side_effect(name):
+        def which_side_effect(name, **kwargs):
             if name == "miniforge":
                 return None
             if name == "conda":

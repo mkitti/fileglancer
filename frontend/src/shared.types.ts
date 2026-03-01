@@ -137,6 +137,7 @@ type UserApp = {
   name: string;
   description?: string;
   added_at: string;
+  updated_at?: string;
   manifest?: AppManifest;
 };
 

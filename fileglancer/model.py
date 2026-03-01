@@ -522,6 +522,7 @@ class UserApp(BaseModel):
     name: str = Field(description="App name from manifest")
     description: Optional[str] = Field(description="App description from manifest", default=None)
     added_at: datetime = Field(description="When the app was added")
+    updated_at: Optional[datetime] = Field(description="When the app was last updated", default=None)
     manifest: Optional[AppManifest] = Field(description="Cached manifest data", default=None)
 
 

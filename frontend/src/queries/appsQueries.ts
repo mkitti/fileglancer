@@ -101,7 +101,7 @@ export async function validatePaths(
 }
 
 export function useUpdateAppMutation(): UseMutationResult<
-  AppManifest,
+  UserApp,
   Error,
   { url: string; manifest_path: string }
 > {
@@ -122,7 +122,7 @@ export function useUpdateAppMutation(): UseMutationResult<
       if (!response.ok) {
         throwResponseNotOkError(response, data);
       }
-      return data as AppManifest;
+      return data as UserApp;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: appsQueryKeys.all });

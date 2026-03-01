@@ -205,6 +205,13 @@ _TOOL_REGISTRY = {
 _REQ_PATTERN = re.compile(r"^([a-zA-Z][a-zA-Z0-9_-]*)\s*((?:>=|<=|!=|==|>|<)\s*\S+)?$")
 
 
+def _augmented_path(extra_paths: list[str]) -> str:
+    """Build a PATH string with extra_paths appended (user's PATH takes precedence)."""
+    if not extra_paths:
+        return os.environ.get("PATH", "")
+    return os.environ.get("PATH", "") + os.pathsep + os.pathsep.join(extra_paths)
+
+
 def verify_requirements(requirements: list[str]):
     """Verify that all required tools are available and meet version constraints.
 
@@ -212,6 +219,10 @@ def verify_requirements(requirements: list[str]):
     """
     if not requirements:
         return
+
+    settings = get_settings()
+    search_path = _augmented_path(settings.cluster.extra_paths)
+    env = {**os.environ, "PATH": search_path} if settings.cluster.extra_paths else None
 
     errors = []
 
@@ -225,11 +236,11 @@ def verify_requirements(requirements: list[str]):
         version_spec = match.group(2)
 
         # Check tool exists on PATH
-        if shutil.which(tool) is None:
+        if shutil.which(tool, path=search_path) is None:
             # For maven, the binary is 'mvn' not 'maven'
             registry_entry = _TOOL_REGISTRY.get(tool)
             binary = registry_entry["version_args"][0] if registry_entry else tool
-            if binary != tool and shutil.which(binary) is not None:
+            if binary != tool and shutil.which(binary, path=search_path) is not None:
                 pass  # binary found under alternate name
             else:
                 errors.append(f"Required tool '{tool}' is not installed or not on PATH")
@@ -245,6 +256,7 @@ def verify_requirements(requirements: list[str]):
                 result = subprocess.run(
                     registry_entry["version_args"],
                     capture_output=True, text=True, timeout=10,
+                    env=env,
                 )
                 output = result.stdout.strip() or result.stderr.strip()
                 ver_match = re.search(registry_entry["version_pattern"], output)
@@ -754,6 +766,9 @@ async def submit_job(
         "unset PIXI_PROJECT_MANIFEST",
         f"export FG_WORK_DIR={shlex.quote(str(work_dir))}",
     ]
+    if settings.cluster.extra_paths:
+        path_suffix = os.pathsep.join(shlex.quote(p) for p in settings.cluster.extra_paths)
+        preamble_lines.append(f"export PATH=$PATH:{path_suffix}")
     if entry_point.type == "service":
         preamble_lines.append('export SERVICE_URL_PATH="$FG_WORK_DIR/service_url"')
     preamble_lines.append(f'cd "$FG_WORK_DIR/{cd_suffix}"')

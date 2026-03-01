@@ -149,3 +149,6 @@ cluster:
 #     - "your_project"
 #   script_prologue:            # Commands to run before each job
 #     - "module load java/11"
+#   extra_paths:                # Paths appended to $PATH in every job script
+#     - /opt/nextflow/bin       # and used when verifying tool requirements
+#     - /opt/pixi/bin

@@ -1492,6 +1492,7 @@ def create_app(settings):
                 name=app_entry.get("name", "Unknown"),
                 description=app_entry.get("description"),
                 added_at=app_entry.get("added_at", datetime.now(UTC).isoformat()),
+                updated_at=app_entry.get("updated_at"),
             )
             # Try to fetch manifest from local clone
             try:
@@ -1590,30 +1591,47 @@ def create_app(settings):
 
         return {"message": "App removed"}
 
-    @app.post("/api/apps/update", response_model=AppManifest,
+    @app.post("/api/apps/update", response_model=UserApp,
               description="Pull latest code and re-read the manifest for an app")
     async def update_user_app(body: ManifestFetchRequest,
                               username: str = Depends(get_current_user)):
         try:
             await apps_module._ensure_repo_cache(body.url, pull=True)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to pull latest code: {str(e)}")
+
+        try:
             manifest = await apps_module.fetch_app_manifest(body.url, body.manifest_path)
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e))
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Failed to update app: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Failed to read manifest after update: {str(e)}")
 
-        # Update stored name/description from refreshed manifest
+        now = datetime.now(UTC)
+
+        # Update stored name/description/updated_at from refreshed manifest
         with db.get_db_session(settings.db_url) as session:
             pref = db.get_user_preference(session, username, "apps")
             app_list = pref.get("apps", []) if pref else []
+            added_at = now  # fallback
             for entry in app_list:
                 if entry["url"] == body.url and entry.get("manifest_path", "") == body.manifest_path:
                     entry["name"] = manifest.name
                     entry["description"] = manifest.description
+                    entry["updated_at"] = now.isoformat()
+                    added_at = entry.get("added_at", now.isoformat())
                     break
             db.set_user_preference(session, username, "apps", {"apps": app_list})
 
-        return manifest
+        return UserApp(
+            url=body.url,
+            manifest_path=body.manifest_path,
+            name=manifest.name,
+            description=manifest.description,
+            added_at=added_at,
+            updated_at=now,
+            manifest=manifest,
+        )
 
     @app.post("/api/apps/validate-paths", response_model=PathValidationResponse,
               description="Validate file/directory paths for app parameters")
