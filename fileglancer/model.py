@@ -601,6 +601,13 @@ class JobSubmitRequest(BaseModel):
         default=None,
     )
 
+    @field_validator("extra_args")
+    @classmethod
+    def validate_extra_args(cls, v):
+        if v is not None and _SHELL_METACHAR_PATTERN.search(v):
+            raise ValueError(f"extra_args contains forbidden characters: {v!r}")
+        return v
+
 
 class PathValidationRequest(BaseModel):
     """Request to validate file/directory paths"""

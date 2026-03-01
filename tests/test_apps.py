@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 import pytest
 from pydantic import ValidationError
 
-from fileglancer.model import SUPPORTED_TOOLS, AppEntryPoint
+from fileglancer.model import SUPPORTED_TOOLS, AppEntryPoint, JobSubmitRequest
 from fileglancer.apps import (
     _TOOL_REGISTRY,
     verify_requirements,
@@ -273,6 +273,40 @@ class TestContainerValidation:
                 container="ghcr.io/org/image:tag",
                 bind_paths=["/data;rm -rf /"]
             )
+
+
+class TestJobSubmitExtraArgsValidation:
+    """Validate that extra_args rejects shell metacharacters."""
+
+    _BASE = dict(
+        app_url="https://github.com/org/repo",
+        entry_point_id="ep1",
+        parameters={"input": "/data/file.txt"},
+    )
+
+    def test_valid_extra_args(self):
+        req = JobSubmitRequest(**self._BASE, extra_args="--gres=gpu:1 -W 60")
+        assert req.extra_args == "--gres=gpu:1 -W 60"
+
+    def test_none_is_allowed(self):
+        req = JobSubmitRequest(**self._BASE, extra_args=None)
+        assert req.extra_args is None
+
+    def test_rejects_semicolon(self):
+        with pytest.raises(ValidationError, match="forbidden characters"):
+            JobSubmitRequest(**self._BASE, extra_args="--gres=gpu:1; rm -rf /")
+
+    def test_rejects_backtick(self):
+        with pytest.raises(ValidationError, match="forbidden characters"):
+            JobSubmitRequest(**self._BASE, extra_args="--gres=`whoami`")
+
+    def test_rejects_dollar(self):
+        with pytest.raises(ValidationError, match="forbidden characters"):
+            JobSubmitRequest(**self._BASE, extra_args="--queue=$USER")
+
+    def test_rejects_pipe(self):
+        with pytest.raises(ValidationError, match="forbidden characters"):
+            JobSubmitRequest(**self._BASE, extra_args="--flag | cat /etc/passwd")
 
 
 class TestContainerSifName:
