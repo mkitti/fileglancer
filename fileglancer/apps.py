@@ -577,12 +577,16 @@ def _container_sif_name(container_url: str) -> str:
     return _CONTAINER_SIF_SAFE.sub('_', url) + ".sif"
 
 
+_DEFAULT_CONTAINER_CACHE_DIR = "$HOME/.fileglancer/apptainer_cache"
+
+
 def _build_container_script(
     container_url: str,
     command: str,
     work_dir: str,
     bind_paths: list[str],
     container_args: Optional[str] = None,
+    cache_dir: Optional[str] = None,
 ) -> str:
     """Build shell script for running a command inside an Apptainer container."""
     sif_name = _container_sif_name(container_url)
@@ -594,9 +598,11 @@ def _build_container_script(
 
     extra = f" {container_args}" if container_args else ""
 
+    resolved_dir = shlex.quote(cache_dir) if cache_dir else _DEFAULT_CONTAINER_CACHE_DIR
+
     lines = [
         "# Apptainer container setup",
-        'APPTAINER_CACHE_DIR="${APPTAINER_CACHEDIR:-$HOME/.apptainer/cache/fileglancer}"',
+        f'APPTAINER_CACHE_DIR={resolved_dir}',
         'mkdir -p "$APPTAINER_CACHE_DIR"',
         f'SIF_PATH="$APPTAINER_CACHE_DIR/{sif_name}"',
         'if [ ! -f "$SIF_PATH" ]; then',
@@ -683,6 +689,10 @@ async def submit_job(
         }
 
     with db.get_db_session(settings.db_url) as session:
+        # Read user's container cache dir preference
+        cache_dir_pref = db.get_user_preference(session, username, "apptainerCacheDir")
+        container_cache_dir = cache_dir_pref.get("value") if cache_dir_pref else None
+
         db_job = db.create_job(
             session=session,
             username=username,
@@ -773,6 +783,7 @@ async def submit_job(
             work_dir=str(work_dir),
             bind_paths=bind_paths,
             container_args=effective_container_args,
+            cache_dir=container_cache_dir,
         )
 
     if env_lines:

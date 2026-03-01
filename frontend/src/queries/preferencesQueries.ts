@@ -39,6 +39,7 @@ type PreferencesApiResponse = {
   isFilteredByGroups?: { value: boolean };
   showTutorial?: { value: boolean };
   defaultExtraArgs?: { value: string };
+  apptainerCacheDir?: { value: string };
   zone?: { value: ZonePreference[] };
   fileSharePath?: { value: FileSharePathPreference[] };
   folder?: { value: FolderPreference[] };
@@ -70,6 +71,7 @@ export type PreferencesQueryData = {
   isFilteredByGroups: boolean;
   showTutorial: boolean;
   defaultExtraArgs: string;
+  apptainerCacheDir: string;
 };
 
 /**
@@ -235,7 +237,8 @@ const createTransformPreferences = (
         rawData.useLegacyMultichannelApproach?.value || false,
       isFilteredByGroups: rawData.isFilteredByGroups?.value ?? true,
       showTutorial: rawData.showTutorial?.value ?? true,
-      defaultExtraArgs: rawData.defaultExtraArgs?.value || ''
+      defaultExtraArgs: rawData.defaultExtraArgs?.value || '',
+      apptainerCacheDir: rawData.apptainerCacheDir?.value || ''
     };
   };
 };

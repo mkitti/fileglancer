@@ -318,13 +318,13 @@ runnables:
 
 When `container` is set, the generated script:
 
-1. Creates a SIF cache directory at `$APPTAINER_CACHEDIR` (defaults to `~/.apptainer/cache/fileglancer/`)
+1. Creates a SIF cache directory (defaults to `~/.fileglancer/apptainer_cache/`, configurable in Preferences)
 2. Pulls the image to a `.sif` file if not already cached
 3. Runs the command inside the container via `apptainer exec`
 
 ```bash
 # Apptainer container setup
-APPTAINER_CACHE_DIR="${APPTAINER_CACHEDIR:-$HOME/.apptainer/cache/fileglancer}"
+APPTAINER_CACHE_DIR=$HOME/.fileglancer/apptainer_cache
 mkdir -p "$APPTAINER_CACHE_DIR"
 SIF_PATH="$APPTAINER_CACHE_DIR/godlovedc_lolcow.sif"
 if [ ! -f "$SIF_PATH" ]; then
