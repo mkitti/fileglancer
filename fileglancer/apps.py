@@ -580,6 +580,10 @@ def _on_job_exit(record):
             return
         if db_job.status == new_status:
             return
+        # Don't overwrite a terminal status (e.g. KILLED by user) with
+        # another terminal status from the executor callback.
+        if db_job.status in ("DONE", "FAILED", "KILLED"):
+            return
         db.update_job_status(
             session, db_job.id, new_status,
             exit_code=record.exit_code,
