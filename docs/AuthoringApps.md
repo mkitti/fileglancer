@@ -67,7 +67,7 @@ requirements:
   - miniforge
 ```
 
-**Supported tools:** `pixi`, `npm`, `maven`, `miniforge`
+**Supported tools:** `pixi`, `npm`, `maven`, `miniforge`, `apptainer`
 
 **Supported version operators:** `>=`, `<=`, `!=`, `==`, `>`, `<`
 
@@ -90,6 +90,9 @@ Each runnable defines a single command that users can launch. If the manifest ha
 | `pre_run` | string | no | Shell script to run before the main command (see [Pre/Post-Run Scripts](#prepost-run-scripts)) |
 | `post_run` | string | no | Shell script to run after the main command (see [Pre/Post-Run Scripts](#prepost-run-scripts)) |
 | `conda_env` | string | no | Conda environment name or absolute path to activate before running (see [Conda Environments](#conda-environments)) |
+| `container` | string | no | Container image URL for Apptainer (see [Containers](#containers-apptainer)) |
+| `bind_paths` | list of strings | no | Additional paths to bind-mount into the container (requires `container`) |
+| `container_args` | string | no | Default extra arguments for container exec (e.g. `--nv`), overridable at launch time |
 
 ### Parameters
 
@@ -286,6 +289,69 @@ conda activate my-analysis-env
 > pre_run: |
 >   conda env create -f environment.yml -n my-tool-env --yes 2>/dev/null || true
 > ```
+
+### Containers (Apptainer)
+
+The `container` field specifies a container image to run the command inside using [Apptainer](https://apptainer.org/) (formerly Singularity). This requires `apptainer` in the `requirements` list.
+
+The value is a container image URL, typically from a Docker/OCI registry:
+
+- `ghcr.io/org/image:tag` — GitHub Container Registry
+- `docker://ghcr.io/org/image:tag` — explicit Docker protocol prefix (added automatically if absent)
+
+```yaml
+name: Lolcow
+requirements:
+  - apptainer
+runnables:
+  - id: say
+    name: Cow Say
+    command: cowsay
+    container: godlovedc/lolcow
+    parameters:
+      - name: Message
+        type: string
+        description: What the cow should say
+        required: true
+        default: "Hello from Fileglancer!"
+```
+
+When `container` is set, the generated script:
+
+1. Creates a SIF cache directory at `$APPTAINER_CACHEDIR` (defaults to `~/.apptainer/cache/fileglancer/`)
+2. Pulls the image to a `.sif` file if not already cached
+3. Runs the command inside the container via `apptainer exec`
+
+```bash
+# Apptainer container setup
+APPTAINER_CACHE_DIR="${APPTAINER_CACHEDIR:-$HOME/.apptainer/cache/fileglancer}"
+mkdir -p "$APPTAINER_CACHE_DIR"
+SIF_PATH="$APPTAINER_CACHE_DIR/godlovedc_lolcow.sif"
+if [ ! -f "$SIF_PATH" ]; then
+  apptainer pull "$SIF_PATH" 'docker://godlovedc/lolcow'
+fi
+apptainer exec --bind /home/user/.fileglancer/jobs/1-lolcow-say "$SIF_PATH" \
+  cowsay \
+  'Hello from Fileglancer!'
+```
+
+**Bind mounts** are auto-detected from file and directory parameters. The job's working directory is always bound. Use `bind_paths` to add extra paths:
+
+```yaml
+container: ghcr.io/org/image:tag
+bind_paths:
+  - /shared/reference-data
+  - /scratch
+```
+
+**Extra Apptainer arguments** can be set as defaults in the manifest with `container_args`, and overridden by the user at launch time through the UI's Environment tab:
+
+```yaml
+container: ghcr.io/org/cuda-tool:latest
+container_args: "--nv"
+```
+
+> **Important:** `conda_env` and `container` are mutually exclusive — you cannot use both on the same entry point.
 
 ## Command Building
 

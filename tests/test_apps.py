@@ -1,4 +1,4 @@
-"""Tests for apps module: miniforge requirement and conda_env support."""
+"""Tests for apps module: miniforge/apptainer requirements, conda_env, and container support."""
 
 import subprocess
 from unittest.mock import patch, MagicMock
@@ -7,7 +7,12 @@ import pytest
 from pydantic import ValidationError
 
 from fileglancer.model import SUPPORTED_TOOLS, AppEntryPoint
-from fileglancer.apps import _TOOL_REGISTRY, verify_requirements
+from fileglancer.apps import (
+    _TOOL_REGISTRY,
+    verify_requirements,
+    _container_sif_name,
+    _build_container_script,
+)
 
 
 # --- Model tests ---
@@ -186,3 +191,168 @@ class TestCondaActivationInScript:
 
         activation = f'conda activate {shlex.quote(ep2.conda_env)}'
         assert activation == "conda activate /opt/conda/envs/myenv"
+
+
+# --- Apptainer / Container tests ---
+
+class TestApptainerRequirement:
+    def test_apptainer_in_supported_tools(self):
+        assert "apptainer" in SUPPORTED_TOOLS
+
+    def test_apptainer_in_tool_registry(self):
+        assert "apptainer" in _TOOL_REGISTRY
+        entry = _TOOL_REGISTRY["apptainer"]
+        assert entry["version_args"] == ["apptainer", "--version"]
+        assert entry["version_pattern"] == r"apptainer version (\S+)"
+
+
+class TestContainerValidation:
+    def test_valid_container_url(self):
+        ep = AppEntryPoint(
+            id="t", name="T", command="echo",
+            container="ghcr.io/org/image:tag"
+        )
+        assert ep.container == "ghcr.io/org/image:tag"
+
+    def test_valid_docker_prefix(self):
+        ep = AppEntryPoint(
+            id="t", name="T", command="echo",
+            container="docker://ghcr.io/org/image:1.0"
+        )
+        assert ep.container == "docker://ghcr.io/org/image:1.0"
+
+    def test_none_is_allowed(self):
+        ep = AppEntryPoint(id="t", name="T", command="echo", container=None)
+        assert ep.container is None
+
+    def test_default_is_none(self):
+        ep = AppEntryPoint(id="t", name="T", command="echo")
+        assert ep.container is None
+
+    def test_rejects_shell_metacharacters(self):
+        with pytest.raises(ValidationError, match="forbidden characters"):
+            AppEntryPoint(
+                id="t", name="T", command="echo",
+                container="ghcr.io/org/image;rm -rf /"
+            )
+
+    def test_rejects_backtick(self):
+        with pytest.raises(ValidationError, match="forbidden characters"):
+            AppEntryPoint(
+                id="t", name="T", command="echo",
+                container="ghcr.io/`whoami`/image:tag"
+            )
+
+    def test_mutual_exclusion_with_conda(self):
+        with pytest.raises(ValidationError, match="mutually exclusive"):
+            AppEntryPoint(
+                id="t", name="T", command="echo",
+                conda_env="myenv",
+                container="ghcr.io/org/image:tag"
+            )
+
+    def test_bind_paths_requires_container(self):
+        with pytest.raises(ValidationError, match="bind_paths requires container"):
+            AppEntryPoint(
+                id="t", name="T", command="echo",
+                bind_paths=["/data"]
+            )
+
+    def test_bind_paths_with_container(self):
+        ep = AppEntryPoint(
+            id="t", name="T", command="echo",
+            container="ghcr.io/org/image:tag",
+            bind_paths=["/data", "/scratch"]
+        )
+        assert ep.bind_paths == ["/data", "/scratch"]
+
+    def test_bind_paths_rejects_metacharacters(self):
+        with pytest.raises(ValidationError, match="forbidden characters"):
+            AppEntryPoint(
+                id="t", name="T", command="echo",
+                container="ghcr.io/org/image:tag",
+                bind_paths=["/data;rm -rf /"]
+            )
+
+
+class TestContainerSifName:
+    def test_simple_url(self):
+        assert _container_sif_name("ghcr.io/org/image:1.0") == "ghcr.io_org_image_1.0.sif"
+
+    def test_docker_prefix_stripped(self):
+        assert _container_sif_name("docker://ghcr.io/org/image:tag") == "ghcr.io_org_image_tag.sif"
+
+    def test_nested_path(self):
+        result = _container_sif_name("godlovedc/lolcow")
+        assert result == "godlovedc_lolcow.sif"
+
+    def test_no_tag(self):
+        result = _container_sif_name("ghcr.io/org/image")
+        assert result == "ghcr.io_org_image.sif"
+
+
+class TestContainerScriptGeneration:
+    def test_basic_script(self):
+        script = _build_container_script(
+            container_url="ghcr.io/org/image:1.0",
+            command="python run.py",
+            work_dir="/home/user/.fileglancer/jobs/1-test-run",
+            bind_paths=[],
+        )
+        assert "apptainer pull" in script
+        assert "apptainer exec" in script
+        assert "docker://ghcr.io/org/image:1.0" in script
+        assert "ghcr.io_org_image_1.0.sif" in script
+        assert "python run.py" in script
+
+    def test_bind_mounts_included(self):
+        script = _build_container_script(
+            container_url="ghcr.io/org/image:1.0",
+            command="echo hello",
+            work_dir="/work",
+            bind_paths=["/data/input", "/data/output"],
+        )
+        assert "--bind /data/input" in script
+        assert "--bind /data/output" in script
+        assert "--bind /work" in script
+
+    def test_bind_mounts_deduplicated(self):
+        script = _build_container_script(
+            container_url="ghcr.io/org/image:1.0",
+            command="echo hello",
+            work_dir="/work",
+            bind_paths=["/work", "/data", "/data"],
+        )
+        # /work should only appear once in bind flags
+        assert script.count("--bind /work") == 1
+        assert script.count("--bind /data") == 1
+
+    def test_extra_args(self):
+        script = _build_container_script(
+            container_url="ghcr.io/org/image:1.0",
+            command="python run.py",
+            work_dir="/work",
+            bind_paths=[],
+            container_args="--nv",
+        )
+        assert "--nv" in script
+
+    def test_pull_conditional(self):
+        script = _build_container_script(
+            container_url="ghcr.io/org/image:1.0",
+            command="echo",
+            work_dir="/work",
+            bind_paths=[],
+        )
+        assert 'if [ ! -f "$SIF_PATH" ]' in script
+
+    def test_docker_prefix_not_doubled(self):
+        script = _build_container_script(
+            container_url="docker://ghcr.io/org/image:1.0",
+            command="echo",
+            work_dir="/work",
+            bind_paths=[],
+        )
+        # Should not have docker://docker://
+        assert "docker://docker://" not in script
+        assert "docker://ghcr.io/org/image:1.0" in script

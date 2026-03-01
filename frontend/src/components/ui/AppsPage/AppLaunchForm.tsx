@@ -33,7 +33,9 @@ interface AppLaunchFormProps {
     pullLatest?: boolean,
     env?: Record<string, string>,
     preRun?: string,
-    postRun?: string
+    postRun?: string,
+    container?: string,
+    containerArgs?: string
   ) => Promise<void>;
   readonly submitting: boolean;
   readonly initialValues?: Record<string, unknown>;
@@ -43,6 +45,8 @@ interface AppLaunchFormProps {
   readonly initialPreRun?: string;
   readonly initialPostRun?: string;
   readonly initialPullLatest?: boolean;
+  readonly initialContainer?: string;
+  readonly initialContainerArgs?: string;
 }
 
 type EnvVar = { key: string; value: string };
@@ -478,7 +482,12 @@ function EnvironmentTabContent({
   postRun,
   setPostRun,
   openEnvSections,
-  setOpenEnvSections
+  setOpenEnvSections,
+  entryPoint,
+  containerImage,
+  setContainerImage,
+  containerArgs,
+  setContainerArgs
 }: {
   readonly envVars: EnvVar[];
   readonly setEnvVars: Dispatch<SetStateAction<EnvVar[]>>;
@@ -488,7 +497,15 @@ function EnvironmentTabContent({
   readonly setPostRun: Dispatch<SetStateAction<string>>;
   readonly openEnvSections: string[];
   readonly setOpenEnvSections: Dispatch<SetStateAction<string[]>>;
+  readonly entryPoint: AppEntryPoint;
+  readonly containerImage: string;
+  readonly setContainerImage: Dispatch<SetStateAction<string>>;
+  readonly containerArgs: string;
+  readonly setContainerArgs: Dispatch<SetStateAction<string>>;
 }) {
+  const inputClass =
+    'w-full p-2 text-foreground border rounded-sm focus:outline-none bg-background border-primary-light focus:border-primary';
+
   return (
     <Accordion
       onValueChange={
@@ -517,6 +534,50 @@ function EnvironmentTabContent({
           />
         </Accordion.Content>
       </Accordion.Item>
+
+      {entryPoint.container ? (
+        <Accordion.Item value="apptainer">
+          <Accordion.Trigger className="flex w-full items-center justify-between py-3 border-b border-primary-light">
+            <div className="text-foreground font-bold text-sm">Container</div>
+            <HiChevronDown
+              className={`h-4 w-4 text-secondary transition-transform ${
+                openEnvSections.includes('apptainer') ? 'rotate-180' : ''
+              }`}
+            />
+          </Accordion.Trigger>
+          <Accordion.Content className="pt-4 pb-2 pl-4">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-foreground text-sm font-medium mb-1">
+                  Container Image
+                </label>
+                <input
+                  className={`max-w-md ${inputClass} font-mono text-sm`}
+                  onChange={e => setContainerImage(e.target.value)}
+                  placeholder="e.g. ghcr.io/org/image:tag"
+                  type="text"
+                  value={containerImage}
+                />
+              </div>
+              <div>
+                <label className="block text-foreground text-sm font-medium mb-1">
+                  Extra Apptainer Arguments
+                </label>
+                <Typography className="text-secondary mb-1" type="small">
+                  Additional flags passed to apptainer exec
+                </Typography>
+                <input
+                  className={`max-w-md ${inputClass} font-mono text-sm`}
+                  onChange={e => setContainerArgs(e.target.value)}
+                  placeholder="e.g. --nv"
+                  type="text"
+                  value={containerArgs}
+                />
+              </div>
+            </div>
+          </Accordion.Content>
+        </Accordion.Item>
+      ) : null}
     </Accordion>
   );
 }
@@ -596,7 +657,9 @@ export default function AppLaunchForm({
   initialEnv,
   initialPreRun,
   initialPostRun,
-  initialPullLatest
+  initialPullLatest,
+  initialContainer,
+  initialContainerArgs
 }: AppLaunchFormProps) {
   const { defaultExtraArgs } = usePreferencesContext();
   const clusterDefaultsQuery = useClusterDefaultsQuery();
@@ -653,9 +716,15 @@ export default function AppLaunchForm({
   const [postRun, setPostRun] = useState(
     initialPostRun ?? entryPoint.post_run ?? ''
   );
-  const [openEnvSections, setOpenEnvSections] = useState<string[]>([
-    'environment'
-  ]);
+  const [containerImage, setContainerImage] = useState(
+    initialContainer ?? entryPoint.container ?? ''
+  );
+  const [containerArgs, setContainerArgs] = useState(
+    initialContainerArgs ?? entryPoint.container_args ?? ''
+  );
+  const [openEnvSections, setOpenEnvSections] = useState<string[]>(
+    entryPoint.container ? ['environment', 'apptainer'] : ['environment']
+  );
   const [openClusterSections, setOpenClusterSections] = useState<string[]>([
     'resources',
     'submitOptions'
@@ -807,7 +876,9 @@ export default function AppLaunchForm({
       pullLatest,
       hasEnv ? envRecord : undefined,
       preRun.trim() || undefined,
-      postRun.trim() || undefined
+      postRun.trim() || undefined,
+      containerImage.trim() || undefined,
+      containerArgs.trim() || undefined
     );
   };
 
@@ -935,10 +1006,15 @@ export default function AppLaunchForm({
           </div>
 
           <EnvironmentTabContent
+            containerArgs={containerArgs}
+            containerImage={containerImage}
+            entryPoint={entryPoint}
             envVars={envVars}
             openEnvSections={openEnvSections}
             postRun={postRun}
             preRun={preRun}
+            setContainerArgs={setContainerArgs}
+            setContainerImage={setContainerImage}
             setEnvVars={setEnvVars}
             setOpenEnvSections={setOpenEnvSections}
             setPostRun={setPostRun}

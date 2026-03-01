@@ -52,6 +52,8 @@ export default function AppLaunch() {
         pre_run?: string;
         post_run?: string;
         pull_latest?: boolean;
+        container?: string;
+        container_args?: string;
       } | null)
     : null;
   const relaunchParameters = relaunchState?.parameters;
@@ -66,6 +68,8 @@ export default function AppLaunch() {
   const relaunchPreRun = relaunchState?.pre_run;
   const relaunchPostRun = relaunchState?.post_run;
   const relaunchPullLatest = relaunchState?.pull_latest;
+  const relaunchContainer = relaunchState?.container;
+  const relaunchContainerArgs = relaunchState?.container_args;
 
   // Check if app is in user's library
   const isInstalled = appsQuery.data?.some(
@@ -107,7 +111,9 @@ export default function AppLaunch() {
     pullLatest?: boolean,
     env?: Record<string, string>,
     preRun?: string,
-    postRun?: string
+    postRun?: string,
+    container?: string,
+    containerArgs?: string
   ) => {
     if (!selectedEntryPoint) {
       return;
@@ -123,7 +129,9 @@ export default function AppLaunch() {
         pull_latest: pullLatest,
         env,
         pre_run: preRun,
-        post_run: postRun
+        post_run: postRun,
+        container,
+        container_args: containerArgs
       });
       const isService = selectedEntryPoint.type === 'service';
       toast.success(isService ? 'Service started' : 'Job submitted');
@@ -209,6 +217,8 @@ export default function AppLaunch() {
       ) : manifest && selectedEntryPoint ? (
         <AppLaunchForm
           entryPoint={selectedEntryPoint}
+          initialContainer={relaunchContainer}
+          initialContainerArgs={relaunchContainerArgs}
           initialEnv={relaunchEnv}
           initialExtraArgs={relaunchExtraArgs}
           initialPostRun={relaunchPostRun}

@@ -196,7 +196,9 @@ export default function JobDetail() {
         env: job.env,
         pre_run: job.pre_run,
         post_run: job.post_run,
-        pull_latest: job.pull_latest
+        pull_latest: job.pull_latest,
+        container: job.container,
+        container_args: job.container_args
       }
     });
   };

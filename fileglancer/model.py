@@ -395,6 +395,18 @@ class AppEntryPoint(BaseModel):
         description="Conda environment name or path to activate before running",
         default=None,
     )
+    container: Optional[str] = Field(
+        description="Container image URL for Apptainer (e.g. 'ghcr.io/org/image:tag')",
+        default=None,
+    )
+    bind_paths: Optional[List[str]] = Field(
+        description="Additional paths to bind-mount into the container",
+        default=None,
+    )
+    container_args: Optional[str] = Field(
+        description="Default extra arguments for container exec (e.g. '--nv')",
+        default=None,
+    )
 
     @field_validator("conda_env")
     @classmethod
@@ -413,6 +425,25 @@ class AppEntryPoint(BaseModel):
                 raise ValueError(
                     f"conda_env name must match [a-zA-Z0-9_.-]+, got: {v!r}"
                 )
+        return v
+
+    @field_validator("container")
+    @classmethod
+    def validate_container(cls, v):
+        if v is None:
+            return v
+        if _SHELL_METACHAR_PATTERN.search(v):
+            raise ValueError(f"container URL contains forbidden characters: {v!r}")
+        return v
+
+    @field_validator("bind_paths")
+    @classmethod
+    def validate_bind_paths(cls, v):
+        if v is None:
+            return v
+        for p in v:
+            if _SHELL_METACHAR_PATTERN.search(p):
+                raise ValueError(f"bind_paths entry contains forbidden characters: {p!r}")
         return v
 
     def flat_parameters(self) -> List[AppParameter]:
@@ -443,9 +474,18 @@ class AppEntryPoint(BaseModel):
             keys_seen[param.key] = param.name
         return self
 
+    @model_validator(mode='after')
+    def check_conda_container_exclusive(self):
+        if self.conda_env and self.container:
+            raise ValueError("conda_env and container are mutually exclusive — use one or the other")
+        if self.bind_paths and not self.container:
+            raise ValueError("bind_paths requires container to be set")
+        return self
 
-SUPPORTED_TOOLS = {"pixi", "npm", "maven", "miniforge"}
 
+SUPPORTED_TOOLS = {"pixi", "npm", "maven", "miniforge", "apptainer"}
+
+_SHELL_METACHAR_PATTERN = re.compile(r'[;&|`$(){}!<>\n\r]')
 _CONDA_ENV_NAME_PATTERN = re.compile(r'^[a-zA-Z0-9_.-]+$')
 _CONDA_ENV_PATH_FORBIDDEN = re.compile(r'[;&|`$(){}!<>\n\r]')
 
@@ -525,6 +565,8 @@ class Job(BaseModel):
     env: Optional[Dict[str, str]] = Field(description="Environment variables used for the job", default=None)
     pre_run: Optional[str] = Field(description="Script run before the main command", default=None)
     post_run: Optional[str] = Field(description="Script run after the main command", default=None)
+    container: Optional[str] = Field(description="Container image URL used for this job", default=None)
+    container_args: Optional[str] = Field(description="Extra arguments for container exec (e.g. '--nv' for GPU)", default=None)
     pull_latest: bool = Field(description="Whether pull latest was enabled", default=False)
     cluster_job_id: Optional[str] = Field(description="Cluster-assigned job ID", default=None)
     service_url: Optional[str] = Field(description="URL of the running service (for service-type jobs)", default=None)
@@ -549,6 +591,14 @@ class JobSubmitRequest(BaseModel):
     env: Optional[Dict[str, str]] = Field(description="Environment variables to export", default=None)
     pre_run: Optional[str] = Field(description="Script to run before the main command", default=None)
     post_run: Optional[str] = Field(description="Script to run after the main command", default=None)
+    container: Optional[str] = Field(
+        description="Container image URL override (defaults to manifest value)",
+        default=None,
+    )
+    container_args: Optional[str] = Field(
+        description="Extra arguments for container exec (e.g. '--nv' for GPU)",
+        default=None,
+    )
 
 
 class PathValidationRequest(BaseModel):

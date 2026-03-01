@@ -192,6 +192,10 @@ _TOOL_REGISTRY = {
         "version_args": ["conda", "--version"],
         "version_pattern": r"conda (\S+)",
     },
+    "apptainer": {
+        "version_args": ["apptainer", "--version"],
+        "version_pattern": r"apptainer version (\S+)",
+    },
 }
 
 _REQ_PATTERN = re.compile(r"^([a-zA-Z][a-zA-Z0-9_-]*)\s*((?:>=|<=|!=|==|>|<)\s*\S+)?$")
@@ -564,6 +568,46 @@ def _sanitize_for_path(s: str) -> str:
     return re.sub(r'[^a-zA-Z0-9._-]', '_', s)
 
 
+_CONTAINER_SIF_SAFE = re.compile(r'[^a-zA-Z0-9._-]')
+
+
+def _container_sif_name(container_url: str) -> str:
+    """Derive a safe SIF filename from a container URL."""
+    url = container_url.removeprefix("docker://")
+    return _CONTAINER_SIF_SAFE.sub('_', url) + ".sif"
+
+
+def _build_container_script(
+    container_url: str,
+    command: str,
+    work_dir: str,
+    bind_paths: list[str],
+    container_args: Optional[str] = None,
+) -> str:
+    """Build shell script for running a command inside an Apptainer container."""
+    sif_name = _container_sif_name(container_url)
+    docker_url = container_url if container_url.startswith("docker://") else f"docker://{container_url}"
+
+    # Deduplicate and sort bind paths
+    all_binds = sorted(set([work_dir] + bind_paths))
+    bind_flags = " ".join(f"--bind {shlex.quote(p)}" for p in all_binds)
+
+    extra = f" {container_args}" if container_args else ""
+
+    lines = [
+        "# Apptainer container setup",
+        'APPTAINER_CACHE_DIR="${APPTAINER_CACHEDIR:-$HOME/.apptainer/cache/fileglancer}"',
+        'mkdir -p "$APPTAINER_CACHE_DIR"',
+        f'SIF_PATH="$APPTAINER_CACHE_DIR/{sif_name}"',
+        'if [ ! -f "$SIF_PATH" ]; then',
+        f'  apptainer pull "$SIF_PATH" {shlex.quote(docker_url)}',
+        'fi',
+        f'apptainer exec {bind_flags}{extra} "$SIF_PATH" \\',
+        f'  {command}',
+    ]
+    return "\n".join(lines)
+
+
 def _build_work_dir(job_id: int, app_name: str, entry_point_id: str) -> Path:
     """Build a working directory path under ~/.fileglancer/jobs/."""
     safe_app = _sanitize_for_path(app_name)
@@ -583,6 +627,8 @@ async def submit_job(
     env: Optional[dict] = None,
     pre_run: Optional[str] = None,
     post_run: Optional[str] = None,
+    container: Optional[str] = None,
+    container_args: Optional[str] = None,
 ) -> db.JobDB:
     """Submit a new job to the cluster.
 
@@ -622,6 +668,8 @@ async def submit_job(
         merged_env.update(env)
     effective_pre_run = pre_run if pre_run is not None else (entry_point.pre_run or None)
     effective_post_run = post_run if post_run is not None else (entry_point.post_run or None)
+    effective_container = container if container is not None else (entry_point.container or None)
+    effective_container_args = container_args if container_args is not None else (entry_point.container_args or None)
 
     # Create DB record first to get job ID for the work directory
     resources_dict = None
@@ -650,6 +698,8 @@ async def submit_job(
             pre_run=effective_pre_run,
             post_run=effective_post_run,
             pull_latest=pull_latest,
+            container=effective_container,
+            container_args=effective_container_args,
         )
         job_id = db_job.id
 
@@ -702,6 +752,28 @@ async def submit_job(
             f'conda activate {shlex.quote(entry_point.conda_env)}'
         )
         script_parts.append(conda_activation)
+
+    # If container is defined, wrap command in apptainer exec
+    if effective_container:
+        bind_paths = []
+        for param in entry_point.flat_parameters():
+            if param.type in ("file", "directory") and param.key in parameters:
+                path_val = str(parameters[param.key])
+                expanded = os.path.expanduser(path_val)
+                if param.type == "directory":
+                    bind_paths.append(expanded)
+                else:
+                    bind_paths.append(str(Path(expanded).parent))
+        if entry_point.bind_paths:
+            bind_paths.extend(entry_point.bind_paths)
+
+        command = _build_container_script(
+            container_url=effective_container,
+            command=command,
+            work_dir=str(work_dir),
+            bind_paths=bind_paths,
+            container_args=effective_container_args,
+        )
 
     if env_lines:
         script_parts.append(env_lines.rstrip())

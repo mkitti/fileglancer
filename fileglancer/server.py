@@ -1662,6 +1662,8 @@ def create_app(settings):
                 env=body.env,
                 pre_run=body.pre_run,
                 post_run=body.post_run,
+                container=body.container,
+                container_args=body.container_args,
             )
             return _convert_job(db_job)
         except ValueError as e:
@@ -1757,6 +1759,8 @@ def create_app(settings):
             env=db_job.env,
             pre_run=db_job.pre_run,
             post_run=db_job.post_run,
+            container=getattr(db_job, 'container', None),
+            container_args=getattr(db_job, 'container_args', None),
             pull_latest=db_job.pull_latest,
             cluster_job_id=db_job.cluster_job_id,
             service_url=apps_module.get_service_url(db_job),

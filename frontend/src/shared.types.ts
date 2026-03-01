@@ -118,6 +118,8 @@ type AppEntryPoint = {
   pre_run?: string;
   post_run?: string;
   conda_env?: string;
+  container?: string;
+  container_args?: string;
 };
 
 type AppManifest = {
@@ -160,6 +162,8 @@ type Job = {
   env?: Record<string, string>;
   pre_run?: string;
   post_run?: string;
+  container?: string;
+  container_args?: string;
   pull_latest: boolean;
   cluster_job_id?: string;
   service_url?: string;
@@ -180,6 +184,8 @@ type JobSubmitRequest = {
   env?: Record<string, string>;
   pre_run?: string;
   post_run?: string;
+  container?: string;
+  container_args?: string;
 };
 
 export type {
