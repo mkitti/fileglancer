@@ -196,6 +196,10 @@ _TOOL_REGISTRY = {
         "version_args": ["apptainer", "--version"],
         "version_pattern": r"apptainer version (\S+)",
     },
+    "nextflow": {
+        "version_args": ["nextflow", "-version"],
+        "version_pattern": r"version (\S+)",
+    },
 }
 
 _REQ_PATTERN = re.compile(r"^([a-zA-Z][a-zA-Z0-9_-]*)\s*((?:>=|<=|!=|==|>|<)\s*\S+)?$")

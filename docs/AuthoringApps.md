@@ -67,7 +67,7 @@ requirements:
   - miniforge
 ```
 
-**Supported tools:** `pixi`, `npm`, `maven`, `miniforge`, `apptainer`
+**Supported tools:** `pixi`, `npm`, `maven`, `miniforge`, `apptainer`, `nextflow`
 
 **Supported version operators:** `>=`, `<=`, `!=`, `==`, `>`, `<`
 

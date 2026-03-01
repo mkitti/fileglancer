@@ -483,7 +483,7 @@ class AppEntryPoint(BaseModel):
         return self
 
 
-SUPPORTED_TOOLS = {"pixi", "npm", "maven", "miniforge", "apptainer"}
+SUPPORTED_TOOLS = {"pixi", "npm", "maven", "miniforge", "apptainer", "nextflow"}
 
 _SHELL_METACHAR_PATTERN = re.compile(r'[;&|`$(){}!<>\n\r]')
 _CONDA_ENV_NAME_PATTERN = re.compile(r'^[a-zA-Z0-9_.-]+$')
