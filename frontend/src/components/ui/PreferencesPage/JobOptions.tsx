@@ -84,7 +84,8 @@ export default function JobOptions() {
             Container cache directory
           </label>
           <Typography className="text-secondary mb-2" type="small">
-            Directory where Apptainer SIF images are cached. Defaults to <code>~/.fileglancer/apptainer_cache</code> if not set.
+            Directory where Apptainer SIF images are cached. Defaults to{' '}
+            <code>~/.fileglancer/apptainer_cache</code> if not set.
           </Typography>
           <input
             className="max-w-md w-full p-2 text-foreground border rounded-sm focus:outline-none bg-background border-primary-light focus:border-primary font-mono text-sm"
