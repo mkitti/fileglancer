@@ -140,14 +140,16 @@ export function useJobQuery(jobId: number): UseQueryResult<Job, Error> {
 
 export function useJobFileQuery(
   jobId: number,
-  fileType: string
+  fileType: string,
+  jobStatus?: string
 ): UseQueryResult<string | null, Error> {
+  const isActive = jobStatus === 'PENDING' || jobStatus === 'RUNNING';
   return useQuery({
     queryKey: [...jobsQueryKeys.detail(jobId), 'file', fileType],
     queryFn: ({ signal }) => fetchJobFile(jobId, fileType, signal),
-    refetchInterval: query => {
-      // Only auto-refresh if file doesn't exist yet (null) - it may appear later
-      return query.state.data === null ? 10000 : false;
+    refetchInterval: () => {
+      // Auto-refresh while job is active, or if file doesn't exist yet
+      return isActive ? 5000 : false;
     }
   });
 }

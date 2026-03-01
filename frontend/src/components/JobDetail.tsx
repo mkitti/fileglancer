@@ -145,9 +145,10 @@ export default function JobDetail() {
 
   const id = jobId ? parseInt(jobId) : 0;
   const jobQuery = useJobQuery(id);
+  const jobStatus = jobQuery.data?.status;
   const scriptQuery = useJobFileQuery(id, 'script');
-  const stdoutQuery = useJobFileQuery(id, 'stdout');
-  const stderrQuery = useJobFileQuery(id, 'stderr');
+  const stdoutQuery = useJobFileQuery(id, 'stdout', jobStatus);
+  const stderrQuery = useJobFileQuery(id, 'stderr', jobStatus);
   const cancelMutation = useCancelJobMutation();
 
   const isService = jobQuery.data?.entry_point_type === 'service';

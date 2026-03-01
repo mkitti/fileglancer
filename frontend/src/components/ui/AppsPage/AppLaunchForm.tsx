@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 
 import { Accordion, Button, Tabs, Typography } from '@material-tailwind/react';
@@ -701,6 +701,18 @@ export default function AppLaunchForm({
     }
   );
   const [extraArgs, setExtraArgs] = useState<string>(resolvedExtraArgs);
+
+  // Update extraArgs when async data (preferences or cluster defaults) arrives,
+  // but only if not a relaunch and the user hasn't modified the field yet
+  useEffect(() => {
+    if (externalExtraArgs !== undefined) {
+      return; // relaunch value takes priority, don't overwrite
+    }
+    const resolved = defaultExtraArgs || configExtraArgs;
+    if (resolved) {
+      setExtraArgs(prev => (prev === '' ? resolved : prev));
+    }
+  }, [defaultExtraArgs, configExtraArgs, externalExtraArgs]);
 
   // Environment tab state — relaunch values override entry point defaults
   const [envVars, setEnvVars] = useState<EnvVar[]>(() => {
