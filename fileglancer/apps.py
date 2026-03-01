@@ -391,17 +391,7 @@ def build_command(entry_point: AppEntryPoint, parameters: dict) -> str:
     # Start with the base command
     parts = [entry_point.command]
 
-    # Pass 1: Positional args in declaration order
-    for param in flat_params:
-        if param.flag is not None:
-            continue
-        if param.key not in effective:
-            continue
-        p, value = effective[param.key]
-        validated = _validate_parameter_value(p, value)
-        parts.append(shlex.quote(validated))
-
-    # Pass 2: Flagged args in declaration order
+    # Pass 1: Flagged args in declaration order
     for param in flat_params:
         if param.flag is None:
             continue
@@ -414,6 +404,16 @@ def build_command(entry_point: AppEntryPoint, parameters: dict) -> str:
                 parts.append(p.flag)
         else:
             parts.append(f"{p.flag} {shlex.quote(validated)}")
+
+    # Pass 2: Positional args in declaration order
+    for param in flat_params:
+        if param.flag is not None:
+            continue
+        if param.key not in effective:
+            continue
+        p, value = effective[param.key]
+        validated = _validate_parameter_value(p, value)
+        parts.append(shlex.quote(validated))
 
     return (" \\\n  ").join(parts)
 
@@ -840,7 +840,7 @@ async def submit_job(
         db_job = db.get_job(session, job_id, username)
         session.expunge(db_job)
 
-    logger.info(f"Job {db_job.id} submitted for user {username} in {work_dir}: {command}")
+    logger.info(f"Job {db_job.id} submitted for user {username} in {work_dir}")
     return db_job
 
 
