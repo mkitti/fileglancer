@@ -758,8 +758,12 @@ async def submit_job(
         )
         job_id = db_job.id
 
-    # Create work directory
-    work_dir = _build_work_dir(job_id, manifest.name, entry_point.id)
+        # Compute and persist work_dir now that we have the job ID
+        work_dir = _build_work_dir(job_id, manifest.name, entry_point.id)
+        db_job.work_dir = str(work_dir)
+        session.commit()
+
+    # Create work directory on disk
     work_dir.mkdir(parents=True, exist_ok=True)
 
     # Determine which repo to symlink and where to cd
@@ -945,6 +949,8 @@ async def cancel_job(job_id: int, username: str) -> db.JobDB:
 
 def _resolve_work_dir(db_job: db.JobDB) -> Path:
     """Resolve a job's work directory to an absolute path."""
+    if db_job.work_dir:
+        return Path(db_job.work_dir)
     return _build_work_dir(db_job.id, db_job.app_name, db_job.entry_point_id)
 
 

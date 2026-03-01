@@ -158,6 +158,7 @@ class JobDB(Base):
     post_run = Column(String, nullable=True)
     container = Column(String, nullable=True)
     container_args = Column(String, nullable=True)
+    work_dir = Column(String, nullable=True)
     pull_latest = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(UTC))
     started_at = Column(DateTime, nullable=True)
