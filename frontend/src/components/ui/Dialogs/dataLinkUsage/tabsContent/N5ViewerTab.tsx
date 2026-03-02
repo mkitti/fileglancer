@@ -1,7 +1,7 @@
 import InstructionBlock from '@/components/ui/Dialogs/dataLinkUsage/InstructionBlock';
 import PrerequisitesBlock from '@/components/ui/Dialogs/dataLinkUsage/PrerequisitesBlock';
 
-export default function FijiTab() {
+export default function N5ViewerTab() {
   return (
     <>
       <PrerequisitesBlock

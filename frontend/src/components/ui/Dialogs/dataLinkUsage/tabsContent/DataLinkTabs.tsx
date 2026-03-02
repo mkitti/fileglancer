@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Tabs } from '@material-tailwind/react';
 
-import FijiTab from '@/components/ui/Dialogs/dataLinkUsage/tabsContent/FijiTab';
+import N5ViewerTab from '@/components/ui/Dialogs/dataLinkUsage/tabsContent/N5ViewerTab';
 import JavaTab from '@/components/ui/Dialogs/dataLinkUsage/tabsContent/javaTab/JavaTab';
 import NapariTab from '@/components/ui/Dialogs/dataLinkUsage/tabsContent/NapariTab';
 import PythonTab from '@/components/ui/Dialogs/dataLinkUsage/tabsContent/PythonTab';
@@ -49,7 +49,7 @@ function getTabsForDataType(
   if (dataType === 'ome-zarr') {
     return [
       ...(zarrVersion !== 3
-        ? [{ id: 'fiji', label: 'Fiji', content: <FijiTab /> }]
+        ? [{ id: 'n5Viewer', label: 'N5 Viewer', content: <N5ViewerTab /> }]
         : []),
       {
         id: 'java',
@@ -98,7 +98,7 @@ function getTabsForDataType(
   if (dataType === 'zarr') {
     return [
       ...(zarrVersion !== 3
-        ? [{ id: 'fiji', label: 'Fiji', content: <FijiTab /> }]
+        ? [{ id: 'n5Viewer', label: 'N5 Viewer', content: <N5ViewerTab /> }]
         : []),
       {
         id: 'java',
@@ -128,7 +128,7 @@ function getTabsForDataType(
 
   // dataType === 'n5'
   return [
-    { id: 'fiji', label: 'Fiji', content: <FijiTab /> },
+    { id: 'n5Viewer', label: 'N5 Viewer', content: <N5ViewerTab /> },
     {
       id: 'java',
       label: 'Java',
