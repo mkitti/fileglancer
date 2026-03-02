@@ -234,8 +234,8 @@ def verify_requirements(requirements: list[str]):
         return
 
     settings = get_settings()
-    search_path = _augmented_path(settings.cluster.extra_paths)
-    env = {**os.environ, "PATH": search_path} if settings.cluster.extra_paths else None
+    search_path = _augmented_path(settings.apps.extra_paths)
+    env = {**os.environ, "PATH": search_path} if settings.apps.extra_paths else None
 
     errors = []
 
@@ -799,8 +799,8 @@ async def submit_job(
         "unset PIXI_PROJECT_MANIFEST",
         f"export FG_WORK_DIR={shlex.quote(str(work_dir))}",
     ]
-    if settings.cluster.extra_paths:
-        path_suffix = os.pathsep.join(shlex.quote(p) for p in settings.cluster.extra_paths)
+    if settings.apps.extra_paths:
+        path_suffix = os.pathsep.join(shlex.quote(p) for p in settings.apps.extra_paths)
         preamble_lines.append(f"export PATH=$PATH:{path_suffix}")
     if entry_point.type == "service":
         preamble_lines.append('export SERVICE_URL_PATH="$FG_WORK_DIR/service_url"')

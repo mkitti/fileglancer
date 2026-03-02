@@ -535,10 +535,10 @@ Some aspects of app execution are controlled by the Fileglancer server's `config
 
 ### Extra Paths (`extra_paths`)
 
-The `extra_paths` cluster setting lets administrators add directories to `$PATH` for all job scripts. This is useful for making tools like `nextflow`, `pixi`, or `apptainer` available without requiring users to configure their own environments.
+The `extra_paths` apps setting lets administrators add directories to `$PATH` for all job scripts. This is useful for making tools like `nextflow`, `pixi`, or `apptainer` available without requiring users to configure their own environments.
 
 ```yaml
-cluster:
+apps:
   extra_paths:
     - /opt/nextflow/bin
     - /opt/pixi/bin

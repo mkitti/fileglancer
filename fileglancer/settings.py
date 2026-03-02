@@ -32,6 +32,10 @@ class ClusterSettings(BaseModel):
     completed_retention_minutes: float = 10.0
     command_timeout: float = 100.0
     suppress_job_email: bool = True
+
+
+class AppsSettings(BaseModel):
+    """Apps-specific configuration (not passed to py-cluster-api)."""
     extra_paths: List[str] = []
 
 
@@ -93,6 +97,9 @@ class Settings(BaseSettings):
 
     # Cluster / Apps settings (mirrors py-cluster-api ClusterConfig)
     cluster: ClusterSettings = ClusterSettings()
+
+    # Apps-specific settings (not passed to py-cluster-api)
+    apps: AppsSettings = AppsSettings()
 
     model_config = SettingsConfigDict(
         yaml_file="config.yaml",
