@@ -126,31 +126,41 @@ print(f'Voxels:\\n{data}')
 "`;
 }
 
-export default function getPythonTab(
-  dataType: DataLinkType,
-  dataLinkUrl: string,
-  tooltipTriggerClasses: string,
-  zarrVersion?: ZarrVersion
-) {
-  return {
-    id: 'python',
-    label: 'Python',
-    content: (
-      <>
-        <PrerequisitesBlock prerequisites={['pixi']} />
-        <InstructionBlock
-          steps={[
-            'Run this command to use pixi to install the required dependencies and read the data using Python:'
-          ]}
-        />
-        <CodeBlock
-          code={getCodeForDataType(dataType, dataLinkUrl, zarrVersion)}
-          copyLabel="Copy code"
-          copyable={true}
-          language="bash"
-          tooltipTriggerClasses={tooltipTriggerClasses}
-        />
-      </>
-    )
-  };
+type PythonTabProps = {
+  readonly dataType: DataLinkType;
+  readonly dataLinkUrl: string;
+  readonly tooltipTriggerClasses: string;
+  readonly zarrVersion?: ZarrVersion;
+};
+
+export default function PythonTab({
+  dataType,
+  dataLinkUrl,
+  tooltipTriggerClasses,
+  zarrVersion
+}: PythonTabProps) {
+  return (
+    <>
+      <PrerequisitesBlock
+        prerequisites={[
+          {
+            label: 'Pixi',
+            href: 'https://pixi.prefix.dev/latest/installation/'
+          }
+        ]}
+      />
+      <InstructionBlock
+        steps={[
+          'Run this command to use pixi to install the required dependencies and read the data using Python:'
+        ]}
+      />
+      <CodeBlock
+        code={getCodeForDataType(dataType, dataLinkUrl, zarrVersion)}
+        copyLabel="Copy code"
+        copyable={true}
+        language="bash"
+        tooltipTriggerClasses={tooltipTriggerClasses}
+      />
+    </>
+  );
 }

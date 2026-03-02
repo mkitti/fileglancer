@@ -1,10 +1,9 @@
-import { useState } from 'react';
-import { Typography, Tabs } from '@material-tailwind/react';
+import { Typography } from '@material-tailwind/react';
 import { HiOutlineClipboardCopy } from 'react-icons/hi';
 
 import FgDialog from '@/components/ui/Dialogs/FgDialog';
 import TabsSkeleton from '@/components/ui/Dialogs/dataLinkUsage/TabsSkeleton';
-import getTabsForDataType from '@/components/ui/Dialogs/dataLinkUsage/tabsContent/getTabsForDataType';
+import DataLinkTabs from '@/components/ui/Dialogs/dataLinkUsage/tabsContent/DataLinkTabs';
 import CopyTooltip from '@/components/ui/widgets/CopyTooltip';
 import useFileQuery from '@/queries/fileQueries';
 import {
@@ -26,55 +25,6 @@ type DataLinkUsageDialogProps = {
   readonly open: boolean;
   readonly onClose: () => void;
 };
-
-function DataLinkTabs({
-  dataLinkUrl,
-  dataType,
-  zarrVersion
-}: {
-  readonly dataLinkUrl: string;
-  readonly dataType: DataLinkType;
-  readonly zarrVersion?: ZarrVersion;
-}) {
-  const tabs = getTabsForDataType(
-    dataType,
-    dataLinkUrl,
-    TOOLTIP_TRIGGER_CLASSES,
-    zarrVersion
-  );
-  const [activeTab, setActiveTab] = useState<string>(tabs[0]?.id ?? '');
-
-  const TAB_TRIGGER_CLASSES = '!text-foreground h-full text-base';
-  const PANEL_CLASSES =
-    'flex flex-col gap-4 max-w-full h-[50vh] p-4 rounded-b-lg border border-t-0 border-surface dark:border-foreground/30 bg-surface-light dark:bg-surface overflow-y-auto overflow-x-hidden';
-
-  return (
-    <Tabs
-      className="flex flex-col flex-1 min-h-0 gap-0 max-h-[75vh] w-[95%] self-center"
-      onValueChange={setActiveTab}
-      value={activeTab}
-    >
-      <Tabs.List className="justify-start items-stretch shrink-0 min-w-fit w-full py-2 rounded-b-none bg-surface dark:bg-surface-light">
-        {tabs.map(tab => (
-          <Tabs.Trigger
-            className={TAB_TRIGGER_CLASSES}
-            key={tab.id}
-            value={tab.id}
-          >
-            {tab.label}
-          </Tabs.Trigger>
-        ))}
-        <Tabs.TriggerIndicator className="h-full" />
-      </Tabs.List>
-
-      {tabs.map(tab => (
-        <Tabs.Panel className={PANEL_CLASSES} key={tab.id} value={tab.id}>
-          {tab.content}
-        </Tabs.Panel>
-      ))}
-    </Tabs>
-  );
-}
 
 export default function DataLinkUsageDialog({
   dataLinkUrl,
@@ -146,6 +96,7 @@ export default function DataLinkUsageDialog({
             dataLinkUrl={dataLinkUrl}
             dataType={dataType}
             key={`${dataType}-${zarrVersion}`}
+            tooltipTriggerClasses={TOOLTIP_TRIGGER_CLASSES}
             zarrVersion={zarrVersion}
           />
         )}
