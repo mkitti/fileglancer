@@ -1,5 +1,4 @@
 import { Typography } from '@material-tailwind/react';
-import { Link } from 'react-router';
 
 import { useTicketContext } from '@/contexts/TicketsContext';
 import { TableCard } from './ui/Table/TableCard';
@@ -13,12 +12,10 @@ export default function Jobs() {
         Tasks
       </Typography>
       <Typography className="mb-6 text-foreground">
-        Jobs are runs of command-line tools on the compute cluster that are
-        launched from the{' '}
-        <Link className="text-primary underline" to="/fg/apps">
-          Apps page
-        </Link>
-        .
+        A task is created when you request a file to be converted to a different
+        format. To request a file conversion, select a file in the file browser,
+        open the <strong>Properties</strong> panel, and click the{' '}
+        <strong>Convert</strong> button.
       </Typography>
       <TableCard
         columns={jobsColumns}

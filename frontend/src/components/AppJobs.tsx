@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, Link } from 'react-router';
 
 import { Typography } from '@material-tailwind/react';
 import toast from 'react-hot-toast';
@@ -85,6 +85,14 @@ export default function AppJobs() {
     <div>
       <Typography className="mb-4 text-foreground font-bold" type="h5">
         Jobs
+      </Typography>
+      <Typography className="mb-6 text-foreground">
+        Jobs are runs of command-line tools on the compute cluster that are
+        launched from the{' '}
+        <Link className="text-primary underline" to="/fg/apps">
+          Apps page
+        </Link>
+        .
       </Typography>
 
       <TableCard
