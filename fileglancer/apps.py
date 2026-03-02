@@ -300,9 +300,10 @@ def verify_requirements(requirements: list[str]):
 _SHELL_METACHAR_PATTERN = re.compile(r'[;&|`$(){}!<>\n\r]')
 
 
-def validate_path(path_value: str) -> str | None:
-    """Validate a file or directory path for use in app parameters.
+def validate_path_for_shell(path_value: str) -> str | None:
+    """Validate path syntax for use in shell commands (no filesystem I/O).
 
+    Checks for shell metacharacters and absolute-path requirement only.
     Returns an error message string if invalid, or None if valid.
     """
     normalized = path_value.replace("\\", "/")
@@ -313,13 +314,34 @@ def validate_path(path_value: str) -> str | None:
     if not normalized.startswith("/") and not normalized.startswith("~"):
         return "Must be an absolute path (starting with / or ~)"
 
-    expanded = os.path.expanduser(normalized)
-    if not os.path.exists(expanded):
-        return f"Path does not exist: {normalized}"
-    if not os.access(expanded, os.R_OK):
-        return f"Path is not accessible: {normalized}"
-
     return None
+
+
+def validate_path_in_filestore(path_value: str, session) -> str | None:
+    """Validate a path exists and is readable within an allowed file share.
+
+    Performs syntax checks, then resolves the path against known file share
+    mounts via the database. Returns an error message string if invalid,
+    or None if valid.
+    """
+    # Syntax check first
+    error = validate_path_for_shell(path_value)
+    if error:
+        return error
+
+    expanded = os.path.expanduser(path_value.replace("\\", "/"))
+
+    # Resolve to a file share path
+    from fileglancer.database import find_fsp_from_absolute_path
+    result = find_fsp_from_absolute_path(session, expanded)
+    if result is None:
+        return "Path is not within an allowed file share"
+
+    fsp, subpath = result
+
+    from fileglancer.filestore import Filestore
+    filestore = Filestore(fsp)
+    return filestore.validate_path(subpath)
 
 
 # --- Command Building ---
@@ -328,8 +350,12 @@ def validate_path(path_value: str) -> str | None:
 _ENV_VAR_NAME_PATTERN = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
 
 
-def _validate_parameter_value(param: AppParameter, value) -> str:
+def _validate_parameter_value(param: AppParameter, value, session=None) -> str:
     """Validate a single parameter value against its schema and return the string representation.
+
+    When session is provided and param type is file/directory, validates that
+    the path is within an allowed file share mount. Otherwise falls back to
+    syntax-only validation.
 
     Raises ValueError if validation fails.
     """
@@ -371,7 +397,10 @@ def _validate_parameter_value(param: AppParameter, value) -> str:
 
     if param.type in ("file", "directory"):
         str_val = str_val.replace("\\", "/")
-        error = validate_path(str_val)
+        if session is not None:
+            error = validate_path_in_filestore(str_val, session)
+        else:
+            error = validate_path_for_shell(str_val)
         if error:
             raise ValueError(f"Parameter '{param.name}': {error}")
 
@@ -382,12 +411,14 @@ def _validate_parameter_value(param: AppParameter, value) -> str:
     return str_val
 
 
-def build_command(entry_point: AppEntryPoint, parameters: dict) -> str:
+def build_command(entry_point: AppEntryPoint, parameters: dict, session=None) -> str:
     """Build a shell command from an entry point and parameter values.
 
     All parameter values are validated and shell-escaped.
     Flagged parameters are emitted first in declaration order,
     then positional parameters (no flag) in declaration order.
+    When session is provided, file/directory parameters are validated
+    against allowed file share mounts.
     Raises ValueError for invalid parameters.
     """
     # Build a lookup of parameter definitions by key
@@ -423,7 +454,7 @@ def build_command(entry_point: AppEntryPoint, parameters: dict) -> str:
         if param.key not in effective:
             continue
         p, value = effective[param.key]
-        validated = _validate_parameter_value(p, value)
+        validated = _validate_parameter_value(p, value, session=session)
         if p.type == "boolean":
             if value is True:
                 parts.append(p.flag)
@@ -437,7 +468,7 @@ def build_command(entry_point: AppEntryPoint, parameters: dict) -> str:
         if param.key not in effective:
             continue
         p, value = effective[param.key]
-        validated = _validate_parameter_value(p, value)
+        validated = _validate_parameter_value(p, value, session=session)
         parts.append(shlex.quote(validated))
 
     return (" \\\n  ").join(parts)
@@ -707,8 +738,9 @@ async def submit_job(
     # Verify requirements before proceeding
     verify_requirements(manifest.requirements)
 
-    # Build command
-    command = build_command(entry_point, parameters)
+    # Build command (with DB session for path validation against file shares)
+    with db.get_db_session(settings.db_url) as session:
+        command = build_command(entry_point, parameters, session=session)
 
     # Build resource spec (extra_args passed separately, not from manifest)
     overrides = dict(resources) if resources else {}

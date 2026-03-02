@@ -1659,10 +1659,11 @@ def create_app(settings):
     async def validate_paths(body: PathValidationRequest,
                              username: str = Depends(get_current_user)):
         errors = {}
-        for param_key, path_value in body.paths.items():
-            error = apps_module.validate_path(path_value)
-            if error:
-                errors[param_key] = error
+        with db.get_db_session(settings.db_url) as session:
+            for param_key, path_value in body.paths.items():
+                error = apps_module.validate_path_in_filestore(path_value, session)
+                if error:
+                    errors[param_key] = error
         return PathValidationResponse(errors=errors)
 
     @app.get("/api/cluster-defaults",

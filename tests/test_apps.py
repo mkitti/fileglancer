@@ -390,3 +390,67 @@ class TestContainerScriptGeneration:
         # Should not have docker://docker://
         assert "docker://docker://" not in script
         assert "docker://ghcr.io/org/image:1.0" in script
+
+
+# --- Path validation tests ---
+
+from fileglancer.apps import validate_path_for_shell, validate_path_in_filestore
+
+
+class TestValidatePathForShell:
+    """validate_path_for_shell performs syntax-only checks (no filesystem I/O)."""
+
+    def test_valid_absolute_path(self):
+        assert validate_path_for_shell("/data/input.txt") is None
+
+    def test_valid_tilde_path(self):
+        assert validate_path_for_shell("~/data/input.txt") is None
+
+    def test_rejects_relative_path(self):
+        error = validate_path_for_shell("relative/path.txt")
+        assert error is not None
+        assert "absolute path" in error
+
+    def test_rejects_metacharacters(self):
+        error = validate_path_for_shell("/data/input;rm -rf /")
+        assert error is not None
+        assert "invalid characters" in error
+
+    def test_no_filesystem_io(self, tmp_path):
+        """Should NOT check existence — nonexistent path is syntactically fine."""
+        fake_path = str(tmp_path / "no_such_file.txt")
+        assert validate_path_for_shell(fake_path) is None
+
+
+class TestValidatePathInFilestore:
+    """validate_path_in_filestore validates against file share mounts."""
+
+    def test_path_outside_any_share(self):
+        """Path not in any file share returns an error."""
+        mock_session = MagicMock()
+        with patch("fileglancer.database.find_fsp_from_absolute_path", return_value=None):
+            error = validate_path_in_filestore("/nowhere/file.txt", mock_session)
+        assert error is not None
+        assert "not within an allowed file share" in error
+
+    def test_valid_path_in_share(self, tmp_path):
+        """Path inside a file share that exists returns None."""
+        # Create a temp file inside a temp dir acting as a file share
+        test_file = tmp_path / "data.txt"
+        test_file.write_text("hello")
+
+        from fileglancer.model import FileSharePath
+        fsp = FileSharePath(zone="test", name="test", mount_path=str(tmp_path))
+
+        mock_session = MagicMock()
+        with patch("fileglancer.database.find_fsp_from_absolute_path",
+                   return_value=(fsp, "data.txt")):
+            error = validate_path_in_filestore(str(test_file), mock_session)
+        assert error is None
+
+    def test_syntax_error_short_circuits(self):
+        """Metachar in path returns error before DB lookup."""
+        mock_session = MagicMock()
+        error = validate_path_in_filestore("/data;bad", mock_session)
+        assert error is not None
+        assert "invalid characters" in error
