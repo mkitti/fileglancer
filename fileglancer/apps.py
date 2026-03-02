@@ -456,6 +456,9 @@ async def get_executor():
     if _executor is None:
         settings = get_settings()
         config = settings.cluster.model_dump(exclude_none=True)
+        # extra_args are handled via ResourceSpec in _build_resource_spec
+        # to avoid double-application (config + per-job merge in py-cluster-api)
+        config.pop("extra_args", None)
         _executor = create_executor(**config)
     return _executor
 
@@ -896,8 +899,8 @@ def _build_resource_spec(entry_point: AppEntryPoint, overrides: Optional[dict], 
             queue = entry_point.resources.queue
 
     # Apply user overrides
-    # Note: extra_args replaces (not extends) config defaults via ResourceSpec
-    extra_args = None
+    # extra_args default to config values; user overrides replace them entirely
+    extra_args = list(settings.cluster.extra_args) if settings.cluster.extra_args else None
     if overrides:
         if overrides.get("cpus") is not None:
             cpus = overrides["cpus"]
