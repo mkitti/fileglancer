@@ -693,11 +693,13 @@ def _build_container_script(
     return "\n".join(lines)
 
 
-def _build_work_dir(job_id: int, app_name: str, entry_point_id: str) -> Path:
+def _build_work_dir(job_id: int, app_name: str, entry_point_id: str,
+                    job_name_prefix: Optional[str] = None) -> Path:
     """Build a working directory path under ~/.fileglancer/jobs/."""
     safe_app = _sanitize_for_path(app_name)
     safe_ep = _sanitize_for_path(entry_point_id)
-    return Path(os.path.expanduser(f"~/.fileglancer/jobs/{job_id}-{safe_app}-{safe_ep}"))
+    prefix = f"{_sanitize_for_path(job_name_prefix)}-" if job_name_prefix else ""
+    return Path(os.path.expanduser(f"~/.fileglancer/jobs/{prefix}{job_id}-{safe_app}-{safe_ep}"))
 
 
 async def submit_job(
@@ -794,7 +796,8 @@ async def submit_job(
         job_id = db_job.id
 
         # Compute and persist work_dir now that we have the job ID
-        work_dir = _build_work_dir(job_id, manifest.name, entry_point.id)
+        work_dir = _build_work_dir(job_id, manifest.name, entry_point.id,
+                                   job_name_prefix=settings.cluster.job_name_prefix)
         db_job.work_dir = str(work_dir)
         session.commit()
 
@@ -889,7 +892,7 @@ async def submit_job(
 
     # Submit to executor
     executor = await get_executor()
-    job_name = f"fg-{manifest.name}-{entry_point.id}"
+    job_name = f"{manifest.name}-{entry_point.id}"
     cluster_job = await executor.submit(
         command=full_command,
         name=job_name,
