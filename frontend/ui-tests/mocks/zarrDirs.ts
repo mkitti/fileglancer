@@ -165,7 +165,10 @@ export const ZARR_V2_OME_ZARRAY_METADATA = {
 // Detected by attributes.json file + s0/ subdirectory (per detectN5 in n5Queries.ts)
 export const N5_ROOT_METADATA = {
   n5: '4.0.0',
-  downsamplingFactors: [[1, 1, 1], [2, 2, 1]],
+  downsamplingFactors: [
+    [1, 1, 1],
+    [2, 2, 1]
+  ],
   resolution: [157, 157, 628],
   units: ['nm', 'nm', 'nm'],
   multiScale: true

@@ -18,9 +18,9 @@ async function openDataLinkUsageDialog(page: Page, dirName: string) {
   await row.getByText('Folder', { exact: true }).click();
 
   // Wait for properties panel to show the directory name
-  await expect(
-    propertiesPanel.getByText(dirName, { exact: true })
-  ).toBeVisible({ timeout: 10000 });
+  await expect(propertiesPanel.getByText(dirName, { exact: true })).toBeVisible(
+    { timeout: 10000 }
+  );
 
   // Wait for the data link toggle to appear and create a data link
   const dataLinkToggle = propertiesPanel.getByRole('checkbox', {
@@ -74,10 +74,7 @@ test.describe('DataLinkUsage Dialog Tabs', () => {
   test('Regular directory shows Java and Python tabs', async ({
     fileglancerPage: page
   }) => {
-    await openDataLinkUsageDialog(
-      page,
-      ZARR_TEST_FILE_INFO.plain_dir.dirname
-    );
+    await openDataLinkUsageDialog(page, ZARR_TEST_FILE_INFO.plain_dir.dirname);
     const tabs = await getTabNames(page);
     expect(tabs).toEqual(expect.arrayContaining(['Java', 'Python']));
     expect(tabs).toHaveLength(2);
@@ -86,10 +83,7 @@ test.describe('DataLinkUsage Dialog Tabs', () => {
   test('Zarr v2 array shows Java, N5 Viewer, and Python tabs', async ({
     fileglancerPage: page
   }) => {
-    await openDataLinkUsageDialog(
-      page,
-      ZARR_TEST_FILE_INFO.v2_non_ome.dirname
-    );
+    await openDataLinkUsageDialog(page, ZARR_TEST_FILE_INFO.v2_non_ome.dirname);
     const tabs = await getTabNames(page);
     expect(tabs).toEqual(
       expect.arrayContaining(['Java', 'N5 Viewer', 'Python'])
@@ -100,10 +94,7 @@ test.describe('DataLinkUsage Dialog Tabs', () => {
   test('Zarr v3 array shows Java and Python tabs', async ({
     fileglancerPage: page
   }) => {
-    await openDataLinkUsageDialog(
-      page,
-      ZARR_TEST_FILE_INFO.v3_non_ome.dirname
-    );
+    await openDataLinkUsageDialog(page, ZARR_TEST_FILE_INFO.v3_non_ome.dirname);
     const tabs = await getTabNames(page);
     expect(tabs).toEqual(expect.arrayContaining(['Java', 'Python']));
     expect(tabs).toHaveLength(2);
@@ -131,9 +122,7 @@ test.describe('DataLinkUsage Dialog Tabs', () => {
   }) => {
     await openDataLinkUsageDialog(page, ZARR_TEST_FILE_INFO.v3_ome.dirname);
     const tabs = await getTabNames(page);
-    expect(tabs).toEqual(
-      expect.arrayContaining(['Java', 'Napari', 'Python'])
-    );
+    expect(tabs).toEqual(expect.arrayContaining(['Java', 'Napari', 'Python']));
     expect(tabs).toHaveLength(3);
   });
 

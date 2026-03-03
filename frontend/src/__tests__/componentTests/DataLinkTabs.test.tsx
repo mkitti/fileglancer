@@ -3,7 +3,10 @@ import { render, screen } from '@testing-library/react';
 
 import DataLinkTabs from '@/components/ui/Dialogs/dataLinkUsage/tabsContent/DataLinkTabs';
 
-import type { DataLinkType, ZarrVersion } from '@/components/ui/Dialogs/dataLinkUsage/DataLinkUsageDialog';
+import type {
+  DataLinkType,
+  ZarrVersion
+} from '@/components/ui/Dialogs/dataLinkUsage/DataLinkUsageDialog';
 
 function renderTabs(dataType: DataLinkType, zarrVersion?: ZarrVersion) {
   return render(
@@ -38,7 +41,13 @@ describe('DataLinkTabs', () => {
   it('shows Java, N5 Viewer, Napari, Python, and VVDViewer tabs for OME-Zarr v0.4 (Zarr v2)', () => {
     renderTabs('ome-zarr', 2);
     const labels = getTabLabels();
-    expect(labels).toEqual(['Java', 'N5 Viewer', 'Napari', 'Python', 'VVDViewer']);
+    expect(labels).toEqual([
+      'Java',
+      'N5 Viewer',
+      'Napari',
+      'Python',
+      'VVDViewer'
+    ]);
     expectAlphabetical(labels);
   });
 
