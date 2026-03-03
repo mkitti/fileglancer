@@ -48,9 +48,6 @@ function getTabsForDataType(
 
   if (dataType === 'ome-zarr') {
     return [
-      ...(zarrVersion !== 3
-        ? [{ id: 'n5Viewer', label: 'N5 Viewer', content: <N5ViewerTab /> }]
-        : []),
       {
         id: 'java',
         label: 'Java',
@@ -63,6 +60,9 @@ function getTabsForDataType(
           />
         )
       },
+      ...(zarrVersion !== 3
+        ? [{ id: 'n5Viewer', label: 'N5 Viewer', content: <N5ViewerTab /> }]
+        : []),
       {
         id: 'napari',
         label: 'Napari',
@@ -73,6 +73,7 @@ function getTabsForDataType(
           />
         )
       },
+
       {
         id: 'python',
         label: 'Python',
@@ -93,9 +94,6 @@ function getTabsForDataType(
 
   if (dataType === 'zarr') {
     return [
-      ...(zarrVersion !== 3
-        ? [{ id: 'n5Viewer', label: 'N5 Viewer', content: <N5ViewerTab /> }]
-        : []),
       {
         id: 'java',
         label: 'Java',
@@ -108,6 +106,9 @@ function getTabsForDataType(
           />
         )
       },
+      ...(zarrVersion !== 3
+        ? [{ id: 'n5Viewer', label: 'N5 Viewer', content: <N5ViewerTab /> }]
+        : []),
       {
         id: 'python',
         label: 'Python',
@@ -124,7 +125,6 @@ function getTabsForDataType(
 
   // dataType === 'n5'
   return [
-    { id: 'n5Viewer', label: 'N5 Viewer', content: <N5ViewerTab /> },
     {
       id: 'java',
       label: 'Java',
@@ -137,6 +137,7 @@ function getTabsForDataType(
         />
       )
     },
+    { id: 'n5Viewer', label: 'N5 Viewer', content: <N5ViewerTab /> },
     {
       id: 'python',
       label: 'Python',
