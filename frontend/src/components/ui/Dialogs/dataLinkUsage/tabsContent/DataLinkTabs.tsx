@@ -63,20 +63,16 @@ function getTabsForDataType(
           />
         )
       },
-      ...(zarrVersion === 2
-        ? [
-            {
-              id: 'napari',
-              label: 'Napari',
-              content: (
-                <NapariTab
-                  dataLinkUrl={dataLinkUrl}
-                  tooltipTriggerClasses={tooltipTriggerClasses}
-                />
-              )
-            }
-          ]
-        : []),
+      {
+        id: 'napari',
+        label: 'Napari',
+        content: (
+          <NapariTab
+            dataLinkUrl={dataLinkUrl}
+            tooltipTriggerClasses={tooltipTriggerClasses}
+          />
+        )
+      },
       {
         id: 'python',
         label: 'Python',

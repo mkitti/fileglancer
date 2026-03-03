@@ -28,8 +28,16 @@ export default function NapariTab({
         steps={[
           <Fragment key="one-line-command">
             <span>
-              Run this command to use pixi to install the required dependencies
-              and launch napari:
+              Run the below command to use pixi to install the required
+              dependencies and launch napari.
+            </span>
+            <span>
+              Note: the napari-ome-zarr plugin requires the data link to contain
+              the <code>.zarr</code> extension. If your data link does not
+              include this extension, make a data link for the level of the Zarr
+              directory that does include <code>.zarr</code>, and then add the
+              extra path segments to reach the desired directory for
+              viewing/analysis.
             </span>
             <CodeBlock
               code={`pixi exec --spec python=3.12 --spec napari --spec pyqt --spec napari-ome-zarr -- napari ${dataLinkUrl}`}
