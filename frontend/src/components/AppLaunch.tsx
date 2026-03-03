@@ -133,8 +133,7 @@ export default function AppLaunch() {
         container,
         container_args: containerArgs
       });
-      const isService = selectedEntryPoint.type === 'service';
-      toast.success(isService ? 'Service started' : 'Job submitted');
+      toast.success('Job submitted');
       navigate('/apps/jobs');
     } catch (error) {
       const message =
