@@ -3999,8 +3999,8 @@ packages:
   timestamp: 1760972937564
 - pypi: ./
   name: fileglancer
-  version: 2.6.0a1
-  sha256: f5a7dc843ebc70ae2af38a9e8e1c56b3e746a453e2956d2818e773d6672436bc
+  version: 2.6.0a2
+  sha256: 65b39010d3e7dd13bd18d33d12a7a3464ff1831feacd6793fb3da10b108dfc8c
   requires_dist:
   - alembic>=1.17.0
   - atlassian-python-api>=4.0.7
@@ -4009,6 +4009,7 @@ packages:
   - click>=8.0
   - cryptography>=41.0.0
   - fastapi>=0.119.1
+  - httpx>=0.28.1,<0.29
   - itsdangerous>=2.2.0
   - loguru>=0.7.3
   - pandas>=2.3.3

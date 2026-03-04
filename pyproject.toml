@@ -28,6 +28,7 @@ dependencies = [
     "cachetools >=6.2.1",
     "click >=8.0",
     "fastapi >=0.119.1",
+    "httpx >=0.28.1,<0.29",
     "itsdangerous >=2.2.0",
     "loguru >=0.7.3",
     "pandas >=2.3.3",
