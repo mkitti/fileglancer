@@ -134,25 +134,17 @@ async function fetchZarrMetadata({
         );
         const metadata = await getOmeZarrMetadata(imageUrl);
         // Check for labels
-        try {
-          const labelsAttrs = (await fetchFileAsJson(
-            fspName,
-            currentFileOrFolder.path + '/labels/zarr.json'
-          )) as ZarrV3Attrs;
-          metadata.labels = labelsAttrs?.attributes?.ome?.labels;
-          if (metadata.labels) {
-            log.info('OME-Zarr Labels found: ', metadata.labels);
-          }
-        } catch (error) {
-          log.trace('Could not fetch labels attrs: ', error);
-        }
+        const labelsAttrs = (await fetchFileAsJson(
+          fspName,
+          currentFileOrFolder.path + '/labels/zarr.json'
+        )) as ZarrV3Attrs;
+        metadata.labels = labelsAttrs?.attributes?.ome?.labels;
         return {
           metadata,
           omeZarrUrl: imageUrl,
           availableVersions
         };
       } else {
-        log.info('Zarrv3 group has no multiscales', attrs.attributes);
         return {
           metadata: null,
           omeZarrUrl: null,
@@ -160,7 +152,6 @@ async function fetchZarrMetadata({
         };
       }
     } else {
-      log.warn('Unknown Zarrv3 node type', attrs.node_type);
       return {
         metadata: null,
         omeZarrUrl: null,
@@ -207,18 +198,11 @@ async function fetchZarrMetadata({
           );
           const metadata = await getOmeZarrMetadata(imageUrl);
           // Check for labels
-          try {
-            const labelsAttrs = (await fetchFileAsJson(
-              fspName,
-              currentFileOrFolder.path + '/labels/.zattrs'
-            )) as ZarrV2Attrs;
-            metadata.labels = labelsAttrs?.labels;
-            if (metadata.labels) {
-              log.info('OME-Zarr Labels found: ', metadata.labels);
-            }
-          } catch (error) {
-            log.trace('Could not fetch labels attrs: ', error);
-          }
+          const labelsAttrs = (await fetchFileAsJson(
+            fspName,
+            currentFileOrFolder.path + '/labels/.zattrs'
+          )) as ZarrV2Attrs;
+          metadata.labels = labelsAttrs?.labels;
           return {
             metadata,
             omeZarrUrl: imageUrl,
