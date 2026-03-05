@@ -28,7 +28,7 @@ export default function JavaTab({
   const prerequisites = [
     {
       label: 'Java Development Kit (JDK)',
-      href: 'https://jdk.java.net/'
+      href: 'https://www.azul.com/downloads/?version=java-21-lts&package=jdk-fx#zulu'
     },
     {
       label: 'Set Java environmental variables',
