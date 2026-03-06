@@ -22,10 +22,6 @@ import useHideDotFiles from '@/hooks/useHideDotFiles';
 import { useHandleDownload } from '@/hooks/useHandleDownload';
 import { detectZarrVersions } from '@/queries/zarrQueries';
 import { detectN5, getN5DetectionSignals } from '@/queries/n5Queries';
-import {
-  getLastSegmentFromPath,
-  removeLastSegmentFromPath
-} from '@/utils/pathHandling';
 import { makeMapKey } from '@/utils';
 import type { FileOrFolder } from '@/shared.types';
 
@@ -87,7 +83,6 @@ export default function FileBrowser({
 
   const files = (fileQuery.data?.files ?? []) as FileOrFolder[];
   const currentName = fileQuery.data?.currentFileOrFolder?.name ?? '';
-  const currentPath = fileQuery.data?.currentFileOrFolder?.path ?? '';
 
   const isZarrDir = detectZarrVersions(files).length > 0;
   const isN5Dir = detectN5(files);
@@ -97,10 +92,7 @@ export default function FileBrowser({
 
   const { hasAttributesJson, hasS0Folder } = getN5DetectionSignals(files);
 
-  const parentName = getLastSegmentFromPath(
-    removeLastSegmentFromPath(currentPath)
-  );
-  const isN5Ext = hasN5Ext || parentName.endsWith('.n5');
+  const isN5Ext = hasN5Ext;
 
   const showZarrNullMetadataHint =
     isZarrDir &&
