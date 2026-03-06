@@ -133,12 +133,16 @@ async function fetchZarrMetadata({
           3
         );
         const metadata = await getOmeZarrMetadata(imageUrl);
-        // Check for labels
-        const labelsAttrs = (await fetchFileAsJson(
-          fspName,
-          currentFileOrFolder.path + '/labels/zarr.json'
-        )) as ZarrV3Attrs;
-        metadata.labels = labelsAttrs?.attributes?.ome?.labels;
+        // Check for labels (optional - may not exist)
+        try {
+          const labelsAttrs = (await fetchFileAsJson(
+            fspName,
+            currentFileOrFolder.path + '/labels/zarr.json'
+          )) as ZarrV3Attrs;
+          metadata.labels = labelsAttrs?.attributes?.ome?.labels;
+        } catch {
+          // Labels directory doesn't exist - that's fine
+        }
         return {
           metadata,
           omeZarrUrl: imageUrl,
@@ -197,12 +201,16 @@ async function fetchZarrMetadata({
             2
           );
           const metadata = await getOmeZarrMetadata(imageUrl);
-          // Check for labels
-          const labelsAttrs = (await fetchFileAsJson(
-            fspName,
-            currentFileOrFolder.path + '/labels/.zattrs'
-          )) as ZarrV2Attrs;
-          metadata.labels = labelsAttrs?.labels;
+          // Check for labels (optional - may not exist)
+          try {
+            const labelsAttrs = (await fetchFileAsJson(
+              fspName,
+              currentFileOrFolder.path + '/labels/.zattrs'
+            )) as ZarrV2Attrs;
+            metadata.labels = labelsAttrs?.labels;
+          } catch {
+            // Labels directory doesn't exist - that's fine
+          }
           return {
             metadata,
             omeZarrUrl: imageUrl,
