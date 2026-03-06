@@ -15,6 +15,9 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [test, test-py312]
 
     env:
       VITE_ENABLE_TASKS: true
@@ -27,41 +30,45 @@ jobs:
     - name: Install pixi
       uses: prefix-dev/setup-pixi@v0.9.4
       with:
+        environments: ${{ matrix.environment }}
         pixi-version: v0.65.0
         cache: false
         manifest-path: pyproject.toml
 
     - name: Install dependencies
       run: |
-        pixi run dev-install
+        pixi run -e ${{ matrix.environment }} dev-install
 
     - name: Lint
       run: |
         set -eux
-        pixi run node-prettier-write && pixi run node-prettier-check && pixi run node-eslint-check
+        pixi run -e ${{ matrix.environment }} node-prettier-write && pixi run -e ${{ matrix.environment }} node-prettier-check && pixi run -e ${{ matrix.environment }} node-eslint-check
 
     - name: Test the frontend
       run: |
         set -eux
-        pixi run test-frontend
+        pixi run -e ${{ matrix.environment }}  test-frontend
 
     - name: Test the backend
       run: |
         set -eux
-        pixi run test-backend
+        pixi run -e ${{ matrix.environment }}  test-backend
 
     - name: Build the frontend
+      if: ${{ matrix.environment == 'test' }}
       run: |
         set -eux
-        pixi run node-build
+        pixi run -e ${{ matrix.environment }}  node-build
 
     - name: Package the app
+      if: ${{ matrix.environment == 'test' }}
       run: |
         set -eux
         pixi run pypi-build
 
     - name: Upload package to GH
       uses: actions/upload-artifact@v4
+      if: ${{ matrix.environment == 'test' }}
       with:
         name: extension-artifacts
         path: dist/fileglancer*
@@ -70,6 +77,9 @@ jobs:
   integration-tests:
     name: Integration tests
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [test, test-py312]
 
     env:
       PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/pw-browsers
@@ -83,14 +93,15 @@ jobs:
     - name: Install pixi
       uses: prefix-dev/setup-pixi@v0.9.4
       with:
+        environments: ${{ matrix.environment }}
         pixi-version: v0.65.0
         cache: false
         manifest-path: pyproject.toml
 
     - name: Install dependencies
       run: |
-        pixi run dev-install
-        pixi run node-install-ui-tests
+        pixi run -e ${{ matrix.environment }}  dev-install
+        pixi run -e ${{ matrix.environment }}  node-install-ui-tests
 
     - name: Install browser
       run: npx playwright install chromium
@@ -105,10 +116,10 @@ jobs:
 
     - name: Execute integration tests
       run: |
-        pixi run test-ui
+        pixi run -e ${{ matrix.environment }}  test-ui
 
     - name: Upload Playwright Test report
-      if: ${{ !cancelled() }}
+      if: ${{ !cancelled() && matrix.environment == 'test' }}
       uses: actions/upload-artifact@v4
       with:
         name: fileglancer-playwright-tests
