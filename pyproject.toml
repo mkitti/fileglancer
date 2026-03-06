@@ -93,9 +93,9 @@ channels = ["conda-forge"]
 platforms = ["osx-arm64", "osx-64", "linux-64", "linux-aarch64"]
 
 [tool.pixi.feature.test.tasks]
-test-pip-install = "pip install -e ."
-test-backend = { cmd = "pytest --cov=fileglancer --cov-report=html --cov-report=term", depends-on = ["test-pip-install"] }
-test-frontend = "cd frontend && npm test"
+test-pip-install = { cmd = "pip install -e .", default-environment = "test" }
+test-backend = { cmd = "pytest --cov=fileglancer --cov-report=html --cov-report=term", depends-on = ["test-pip-install"], default-environment = "test" }
+test-frontend = { cmd = "cd frontend && npm test", default-environment = "test" }
 
 [tool.pixi.feature.test.dependencies]
 coverage = ">=7.10.6,<8"
@@ -115,10 +115,14 @@ pypi-upload = "twine upload dist/*"
 twine = ">=6.2.0,<7"
 hatch = ">=1.14.1,<2"
 
+[tool.pixi.feature.py312.dependencies]
+python = "3.12.*"
+
 [tool.pixi.environments]
 default = { solve-group = "default" }
 test = { features = ["test"], solve-group = "default" }
 release = { features = ["release"], solve-group = "default" }
+test-py312 = ["test", "py312"]
 
 [tool.pixi.tasks]
 pip-install = { cmd = "pixi reinstall fileglancer" }
@@ -146,6 +150,12 @@ container-rebuild = "npx @devcontainers/cli up --workspace-folder . --remove-exi
 container-shell = "npx @devcontainers/cli exec --workspace-folder . bash"
 container-claude = "npx @devcontainers/cli exec --workspace-folder . bash -lc 'pixi run claude --dangerously-skip-permissions'"
 claude = "claude"
+
+[tool.pixi.tasks.test-py312]
+depends-on = [
+    { task = "test-pip-install", environment = "test-py312" },
+    { task = "test-backend", environment = "test-py312" }
+]
 
 [tool.pixi.dependencies]
 python = ">=3.12.0"
