@@ -67,7 +67,7 @@ function getAxisData(metadata: N5Metadata) {
   });
 }
 
-function getN5MissingAttributeHints(metadata: N5Metadata): string[] {
+export function getN5MissingAttributeHints(metadata: N5Metadata): string[] {
   const hints: string[] = [];
   const { resolution, pixelResolution, units, downsamplingFactors, scales } =
     metadata.rootAttrs;

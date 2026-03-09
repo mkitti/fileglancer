@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getN5MissingAttributeHints } from '@/queries/n5Queries';
+import { getN5MissingAttributeHints } from '@/components/ui/BrowsePage/N5MetadataTable';
 import type { N5Metadata, N5RootAttributes } from '@/queries/n5Queries';
 
 function makeMetadata(
