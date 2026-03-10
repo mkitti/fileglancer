@@ -46,16 +46,9 @@ function getAxisData(metadata: N5Metadata) {
     // Priority: resolution -> pixelResolution.dimensions
     const res = resolution?.[index] ?? pixelResolution?.dimensions?.[index];
 
-    // Determine unit for this specific axis
-    // Priority: units[index] -> pixelResolution.unit -> "um"
-    let axisUnit = 'um';
-    if (units && units[index]) {
-      axisUnit = units[index];
-    } else if (pixelResolution?.unit) {
-      axisUnit = pixelResolution.unit;
-    }
-
-    const displayUnit = translateUnitToNeuroglancer(axisUnit);
+    // Priority: units[index] -> pixelResolution.unit -> '' (not specified)
+    const rawUnit = units?.[index] || pixelResolution?.unit || '';
+    const displayUnit = rawUnit ? translateUnitToNeuroglancer(rawUnit) : '';
     const shape = dim;
 
     return {
@@ -186,7 +179,7 @@ export default function N5MetadataTable({ metadata }: N5MetadataTableProps) {
                     {hasNoUnits ? (
                       <FgTooltip
                         icon={HiExclamationTriangle}
-                        label="No 'units' or 'pixelResolution.unit' found in attributes.json. Fileglancer assumed um."
+                        label="No 'units' or 'pixelResolution.unit' found in attributes.json. Viewers may assume a default unit when none is specified."
                       />
                     ) : null}
                   </span>
