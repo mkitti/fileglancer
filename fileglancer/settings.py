@@ -68,8 +68,7 @@ class Settings(BaseSettings):
     cli_mode: bool = False
 
     # Test API key for automated integration testing.
-    # NEVER enable on production. Must be explicitly set to True to take effect.
-    enable_test_api_key: bool = False
+    # NEVER set on production. The bypass activates when this value is set.
     test_api_key: Optional[str] = None
 
     model_config = SettingsConfigDict(

@@ -1498,8 +1498,8 @@ def create_app(settings):
 
     @app.post("/api/auth/test-login", include_in_schema=False)
     async def test_login(request: Request):
-        """Create a session for automated testing. Requires enable_test_api_key=true in settings."""
-        if not settings.enable_test_api_key or not settings.test_api_key:
+        """Create a session for automated testing. Requires test_api_key to be set in settings."""
+        if not settings.test_api_key:
             raise HTTPException(status_code=404, detail="Not found")
 
         import secrets as _secrets
@@ -1510,6 +1510,9 @@ def create_app(settings):
         username = request.headers.get("X-API-Username", "").strip()
         if not username:
             raise HTTPException(status_code=400, detail="X-API-Username header is required")
+
+        if username != "jacs":
+            raise HTTPException(status_code=403, detail="Username not permitted for test login")
 
         expires_at = datetime.now(UTC) + timedelta(hours=settings.session_expiry_hours)
 

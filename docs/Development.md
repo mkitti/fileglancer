@@ -78,7 +78,6 @@ Optionally, to run Playwright tests against a development deployment with OKTA a
 #
 # Bypass OKTA multifactor authentication for integration tests against a development deployment
 #
-enable_test_api_key: true
 test_api_key: "<your-generated-key>"
 ```
 
