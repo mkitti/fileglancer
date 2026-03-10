@@ -9,10 +9,16 @@ git clone git@github.com:JaneliaSciComp/fileglancer.git
 cd fileglancer
 ```
 
-If this is your first time installing the extension in dev mode, install package in development mode.
+Install the package in development mode.
 
 ```bash
 pixi run dev-install
+```
+
+Copy the configuration file and edit as desired (more details in [Configuration](#configuration) below).
+
+```bash
+cp docs/config.yaml.template config.yaml
 ```
 
 Now you can launch the server. It will automatically rebuild when there are file changes to the backend.
@@ -31,22 +37,7 @@ View the app in the browser at localhost:7878.
 
 ## Configuration
 
-Copy the configuration file and edit as desired.
-
-```bash
-cp docs/config.yaml.template config.yaml
-```
-
-Optionally, to run Playwright tests against a development deployment with OKTA authentication enabled, add the below to the configuration file.
-**Note:** Do NOT add this configuration to a production deployment.
-
-```yaml
-#
-# Bypass OKTA multifactor authentication for integration tests against a development deployment
-#
-enable_test_api_key: true
-test_api_key: "<your-generated-key>"
-```
+The `config.yaml` file at the project root provides the server configuration.
 
 ### File Share Paths
 
@@ -76,6 +67,20 @@ file_share_mounts:
 **Alternative: Database Configuration**
 
 Instead of using the `file_share_mounts` setting, you can configure file share paths in the database. This is useful for production deployments where you want centralized management of file share paths. To use the paths in the database, set `file_share_mounts: []`. See [fileglancer-janelia](https://github.com/JaneliaSciComp/fileglancer-janelia) for an example of populating the file share paths in the database, using a private wiki source.
+
+
+### Testing configuration
+
+Optionally, to run Playwright tests against a development deployment with OKTA authentication enabled, add the below to the configuration file.
+**Note:** Do NOT add this configuration to a production deployment.
+
+```yaml
+#
+# Bypass OKTA multifactor authentication for integration tests against a development deployment
+#
+enable_test_api_key: true
+test_api_key: "<your-generated-key>"
+```
 
 ### Feature Flags
 
