@@ -94,7 +94,8 @@ export default function FileBrowser({
 
   const isN5Ext = hasN5Ext;
 
-  const showZarrNullMetadataHint =
+  // 1st case Zarr hint req'd: query fired, no error, but no metadata returned (indicating a Zarr without expected metadata structure)
+  const isZarrNullMetadata =
     isZarrDir &&
     !zarrMetadataQuery.isPending &&
     !zarrMetadataQuery.isError &&
@@ -231,7 +232,7 @@ export default function FileBrowser({
           thumbnailQuery={thumbnailQuery}
           zarrMetadataQuery={zarrMetadataQuery}
         />
-      ) : showZarrNullMetadataHint ? (
+      ) : isZarrNullMetadata ? (
         <MetadataHint
           variant={
             availableVersions.includes('v3')
@@ -265,7 +266,7 @@ export default function FileBrowser({
         />
       ) : null}
 
-      {/* Group 1 hints: no detection fired, directory has Zarr/N5 extension signals */}
+      {/* 2nd case N5/Zarr hints req'd: no detection fired, but directory has Zarr/N5 extension signals */}
       {!isZarrDir && !isN5Dir && !fileQuery.isPending && !!fileQuery.data ? (
         hasZarrExt ? (
           <MetadataHint variant={{ case: 'zarr-extension-no-markers' }} />
