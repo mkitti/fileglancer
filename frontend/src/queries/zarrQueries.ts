@@ -26,10 +26,11 @@ type ZarrMetadataQueryParams = {
   files: FileOrFolder[] | undefined;
 };
 
-type ZarrMetadataResult = {
+export type ZarrMetadataResult = {
   metadata: ZarrMetadata;
   omeZarrUrl: string | null;
   availableVersions: ('v2' | 'v3')[];
+  isOmeZarr: boolean;
 };
 
 // Zarr v3 zarr.json structure
@@ -87,7 +88,8 @@ async function fetchZarrMetadata({
     return {
       metadata: null,
       omeZarrUrl: null,
-      availableVersions: []
+      availableVersions: [],
+      isOmeZarr: false
     };
   }
 
@@ -122,7 +124,8 @@ async function fetchZarrMetadata({
           zarrVersion: 3
         },
         omeZarrUrl: null,
-        availableVersions
+        availableVersions,
+        isOmeZarr: false
       };
     } else if (attrs.node_type === 'group') {
       if (attrs.attributes?.ome?.multiscales) {
@@ -133,38 +136,36 @@ async function fetchZarrMetadata({
           3
         );
         const metadata = await getOmeZarrMetadata(imageUrl);
-        // Check for labels
+        // Check for labels (optional - may not exist)
         try {
           const labelsAttrs = (await fetchFileAsJson(
             fspName,
             currentFileOrFolder.path + '/labels/zarr.json'
           )) as ZarrV3Attrs;
           metadata.labels = labelsAttrs?.attributes?.ome?.labels;
-          if (metadata.labels) {
-            log.info('OME-Zarr Labels found: ', metadata.labels);
-          }
-        } catch (error) {
-          log.trace('Could not fetch labels attrs: ', error);
+        } catch {
+          // Labels directory doesn't exist - that's fine
         }
         return {
           metadata,
           omeZarrUrl: imageUrl,
-          availableVersions
+          availableVersions,
+          isOmeZarr: true
         };
       } else {
-        log.info('Zarrv3 group has no multiscales', attrs.attributes);
         return {
           metadata: null,
           omeZarrUrl: null,
-          availableVersions
+          availableVersions,
+          isOmeZarr: false
         };
       }
     } else {
-      log.warn('Unknown Zarrv3 node type', attrs.node_type);
       return {
         metadata: null,
         omeZarrUrl: null,
-        availableVersions
+        availableVersions,
+        isOmeZarr: false
       };
     }
     // v3 not available, now check for v2
@@ -190,7 +191,8 @@ async function fetchZarrMetadata({
             zarrVersion: 2
           },
           omeZarrUrl: null,
-          availableVersions
+          availableVersions,
+          isOmeZarr: false
         };
         // Check for .zattrs (Zarr v2 OME-Zarr)
       } else if (zattrsFile) {
@@ -206,30 +208,29 @@ async function fetchZarrMetadata({
             2
           );
           const metadata = await getOmeZarrMetadata(imageUrl);
-          // Check for labels
+          // Check for labels (optional - may not exist)
           try {
             const labelsAttrs = (await fetchFileAsJson(
               fspName,
               currentFileOrFolder.path + '/labels/.zattrs'
             )) as ZarrV2Attrs;
             metadata.labels = labelsAttrs?.labels;
-            if (metadata.labels) {
-              log.info('OME-Zarr Labels found: ', metadata.labels);
-            }
-          } catch (error) {
-            log.trace('Could not fetch labels attrs: ', error);
+          } catch {
+            // Labels directory doesn't exist - that's fine
           }
           return {
             metadata,
             omeZarrUrl: imageUrl,
-            availableVersions
+            availableVersions,
+            isOmeZarr: true
           };
         } else {
           log.debug('Zarrv2 .zattrs has no multiscales', attrs);
           return {
             metadata: null,
             omeZarrUrl: null,
-            availableVersions
+            availableVersions,
+            isOmeZarr: false
           };
         }
         // No Zarr metadata found
@@ -238,7 +239,8 @@ async function fetchZarrMetadata({
         return {
           metadata: null,
           omeZarrUrl: null,
-          availableVersions
+          availableVersions,
+          isOmeZarr: false
         };
       }
       // No Zarr metadata found
@@ -247,7 +249,8 @@ async function fetchZarrMetadata({
       return {
         metadata: null,
         omeZarrUrl: null,
-        availableVersions: []
+        availableVersions: [],
+        isOmeZarr: false
       };
     }
   }
