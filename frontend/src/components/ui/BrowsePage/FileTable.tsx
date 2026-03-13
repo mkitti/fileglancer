@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
 import {
   flexRender,
@@ -8,6 +8,7 @@ import {
   type ColumnDef,
   type SortingState
 } from '@tanstack/react-table';
+import { useHotkey } from '@tanstack/react-hotkeys';
 import { IconButton, Typography } from '@material-tailwind/react';
 import { TbFile, TbLink, TbLinkOff } from 'react-icons/tb';
 import { HiOutlineEllipsisHorizontalCircle, HiFolder } from 'react-icons/hi2';
@@ -157,6 +158,52 @@ export default function Table({
     enableColumnFilters: false
   });
 
+  const rows = table.getRowModel().rows;
+  const rowRefs = useRef<Map<number, HTMLTableRowElement>>(new Map());
+
+  const navigateRows = useCallback(
+    (direction: 'up' | 'down') => {
+      if (rows.length === 0) {
+        return;
+      }
+
+      const selectedName =
+        fileBrowserState.selectedFiles.length > 0
+          ? fileBrowserState.selectedFiles[0].name
+          : null;
+
+      const currentIndex = selectedName
+        ? rows.findIndex(row => row.original.name === selectedName)
+        : -1;
+
+      let nextIndex: number;
+      if (direction === 'down') {
+        nextIndex = currentIndex < rows.length - 1 ? currentIndex + 1 : 0;
+      } else {
+        nextIndex = currentIndex > 0 ? currentIndex - 1 : rows.length - 1;
+      }
+
+      handleLeftClick(rows[nextIndex].original, showPropertiesDrawer);
+      rowRefs.current.get(nextIndex)?.scrollIntoView({ block: 'nearest' });
+    },
+    [
+      rows,
+      fileBrowserState.selectedFiles,
+      handleLeftClick,
+      showPropertiesDrawer
+    ]
+  );
+
+  useHotkey('ArrowDown', e => {
+    e.preventDefault();
+    navigateRows('down');
+  });
+
+  useHotkey('ArrowUp', e => {
+    e.preventDefault();
+    navigateRows('up');
+  });
+
   return (
     <div className="min-w-full bg-background select-none">
       <table className="w-full">
@@ -200,7 +247,7 @@ export default function Table({
           ))}
         </thead>
         <tbody>
-          {table.getRowModel().rows.map((row, index) => {
+          {rows.map((row, index) => {
             const isSelected = selectedFileNames.has(row.original.name);
             return (
               <tr
@@ -210,6 +257,13 @@ export default function Table({
                   handleLeftClick(row.original, showPropertiesDrawer)
                 }
                 onContextMenu={e => handleContextMenuClick(e, row.original)}
+                ref={el => {
+                  if (el) {
+                    rowRefs.current.set(index, el);
+                  } else {
+                    rowRefs.current.delete(index);
+                  }
+                }}
               >
                 {row.getVisibleCells().map(cell => (
                   <td
