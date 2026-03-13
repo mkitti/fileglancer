@@ -7,11 +7,9 @@ import {
   useMemo
 } from 'react';
 import type { ReactNode } from 'react';
-import { useNavigate } from 'react-router';
 import { UseMutationResult } from '@tanstack/react-query';
 
 import type { FileOrFolder } from '@/shared.types';
-import { makeBrowseLink } from '@/utils';
 import useFileQuery, {
   useDeleteFileMutation,
   useCreateFolderMutation,
@@ -111,8 +109,6 @@ export const FileBrowserContextProvider = ({
     selectedFiles: []
   });
 
-  const navigate = useNavigate();
-
   // Fetch file data using Tanstack Query (includes 403 fallback handling)
   const fileQuery = useFileQuery(fspName, filePath || '.');
 
@@ -137,20 +133,6 @@ export const FileBrowserContextProvider = ({
     file: FileOrFolder,
     showFilePropertiesDrawer: boolean
   ) => {
-    // If clicking on a regular file (not directory or symlink), navigate to the file URL
-    if (
-      !file.is_dir &&
-      !file.is_symlink &&
-      fileQuery.data?.currentFileSharePath
-    ) {
-      const fileLink = makeBrowseLink(
-        fileQuery.data?.currentFileSharePath.name,
-        file.path
-      );
-      navigate(fileLink);
-      return;
-    }
-
     // Select the clicked file
     const currentIndex = internalState.selectedFiles.indexOf(file);
     const newSelectedFiles =
