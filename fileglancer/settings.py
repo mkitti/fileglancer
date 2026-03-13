@@ -104,6 +104,9 @@ class Settings(BaseSettings):
     # NEVER set on production. The bypass activates when this value is set.
     test_api_key: Optional[str] = None
 
+    # Username used when creating a session via the test-login endpoint.
+    test_login_username: str = "jacs"
+
     model_config = SettingsConfigDict(
         yaml_file="config.yaml",
         env_file='.env',

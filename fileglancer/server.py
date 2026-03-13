@@ -1859,12 +1859,7 @@ def create_app(settings):
         if not api_key or not _secrets.compare_digest(api_key, settings.test_api_key):
             raise HTTPException(status_code=401, detail="Invalid API key")
 
-        username = request.headers.get("X-API-Username", "").strip()
-        if not username:
-            raise HTTPException(status_code=400, detail="X-API-Username header is required")
-
-        if username != "jacs":
-            raise HTTPException(status_code=403, detail="Username not permitted for test login")
+        username = settings.test_login_username
 
         expires_at = datetime.now(UTC) + timedelta(hours=settings.session_expiry_hours)
 
