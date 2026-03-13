@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
+import { useNavigate } from 'react-router';
 import {
   flexRender,
   getCoreRowModel,
@@ -25,6 +26,25 @@ import {
   sizeColumn
 } from '@/components/ui/BrowsePage/fileTableColumns';
 
+function getFileLink(
+  file: FileOrFolder,
+  currentFspName: string | undefined
+): string | null {
+  if (file.is_symlink && file.symlink_target_fsp) {
+    return makeBrowseLink(
+      file.symlink_target_fsp.fsp_name,
+      file.symlink_target_fsp.subpath
+    );
+  }
+  if (file.is_symlink && !file.symlink_target_fsp) {
+    return null;
+  }
+  if (currentFspName) {
+    return makeBrowseLink(currentFspName, file.path);
+  }
+  return null;
+}
+
 type TableProps = {
   readonly data: FileOrFolder[];
   readonly showPropertiesDrawer: boolean;
@@ -41,6 +61,7 @@ export default function Table({
 }: TableProps) {
   const { fileQuery, fileBrowserState, handleLeftClick } =
     useFileBrowserContext();
+  const navigate = useNavigate();
   const [sorting, setSorting] = useState<SortingState>([]);
 
   const selectedFileNames = useMemo(
@@ -56,25 +77,11 @@ export default function Table({
         cell: ({ getValue, row }) => {
           const file = row.original;
           const name = getValue() as string;
-          let link = '#';
-          let isBrokenSymlink = false;
-
-          if (file.is_symlink && file.symlink_target_fsp) {
-            // Valid symlink with known target in a valid file share
-            link = makeBrowseLink(
-              file.symlink_target_fsp.fsp_name,
-              file.symlink_target_fsp.subpath
-            ) as string;
-          } else if (file.is_symlink && !file.symlink_target_fsp) {
-            // Broken symlink - no valid target
-            isBrokenSymlink = true;
-          } else if (fileQuery.data?.currentFileSharePath) {
-            // Regular directory or file
-            link = makeBrowseLink(
-              fileQuery.data?.currentFileSharePath.name,
-              file.path
-            ) as string;
-          }
+          const link = getFileLink(
+            file,
+            fileQuery.data?.currentFileSharePath?.name
+          );
+          const isBrokenSymlink = file.is_symlink && !file.symlink_target_fsp;
 
           return (
             <div className="flex items-center gap-3 min-w-0">
@@ -97,7 +104,7 @@ export default function Table({
                     as={FgStyledLink}
                     className="truncate"
                     onClick={(e: MouseEvent) => e.stopPropagation()}
-                    to={link}
+                    to={link ?? '#'}
                   >
                     {name}
                   </Typography>
@@ -202,6 +209,23 @@ export default function Table({
   useHotkey('ArrowUp', e => {
     e.preventDefault();
     navigateRows('up');
+  });
+
+  useHotkey('Enter', e => {
+    if (fileBrowserState.selectedFiles.length === 0) {
+      return;
+    }
+
+    const link = getFileLink(
+      fileBrowserState.selectedFiles[0],
+      fileQuery.data?.currentFileSharePath?.name
+    );
+    if (!link) {
+      return;
+    }
+
+    e.preventDefault();
+    navigate(link);
   });
 
   return (
