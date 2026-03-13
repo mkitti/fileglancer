@@ -45,16 +45,16 @@ By default, Fileglancer provides access to each user's home directory without re
 
 ```yaml
 file_share_mounts:
-  - "~/"    # User's home directory (default)
+  - "~/" # User's home directory (default)
 ```
 
 You can add additional file share paths by editing your `config.yaml`:
 
 ```yaml
 file_share_mounts:
-  - "~/"                              # User's home directory
-  - "/groups/scicomp/data"            # Shared data directory
-  - "/opt/data"                       # Another shared directory
+  - "~/" # User's home directory
+  - "/groups/scicomp/data" # Shared data directory
+  - "/opt/data" # Another shared directory
 ```
 
 **How Home Directories Work:**
@@ -67,6 +67,19 @@ file_share_mounts:
 **Alternative: Database Configuration**
 
 Instead of using the `file_share_mounts` setting, you can configure file share paths in the database. This is useful for production deployments where you want centralized management of file share paths. To use the paths in the database, set `file_share_mounts: []`. See [fileglancer-janelia](https://github.com/JaneliaSciComp/fileglancer-janelia) for an example of populating the file share paths in the database, using a private wiki source.
+
+
+### Testing configuration
+
+Optionally, to run Playwright tests against a development deployment with OKTA authentication enabled, add the below to the configuration file.
+**Note:** Do NOT add this configuration to a production deployment.
+
+```yaml
+#
+# Bypass OKTA multifactor authentication for integration tests against a development deployment
+#
+test_api_key: "<your-generated-key>"
+```
 
 ### Feature Flags
 
