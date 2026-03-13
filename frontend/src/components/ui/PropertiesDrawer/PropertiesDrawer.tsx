@@ -14,7 +14,7 @@ import {
   HiOutlineDuplicate,
   HiX
 } from 'react-icons/hi';
-import { HiOutlineFolder } from 'react-icons/hi2';
+import { HiFolder } from 'react-icons/hi2';
 import { useLocation } from 'react-router';
 
 import PermissionsTable from '@/components/ui/PropertiesDrawer/PermissionsTable';
@@ -175,7 +175,7 @@ export default function PropertiesDrawer({
             ) : (
               <>
                 {fileBrowserState.propertiesTarget.is_dir ? (
-                  <HiOutlineFolder className="icon-default" />
+                  <HiFolder className="icon-default" />
                 ) : (
                   <HiOutlineDocument className="icon-default" />
                 )}
