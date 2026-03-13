@@ -10,10 +10,7 @@ import {
 } from '@tanstack/react-table';
 import { IconButton, Typography } from '@material-tailwind/react';
 import { TbFile, TbLink, TbLinkOff } from 'react-icons/tb';
-import {
-  HiOutlineEllipsisHorizontalCircle,
-  HiOutlineFolder
-} from 'react-icons/hi2';
+import { HiOutlineEllipsisHorizontalCircle, HiFolder } from 'react-icons/hi2';
 
 import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
@@ -70,8 +67,8 @@ export default function Table({
           } else if (file.is_symlink && !file.symlink_target_fsp) {
             // Broken symlink - no valid target
             isBrokenSymlink = true;
-          } else if (file.is_dir && fileQuery.data?.currentFileSharePath) {
-            // Regular directory
+          } else if (fileQuery.data?.currentFileSharePath) {
+            // Regular directory or file
             link = makeBrowseLink(
               fileQuery.data?.currentFileSharePath.name,
               file.path
@@ -85,7 +82,7 @@ export default function Table({
               ) : file.is_symlink ? (
                 <TbLink className="text-primary icon-default flex-shrink-0" />
               ) : file.is_dir ? (
-                <HiOutlineFolder className="text-foreground icon-default flex-shrink-0" />
+                <HiFolder className="text-foreground icon-default flex-shrink-0" />
               ) : (
                 <TbFile className="text-foreground icon-default flex-shrink-0" />
               )}
@@ -94,12 +91,19 @@ export default function Table({
                   <Typography className="truncate text-foreground">
                     {name}
                   </Typography>
-                ) : file.is_dir || file.is_symlink ? (
-                  <Typography as={FgStyledLink} className="truncate" to={link}>
+                ) : !isBrokenSymlink ? (
+                  <Typography
+                    as={FgStyledLink}
+                    className="truncate"
+                    onClick={(e: MouseEvent) => e.stopPropagation()}
+                    to={link}
+                  >
                     {name}
                   </Typography>
                 ) : (
-                  <Typography className="truncate">{name}</Typography>
+                  <Typography className="truncate text-foreground">
+                    {name}
+                  </Typography>
                 )}
               </FgTooltip>
             </div>
