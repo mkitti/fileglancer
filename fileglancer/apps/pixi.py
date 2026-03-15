@@ -4,6 +4,7 @@ Generates an AppManifest from a Pixi project's pixi.toml or pyproject.toml,
 converting pixi tasks into runnables.
 """
 
+import subprocess
 from pathlib import Path
 
 try:
@@ -42,11 +43,17 @@ def _read_pixi_config(directory: Path) -> dict | None:
         data = tomllib.loads(pyproject_path.read_text())
         pixi_config = data.get("tool", {}).get("pixi")
         if pixi_config and "tasks" in pixi_config:
-            # Merge top-level [project] metadata if pixi doesn't have its own
-            if "project" not in pixi_config:
-                top_project = data.get("project", {})
-                if top_project:
-                    pixi_config["project"] = top_project
+            # Merge top-level [project] metadata into pixi config.
+            # [tool.pixi.project] may only have channels/platforms,
+            # so fill in missing fields (name, description, version)
+            # from the top-level [project] section.
+            top_project = data.get("project", {})
+            if top_project:
+                pixi_project = pixi_config.get("project", {})
+                for key in ("name", "description", "version"):
+                    if key not in pixi_project and key in top_project:
+                        pixi_project[key] = top_project[key]
+                pixi_config["project"] = pixi_project
             return pixi_config
         return None
 
@@ -166,6 +173,35 @@ def _task_to_entry_point(name: str, task: dict) -> AppEntryPoint | None:
     )
 
 
+def _get_git_repo_and_branch(directory: Path) -> tuple[str, str] | None:
+    """Get the repo name and branch from a git directory.
+
+    Returns (repo_name, branch) or None if not a git repo.
+    """
+    try:
+        repo_url = subprocess.run(
+            ["git", "-C", str(directory), "remote", "get-url", "origin"],
+            capture_output=True, text=True, timeout=5,
+        )
+        branch = subprocess.run(
+            ["git", "-C", str(directory), "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True, text=True, timeout=5,
+        )
+        if repo_url.returncode != 0 or branch.returncode != 0:
+            return None
+
+        # Extract repo name from URL (e.g. "https://github.com/owner/repo.git" -> "repo")
+        url = repo_url.stdout.strip()
+        repo_name = url.rstrip("/").rsplit("/", 1)[-1].removesuffix(".git")
+        branch_name = branch.stdout.strip()
+
+        if repo_name and branch_name:
+            return repo_name, branch_name
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+    return None
+
+
 class PixiAdapter:
     """Generate an AppManifest from a Pixi project's tasks."""
 
@@ -177,9 +213,16 @@ class PixiAdapter:
 
         # Extract project metadata
         project = config.get("project", config.get("workspace", {}))
-        name = project.get("name", directory.name)
         description = project.get("description")
         version = project.get("version")
+
+        # Use repo_name/branch as the app name if in a git repo
+        git_info = _get_git_repo_and_branch(directory)
+        if git_info:
+            repo_name, branch_name = git_info
+            name = f"{repo_name}/{branch_name}"
+        else:
+            name = project.get("name", directory.name)
 
         # Collect and convert tasks
         tasks = _collect_tasks(config)
