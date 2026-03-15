@@ -412,7 +412,11 @@ export default function JobDetail() {
                   ))}
                 </div>
               ) : (
-                <Typography className="text-secondary italic" type="small">
+                <Typography
+                  as="p"
+                  className="text-secondary italic"
+                  type="small"
+                >
                   No parameters
                 </Typography>
               )}
