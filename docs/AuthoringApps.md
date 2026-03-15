@@ -23,6 +23,19 @@ runnables:
 
 When a user adds a GitHub repository, Fileglancer clones it and walks the directory tree looking for `runnables.yaml` files.
 
+### Nextflow Pipeline Support
+
+If a directory does not contain a `runnables.yaml` but does contain a `nextflow_schema.json`, Fileglancer automatically generates a manifest from the Nextflow schema. The generated manifest:
+
+- Sets `requirements` to `["nextflow"]`
+- Uses `nextflow run .` as the command
+- Converts JSON Schema parameter definitions to Fileglancer parameters, preserving types, defaults, descriptions, required flags, enum options, and `hidden` status
+- Groups parameters into sections based on the schema's `definitions` and `allOf` ordering
+- Sections with required parameters start expanded; others start collapsed
+- Reads `name` and `version` from `nextflow.config`'s `manifest` block if available, falling back to the schema's `title` and `description`
+
+This means most nf-core and Nextflow pipelines that follow the standard schema convention work out of the box — just add the repo URL in Fileglancer. If you need to customize the UI (e.g. change the command, add resources, or reorganize parameters), create a `runnables.yaml` in the same directory and it will take priority.
+
 ### Multi-App Repositories
 
 A single repository can contain multiple apps by placing manifest files in subdirectories:

@@ -1,0 +1,224 @@
+"""Manifest adapters for generating AppManifest from non-runnables.yaml project types.
+
+Each adapter knows how to detect a specific project type (e.g. Nextflow pipeline)
+in a directory and convert its configuration into an AppManifest.
+
+To add a new adapter:
+  1. Subclass ManifestAdapter
+  2. Implement can_handle(directory) and convert(directory)
+  3. Register it by adding an instance to the MANIFEST_ADAPTERS list
+"""
+
+import json
+import re
+from abc import ABC, abstractmethod
+from pathlib import Path
+
+from fileglancer.model import (
+    AppEntryPoint,
+    AppManifest,
+    AppParameter,
+    AppParameterSection,
+)
+
+
+class ManifestAdapter(ABC):
+    """Base class for converting project-specific config files into an AppManifest."""
+
+    @abstractmethod
+    def can_handle(self, directory: Path) -> bool:
+        """Return True if this adapter can generate a manifest for the given directory."""
+
+    @abstractmethod
+    def convert(self, directory: Path) -> AppManifest:
+        """Convert the project config in the given directory to an AppManifest.
+
+        Only called when can_handle() returned True.
+        """
+
+
+# ---------------------------------------------------------------------------
+# Nextflow adapter
+# ---------------------------------------------------------------------------
+
+_NEXTFLOW_SCHEMA_FILENAME = "nextflow_schema.json"
+_NEXTFLOW_CONFIG_FILENAME = "nextflow.config"
+
+
+def _parse_nextflow_config(config_path: Path) -> dict[str, str]:
+    """Extract key=value pairs from the manifest block of nextflow.config.
+
+    Returns a dict with keys like 'name', 'description', 'version'.
+    This is a best-effort parser for the Groovy-like config format.
+    """
+    result = {}
+    if not config_path.is_file():
+        return result
+
+    text = config_path.read_text()
+    # Find the manifest { ... } block
+    match = re.search(r'manifest\s*\{([^}]*)\}', text, re.DOTALL)
+    if not match:
+        return result
+
+    for line in match.group(1).splitlines():
+        line = line.strip()
+        if not line or line.startswith('//'):
+            continue
+        # Parse "key = 'value'" or 'key = "value"' patterns
+        m = re.match(r"(\w+)\s*=\s*['\"](.+?)['\"]", line)
+        if m:
+            result[m.group(1)] = m.group(2)
+    return result
+
+
+def _convert_nf_property_type(prop: dict) -> str:
+    """Map a nextflow_schema.json property to an AppParameter type string."""
+    if "enum" in prop:
+        return "enum"
+    json_type = prop.get("type", "string")
+    fmt = prop.get("format", "")
+    if json_type == "boolean":
+        return "boolean"
+    if json_type == "integer":
+        return "integer"
+    if json_type == "number":
+        return "number"
+    if fmt in ("path", "file-path"):
+        return "file"
+    if fmt == "directory-path":
+        return "directory"
+    return "string"
+
+
+def _convert_nf_property(name: str, prop: dict, is_required: bool) -> AppParameter:
+    """Convert a single nextflow_schema.json property to an AppParameter."""
+    param_type = _convert_nf_property_type(prop)
+
+    kwargs: dict = {
+        "flag": f"--{name}",
+        "name": name.replace("_", " ").title(),
+        "type": param_type,
+    }
+
+    desc = prop.get("description")
+    if desc:
+        kwargs["description"] = desc
+
+    if is_required:
+        kwargs["required"] = True
+
+    if "default" in prop:
+        kwargs["default"] = prop["default"]
+
+    if param_type == "enum":
+        kwargs["options"] = prop["enum"]
+
+    if "pattern" in prop and param_type == "string":
+        kwargs["pattern"] = prop["pattern"]
+
+    if param_type in ("integer", "number"):
+        if "minimum" in prop:
+            kwargs["min"] = prop["minimum"]
+        if "maximum" in prop:
+            kwargs["max"] = prop["maximum"]
+
+    if prop.get("hidden"):
+        kwargs["hidden"] = True
+
+    return AppParameter(**kwargs)
+
+
+class NextflowAdapter(ManifestAdapter):
+    """Generate an AppManifest from a Nextflow pipeline's nextflow_schema.json."""
+
+    def can_handle(self, directory: Path) -> bool:
+        return (directory / _NEXTFLOW_SCHEMA_FILENAME).is_file()
+
+    def convert(self, directory: Path) -> AppManifest:
+        schema_path = directory / _NEXTFLOW_SCHEMA_FILENAME
+        schema = json.loads(schema_path.read_text())
+        nf_config = _parse_nextflow_config(directory / _NEXTFLOW_CONFIG_FILENAME)
+
+        # Determine app metadata
+        name = schema.get("title") or nf_config.get("name") or directory.name
+        description = schema.get("description") or nf_config.get("description")
+        version = nf_config.get("version")
+
+        # Build parameters from definitions, ordered by allOf
+        definitions = schema.get("definitions", {})
+        all_of = schema.get("allOf", [])
+
+        # Determine ordering: use allOf refs if present, otherwise dict order
+        ordered_def_keys = []
+        for ref in all_of:
+            ref_path = ref.get("$ref", "")
+            # e.g. "#/definitions/pipeline_options" -> "pipeline_options"
+            if ref_path.startswith("#/definitions/"):
+                ordered_def_keys.append(ref_path.split("/")[-1])
+        if not ordered_def_keys:
+            ordered_def_keys = list(definitions.keys())
+
+        parameters = []
+        for def_key in ordered_def_keys:
+            defn = definitions.get(def_key)
+            if not defn:
+                continue
+
+            properties = defn.get("properties", {})
+            if not properties:
+                continue
+
+            required_list = set(defn.get("required", []))
+
+            params = [
+                _convert_nf_property(prop_name, prop, prop_name in required_list)
+                for prop_name, prop in properties.items()
+            ]
+
+            section_title = defn.get("title", def_key.replace("_", " ").title())
+            section_desc = defn.get("description")
+
+            # Sections with required params start expanded; others start collapsed
+            has_required = any(p.required for p in params)
+            section = AppParameterSection(
+                section=section_title,
+                description=section_desc,
+                collapsed=not has_required,
+                parameters=params,
+            )
+            parameters.append(section)
+
+        entry_point = AppEntryPoint(
+            id="run",
+            name=f"Run {name}" if name else "Run Pipeline",
+            description=description,
+            command="nextflow run .",
+            parameters=parameters,
+        )
+
+        return AppManifest(
+            name=name,
+            description=description,
+            version=version,
+            requirements=["nextflow"],
+            runnables=[entry_point],
+        )
+
+
+# ---------------------------------------------------------------------------
+# Adapter registry — checked in order when no runnables.yaml is found.
+# Add new adapters here.
+# ---------------------------------------------------------------------------
+
+MANIFEST_ADAPTERS: list[ManifestAdapter] = [
+    NextflowAdapter(),
+]
+
+
+def try_adapt(directory: Path) -> AppManifest | None:
+    """Try each registered adapter and return the first successful manifest, or None."""
+    for adapter in MANIFEST_ADAPTERS:
+        if adapter.can_handle(directory):
+            return adapter.convert(directory)
+    return None

@@ -19,6 +19,7 @@ from cluster_api import create_executor, ResourceSpec, JobMonitor
 from cluster_api._types import JobStatus
 
 from fileglancer import database as db
+from fileglancer.manifest_adapters import try_adapt
 from fileglancer.model import AppManifest, AppEntryPoint, AppParameter
 from fileglancer.settings import get_settings
 
@@ -122,33 +123,47 @@ _SKIP_DIRS = {'.git', 'node_modules', '__pycache__', '.pixi', '.venv', 'venv'}
 def _read_manifest_file(manifest_dir: Path) -> AppManifest:
     """Read and validate a runnables.yaml file from the given directory.
 
-    Raises ValueError if the file is not found.
+    Falls back to registered manifest adapters if no runnables.yaml is found.
+    Raises ValueError if no adapter can handle the directory.
     """
     filepath = manifest_dir / _MANIFEST_FILENAME
-    if not filepath.is_file():
-        raise ValueError(
-            f"No {_MANIFEST_FILENAME} found in {manifest_dir}."
-        )
-    data = yaml.safe_load(filepath.read_text())
-    return AppManifest(**data)
+    if filepath.is_file():
+        data = yaml.safe_load(filepath.read_text())
+        return AppManifest(**data)
+
+    # Try registered adapters (e.g. Nextflow, Snakemake, etc.)
+    adapted = try_adapt(manifest_dir)
+    if adapted is not None:
+        return adapted
+
+    raise ValueError(
+        f"No {_MANIFEST_FILENAME} or recognized project config found in {manifest_dir}."
+    )
 
 
 def _find_manifests_in_repo(repo_dir: Path) -> list[tuple[str, AppManifest]]:
     """Walk the cloned repo and discover all manifest files.
 
+    Looks for runnables.yaml first, then falls back to registered manifest
+    adapters (e.g. Nextflow nextflow_schema.json).
     Returns a list of (relative_dir_path, AppManifest) tuples.
     Uses "" for root-level manifests.
     """
+    from fileglancer.manifest_adapters import MANIFEST_ADAPTERS
+
     results: list[tuple[str, AppManifest]] = []
 
     for dirpath, dirnames, filenames in os.walk(repo_dir, topdown=True):
         # Prune directories we should skip
         dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
 
-        if _MANIFEST_FILENAME not in filenames:
+        current = Path(dirpath)
+        has_manifest = _MANIFEST_FILENAME in filenames
+        has_adapter = any(a.can_handle(current) for a in MANIFEST_ADAPTERS)
+
+        if not has_manifest and not has_adapter:
             continue
 
-        current = Path(dirpath)
         try:
             manifest = _read_manifest_file(current)
         except Exception as e:

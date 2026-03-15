@@ -95,7 +95,7 @@ function ParameterField({
               );
             }
           }}
-          placeholder={param.description || param.name}
+          placeholder={param.name}
           step={param.type === 'integer' ? 1 : 'any'}
           type="number"
           value={value !== undefined && value !== null ? String(value) : ''}
@@ -125,7 +125,7 @@ function ParameterField({
           <input
             className={`flex-1 ${baseInputClass}`}
             onChange={e => onChange(e.target.value)}
-            placeholder={param.description || `Select a ${param.type}...`}
+            placeholder={`Select a ${param.type}...`}
             type="text"
             value={value !== undefined && value !== null ? String(value) : ''}
           />
@@ -144,7 +144,7 @@ function ParameterField({
         <input
           className={baseInputClass}
           onChange={e => onChange(e.target.value)}
-          placeholder={param.description || param.name}
+          placeholder={param.name}
           type="text"
           value={value !== undefined && value !== null ? String(value) : ''}
         />
