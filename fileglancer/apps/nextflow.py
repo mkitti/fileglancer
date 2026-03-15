@@ -1,17 +1,11 @@
-"""Manifest adapters for generating AppManifest from non-runnables.yaml project types.
+"""Nextflow manifest adapter.
 
-Each adapter knows how to detect a specific project type (e.g. Nextflow pipeline)
-in a directory and convert its configuration into an AppManifest.
-
-To add a new adapter:
-  1. Subclass ManifestAdapter
-  2. Implement can_handle(directory) and convert(directory)
-  3. Register it by adding an instance to the MANIFEST_ADAPTERS list
+Generates an AppManifest from a Nextflow pipeline's nextflow_schema.json,
+optionally enriched with metadata from nextflow.config.
 """
 
 import json
 import re
-from abc import ABC, abstractmethod
 from pathlib import Path
 
 from fileglancer.model import (
@@ -20,26 +14,6 @@ from fileglancer.model import (
     AppParameter,
     AppParameterSection,
 )
-
-
-class ManifestAdapter(ABC):
-    """Base class for converting project-specific config files into an AppManifest."""
-
-    @abstractmethod
-    def can_handle(self, directory: Path) -> bool:
-        """Return True if this adapter can generate a manifest for the given directory."""
-
-    @abstractmethod
-    def convert(self, directory: Path) -> AppManifest:
-        """Convert the project config in the given directory to an AppManifest.
-
-        Only called when can_handle() returned True.
-        """
-
-
-# ---------------------------------------------------------------------------
-# Nextflow adapter
-# ---------------------------------------------------------------------------
 
 _NEXTFLOW_SCHEMA_FILENAME = "nextflow_schema.json"
 _NEXTFLOW_CONFIG_FILENAME = "nextflow.config"
@@ -72,7 +46,7 @@ def _parse_nextflow_config(config_path: Path) -> dict[str, str]:
     return result
 
 
-def _convert_nf_property_type(prop: dict) -> str:
+def _convert_property_type(prop: dict) -> str:
     """Map a nextflow_schema.json property to an AppParameter type string."""
     if "enum" in prop:
         return "enum"
@@ -91,9 +65,9 @@ def _convert_nf_property_type(prop: dict) -> str:
     return "string"
 
 
-def _convert_nf_property(name: str, prop: dict, is_required: bool) -> AppParameter:
+def _convert_property(name: str, prop: dict, is_required: bool) -> AppParameter:
     """Convert a single nextflow_schema.json property to an AppParameter."""
-    param_type = _convert_nf_property_type(prop)
+    param_type = _convert_property_type(prop)
 
     kwargs: dict = {
         "flag": f"--{name}",
@@ -129,7 +103,7 @@ def _convert_nf_property(name: str, prop: dict, is_required: bool) -> AppParamet
     return AppParameter(**kwargs)
 
 
-class NextflowAdapter(ManifestAdapter):
+class NextflowAdapter:
     """Generate an AppManifest from a Nextflow pipeline's nextflow_schema.json."""
 
     def can_handle(self, directory: Path) -> bool:
@@ -172,7 +146,7 @@ class NextflowAdapter(ManifestAdapter):
             required_list = set(defn.get("required", []))
 
             params = [
-                _convert_nf_property(prop_name, prop, prop_name in required_list)
+                _convert_property(prop_name, prop, prop_name in required_list)
                 for prop_name, prop in properties.items()
             ]
 
@@ -204,21 +178,3 @@ class NextflowAdapter(ManifestAdapter):
             requirements=["nextflow"],
             runnables=[entry_point],
         )
-
-
-# ---------------------------------------------------------------------------
-# Adapter registry — checked in order when no runnables.yaml is found.
-# Add new adapters here.
-# ---------------------------------------------------------------------------
-
-MANIFEST_ADAPTERS: list[ManifestAdapter] = [
-    NextflowAdapter(),
-]
-
-
-def try_adapt(directory: Path) -> AppManifest | None:
-    """Try each registered adapter and return the first successful manifest, or None."""
-    for adapter in MANIFEST_ADAPTERS:
-        if adapter.can_handle(directory):
-            return adapter.convert(directory)
-    return None

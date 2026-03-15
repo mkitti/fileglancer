@@ -19,7 +19,7 @@ from cluster_api import create_executor, ResourceSpec, JobMonitor
 from cluster_api._types import JobStatus
 
 from fileglancer import database as db
-from fileglancer.manifest_adapters import try_adapt
+from fileglancer.apps.adapters import try_adapt
 from fileglancer.model import AppManifest, AppEntryPoint, AppParameter
 from fileglancer.settings import get_settings
 
@@ -149,7 +149,7 @@ def _find_manifests_in_repo(repo_dir: Path) -> list[tuple[str, AppManifest]]:
     Returns a list of (relative_dir_path, AppManifest) tuples.
     Uses "" for root-level manifests.
     """
-    from fileglancer.manifest_adapters import MANIFEST_ADAPTERS
+    from fileglancer.apps.adapters import MANIFEST_ADAPTERS
 
     results: list[tuple[str, AppManifest]] = []
 
