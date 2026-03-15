@@ -36,6 +36,19 @@ If a directory does not contain a `runnables.yaml` but does contain a `nextflow_
 
 This means most nf-core and Nextflow pipelines that follow the standard schema convention work out of the box — just add the repo URL in Fileglancer. If you need to customize the UI (e.g. change the command, add resources, or reorganize parameters), create a `runnables.yaml` in the same directory and it will take priority.
 
+### Pixi Project Support
+
+If a directory does not contain a `runnables.yaml` but does contain a `pixi.toml` or a `pyproject.toml` with `[tool.pixi.tasks]`, Fileglancer automatically generates a manifest from the pixi configuration. Each pixi task becomes a separate runnable. The generated manifest:
+
+- Sets `requirements` to `["pixi"]`
+- Uses `pixi run <task_name>` as the command for each runnable
+- Converts task arguments (`args`) to parameters, including `choices` (mapped to enum type) and `default` values
+- Preserves task `description` fields
+- Exposes task `env` variables as hidden parameters for visibility
+- Skips hidden tasks (names starting with `_`) and dependency-only tasks (no `cmd`)
+- Reads project `name`, `description`, and `version` from the project metadata
+- Collects tasks from both top-level and feature-specific task sections
+
 ### Multi-App Repositories
 
 A single repository can contain multiple apps by placing manifest files in subdirectories:

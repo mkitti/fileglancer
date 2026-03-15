@@ -15,6 +15,7 @@ from pathlib import Path
 from fileglancer.model import AppManifest
 
 from fileglancer.apps.nextflow import NextflowAdapter
+from fileglancer.apps.pixi import PixiAdapter
 
 
 class ManifestAdapter(ABC):
@@ -39,6 +40,7 @@ class ManifestAdapter(ABC):
 
 MANIFEST_ADAPTERS: list[ManifestAdapter] = [
     NextflowAdapter(),
+    PixiAdapter(),
 ]
 
 
