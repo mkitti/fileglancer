@@ -335,6 +335,7 @@ class AppParameter(BaseModel):
     min: Optional[float] = Field(description="Minimum value for numeric types", default=None)
     max: Optional[float] = Field(description="Maximum value for numeric types", default=None)
     pattern: Optional[str] = Field(description="Regex validation pattern for string types", default=None)
+    hidden: bool = Field(description="Whether the parameter is hidden by default in the UI", default=False)
 
     @field_validator("flag")
     @classmethod

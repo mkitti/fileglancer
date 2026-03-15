@@ -4,6 +4,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import { Accordion, Button, Tabs, Typography } from '@material-tailwind/react';
 import {
   HiChevronDown,
+  HiOutlineEye,
   HiOutlinePlus,
   HiOutlinePlay,
   HiOutlineTrash
@@ -894,7 +895,33 @@ export default function AppLaunchForm({
     );
   };
 
-  const hasSections = entryPoint.parameters.some(isParameterSection);
+  const [showHidden, setShowHidden] = useState(false);
+
+  // Check if any parameters are marked as hidden
+  const hasHiddenParams = allParams.some(p => p.hidden);
+
+  // Filter out hidden parameters from display when toggle is off
+  const filterHiddenParams = (params: AppParameter[]) =>
+    showHidden ? params : params.filter(p => !p.hidden);
+
+  const visibleParameters = entryPoint.parameters
+    .map(item => {
+      if (isParameterSection(item)) {
+        const filteredParams = filterHiddenParams(item.parameters);
+        // Hide the section entirely if all its parameters are hidden
+        if (filteredParams.length === 0) {
+          return null;
+        }
+        return { ...item, parameters: filteredParams };
+      }
+      if (!showHidden && item.hidden) {
+        return null;
+      }
+      return item;
+    })
+    .filter(Boolean) as (AppParameter | AppParameterSection)[];
+
+  const hasSections = visibleParameters.some(isParameterSection);
 
   return (
     <div>
@@ -927,6 +954,30 @@ export default function AppLaunchForm({
         </Tabs.List>
 
         <Tabs.Panel className="pt-4" value="parameters">
+          {hasHiddenParams ? (
+            <div className="flex justify-end mb-2">
+              <button
+                aria-label="Toggle hidden parameters"
+                className="flex items-center gap-2 cursor-pointer text-sm text-secondary"
+                onClick={() => setShowHidden(prev => !prev)}
+                type="button"
+              >
+                <HiOutlineEye className="h-4 w-4" />
+                Show hidden
+                <span
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                    showHidden ? 'bg-primary' : 'bg-primary-light'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
+                      showHidden ? 'translate-x-[18px]' : 'translate-x-[2px]'
+                    }`}
+                  />
+                </span>
+              </button>
+            </div>
+          ) : null}
           <div className="max-w-2xl space-y-4">
             {hasSections ? (
               <Accordion
@@ -936,7 +987,7 @@ export default function AppLaunchForm({
                 type="multiple"
                 value={openSections}
               >
-                {entryPoint.parameters.map(item =>
+                {visibleParameters.map(item =>
                   isParameterSection(item) ? (
                     <Accordion.Item
                       key={`section-${item.section}`}
@@ -982,7 +1033,7 @@ export default function AppLaunchForm({
                 )}
               </Accordion>
             ) : (
-              entryPoint.parameters.map(item =>
+              visibleParameters.map(item =>
                 isParameterSection(item) ? null : (
                   <ParameterFieldRow
                     error={errors[item.key]}

@@ -110,6 +110,7 @@ Parameters define the inputs that users fill in through the Fileglancer UI. Each
 | `min` | number | no | Minimum value (only for `integer` and `number` types) |
 | `max` | number | no | Maximum value (only for `integer` and `number` types) |
 | `pattern` | string | no | Regex validation pattern (only for `string` type, uses full match) |
+| `hidden` | boolean | no | Whether the parameter is hidden by default in the UI. Default: `false` |
 
 ### Parameter Sections
 
@@ -148,6 +149,34 @@ parameters:
 When a section has `collapsed: true`, it renders as a closed accordion in the UI. Users can click to expand it and see the parameters inside. Sections without `collapsed` (or with `collapsed: false`) start expanded.
 
 On form validation, any section containing a parameter with an error is automatically expanded so the user can see and fix the problem.
+
+### Hidden Parameters
+
+Parameters can be marked as `hidden: true` to hide them from the UI by default. When any parameter in a runnable is hidden, a "Show hidden" toggle switch appears in the top right of the Parameters tab. Toggling it on reveals the hidden parameters.
+
+This is useful for advanced or rarely-changed parameters that you want to keep available without cluttering the default form view.
+
+```yaml
+parameters:
+  - flag: --input
+    name: Input Path
+    type: file
+    required: true
+
+  - flag: --debug-level
+    name: Debug Level
+    type: integer
+    default: 0
+    hidden: true
+
+  - flag: --internal-buffer-size
+    name: Internal Buffer Size
+    type: integer
+    default: 4096
+    hidden: true
+```
+
+Hidden parameters still participate in command building — if they have a `default` value, it will be used even when the parameter is not visible in the UI. Hidden parameters inside a section are filtered individually; if all parameters in a section are hidden, the entire section is hidden until the toggle is turned on.
 
 ### Flag Forms
 

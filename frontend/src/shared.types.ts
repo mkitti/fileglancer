@@ -76,6 +76,7 @@ type AppParameter = {
   min?: number;
   max?: number;
   pattern?: string;
+  hidden?: boolean;
 };
 
 type AppParameterSection = {
