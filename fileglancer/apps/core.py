@@ -38,9 +38,10 @@ def _get_repo_lock(owner: str, repo: str, branch: str) -> asyncio.Lock:
     return _repo_locks[key]
 
 
-def _parse_github_url(url: str) -> tuple[str, str, str]:
+def _parse_github_url(url: str) -> tuple[str, str, str | None]:
     """Parse a GitHub repo URL into (owner, repo, branch).
 
+    Branch is None when not specified in the URL.
     Raises ValueError if not a valid GitHub repo URL.
     """
     pattern = r"https?://github\.com/([^/]+)/([^/]+?)(?:\.git)?(?:/tree/([^/]+))?/?$"
@@ -51,14 +52,17 @@ def _parse_github_url(url: str) -> tuple[str, str, str]:
             f"(e.g., https://github.com/owner/repo)."
         )
     owner, repo, branch = match.groups()
-    branch = branch or "main"
 
     # Validate segments to prevent path traversal
-    for name, value in [("owner", owner), ("repo", repo), ("branch", branch)]:
+    for name, value in [("owner", owner), ("repo", repo)]:
         if ".." in value or "\x00" in value:
             raise ValueError(
                 f"Invalid app URL: {name} '{value}' contains invalid characters"
             )
+    if branch and (".." in branch or "\x00" in branch):
+        raise ValueError(
+            f"Invalid app URL: branch '{branch}' contains invalid characters"
+        )
 
     return owner, repo, branch
 
@@ -88,6 +92,34 @@ async def _run_git(args: list[str], timeout: int = 60):
         raise ValueError(f"Git command failed: {err}")
 
 
+async def _resolve_default_branch(clone_url: str) -> str:
+    """Query a remote repo for its default branch (HEAD).
+
+    Falls back to 'main' if the remote cannot be queried.
+    """
+    env = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
+    try:
+        proc = await asyncio.wait_for(
+            asyncio.create_subprocess_exec(
+                "git", "ls-remote", "--symref", clone_url, "HEAD",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=env,
+            ),
+            timeout=30,
+        )
+        stdout, _ = await proc.communicate()
+        if proc.returncode == 0:
+            # Output: "ref: refs/heads/master\tHEAD\n..."
+            for line in stdout.decode().splitlines():
+                if line.startswith("ref:"):
+                    ref = line.split()[1]
+                    return ref.removeprefix("refs/heads/")
+    except (asyncio.TimeoutError, Exception):
+        pass
+    return "main"
+
+
 async def _ensure_repo_cache(url: str, pull: bool = False) -> Path:
     """Clone or update the GitHub repo in per-user cache. Returns repo path.
 
@@ -95,6 +127,9 @@ async def _ensure_repo_cache(url: str, pull: bool = False) -> Path:
     An asyncio lock serializes git operations for the same repo+branch.
     """
     owner, repo, branch = _parse_github_url(url)
+    clone_url = f"https://github.com/{owner}/{repo}.git"
+    if not branch:
+        branch = await _resolve_default_branch(clone_url)
     repo_dir = (_REPO_CACHE_BASE / owner / repo / branch).resolve()
     repo_dir.relative_to(_REPO_CACHE_BASE.resolve())
     lock = _get_repo_lock(owner, repo, branch)
@@ -108,7 +143,6 @@ async def _ensure_repo_cache(url: str, pull: bool = False) -> Path:
         else:
             logger.info(f"Cloning {owner}/{repo} ({branch}) into {repo_dir}")
             repo_dir.parent.mkdir(parents=True, exist_ok=True)
-            clone_url = f"https://github.com/{owner}/{repo}.git"
             await _run_git(
                 ["git", "clone", "--branch", branch, clone_url, str(repo_dir)],
                 timeout=120,
