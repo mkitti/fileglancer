@@ -231,17 +231,13 @@ export default function AppLaunch() {
         />
       ) : manifest ? (
         <div className="max-w-2xl">
-          <Typography className="text-foreground font-bold mb-1" type="h5">
+          <Typography className="font-bold mb-1" type="h5">
             {manifest.name}
           </Typography>
           {manifest.description ? (
-            <Typography className="text-secondary mb-4" type="small">
-              {manifest.description}
-            </Typography>
+            <Typography className="mb-6">{manifest.description}</Typography>
           ) : null}
-          <Typography className="text-foreground font-medium mb-3" type="p">
-            Select an entry point:
-          </Typography>
+          <Typography className="mb-3">Select an entry point:</Typography>
           <div className="space-y-2">
             {manifest.runnables.map(ep => (
               <div

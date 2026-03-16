@@ -898,15 +898,15 @@ export default function AppLaunchForm({
 
   return (
     <div>
-      <Typography className="text-foreground font-bold mb-1" type="h5">
+      <Typography className="font-bold mb-1" type="h5">
         {entryPoint.name}
       </Typography>
-      <Typography className="text-secondary block mb-4" type="small">
+      <Typography className="block mb-1">
         {manifest.name}
         {manifest.version ? ` v${manifest.version}` : ''}
       </Typography>
       {entryPoint.description ? (
-        <Typography className="text-secondary block mb-4" type="small">
+        <Typography className="block mb-6" type="small">
           {entryPoint.description}
         </Typography>
       ) : null}

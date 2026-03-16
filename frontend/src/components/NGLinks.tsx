@@ -112,10 +112,7 @@ export default function NGLinks() {
         needed.
       </Typography>
       <div className="mb-4">
-        <Button
-          className="bg-primary text-white hover:bg-primary/90"
-          onClick={handleOpenCreate}
-        >
+        <Button onClick={handleOpenCreate}>
           <HiOutlinePlus className="icon-default mr-2" />
           New Link
         </Button>

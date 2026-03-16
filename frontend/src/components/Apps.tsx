@@ -64,10 +64,10 @@ export default function Apps() {
 
   return (
     <div>
-      <Typography className="mb-4 text-foreground font-bold" type="h5">
+      <Typography className="mb-6 text-foreground font-bold" type="h5">
         Apps
       </Typography>
-      <Typography className="mb-4 text-foreground" type="small">
+      <Typography className="mb-6 text-foreground">
         Run command-line tools on the compute cluster. Add apps by URL to get
         started.
       </Typography>
