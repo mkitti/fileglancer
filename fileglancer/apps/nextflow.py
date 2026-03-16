@@ -114,8 +114,9 @@ class NextflowAdapter:
         schema = json.loads(schema_path.read_text())
         nf_config = _parse_nextflow_config(directory / _NEXTFLOW_CONFIG_FILENAME)
 
-        # Determine app metadata
-        name = schema.get("title") or nf_config.get("name") or directory.name
+        # Determine app metadata — use owner/repo from the cache path
+        # (directory is {cache_base}/{owner}/{repo}/{branch})
+        name = f"{directory.parent.parent.name}/{directory.parent.name}"
         description = schema.get("description") or nf_config.get("description")
         version = nf_config.get("version")
 
