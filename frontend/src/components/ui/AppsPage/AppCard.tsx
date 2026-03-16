@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 
-import { Button, IconButton, Typography } from '@material-tailwind/react';
+import { Button, Card, IconButton, Typography } from '@material-tailwind/react';
 import { buildLaunchPathFromApp } from '@/utils';
 import {
   HiOutlineInformationCircle,
@@ -36,24 +36,14 @@ export default function AppCard({
   };
 
   return (
-    <div className="border border-primary-light rounded-lg p-4 bg-background hover:shadow-sm transition-shadow">
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex-1 min-w-0">
-          <Typography
-            className="text-foreground font-semibold truncate"
-            type="h6"
-          >
-            {app.name}
-          </Typography>
-          {app.description ? (
-            <Typography
-              className="text-secondary mt-1 line-clamp-2"
-              type="small"
-            >
-              {app.description}
-            </Typography>
-          ) : null}
-        </div>
+    <Card className="p-4 flex flex-col gap-3 text-left w-full">
+      <div className="flex items-center justify-between">
+        <Typography
+          className="text-foreground font-semibold truncate"
+          type="h6"
+        >
+          {app.name}
+        </Typography>
         <div className="flex flex-shrink-0">
           <FgTooltip label="App info">
             <IconButton
@@ -83,8 +73,17 @@ export default function AppCard({
           </FgTooltip>
         </div>
       </div>
+      {app.description ? (
+        <Typography className="text-sm md:text-base text-foreground">
+          {app.description}
+        </Typography>
+      ) : null}
 
-      <Button className="!rounded-md" onClick={handleLaunch} size="sm">
+      <Button
+        className="!rounded-md self-start"
+        onClick={handleLaunch}
+        size="sm"
+      >
         <HiOutlinePlay className="icon-small mr-1" />
         Launch
       </Button>
@@ -107,6 +106,6 @@ export default function AppCard({
         removing={removing}
         updating={updating}
       />
-    </div>
+    </Card>
   );
 }
