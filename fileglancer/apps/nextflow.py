@@ -151,7 +151,10 @@ class NextflowAdapter:
             ]
 
             section_title = defn.get("title", def_key.replace("_", " ").title())
-            section_desc = defn.get("description")
+            section_desc = defn.get("description", "")
+            help_text = defn.get("help_text", "")
+            if help_text:
+                section_desc = f"{section_desc}\n\n{help_text}" if section_desc else help_text
 
             # Sections with required params start expanded; others start collapsed
             has_required = any(p.required for p in params)
