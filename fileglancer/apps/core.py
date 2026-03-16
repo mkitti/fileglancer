@@ -178,36 +178,47 @@ def _read_manifest_file(manifest_dir: Path) -> AppManifest:
 def _find_manifests_in_repo(repo_dir: Path) -> list[tuple[str, AppManifest]]:
     """Walk the cloned repo and discover all manifest files.
 
-    Looks for runnables.yaml first, then falls back to registered manifest
-    adapters (e.g. Nextflow nextflow_schema.json).
+    First pass: walk the repo looking for runnables.yaml files.
+    If none are found, fall back to registered manifest adapters, letting
+    each adapter search the repo on its own terms (e.g. Nextflow only checks
+    the repo root for nextflow_schema.json).
+
     Returns a list of (relative_dir_path, AppManifest) tuples.
     Uses "" for root-level manifests.
     """
     from fileglancer.apps.adapters import MANIFEST_ADAPTERS
 
+    # First pass: walk the repo looking for runnables.yaml files
     results: list[tuple[str, AppManifest]] = []
-
     for dirpath, dirnames, filenames in os.walk(repo_dir, topdown=True):
-        # Prune directories we should skip
         dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
 
-        current = Path(dirpath)
-        has_manifest = _MANIFEST_FILENAME in filenames
-        has_adapter = any(a.can_handle(current) for a in MANIFEST_ADAPTERS)
-
-        if not has_manifest and not has_adapter:
+        if _MANIFEST_FILENAME not in filenames:
             continue
 
+        current = Path(dirpath)
+        filepath = current / _MANIFEST_FILENAME
         try:
-            manifest = _read_manifest_file(current)
+            data = yaml.safe_load(filepath.read_text())
+            manifest = AppManifest(**data)
         except Exception as e:
             logger.warning(f"Skipping invalid manifest in {dirpath}: {e}")
             continue
 
-        # Compute relative path from repo root
         rel = current.relative_to(repo_dir)
         rel_str = str(rel) if str(rel) != "." else ""
         results.append((rel_str, manifest))
+
+    if results:
+        return results
+
+    # No runnables.yaml found — check each adapter against the repo root
+    for adapter in MANIFEST_ADAPTERS:
+        try:
+            if adapter.can_handle(repo_dir):
+                results.append(("", adapter.convert(repo_dir)))
+        except Exception as e:
+            logger.warning(f"Adapter {type(adapter).__name__} failed: {e}")
 
     return results
 
