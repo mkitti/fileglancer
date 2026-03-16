@@ -814,18 +814,26 @@ export default function AppLaunchForm({
     }
     setErrors(newErrors);
 
-    // Auto-expand sections that contain errors
+    // Auto-expand sections that contain errors and reveal hidden params if needed
     if (Object.keys(newErrors).length > 0) {
       const sectionsToOpen = new Set(openSections);
+      let hasHiddenError = false;
       for (const item of entryPoint.parameters) {
-        if (
-          isParameterSection(item) &&
-          item.parameters.some(p => newErrors[p.key])
-        ) {
-          sectionsToOpen.add(item.section);
+        if (isParameterSection(item)) {
+          if (item.parameters.some(p => newErrors[p.key])) {
+            sectionsToOpen.add(item.section);
+          }
+          if (item.parameters.some(p => p.hidden && newErrors[p.key])) {
+            hasHiddenError = true;
+          }
+        } else if (item.hidden && newErrors[item.key]) {
+          hasHiddenError = true;
         }
       }
       setOpenSections([...sectionsToOpen]);
+      if (hasHiddenError) {
+        setShowHidden(true);
+      }
     }
 
     return Object.keys(newErrors).length === 0;
