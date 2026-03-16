@@ -5,7 +5,6 @@ optionally enriched with metadata from nextflow.config.
 """
 
 import json
-import re
 from pathlib import Path
 
 from fileglancer.model import (
@@ -16,34 +15,6 @@ from fileglancer.model import (
 )
 
 _NEXTFLOW_SCHEMA_FILENAME = "nextflow_schema.json"
-_NEXTFLOW_CONFIG_FILENAME = "nextflow.config"
-
-
-def _parse_nextflow_config(config_path: Path) -> dict[str, str]:
-    """Extract key=value pairs from the manifest block of nextflow.config.
-
-    Returns a dict with keys like 'name', 'description', 'version'.
-    This is a best-effort parser for the Groovy-like config format.
-    """
-    result = {}
-    if not config_path.is_file():
-        return result
-
-    text = config_path.read_text()
-    # Find the manifest { ... } block
-    match = re.search(r'manifest\s*\{([^}]*)\}', text, re.DOTALL)
-    if not match:
-        return result
-
-    for line in match.group(1).splitlines():
-        line = line.strip()
-        if not line or line.startswith('//'):
-            continue
-        # Parse "key = 'value'" or 'key = "value"' patterns
-        m = re.match(r"(\w+)\s*=\s*['\"](.+?)['\"]", line)
-        if m:
-            result[m.group(1)] = m.group(2)
-    return result
 
 
 def _convert_property_type(prop: dict) -> str:
@@ -115,13 +86,11 @@ class NextflowAdapter:
     def convert(self, directory: Path) -> AppManifest:
         schema_path = directory / _NEXTFLOW_SCHEMA_FILENAME
         schema = json.loads(schema_path.read_text())
-        nf_config = _parse_nextflow_config(directory / _NEXTFLOW_CONFIG_FILENAME)
 
         # Determine app metadata — use owner/repo from the cache path
         # (directory is {cache_base}/{owner}/{repo}/{branch})
         name = f"{directory.parent.parent.name}/{directory.parent.name}"
-        description = schema.get("description") or nf_config.get("description")
-        version = nf_config.get("version")
+        description = schema.get("description")
 
         # Build parameters from definitions, ordered by allOf
         definitions = schema.get("$defs", schema.get("definitions", {}))
@@ -200,7 +169,6 @@ class NextflowAdapter:
         return AppManifest(
             name=name,
             description=description,
-            version=version,
             requirements=["nextflow"],
             runnables=[entry_point],
         )
