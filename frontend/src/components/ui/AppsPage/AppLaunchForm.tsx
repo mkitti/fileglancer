@@ -931,20 +931,42 @@ export default function AppLaunchForm({
 
   const hasSections = visibleParameters.some(isParameterSection);
 
+  const submitButton = (
+    <Button
+      className="!rounded-md"
+      disabled={submitting || validating}
+      onClick={handleSubmit}
+    >
+      <HiOutlinePlay className="icon-small mr-2" />
+      {validating
+        ? 'Validating...'
+        : submitting
+          ? 'Submitting...'
+          : entryPoint.type === 'service'
+            ? 'Start Service'
+            : 'Submit Job'}
+    </Button>
+  );
+
   return (
     <div>
-      <Typography className="text-foreground font-bold mb-1" type="h5">
-        {entryPoint.name}
-      </Typography>
-      <Typography className="text-secondary block mb-4" type="small">
-        {manifest.name}
-        {manifest.version ? ` v${manifest.version}` : ''}
-      </Typography>
-      {entryPoint.description ? (
-        <Typography className="text-secondary block mb-4" type="small">
-          {entryPoint.description}
-        </Typography>
-      ) : null}
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <Typography className="text-foreground font-bold mb-1" type="h5">
+            {entryPoint.name}
+          </Typography>
+          <Typography className="text-secondary block" type="small">
+            {manifest.name}
+            {manifest.version ? ` v${manifest.version}` : ''}
+          </Typography>
+          {entryPoint.description ? (
+            <Typography className="text-secondary block mt-1" type="small">
+              {entryPoint.description}
+            </Typography>
+          ) : null}
+        </div>
+        {submitButton}
+      </div>
 
       {/* Tabs */}
       <Tabs onValueChange={setActiveTab} value={activeTab}>
@@ -1154,21 +1176,10 @@ export default function AppLaunchForm({
         </div>
       ) : null}
 
-      {/* Submit */}
-      <Button
-        className="!rounded-md mt-6"
-        disabled={submitting || validating}
-        onClick={handleSubmit}
-      >
-        <HiOutlinePlay className="icon-small mr-2" />
-        {validating
-          ? 'Validating...'
-          : submitting
-            ? 'Submitting...'
-            : entryPoint.type === 'service'
-              ? 'Start Service'
-              : 'Submit Job'}
-      </Button>
+      {/* Submit (bottom) */}
+      <div className="flex justify-end mt-6">
+        {submitButton}
+      </div>
     </div>
   );
 }
