@@ -83,7 +83,10 @@ def _convert_property(name: str, prop: dict, is_required: bool) -> AppParameter:
         kwargs["required"] = True
 
     if "default" in prop:
-        kwargs["default"] = prop["default"]
+        default = prop["default"]
+        if isinstance(default, str) and default.startswith("$projectDir"):
+            default = "." + default[len("$projectDir"):]
+        kwargs["default"] = default
 
     if param_type == "enum":
         kwargs["options"] = prop["enum"]
