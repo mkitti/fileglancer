@@ -28,11 +28,15 @@ When a user adds a GitHub repository, Fileglancer clones it and walks the direct
 If a directory does not contain a `runnables.yaml` but does contain a `nextflow_schema.json`, Fileglancer automatically generates a manifest from the Nextflow schema. The generated manifest:
 
 - Sets `requirements` to `["nextflow"]`
-- Uses `nextflow run .` as the command
+- Uses `nextflow run . -ansi-log false` as the command
+- Names the entry point "Run pipeline"
 - Converts JSON Schema parameter definitions to Fileglancer parameters, preserving types, defaults, descriptions, required flags, enum options, and `hidden` status
 - Groups parameters into sections based on the schema's `definitions` and `allOf` ordering
 - Sections with required parameters start expanded; others start collapsed
 - Reads `name` and `version` from `nextflow.config`'s `manifest` block if available, falling back to the schema's `title` and `description`
+- Adds an **Environment tab** with Nextflow-specific options:
+  - **Profiles** — comma-separated list of Nextflow profiles (e.g. `standard,docker`)
+  - **Extra Arguments** — additional Nextflow CLI arguments (e.g. `-resume`, `-with-tower`), appended to the command without shell quoting
 
 This means most nf-core and Nextflow pipelines that follow the standard schema convention work out of the box — just add the repo URL in Fileglancer. If you need to customize the UI (e.g. change the command, add resources, or reorganize parameters), create a `runnables.yaml` in the same directory and it will take priority.
 
@@ -111,6 +115,7 @@ Each runnable defines a single command that users can launch. If the manifest ha
 | `description` | string | no | Longer description of what this runnable does |
 | `command` | string | yes | Base shell command to execute (see [Command Building](#command-building)) |
 | `parameters` | list of objects | no | Parameter definitions (see [Parameters](#parameters)) |
+| `env_parameters` | list of objects | no | Parameters shown in the Environment tab, emitted before `parameters` in the command (see [Environment Tab Parameters](#environment-tab-parameters)) |
 | `resources` | object | no | Default cluster resource requests (see [Resources](#resources)) |
 | `env` | object | no | Default environment variables to export (see [Environment Variables](#environment-variables)) |
 | `pre_run` | string | no | Shell script to run before the main command (see [Pre/Post-Run Scripts](#prepost-run-scripts)) |
@@ -137,6 +142,7 @@ Parameters define the inputs that users fill in through the Fileglancer UI. Each
 | `max` | number | no | Maximum value (only for `integer` and `number` types) |
 | `pattern` | string | no | Regex validation pattern (only for `string` type, uses full match) |
 | `hidden` | boolean | no | Whether the parameter is hidden by default in the UI. Default: `false` |
+| `raw` | boolean | no | If `true`, the value is appended to the command without shell quoting. Validated against shell metacharacters for safety. Default: `false` |
 
 ### Parameter Sections
 
@@ -203,6 +209,44 @@ parameters:
 ```
 
 Hidden parameters still participate in command building — if they have a `default` value, it will be used even when the parameter is not visible in the UI. Hidden parameters inside a section are filtered individually; if all parameters in a section are hidden, the entire section is hidden until the toggle is turned on.
+
+### Environment Tab Parameters
+
+The `env_parameters` field works identically to `parameters` (supports the same parameter types, sections, flags, etc.) but places the parameters in the **Environment tab** instead of the Parameters tab. This is useful for tool-level options that are separate from the app's own parameters.
+
+Environment tab parameters are emitted **before** regular parameters in the generated command. This matters for tools like Nextflow where tool-level flags (e.g. `-profile`) must appear before pipeline parameters (e.g. `--input`).
+
+```yaml
+runnables:
+  - id: run
+    name: Run Pipeline
+    command: nextflow run . -ansi-log false
+    env_parameters:
+      - section: Nextflow
+        parameters:
+          - flag: -profile
+            name: Profiles
+            type: string
+            description: Comma-separated list of Nextflow profiles
+          - name: Extra Arguments
+            type: string
+            description: Additional Nextflow CLI arguments
+            raw: true
+    parameters:
+      - flag: --input
+        name: Input
+        type: file
+        required: true
+```
+
+The resulting command would be:
+
+```bash
+nextflow run . -ansi-log false \
+  -profile 'standard,docker' \
+  -resume -with-tower \
+  --input '/data/input'
+```
 
 ### Flag Forms
 
@@ -414,11 +458,11 @@ When a job is submitted, Fileglancer constructs the full shell command from the 
 
 1. Start with the base `command` string
 2. Merge user-provided values with defaults for any parameters the user didn't set
-3. **Pass 1 — Flagged arguments**: Emit values for parameters with a `flag`, in declaration order:
+3. **Pass 1 — Flagged arguments**: Emit values for parameters with a `flag`, in declaration order (`env_parameters` first, then `parameters`):
    - Boolean `true` → append the flag (e.g. `--verbose`)
    - Boolean `false` → omit entirely
    - All other types → append `{flag} {shell_quoted_value}`
-4. **Pass 2 — Positional arguments**: Emit values for parameters without a `flag`, in declaration order, as bare shell-quoted values
+4. **Pass 2 — Positional arguments**: Emit values for parameters without a `flag`, in declaration order. Values are shell-quoted unless `raw: true` is set, in which case the value is appended as-is (validated against shell metacharacters)
 5. Join all parts with line-continuation (`\`) for readability
 
 For example, given this runnable:
@@ -449,7 +493,7 @@ pixi run python demo.py \
   --repeat '3'
 ```
 
-All string values are shell-quoted using `shlex.quote()` to prevent injection.
+All string values are shell-quoted using `shlex.quote()` to prevent injection, unless `raw: true` is set (in which case shell metacharacters are validated and rejected instead).
 
 ## Separate Tool Repo
 
