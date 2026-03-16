@@ -544,7 +544,14 @@ def build_command(entry_point: AppEntryPoint, parameters: dict, session=None) ->
             continue
         p, value = effective[param.key]
         validated = _validate_parameter_value(p, value, session=session)
-        parts.append(shlex.quote(validated))
+        if p.raw:
+            if _SHELL_METACHAR_PATTERN.search(validated):
+                raise ValueError(
+                    f"Parameter '{p.name}' contains forbidden shell characters"
+                )
+            parts.append(validated)
+        else:
+            parts.append(shlex.quote(validated))
 
     return (" \\\n  ").join(parts)
 

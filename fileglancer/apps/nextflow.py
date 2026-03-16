@@ -178,6 +178,12 @@ class NextflowAdapter:
                         type="string",
                         description="Comma-separated list of Nextflow profiles to apply (e.g. standard,docker)",
                     ),
+                    AppParameter(
+                        name="Extra Arguments",
+                        type="string",
+                        description="Additional Nextflow command-line arguments (e.g. -resume, -with-tower)",
+                        raw=True,
+                    ),
                 ],
             ),
         ]
@@ -186,7 +192,7 @@ class NextflowAdapter:
             id="run",
             name="Run pipeline",
             description=description,
-            command="nextflow run .",
+            command="nextflow run . -ansi-log false",
             parameters=parameters,
             env_parameters=env_parameters,
         )

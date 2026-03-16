@@ -336,6 +336,7 @@ class AppParameter(BaseModel):
     max: Optional[float] = Field(description="Maximum value for numeric types", default=None)
     pattern: Optional[str] = Field(description="Regex validation pattern for string types", default=None)
     hidden: bool = Field(description="Whether the parameter is hidden by default in the UI", default=False)
+    raw: bool = Field(description="If true, value is appended to the command without shell quoting", default=False)
 
     @field_validator("flag")
     @classmethod
@@ -454,7 +455,7 @@ class AppEntryPoint(BaseModel):
     def flat_parameters(self) -> List[AppParameter]:
         """Return a flat list of all parameters, traversing sections."""
         result = []
-        for item in (*self.parameters, *self.env_parameters):
+        for item in (*self.env_parameters, *self.parameters):
             if isinstance(item, AppParameterSection):
                 result.extend(item.parameters)
             else:
