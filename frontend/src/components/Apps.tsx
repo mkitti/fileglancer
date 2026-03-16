@@ -80,7 +80,7 @@ export default function Apps() {
       </div>
 
       {appsQuery.isPending ? (
-        <Typography className="text-secondary mb-6" type="small">
+        <Typography className="text-foreground mb-6" type="small">
           Loading apps...
         </Typography>
       ) : appsQuery.isError ? (
@@ -102,7 +102,7 @@ export default function Apps() {
         </div>
       ) : (
         <div className="mb-8 p-6 border border-dashed border-primary-light rounded-lg text-center">
-          <Typography className="text-secondary" type="small">
+          <Typography className="text-foreground" type="small">
             No apps configured. Click &quot;Add App&quot; to get started.
           </Typography>
         </div>

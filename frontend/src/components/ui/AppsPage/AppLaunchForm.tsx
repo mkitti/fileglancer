@@ -73,7 +73,9 @@ function ParameterField({
             onChange={e => onChange(e.target.checked)}
             type="checkbox"
           />
-          <span className="text-foreground text-sm">{param.name}</span>
+          <span className="text-foreground text-sm font-semibold">
+            {param.name}
+          </span>
         </label>
       );
 
@@ -166,7 +168,7 @@ function ParameterFieldRow({
     <div>
       {param.type !== 'boolean' ? (
         <label
-          className="block text-foreground text-sm font-medium mb-1"
+          className="block text-foreground text-sm font-semibold mb-1"
           htmlFor={`param-${param.key}`}
         >
           {param.name}
@@ -174,13 +176,13 @@ function ParameterFieldRow({
         </label>
       ) : null}
       {param.description && param.type !== 'boolean' ? (
-        <Typography className="text-secondary mb-1" type="small">
+        <Typography className="text-foreground mb-1" type="small">
           {param.description}
         </Typography>
       ) : null}
       <ParameterField onChange={onChange} param={param} value={value} />
       {param.description && param.type === 'boolean' ? (
-        <Typography className="text-secondary mt-1" type="small">
+        <Typography className="text-foreground mt-1" type="small">
           {param.description}
         </Typography>
       ) : null}
@@ -228,10 +230,10 @@ function EnvVarRows({
 }) {
   return (
     <div>
-      <label className="block text-foreground text-sm font-medium mb-1">
+      <label className="block text-foreground text-sm font-semibold mb-1">
         Environment Variables
       </label>
-      <Typography className="text-secondary mb-2" type="small">
+      <Typography className="text-foreground mb-2" type="small">
         Variables exported in the job script before the command runs
       </Typography>
       {envVars.map((envVar, idx) => (
@@ -249,7 +251,7 @@ function EnvVarRows({
             type="text"
             value={envVar.key}
           />
-          <span className="text-secondary">=</span>
+          <span className="text-foreground">=</span>
           <input
             className="flex-[2] p-2 text-foreground border rounded-sm focus:outline-none bg-background border-primary-light focus:border-primary font-mono text-sm"
             onChange={e =>
@@ -264,7 +266,7 @@ function EnvVarRows({
             value={envVar.value}
           />
           <button
-            className="p-1 text-secondary hover:text-error transition-colors"
+            className="p-1 text-foreground hover:text-error transition-colors"
             onClick={() => setEnvVars(prev => prev.filter((_, i) => i !== idx))}
             title="Remove variable"
             type="button"
@@ -308,10 +310,10 @@ function EnvironmentSectionContent({
       <EnvVarRows envVars={envVars} setEnvVars={setEnvVars} />
 
       <div>
-        <label className="block text-foreground text-sm font-medium mb-1">
+        <label className="block text-foreground text-sm font-semibold mb-1">
           Pre-run Script
         </label>
-        <Typography className="text-secondary mb-1" type="small">
+        <Typography className="text-foreground mb-1" type="small">
           Shell commands to run before the main command (e.g. module loads)
         </Typography>
         <textarea
@@ -324,10 +326,10 @@ function EnvironmentSectionContent({
       </div>
 
       <div>
-        <label className="block text-foreground text-sm font-medium mb-1">
+        <label className="block text-foreground text-sm font-semibold mb-1">
           Post-run Script
         </label>
-        <Typography className="text-secondary mb-1" type="small">
+        <Typography className="text-foreground mb-1" type="small">
           Shell commands to run after the main command completes
         </Typography>
         <textarea
@@ -355,10 +357,10 @@ function ResourcesSectionContent({
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-foreground text-sm font-medium mb-1">
+        <label className="block text-foreground text-sm font-semibold mb-1">
           CPUs
         </label>
-        <Typography className="text-secondary mb-1" type="small">
+        <Typography className="text-foreground mb-1" type="small">
           Number of CPU cores to allocate for the job
         </Typography>
         <input
@@ -376,10 +378,10 @@ function ResourcesSectionContent({
         />
       </div>
       <div>
-        <label className="block text-foreground text-sm font-medium mb-1">
+        <label className="block text-foreground text-sm font-semibold mb-1">
           Memory
         </label>
-        <Typography className="text-secondary mb-1" type="small">
+        <Typography className="text-foreground mb-1" type="small">
           Amount of RAM to allocate (e.g. &quot;16 GB&quot;, &quot;512 MB&quot;)
         </Typography>
         <input
@@ -396,10 +398,10 @@ function ResourcesSectionContent({
         />
       </div>
       <div>
-        <label className="block text-foreground text-sm font-medium mb-1">
+        <label className="block text-foreground text-sm font-semibold mb-1">
           Time Limit
         </label>
-        <Typography className="text-secondary mb-1" type="small">
+        <Typography className="text-foreground mb-1" type="small">
           Maximum run time before the job is killed (HH:MM format)
         </Typography>
         <input
@@ -436,10 +438,10 @@ function SubmitOptionsSectionContent({
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-foreground text-sm font-medium mb-1">
+        <label className="block text-foreground text-sm font-semibold mb-1">
           Queue
         </label>
-        <Typography className="text-secondary mb-1" type="small">
+        <Typography className="text-foreground mb-1" type="small">
           Cluster queue/partition to submit the job to
         </Typography>
         <input
@@ -456,10 +458,10 @@ function SubmitOptionsSectionContent({
         />
       </div>
       <div>
-        <label className="block text-foreground text-sm font-medium mb-1">
+        <label className="block text-foreground text-sm font-semibold mb-1">
           Extra Arguments
         </label>
-        <Typography className="text-secondary mb-1" type="small">
+        <Typography className="text-foreground mb-1" type="small">
           Additional CLI arguments for the submit command
         </Typography>
         <input
@@ -518,7 +520,7 @@ function EnvironmentTabContent({
         <Accordion.Trigger className="flex w-full items-center justify-between py-3 border-b border-primary-light">
           <div className="text-foreground font-bold text-sm">Environment</div>
           <HiChevronDown
-            className={`h-4 w-4 text-secondary transition-transform ${
+            className={`h-4 w-4 text-foreground transition-transform ${
               openEnvSections.includes('environment') ? 'rotate-180' : ''
             }`}
           />
@@ -540,7 +542,7 @@ function EnvironmentTabContent({
           <Accordion.Trigger className="flex w-full items-center justify-between py-3 border-b border-primary-light">
             <div className="text-foreground font-bold text-sm">Container</div>
             <HiChevronDown
-              className={`h-4 w-4 text-secondary transition-transform ${
+              className={`h-4 w-4 text-foreground transition-transform ${
                 openEnvSections.includes('apptainer') ? 'rotate-180' : ''
               }`}
             />
@@ -548,7 +550,7 @@ function EnvironmentTabContent({
           <Accordion.Content className="pt-4 pb-2 pl-4">
             <div className="space-y-4">
               <div>
-                <label className="block text-foreground text-sm font-medium mb-1">
+                <label className="block text-foreground text-sm font-semibold mb-1">
                   Container Image
                 </label>
                 <input
@@ -560,10 +562,10 @@ function EnvironmentTabContent({
                 />
               </div>
               <div>
-                <label className="block text-foreground text-sm font-medium mb-1">
+                <label className="block text-foreground text-sm font-semibold mb-1">
                   Extra Apptainer Arguments
                 </label>
-                <Typography className="text-secondary mb-1" type="small">
+                <Typography className="text-foreground mb-1" type="small">
                   Additional flags passed to apptainer exec
                 </Typography>
                 <input
@@ -609,7 +611,7 @@ function ClusterTabContent({
         <Accordion.Trigger className="flex w-full items-center justify-between py-3 border-b border-primary-light">
           <div className="text-foreground font-bold text-sm">Resources</div>
           <HiChevronDown
-            className={`h-4 w-4 text-secondary transition-transform ${
+            className={`h-4 w-4 text-foreground transition-transform ${
               openClusterSections.includes('resources') ? 'rotate-180' : ''
             }`}
           />
@@ -628,7 +630,7 @@ function ClusterTabContent({
             Submit Options
           </div>
           <HiChevronDown
-            className={`h-4 w-4 text-secondary transition-transform ${
+            className={`h-4 w-4 text-foreground transition-transform ${
               openClusterSections.includes('submitOptions') ? 'rotate-180' : ''
             }`}
           />
@@ -944,17 +946,20 @@ export default function AppLaunchForm({
                     >
                       <Accordion.Trigger className="flex w-full items-center justify-between py-3 border-b border-primary-light">
                         <div className="text-left">
-                          <div className="text-foreground font-medium text-sm">
+                          <Typography className="text-foreground font-semibold text-base">
                             {item.section}
-                          </div>
+                          </Typography>
                           {item.description ? (
-                            <Typography className="text-secondary" type="small">
+                            <Typography
+                              className="text-foreground"
+                              type="small"
+                            >
                               {item.description}
                             </Typography>
                           ) : null}
                         </div>
                         <HiChevronDown
-                          className={`h-4 w-4 text-secondary transition-transform ${
+                          className={`h-4 w-4 text-foreground transition-transform ${
                             openSections.includes(item.section)
                               ? 'rotate-180'
                               : ''
@@ -1007,11 +1012,11 @@ export default function AppLaunchForm({
                 onChange={e => setPullLatest(e.target.checked)}
                 type="checkbox"
               />
-              <span className="text-foreground text-sm">
+              <span className="text-foreground text-sm font-semibold">
                 Pull latest code before running
               </span>
             </label>
-            <Typography className="text-secondary mt-1" type="small">
+            <Typography className="text-foreground mt-1" type="small">
               When enabled, runs git pull to fetch the latest code from GitHub
               before starting the job.
             </Typography>

@@ -168,7 +168,7 @@ export default function AppLaunch() {
       {/* Not-installed banner */}
       {!appsQuery.isPending && !isInstalled ? (
         <div className="mb-4 p-3 flex items-center gap-3 border border-primary-light rounded-lg bg-surface/30">
-          <Typography className="text-secondary flex-1" type="small">
+          <Typography className="text-foreground flex-1" type="small">
             This app is not in your library. Install it for quick access from
             the Apps page.
           </Typography>

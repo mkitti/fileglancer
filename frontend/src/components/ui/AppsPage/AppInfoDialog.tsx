@@ -22,7 +22,7 @@ interface AppInfoDialogProps {
 
 function AppInfoTable({ app }: { readonly app: UserApp }) {
   const labelClass =
-    'text-secondary font-medium pr-4 py-1.5 align-top whitespace-nowrap';
+    'text-foreground font-medium pr-4 py-1.5 align-top whitespace-nowrap';
   const valueClass = 'text-foreground py-1.5';
 
   return (

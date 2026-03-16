@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 
 import { Button, Card, IconButton, Typography } from '@material-tailwind/react';
 import { buildLaunchPathFromApp } from '@/utils';
@@ -47,7 +47,7 @@ export default function AppCard({
         <div className="flex flex-shrink-0">
           <FgTooltip label="App info">
             <IconButton
-              className="text-secondary hover:text-primary"
+              className="text-foreground hover:text-primary"
               onClick={() => setInfoOpen(true)}
               size="sm"
               variant="ghost"
@@ -57,7 +57,7 @@ export default function AppCard({
           </FgTooltip>
           <FgTooltip label="Remove app">
             <IconButton
-              className="text-secondary hover:text-error"
+              className="text-foreground hover:text-error"
               disabled={removing}
               onClick={() =>
                 onRemove({
