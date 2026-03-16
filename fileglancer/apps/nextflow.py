@@ -156,12 +156,10 @@ class NextflowAdapter:
             if help_text:
                 section_desc = f"{section_desc}\n\n{help_text}" if section_desc else help_text
 
-            # Sections with required params start expanded; others start collapsed
-            has_required = any(p.required for p in params)
             section = AppParameterSection(
                 section=section_title,
                 description=section_desc,
-                collapsed=not has_required,
+                collapsed=False,
                 parameters=params,
             )
             parameters.append(section)
