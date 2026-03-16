@@ -59,10 +59,11 @@ export default function Table({
   showPropertiesDrawer,
   handleContextMenuClick
 }: TableProps) {
-  const { fileQuery, fileBrowserState, handleLeftClick } =
+  const { fileQuery, fileBrowserState, handleLeftClick, clearSelection } =
     useFileBrowserContext();
   const navigate = useNavigate();
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [isKeyboardNavigating, setIsKeyboardNavigating] = useState(false);
 
   const selectedFileNames = useMemo(
     () => new Set(fileBrowserState.selectedFiles.map(file => file.name)),
@@ -203,11 +204,13 @@ export default function Table({
 
   useHotkey('ArrowDown', e => {
     e.preventDefault();
+    setIsKeyboardNavigating(true);
     navigateRows('down');
   });
 
   useHotkey('ArrowUp', e => {
     e.preventDefault();
+    setIsKeyboardNavigating(true);
     navigateRows('up');
   });
 
@@ -270,12 +273,19 @@ export default function Table({
             </tr>
           ))}
         </thead>
-        <tbody>
+        <tbody
+          onMouseMove={() => {
+            if (isKeyboardNavigating) {
+              setIsKeyboardNavigating(false);
+              clearSelection();
+            }
+          }}
+        >
           {rows.map((row, index) => {
             const isSelected = selectedFileNames.has(row.original.name);
             return (
               <tr
-                className={`cursor-pointer hover:bg-primary-light/30 focus:bg-primary-light/30 ${isSelected && 'bg-primary-light/30'} ${index % 2 === 0 && !isSelected && 'bg-surface/50'}`}
+                className={`cursor-pointer ${!isKeyboardNavigating && 'hover:bg-primary-light/30'} focus:bg-primary-light/30 ${isSelected && 'bg-primary-light/30'} ${index % 2 === 0 && !isSelected && 'bg-surface/50'}`}
                 key={row.id}
                 onClick={() =>
                   handleLeftClick(row.original, showPropertiesDrawer)
