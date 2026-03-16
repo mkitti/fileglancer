@@ -789,7 +789,7 @@ export default function AppLaunchForm({
           }
         }
       }
-      // Validate file/directory paths are absolute
+      // Validate file/directory paths
       if (
         val !== undefined &&
         val !== null &&
@@ -798,9 +798,15 @@ export default function AppLaunchForm({
         typeof val === 'string'
       ) {
         const normalized = convertBackToForwardSlash(val);
-        if (!normalized.startsWith('/') && !normalized.startsWith('~')) {
+        if (normalized.includes('..')) {
+          newErrors[param.key] = `${param.name} must not contain '..'`;
+        } else if (
+          !normalized.startsWith('/') &&
+          !normalized.startsWith('~') &&
+          !normalized.startsWith('./')
+        ) {
           newErrors[param.key] =
-            `${param.name} must be an absolute path (starting with / or ~)`;
+            `${param.name} must be an absolute or relative path (starting with /, ~, or ./)`;
         }
       }
     }

@@ -406,10 +406,23 @@ class TestValidatePathForShell:
     def test_valid_tilde_path(self):
         assert validate_path_for_shell("~/data/input.txt") is None
 
-    def test_rejects_relative_path(self):
+    def test_valid_relative_path(self):
+        assert validate_path_for_shell("./data/input.txt") is None
+
+    def test_rejects_bare_relative_path(self):
         error = validate_path_for_shell("relative/path.txt")
         assert error is not None
-        assert "absolute path" in error
+        assert "absolute or relative path" in error
+
+    def test_rejects_dotdot(self):
+        error = validate_path_for_shell("/data/../etc/passwd")
+        assert error is not None
+        assert ".." in error
+
+    def test_rejects_dotdot_relative(self):
+        error = validate_path_for_shell("./foo/../bar")
+        assert error is not None
+        assert ".." in error
 
     def test_rejects_metacharacters(self):
         error = validate_path_for_shell("/data/input;rm -rf /")

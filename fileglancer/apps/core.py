@@ -363,7 +363,8 @@ _SHELL_METACHAR_PATTERN = re.compile(r'[;&|`$(){}!<>\n\r]')
 def validate_path_for_shell(path_value: str) -> str | None:
     """Validate path syntax for use in shell commands (no filesystem I/O).
 
-    Checks for shell metacharacters and absolute-path requirement only.
+    Checks for shell metacharacters, rejects '..', and requires paths to
+    start with '/', '~', or './'.
     Returns an error message string if invalid, or None if valid.
     """
     normalized = path_value.replace("\\", "/")
@@ -371,8 +372,11 @@ def validate_path_for_shell(path_value: str) -> str | None:
     if _SHELL_METACHAR_PATTERN.search(normalized):
         return "Path contains invalid characters"
 
-    if not normalized.startswith("/") and not normalized.startswith("~"):
-        return "Must be an absolute path (starting with / or ~)"
+    if ".." in normalized:
+        return "Path must not contain '..'"
+
+    if not (normalized.startswith("/") or normalized.startswith("~") or normalized.startswith("./")):
+        return "Must be an absolute or relative path (starting with /, ~, or ./)"
 
     return None
 
@@ -389,7 +393,14 @@ def validate_path_in_filestore(path_value: str, session) -> str | None:
     if error:
         return error
 
-    expanded = os.path.expanduser(path_value.replace("\\", "/"))
+    normalized = path_value.replace("\\", "/")
+
+    # Relative paths (./...) resolve at runtime against the work dir;
+    # skip filestore validation since there's no absolute path to check.
+    if normalized.startswith("./"):
+        return None
+
+    expanded = os.path.expanduser(normalized)
 
     # Resolve to a file share path
     from fileglancer.database import find_fsp_from_absolute_path
