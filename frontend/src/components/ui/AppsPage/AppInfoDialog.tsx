@@ -42,6 +42,12 @@ function AppInfoTable({ app }: { readonly app: UserApp }) {
             </a>
           </td>
         </tr>
+        {app.branch ? (
+          <tr>
+            <td className={labelClass}>Branch</td>
+            <td className={valueClass}>{app.branch}</td>
+          </tr>
+        ) : null}
         {app.manifest?.version ? (
           <tr>
             <td className={labelClass}>Version</td>

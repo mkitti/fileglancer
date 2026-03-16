@@ -136,6 +136,7 @@ type AppManifest = {
 type UserApp = {
   url: string;
   manifest_path: string;
+  branch?: string;
   name: string;
   description?: string;
   added_at: string;

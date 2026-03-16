@@ -246,6 +246,18 @@ async def fetch_app_manifest(url: str, manifest_path: str = "") -> AppManifest:
     return _read_manifest_file(target_dir)
 
 
+async def get_app_branch(url: str) -> str:
+    """Return the branch name for a GitHub app URL.
+
+    If the URL doesn't specify a branch, resolves the remote's default branch.
+    """
+    _, _, branch = _parse_github_url(url)
+    if not branch:
+        clone_url = re.sub(r"(/tree/[^/]+)?/?$", ".git", url)
+        branch = await _resolve_default_branch(clone_url)
+    return branch
+
+
 # --- Requirement Verification ---
 
 _TOOL_REGISTRY = {

@@ -525,6 +525,7 @@ class UserApp(BaseModel):
     """A user's saved app reference"""
     url: str = Field(description="URL to the app manifest")
     manifest_path: str = Field(description="Relative directory path to the manifest within the repo", default="")
+    branch: Optional[str] = Field(description="Git branch used", default=None)
     name: str = Field(description="App name from manifest")
     description: Optional[str] = Field(description="App description from manifest", default=None)
     added_at: datetime = Field(description="When the app was added")
