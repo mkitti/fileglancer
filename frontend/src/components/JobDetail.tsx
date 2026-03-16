@@ -15,6 +15,7 @@ import {
   coy
 } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
+import AnsiText from '@/components/ui/AppsPage/AnsiText';
 import FgDialog from '@/components/ui/Dialogs/FgDialog';
 import type { JobFileInfo, FileSharePath } from '@/shared.types';
 import JobStatusBadge from '@/components/ui/AppsPage/JobStatusBadge';
@@ -54,6 +55,10 @@ function FilePreview({
         File not available
       </Typography>
     );
+  }
+
+  if (language === 'text') {
+    return <AnsiText content={content} isDarkMode={isDarkMode} />;
   }
 
   const theme = isDarkMode ? materialDark : coy;

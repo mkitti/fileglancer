@@ -130,7 +130,14 @@ function ParameterField({
             value={value !== undefined && value !== null ? String(value) : ''}
           />
           <FileSelectorButton
-            initialPath={typeof value === 'string' && !value.startsWith('s3://') && !value.startsWith('gs://') && !value.startsWith('https://') ? value : undefined}
+            initialPath={
+              typeof value === 'string' &&
+              !value.startsWith('s3://') &&
+              !value.startsWith('gs://') &&
+              !value.startsWith('https://')
+                ? value
+                : undefined
+            }
             label="Browse..."
             mode={param.type === 'file' ? 'file' : 'directory'}
             onSelect={path => onChange(path)}
@@ -798,7 +805,11 @@ export default function AppLaunchForm({
         typeof val === 'string'
       ) {
         const normalized = convertBackToForwardSlash(val);
-        if (!normalized.startsWith('s3://') && !normalized.startsWith('gs://') && !normalized.startsWith('https://')) {
+        if (
+          !normalized.startsWith('s3://') &&
+          !normalized.startsWith('gs://') &&
+          !normalized.startsWith('https://')
+        ) {
           if (normalized.includes('..')) {
             newErrors[param.key] = `${param.name} must not contain '..'`;
           } else if (
@@ -863,7 +874,11 @@ export default function AppLaunchForm({
           const normalized = convertBackToForwardSlash(val);
           params[key] = normalized;
           // Skip server-side path validation for URI schemes (e.g. s3://)
-          if (!normalized.startsWith('s3://') && !normalized.startsWith('gs://') && !normalized.startsWith('https://')) {
+          if (
+            !normalized.startsWith('s3://') &&
+            !normalized.startsWith('gs://') &&
+            !normalized.startsWith('https://')
+          ) {
             pathParams[key] = normalized;
           }
         } else {
@@ -1196,9 +1211,7 @@ export default function AppLaunchForm({
       ) : null}
 
       {/* Submit (bottom) */}
-      <div className="flex justify-end mt-6">
-        {submitButton}
-      </div>
+      <div className="flex justify-end mt-6">{submitButton}</div>
     </div>
   );
 }
