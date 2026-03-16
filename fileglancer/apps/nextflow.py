@@ -165,12 +165,27 @@ class NextflowAdapter:
             )
             parameters.append(section)
 
+        env_parameters = [
+            AppParameterSection(
+                section="Nextflow",
+                parameters=[
+                    AppParameter(
+                        flag="-profile",
+                        name="Profiles",
+                        type="string",
+                        description="Comma-separated list of Nextflow profiles to apply (e.g. standard,docker)",
+                    ),
+                ],
+            ),
+        ]
+
         entry_point = AppEntryPoint(
             id="run",
             name=f"Run {name}" if name else "Run Pipeline",
             description=description,
             command="nextflow run .",
             parameters=parameters,
+            env_parameters=env_parameters,
         )
 
         return AppManifest(

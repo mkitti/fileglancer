@@ -114,6 +114,7 @@ type AppEntryPoint = {
   description?: string;
   command: string;
   parameters: AppParameterItem[];
+  env_parameters?: AppParameterItem[];
   resources?: AppResourceDefaults;
   env?: Record<string, string>;
   pre_run?: string;

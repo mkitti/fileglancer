@@ -664,7 +664,10 @@ export default function AppLaunchForm({
 }: AppLaunchFormProps) {
   const { defaultExtraArgs } = usePreferencesContext();
   const clusterDefaultsQuery = useClusterDefaultsQuery();
-  const allParams = flattenParameters(entryPoint.parameters);
+  const allParams = flattenParameters([
+    ...entryPoint.parameters,
+    ...(entryPoint.env_parameters ?? [])
+  ]);
 
   // Initialize parameter values: external values override defaults
   const defaultValues: Record<string, unknown> = {};
@@ -737,6 +740,11 @@ export default function AppLaunchForm({
   );
   const [openEnvSections, setOpenEnvSections] = useState<string[]>(
     entryPoint.container ? ['environment', 'apptainer'] : ['environment']
+  );
+  const [openEnvParamSections, setOpenEnvParamSections] = useState<string[]>(
+    (entryPoint.env_parameters ?? [])
+      .filter(item => isParameterSection(item) && !item.collapsed)
+      .map(item => (item as AppParameterSection).section)
   );
   const [openClusterSections, setOpenClusterSections] = useState<string[]>([
     'resources',
@@ -1067,6 +1075,48 @@ export default function AppLaunchForm({
               before starting the job.
             </Typography>
           </div>
+
+          {(entryPoint.env_parameters ?? []).length > 0 ? (
+            <Accordion
+              onValueChange={
+                setOpenEnvParamSections as Dispatch<
+                  SetStateAction<string | string[]>
+                >
+              }
+              type="multiple"
+              value={openEnvParamSections}
+            >
+              {(entryPoint.env_parameters ?? []).map(item =>
+                isParameterSection(item) ? (
+                  <Accordion.Item
+                    key={`env-section-${item.section}`}
+                    value={item.section}
+                  >
+                    <Accordion.Trigger className="flex w-full items-center justify-between py-3 border-b border-primary-light">
+                      <div className="text-foreground font-bold text-sm">
+                        {item.section}
+                      </div>
+                      <HiChevronDown
+                        className={`h-4 w-4 text-secondary transition-transform ${
+                          openEnvParamSections.includes(item.section)
+                            ? 'rotate-180'
+                            : ''
+                        }`}
+                      />
+                    </Accordion.Trigger>
+                    <Accordion.Content className="pt-4 pb-2 pl-4">
+                      <SectionContent
+                        errors={errors}
+                        onParamChange={handleChange}
+                        section={item}
+                        values={values}
+                      />
+                    </Accordion.Content>
+                  </Accordion.Item>
+                ) : null
+              )}
+            </Accordion>
+          ) : null}
 
           <EnvironmentTabContent
             containerArgs={containerArgs}

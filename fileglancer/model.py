@@ -388,6 +388,10 @@ class AppEntryPoint(BaseModel):
     description: Optional[str] = Field(description="Description of the entry point", default=None)
     command: str = Field(description="The base CLI command to execute")
     parameters: List[AppParameterItem] = Field(description="Parameters for this entry point", default=[])
+    env_parameters: List[AppParameterItem] = Field(
+        description="Parameters shown in the Environment tab (e.g. Nextflow profiles)",
+        default=[],
+    )
     resources: Optional[AppResourceDefaults] = Field(description="Default resource requirements", default=None)
     env: Optional[Dict[str, str]] = Field(description="Default environment variables", default=None)
     pre_run: Optional[str] = Field(description="Script to run before the main command", default=None)
@@ -450,7 +454,7 @@ class AppEntryPoint(BaseModel):
     def flat_parameters(self) -> List[AppParameter]:
         """Return a flat list of all parameters, traversing sections."""
         result = []
-        for item in self.parameters:
+        for item in (*self.parameters, *self.env_parameters):
             if isinstance(item, AppParameterSection):
                 result.extend(item.parameters)
             else:
