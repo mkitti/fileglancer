@@ -130,7 +130,7 @@ function ParameterField({
             value={value !== undefined && value !== null ? String(value) : ''}
           />
           <FileSelectorButton
-            initialPath={typeof value === 'string' ? value : undefined}
+            initialPath={typeof value === 'string' && !value.startsWith('s3://') && !value.startsWith('gs://') && !value.startsWith('https://') ? value : undefined}
             label="Browse..."
             mode={param.type === 'file' ? 'file' : 'directory'}
             onSelect={path => onChange(path)}
@@ -789,7 +789,7 @@ export default function AppLaunchForm({
           }
         }
       }
-      // Validate file/directory paths
+      // Validate file/directory paths (skip URI schemes like s3://)
       if (
         val !== undefined &&
         val !== null &&
@@ -798,15 +798,17 @@ export default function AppLaunchForm({
         typeof val === 'string'
       ) {
         const normalized = convertBackToForwardSlash(val);
-        if (normalized.includes('..')) {
-          newErrors[param.key] = `${param.name} must not contain '..'`;
-        } else if (
-          !normalized.startsWith('/') &&
-          !normalized.startsWith('~') &&
-          !normalized.startsWith('./')
-        ) {
-          newErrors[param.key] =
-            `${param.name} must be an absolute or relative path (starting with /, ~, or ./)`;
+        if (!normalized.startsWith('s3://') && !normalized.startsWith('gs://') && !normalized.startsWith('https://')) {
+          if (normalized.includes('..')) {
+            newErrors[param.key] = `${param.name} must not contain '..'`;
+          } else if (
+            !normalized.startsWith('/') &&
+            !normalized.startsWith('~') &&
+            !normalized.startsWith('./')
+          ) {
+            newErrors[param.key] =
+              `${param.name} must be an absolute or relative path (starting with /, ~, or ./)`;
+          }
         }
       }
     }
@@ -852,7 +854,10 @@ export default function AppLaunchForm({
         ) {
           const normalized = convertBackToForwardSlash(val);
           params[key] = normalized;
-          pathParams[key] = normalized;
+          // Skip server-side path validation for URI schemes (e.g. s3://)
+          if (!normalized.startsWith('s3://') && !normalized.startsWith('gs://') && !normalized.startsWith('https://')) {
+            pathParams[key] = normalized;
+          }
         } else {
           params[key] = val;
         }

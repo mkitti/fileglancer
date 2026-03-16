@@ -369,6 +369,10 @@ def validate_path_for_shell(path_value: str) -> str | None:
     """
     normalized = path_value.replace("\\", "/")
 
+    # Cloud storage URIs are passed through as opaque strings
+    if normalized.startswith(("s3://", "gs://", "https://")):
+        return None
+
     if _SHELL_METACHAR_PATTERN.search(normalized):
         return "Path contains invalid characters"
 
@@ -395,9 +399,9 @@ def validate_path_in_filestore(path_value: str, session) -> str | None:
 
     normalized = path_value.replace("\\", "/")
 
-    # Relative paths (./...) resolve at runtime against the work dir;
-    # skip filestore validation since there's no absolute path to check.
-    if normalized.startswith("./"):
+    # Relative paths and cloud storage URIs are not local filesystem paths;
+    # skip filestore validation.
+    if normalized.startswith("./") or normalized.startswith(("s3://", "gs://", "https://")):
         return None
 
     expanded = os.path.expanduser(normalized)
