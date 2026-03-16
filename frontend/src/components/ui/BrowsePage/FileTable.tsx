@@ -230,7 +230,7 @@ export default function Table({
 
   return (
     <div className="min-w-full bg-background select-none">
-      <table className="w-full">
+      <table className="w-full table-fixed">
         <thead>
           {table.getHeaderGroups().map(headerGroup => (
             <tr className="border-b border-surface" key={headerGroup.id}>
@@ -291,7 +291,7 @@ export default function Table({
               >
                 {row.getVisibleCells().map(cell => (
                   <td
-                    className="p-3 text-grey-700"
+                    className="p-3 text-grey-700 overflow-hidden"
                     key={cell.id}
                     style={{ width: cell.column.getSize() }}
                   >
