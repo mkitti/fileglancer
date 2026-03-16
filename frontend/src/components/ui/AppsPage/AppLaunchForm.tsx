@@ -780,11 +780,11 @@ export default function AppLaunchForm({
         if (isNaN(numVal)) {
           newErrors[param.key] = `${param.name} must be a valid number`;
         } else {
-          if (param.min !== undefined && numVal < param.min) {
+          if (param.min != null && numVal < param.min) {
             newErrors[param.key] =
               `${param.name} must be at least ${param.min}`;
           }
-          if (param.max !== undefined && numVal > param.max) {
+          if (param.max != null && numVal > param.max) {
             newErrors[param.key] = `${param.name} must be at most ${param.max}`;
           }
         }
