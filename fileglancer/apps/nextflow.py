@@ -120,15 +120,15 @@ class NextflowAdapter:
         version = nf_config.get("version")
 
         # Build parameters from definitions, ordered by allOf
-        definitions = schema.get("definitions", {})
+        definitions = schema.get("$defs", schema.get("definitions", {}))
         all_of = schema.get("allOf", [])
 
         # Determine ordering: use allOf refs if present, otherwise dict order
         ordered_def_keys = []
         for ref in all_of:
             ref_path = ref.get("$ref", "")
-            # e.g. "#/definitions/pipeline_options" -> "pipeline_options"
-            if ref_path.startswith("#/definitions/"):
+            # e.g. "#/definitions/pipeline_options" or "#/$defs/pipeline_options"
+            if ref_path.startswith("#/$defs/") or ref_path.startswith("#/definitions/"):
                 ordered_def_keys.append(ref_path.split("/")[-1])
         if not ordered_def_keys:
             ordered_def_keys = list(definitions.keys())
