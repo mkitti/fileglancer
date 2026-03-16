@@ -184,7 +184,7 @@ class NextflowAdapter:
 
         entry_point = AppEntryPoint(
             id="run",
-            name=f"Run {name}" if name else "Run Pipeline",
+            name="Run pipeline",
             description=description,
             command="nextflow run .",
             parameters=parameters,

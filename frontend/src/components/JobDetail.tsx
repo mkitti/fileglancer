@@ -248,9 +248,19 @@ export default function JobDetail() {
         <div>
           {/* Job Info Header */}
           <div className="mb-6">
-            <Typography className="text-foreground font-bold mb-1" type="h5">
-              {job.app_name} &mdash; {job.entry_point_name}
-            </Typography>
+            <div className="flex items-center justify-between">
+              <Typography className="text-foreground font-bold mb-1" type="h5">
+                {job.app_name} &mdash; {job.entry_point_name}
+              </Typography>
+              <Button
+                className="!rounded-md"
+                onClick={handleRelaunch}
+                variant="outline"
+              >
+                <HiOutlineRefresh className="icon-small mr-2" />
+                Relaunch
+              </Button>
+            </div>
             <div className="flex flex-wrap items-center gap-4 mt-2">
               <JobStatusBadge status={job.status} />
               <Typography className="text-secondary" type="small">
@@ -420,14 +430,6 @@ export default function JobDetail() {
                   No parameters
                 </Typography>
               )}
-              <Button
-                className="!rounded-md mt-4"
-                onClick={handleRelaunch}
-                variant="outline"
-              >
-                <HiOutlineRefresh className="icon-small mr-2" />
-                Relaunch
-              </Button>
             </Tabs.Panel>
 
             <Tabs.Panel className="pt-4" value="script">
