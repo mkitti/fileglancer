@@ -117,7 +117,8 @@ export default function Table({
             </div>
           );
         },
-        size: 250
+        size: 250,
+        minSize: 100
       },
       typeColumn,
       lastModifiedColumn,
@@ -144,7 +145,8 @@ export default function Table({
             </div>
           );
         },
-        size: 30,
+        size: 70,
+        minSize: 70,
         enableSorting: false
       }
     ],
@@ -238,7 +240,10 @@ export default function Table({
                 <th
                   className="text-left p-3 font-bold text-sm relative"
                   key={header.id}
-                  style={{ width: header.getSize() }}
+                  style={{
+                    width: header.getSize(),
+                    minWidth: header.column.columnDef.minSize
+                  }}
                 >
                   {header.isPlaceholder ? null : (
                     <div
@@ -293,7 +298,10 @@ export default function Table({
                   <td
                     className="p-3 text-grey-700 overflow-hidden"
                     key={cell.id}
-                    style={{ width: cell.column.getSize() }}
+                    style={{
+                      width: cell.column.getSize(),
+                      minWidth: cell.column.columnDef.minSize
+                    }}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
