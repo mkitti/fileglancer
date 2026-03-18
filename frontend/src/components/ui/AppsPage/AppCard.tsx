@@ -80,7 +80,7 @@ export default function AppCard({
       ) : null}
 
       <Button
-        className="!rounded-md self-start"
+        className="!rounded-md self-start mt-auto"
         onClick={handleLaunch}
         size="sm"
       >
