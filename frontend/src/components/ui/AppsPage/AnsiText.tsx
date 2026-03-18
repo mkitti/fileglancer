@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 
+import { Card } from '@material-tailwind/react';
 import {
   materialDark,
   coy
@@ -110,7 +111,7 @@ function AnsiText({ content, isDarkMode }: AnsiTextProps) {
   const segments = useMemo(() => parseAnsi(content), [content]);
 
   return (
-    <div className="border border-primary-light rounded">
+    <Card className="overflow-hidden">
       <pre
         style={{
           margin: 0,
@@ -147,7 +148,7 @@ function AnsiText({ content, isDarkMode }: AnsiTextProps) {
           })}
         </code>
       </pre>
-    </div>
+    </Card>
   );
 }
 
