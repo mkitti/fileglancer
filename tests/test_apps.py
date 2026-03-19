@@ -77,7 +77,7 @@ class TestCondaEnvValidation:
 # --- verify_requirements tests ---
 
 class TestVerifyRequirementsMiniforge:
-    @patch("fileglancer.apps.shutil.which")
+    @patch("fileglancer.apps.core.shutil.which")
     def test_miniforge_found_via_conda(self, mock_which):
         """miniforge binary doesn't exist, but conda does — should pass."""
         def which_side_effect(name, **kwargs):
@@ -91,14 +91,14 @@ class TestVerifyRequirementsMiniforge:
         # No version constraint, so just checking binary existence
         verify_requirements(["miniforge"])
 
-    @patch("fileglancer.apps.shutil.which")
+    @patch("fileglancer.apps.core.shutil.which")
     def test_miniforge_not_found(self, mock_which):
         mock_which.return_value = None
         with pytest.raises(ValueError, match="not installed or not on PATH"):
             verify_requirements(["miniforge"])
 
-    @patch("fileglancer.apps.subprocess.run")
-    @patch("fileglancer.apps.shutil.which")
+    @patch("fileglancer.apps.core.subprocess.run")
+    @patch("fileglancer.apps.core.shutil.which")
     def test_miniforge_version_check(self, mock_which, mock_run):
         def which_side_effect(name, **kwargs):
             if name == "miniforge":
@@ -113,8 +113,8 @@ class TestVerifyRequirementsMiniforge:
         )
         verify_requirements(["miniforge>=24.0"])
 
-    @patch("fileglancer.apps.subprocess.run")
-    @patch("fileglancer.apps.shutil.which")
+    @patch("fileglancer.apps.core.subprocess.run")
+    @patch("fileglancer.apps.core.shutil.which")
     def test_miniforge_version_too_old(self, mock_which, mock_run):
         def which_side_effect(name, **kwargs):
             if name == "miniforge":
@@ -406,10 +406,23 @@ class TestValidatePathForShell:
     def test_valid_tilde_path(self):
         assert validate_path_for_shell("~/data/input.txt") is None
 
-    def test_rejects_relative_path(self):
+    def test_valid_relative_path(self):
+        assert validate_path_for_shell("./data/input.txt") is None
+
+    def test_rejects_bare_relative_path(self):
         error = validate_path_for_shell("relative/path.txt")
         assert error is not None
-        assert "absolute path" in error
+        assert "absolute or relative path" in error
+
+    def test_rejects_dotdot(self):
+        error = validate_path_for_shell("/data/../etc/passwd")
+        assert error is not None
+        assert ".." in error
+
+    def test_rejects_dotdot_relative(self):
+        error = validate_path_for_shell("./foo/../bar")
+        assert error is not None
+        assert ".." in error
 
     def test_rejects_metacharacters(self):
         error = validate_path_for_shell("/data/input;rm -rf /")

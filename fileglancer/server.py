@@ -1524,6 +1524,7 @@ def create_app(settings):
                 # Update name/description from manifest
                 user_app.name = user_app.manifest.name
                 user_app.description = user_app.manifest.description
+                user_app.branch = await apps_module.get_app_branch(app_entry["url"])
             except Exception as e:
                 logger.warning(f"Failed to fetch manifest for {app_entry['url']}: {e}")
             result.append(user_app)
@@ -1560,6 +1561,7 @@ def create_app(settings):
                 (a["url"], a.get("manifest_path", "")) for a in app_list
             }
 
+            branch = await apps_module.get_app_branch(body.url)
             new_apps: list[UserApp] = []
             for manifest_path, manifest in discovered:
                 if (body.url, manifest_path) in existing_keys:
@@ -1576,6 +1578,7 @@ def create_app(settings):
                 new_apps.append(UserApp(
                     url=body.url,
                     manifest_path=manifest_path,
+                    branch=branch,
                     name=manifest.name,
                     description=manifest.description,
                     added_at=now,
@@ -1644,9 +1647,11 @@ def create_app(settings):
                     break
             db.set_user_preference(session, username, "apps", {"apps": app_list})
 
+        branch = await apps_module.get_app_branch(body.url)
         return UserApp(
             url=body.url,
             manifest_path=body.manifest_path,
+            branch=branch,
             name=manifest.name,
             description=manifest.description,
             added_at=added_at,
