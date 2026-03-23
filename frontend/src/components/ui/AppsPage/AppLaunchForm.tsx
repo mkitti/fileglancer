@@ -1034,7 +1034,22 @@ export default function AppLaunchForm({
                 checked={showHidden}
                 id="show-hidden-toggle"
                 label="Show hidden"
-                onChange={() => setShowHidden(prev => !prev)}
+                onChange={() => {
+                  if (!showHidden) {
+                    // Expand sections that contain hidden parameters
+                    const sectionsWithHidden = entryPoint.parameters
+                      .filter(
+                        item =>
+                          isParameterSection(item) &&
+                          item.parameters.some(p => p.hidden)
+                      )
+                      .map(item => (item as AppParameterSection).section);
+                    setOpenSections(prev => [
+                      ...new Set([...prev, ...sectionsWithHidden])
+                    ]);
+                  }
+                  setShowHidden(prev => !prev);
+                }}
               />
             </div>
           ) : null}
