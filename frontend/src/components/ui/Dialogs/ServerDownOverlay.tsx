@@ -24,7 +24,7 @@ function MessageContent() {
         <li>
           Contact{' '}
           <a
-            className="text-primary-light hover:underline focus:underline"
+            className="text-primary-dark hover:underline focus:underline"
             href="mailto:support@hhmi.org"
           >
             support

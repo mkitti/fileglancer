@@ -126,7 +126,7 @@ function FilePathLink({
 
   return (
     <Link
-      className="text-primary-light text-sm font-mono hover:underline"
+      className="text-primary-dark text-sm font-mono hover:underline"
       to={browseUrl}
     >
       {displayPath}
@@ -296,7 +296,7 @@ export default function JobDetail() {
                 <Typography className="text-foreground flex-1">
                   Service is running at{' '}
                   <a
-                    className="text-primary-light hover:underline font-mono"
+                    className="text-primary-dark hover:underline font-mono"
                     href={job.service_url}
                     rel="noopener noreferrer"
                     target="_blank"
