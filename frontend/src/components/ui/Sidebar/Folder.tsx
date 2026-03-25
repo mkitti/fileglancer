@@ -142,7 +142,7 @@ export default function Folder({
           </div>
           <FgTooltip label={displayPath} triggerClasses="w-full">
             <Typography
-              className={`text-left text-sm short:text-xs truncate ${isFavoritable ? '' : 'text-foreground/60 group-hover:text-black group-hover:dark:text-white'}`}
+              className={`text-left text-sm short:text-xs truncate ${isFavoritable ? '' : 'text-foreground/60 group-hover:text-surface-foreground'}`}
             >
               {displayPath}
             </Typography>
