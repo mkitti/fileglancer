@@ -280,7 +280,7 @@ export default function Table({
             const isSelected = selectedFileNames.has(row.original.name);
             return (
               <tr
-                className={`cursor-pointer hover:bg-surface dark:hover:bg-surface-light ${isSelected ? 'bg-primary-light/30 outline outline-1 outline-primary' : index % 2 === 0 ? 'bg-surface-light dark:bg-surface/50' : ''}`}
+                className={`cursor-pointer hover:bg-surface dark:hover:bg-surface-light ${isSelected ? 'bg-primary-light/20 outline outline-1 outline-primary' : index % 2 === 0 ? 'bg-surface-light dark:bg-surface/50' : ''}`}
                 key={row.id}
                 onClick={() =>
                   handleLeftClick(row.original, showPropertiesDrawer)
