@@ -64,10 +64,10 @@ export default function ZonesBrowser({
             {searchQuery.length > 0 &&
             Object.keys(displayZones).length === 0 ? (
               <div className="px-4 py-6 text-center">
-                <Typography className="text-sm text-gray-500">
+                <Typography className="text-sm text-foreground/60">
                   No zones match your filter '{searchQuery}'
                 </Typography>
-                <Typography className="text-xs text-gray-400 mt-1">
+                <Typography className="text-xs text-foreground/60 mt-1">
                   Try broadening your search to see more results
                 </Typography>
               </div>

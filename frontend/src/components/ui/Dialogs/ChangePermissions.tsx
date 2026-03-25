@@ -159,7 +159,7 @@ export default function ChangePermissions({
             type="submit"
           >
             {mutations.changePermissions.isPending ? (
-              <Spinner customClasses="border-white" text="Updating..." />
+              <Spinner customClasses="border-primary-foreground" text="Updating..." />
             ) : (
               'Change Permissions'
             )}

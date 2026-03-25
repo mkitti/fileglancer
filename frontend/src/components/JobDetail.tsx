@@ -315,7 +315,7 @@ export default function JobDetail() {
                   {cancelMutation.isPending ? 'Stopping...' : 'Stop Service'}
                 </Button>
                 <a
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md bg-success text-white hover:bg-success/90 transition-colors"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md bg-success text-success-foreground hover:bg-success/90 transition-colors"
                   href={job.service_url}
                   rel="noopener noreferrer"
                   target="_blank"
