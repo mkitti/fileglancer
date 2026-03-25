@@ -296,7 +296,7 @@ export default function Table({
               >
                 {row.getVisibleCells().map(cell => (
                   <td
-                    className="p-3 text-grey-700 overflow-hidden"
+                    className="p-3 text-foreground overflow-hidden"
                     key={cell.id}
                     style={{
                       width: cell.column.getSize(),

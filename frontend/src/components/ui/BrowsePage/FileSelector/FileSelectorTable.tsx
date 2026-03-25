@@ -189,7 +189,7 @@ export default function FileSelectorTable({
                 >
                   {row.getVisibleCells().map(cell => (
                     <td
-                      className="p-3 text-grey-700 text-primary-light"
+                      className="p-3 text-foreground"
                       key={cell.id}
                       style={{ width: cell.column.getSize() }}
                     >
