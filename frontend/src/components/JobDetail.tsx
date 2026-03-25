@@ -61,7 +61,7 @@ function FilePreview({
   const themeCodeStyles = theme['code[class*="language-"]'] || {};
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden dark:border-surface-light">
       <SyntaxHighlighter
         codeTagProps={{
           style: {
@@ -404,7 +404,7 @@ export default function JobDetail() {
 
             <Tabs.Panel className="pt-4" value="parameters">
               {Object.keys(job.parameters).length > 0 ? (
-                <Card className="p-3">
+                <Card className="p-3 dark:border-surface-light">
                   {Object.entries(job.parameters).map(([key, value]) => (
                     <div className="flex gap-2 py-1" key={key}>
                       <Typography className="text-foreground font-semibold">
