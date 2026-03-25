@@ -139,7 +139,8 @@ async def _ensure_repo_cache(url: str, pull: bool = False) -> Path:
             logger.debug(f"Repo cache hit: {owner}/{repo} ({branch})")
             if pull:
                 logger.info(f"Pulling latest for {owner}/{repo} ({branch})")
-                await _run_git(["git", "-C", str(repo_dir), "pull", "origin", branch])
+                await _run_git(["git", "-C", str(repo_dir), "fetch", "origin", branch])
+                await _run_git(["git", "-C", str(repo_dir), "reset", "--hard", f"origin/{branch}"])
         else:
             logger.info(f"Cloning {owner}/{repo} ({branch}) into {repo_dir}")
             repo_dir.parent.mkdir(parents=True, exist_ok=True)
