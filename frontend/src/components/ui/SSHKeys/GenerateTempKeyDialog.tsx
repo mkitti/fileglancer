@@ -76,7 +76,7 @@ export default function GenerateTempKeyDialog({
           type="button"
         >
           {generateMutation.isPending ? (
-            <Spinner customClasses="border-white" text="Generating..." />
+            <Spinner customClasses="border-primary-foreground" text="Generating..." />
           ) : (
             'Generate Key'
           )}

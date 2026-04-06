@@ -71,7 +71,7 @@ export default function RenameDialog({
           type="submit"
         >
           {mutations.rename.isPending ? (
-            <Spinner customClasses="border-white" text="Renaming..." />
+            <Spinner customClasses="border-primary-foreground" text="Renaming..." />
           ) : (
             'Submit'
           )}
