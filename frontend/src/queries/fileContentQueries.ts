@@ -42,7 +42,6 @@ const KNOWN_BINARY_EXTENSIONS = new Set([
   'mha',
   'mhd',
   'nii',
-  'nii.gz',
   // Native binaries
   'exe',
   'dll',
@@ -72,10 +71,6 @@ const KNOWN_BINARY_EXTENSIONS = new Set([
  */
 export function isKnownBinaryExtension(filename: string): boolean {
   const lower = filename.toLowerCase();
-  // Handle compound extensions like .nii.gz
-  if (lower.endsWith('.nii.gz')) {
-    return true;
-  }
   const ext = lower.split('.').pop() ?? '';
   return KNOWN_BINARY_EXTENSIONS.has(ext);
 }
