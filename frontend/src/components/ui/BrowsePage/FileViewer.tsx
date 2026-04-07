@@ -14,8 +14,7 @@ import type { FileOrFolder } from '@/shared.types';
 import {
   useFileContentQuery,
   useFileMetadataQuery,
-  useFileBinaryPreviewQuery,
-  isKnownBinaryExtension
+  useFileBinaryPreviewQuery
 } from '@/queries/fileContentQueries';
 import HexDump from './HexDump';
 import useDarkMode from '@/hooks/useDarkMode';
@@ -88,30 +87,17 @@ export default function FileViewer({ file }: FileViewerProps) {
   const isDarkMode = useDarkMode();
   const [formatJson, setFormatJson] = useState<boolean>(true);
 
-  // Instant binary detection by file extension — no server round-trip needed
-  const knownBinary = isKnownBinaryExtension(file.name);
+  const metadataQuery = useFileMetadataQuery(fspName, file.path);
 
-  // HEAD request for accurate binary detection on unknown extensions.
-  // Skip it when the extension already tells us it's binary.
-  const metadataQuery = useFileMetadataQuery(
-    knownBinary ? undefined : fspName,
-    file.path
-  );
+  const isBinary = metadataQuery.data?.isBinary === true;
 
-  // True as soon as we have a definitive answer from either source
-  const isBinary = knownBinary || metadataQuery.data?.isBinary === true;
-
-  // Fetch first 512 bytes immediately for binary files (or likely-binary files)
-  // so the hex preview appears without waiting for HEAD.
   const binaryPreviewQuery = useFileBinaryPreviewQuery(
     fspName,
     file.path,
-    knownBinary || isBinary
+    isBinary
   );
 
-  // Only fetch full text content once we know the file is not binary
-  const metadataSettled = knownBinary || metadataQuery.isSuccess;
-  const shouldFetchContent = metadataSettled && !isBinary;
+  const shouldFetchContent = metadataQuery.isSuccess && !isBinary;
   const contentQuery = useFileContentQuery(
     shouldFetchContent ? fspName : undefined,
     file.path
@@ -145,8 +131,7 @@ export default function FileViewer({ file }: FileViewerProps) {
       );
     }
 
-    // Not-yet-determined: waiting for HEAD on an unknown extension
-    if (!metadataSettled || metadataQuery.isLoading) {
+    if (metadataQuery.isLoading) {
       return (
         <Typography className="p-4 text-foreground">
           Loading file content...
