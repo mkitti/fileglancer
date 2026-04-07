@@ -9,10 +9,16 @@ git clone git@github.com:JaneliaSciComp/fileglancer.git
 cd fileglancer
 ```
 
-If this is your first time installing the extension in dev mode, install package in development mode.
+Install the package in development mode.
 
 ```bash
 pixi run dev-install
+```
+
+Copy the configuration file and edit as desired (more details in [Configuration](#configuration) below).
+
+```bash
+cp docs/config.yaml.template config.yaml
 ```
 
 Now you can launch the server. It will automatically rebuild when there are file changes to the backend.
@@ -31,11 +37,7 @@ View the app in the browser at localhost:7878.
 
 ## Configuration
 
-Copy the configuration file and edit as desired.
-
-```
-cp docs/config.yaml.template config.yaml
-```
+The `config.yaml` file at the project root provides the server configuration.
 
 ### File Share Paths
 
@@ -43,16 +45,16 @@ By default, Fileglancer provides access to each user's home directory without re
 
 ```yaml
 file_share_mounts:
-  - "~/"    # User's home directory (default)
+  - "~/" # User's home directory (default)
 ```
 
 You can add additional file share paths by editing your `config.yaml`:
 
 ```yaml
 file_share_mounts:
-  - "~/"                              # User's home directory
-  - "/groups/scicomp/data"            # Shared data directory
-  - "/opt/data"                       # Another shared directory
+  - "~/" # User's home directory
+  - "/groups/scicomp/data" # Shared data directory
+  - "/opt/data" # Another shared directory
 ```
 
 **How Home Directories Work:**
@@ -65,6 +67,19 @@ file_share_mounts:
 **Alternative: Database Configuration**
 
 Instead of using the `file_share_mounts` setting, you can configure file share paths in the database. This is useful for production deployments where you want centralized management of file share paths. To use the paths in the database, set `file_share_mounts: []`. See [fileglancer-janelia](https://github.com/JaneliaSciComp/fileglancer-janelia) for an example of populating the file share paths in the database, using a private wiki source.
+
+
+### Testing configuration
+
+Optionally, to run Playwright tests against a development deployment with OKTA authentication enabled, add the below to the configuration file.
+**Note:** Do NOT add this configuration to a production deployment.
+
+```yaml
+#
+# Bypass OKTA multifactor authentication for integration tests against a development deployment
+#
+test_api_key: "<your-generated-key>"
+```
 
 ### Feature Flags
 
@@ -156,6 +171,22 @@ https://fileglancer-dev.int.janelia.org/
 ```
 
 **Important:** Remember to remove or comment out this entry from `/etc/hosts` when you're done testing, especially if the domain is used in production.
+
+### Cluster Configuration (Apps Feature)
+
+The Apps feature requires a `cluster` section in `config.yaml` to submit jobs. See `config.yaml.template` for all available options.
+
+#### Job Reconnection
+
+If the Fileglancer server restarts while jobs are running on the cluster, it automatically attempts to reconnect to those jobs on startup. This requires `job_name_prefix` to be set in the cluster configuration — the prefix is used to identify jobs belonging to this Fileglancer instance when querying the cluster scheduler (e.g. `bjobs` for LSF).
+
+```yaml
+cluster:
+  executor: lsf
+  job_name_prefix: fg   # required for reconnection
+```
+
+Without `job_name_prefix`, reconnection is silently skipped and active jobs will not be re-tracked. They will eventually be marked FAILED after the `zombie_timeout_minutes` period (default: 30 minutes).
 
 ### Troubleshooting
 

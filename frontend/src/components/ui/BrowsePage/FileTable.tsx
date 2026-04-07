@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
+import { useNavigate } from 'react-router';
 import {
   flexRender,
   getCoreRowModel,
@@ -8,12 +9,10 @@ import {
   type ColumnDef,
   type SortingState
 } from '@tanstack/react-table';
+import { useHotkey } from '@tanstack/react-hotkeys';
 import { IconButton, Typography } from '@material-tailwind/react';
 import { TbFile, TbLink, TbLinkOff } from 'react-icons/tb';
-import {
-  HiOutlineEllipsisHorizontalCircle,
-  HiOutlineFolder
-} from 'react-icons/hi2';
+import { HiOutlineEllipsisHorizontalCircle, HiFolder } from 'react-icons/hi2';
 
 import type { FileOrFolder } from '@/shared.types';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
@@ -26,6 +25,25 @@ import {
   lastModifiedColumn,
   sizeColumn
 } from '@/components/ui/BrowsePage/fileTableColumns';
+
+function getFileLink(
+  file: FileOrFolder,
+  currentFspName: string | undefined
+): string | null {
+  if (file.is_symlink && file.symlink_target_fsp) {
+    return makeBrowseLink(
+      file.symlink_target_fsp.fsp_name,
+      file.symlink_target_fsp.subpath
+    );
+  }
+  if (file.is_symlink && !file.symlink_target_fsp) {
+    return null;
+  }
+  if (currentFspName) {
+    return makeBrowseLink(currentFspName, file.path);
+  }
+  return null;
+}
 
 type TableProps = {
   readonly data: FileOrFolder[];
@@ -43,6 +61,7 @@ export default function Table({
 }: TableProps) {
   const { fileQuery, fileBrowserState, handleLeftClick } =
     useFileBrowserContext();
+  const navigate = useNavigate();
   const [sorting, setSorting] = useState<SortingState>([]);
 
   const selectedFileNames = useMemo(
@@ -58,25 +77,11 @@ export default function Table({
         cell: ({ getValue, row }) => {
           const file = row.original;
           const name = getValue() as string;
-          let link = '#';
-          let isBrokenSymlink = false;
-
-          if (file.is_symlink && file.symlink_target_fsp) {
-            // Valid symlink with known target in a valid file share
-            link = makeBrowseLink(
-              file.symlink_target_fsp.fsp_name,
-              file.symlink_target_fsp.subpath
-            ) as string;
-          } else if (file.is_symlink && !file.symlink_target_fsp) {
-            // Broken symlink - no valid target
-            isBrokenSymlink = true;
-          } else if (file.is_dir && fileQuery.data?.currentFileSharePath) {
-            // Regular directory
-            link = makeBrowseLink(
-              fileQuery.data?.currentFileSharePath.name,
-              file.path
-            ) as string;
-          }
+          const link = getFileLink(
+            file,
+            fileQuery.data?.currentFileSharePath?.name
+          );
+          const isBrokenSymlink = file.is_symlink && !file.symlink_target_fsp;
 
           return (
             <div className="flex items-center gap-3 min-w-0">
@@ -85,7 +90,7 @@ export default function Table({
               ) : file.is_symlink ? (
                 <TbLink className="text-primary icon-default flex-shrink-0" />
               ) : file.is_dir ? (
-                <HiOutlineFolder className="text-foreground icon-default flex-shrink-0" />
+                <HiFolder className="text-foreground icon-default flex-shrink-0" />
               ) : (
                 <TbFile className="text-foreground icon-default flex-shrink-0" />
               )}
@@ -94,18 +99,26 @@ export default function Table({
                   <Typography className="truncate text-foreground">
                     {name}
                   </Typography>
-                ) : file.is_dir || file.is_symlink ? (
-                  <Typography as={FgStyledLink} className="truncate" to={link}>
+                ) : !isBrokenSymlink ? (
+                  <Typography
+                    as={FgStyledLink}
+                    className="truncate"
+                    onClick={(e: MouseEvent) => e.stopPropagation()}
+                    to={link ?? '#'}
+                  >
                     {name}
                   </Typography>
                 ) : (
-                  <Typography className="truncate">{name}</Typography>
+                  <Typography className="truncate text-foreground">
+                    {name}
+                  </Typography>
                 )}
               </FgTooltip>
             </div>
           );
         },
-        size: 250
+        size: 250,
+        minSize: 100
       },
       typeColumn,
       lastModifiedColumn,
@@ -132,7 +145,8 @@ export default function Table({
             </div>
           );
         },
-        size: 30,
+        size: 70,
+        minSize: 70,
         enableSorting: false
       }
     ],
@@ -153,9 +167,72 @@ export default function Table({
     enableColumnFilters: false
   });
 
+  const rows = table.getRowModel().rows;
+  const rowRefs = useRef<Map<number, HTMLTableRowElement>>(new Map());
+
+  const navigateRows = useCallback(
+    (direction: 'up' | 'down') => {
+      if (rows.length === 0) {
+        return;
+      }
+
+      const selectedName =
+        fileBrowserState.selectedFiles.length > 0
+          ? fileBrowserState.selectedFiles[0].name
+          : null;
+
+      const currentIndex = selectedName
+        ? rows.findIndex(row => row.original.name === selectedName)
+        : -1;
+
+      let nextIndex: number;
+      if (direction === 'down') {
+        nextIndex = currentIndex < rows.length - 1 ? currentIndex + 1 : 0;
+      } else {
+        nextIndex = currentIndex > 0 ? currentIndex - 1 : rows.length - 1;
+      }
+
+      handleLeftClick(rows[nextIndex].original, showPropertiesDrawer);
+      rowRefs.current.get(nextIndex)?.scrollIntoView({ block: 'nearest' });
+    },
+    [
+      rows,
+      fileBrowserState.selectedFiles,
+      handleLeftClick,
+      showPropertiesDrawer
+    ]
+  );
+
+  useHotkey('ArrowDown', e => {
+    e.preventDefault();
+    navigateRows('down');
+  });
+
+  useHotkey('ArrowUp', e => {
+    e.preventDefault();
+    navigateRows('up');
+  });
+
+  useHotkey('Enter', e => {
+    if (fileBrowserState.selectedFiles.length === 0) {
+      return;
+    }
+
+    const link = getFileLink(
+      fileBrowserState.selectedFiles[0],
+      fileQuery.data?.currentFileSharePath?.name
+    );
+    if (!link) {
+      return;
+    }
+
+    e.preventDefault();
+    navigate(link);
+  });
+
   return (
     <div className="min-w-full bg-background select-none">
-      <table className="w-full">
+      <table className="w-full table-fixed">
         <thead>
           {table.getHeaderGroups().map(headerGroup => (
             <tr className="border-b border-surface" key={headerGroup.id}>
@@ -163,7 +240,10 @@ export default function Table({
                 <th
                   className="text-left p-3 font-bold text-sm relative"
                   key={header.id}
-                  style={{ width: header.getSize() }}
+                  style={{
+                    width: header.getSize(),
+                    minWidth: header.column.columnDef.minSize
+                  }}
                 >
                   {header.isPlaceholder ? null : (
                     <div
@@ -196,22 +276,32 @@ export default function Table({
           ))}
         </thead>
         <tbody>
-          {table.getRowModel().rows.map((row, index) => {
+          {rows.map((row, index) => {
             const isSelected = selectedFileNames.has(row.original.name);
             return (
               <tr
-                className={`cursor-pointer hover:bg-primary-light/30 focus:bg-primary-light/30 ${isSelected && 'bg-primary-light/30'} ${index % 2 === 0 && !isSelected && 'bg-surface/50'}`}
+                className={`cursor-pointer hover:bg-surface dark:hover:bg-surface-light ${isSelected ? 'bg-primary-light/20 outline outline-1 outline-primary' : index % 2 === 0 ? 'bg-surface-light dark:bg-surface/50' : ''}`}
                 key={row.id}
                 onClick={() =>
                   handleLeftClick(row.original, showPropertiesDrawer)
                 }
                 onContextMenu={e => handleContextMenuClick(e, row.original)}
+                ref={el => {
+                  if (el) {
+                    rowRefs.current.set(index, el);
+                  } else {
+                    rowRefs.current.delete(index);
+                  }
+                }}
               >
                 {row.getVisibleCells().map(cell => (
                   <td
-                    className="p-3 text-grey-700"
+                    className="p-3 text-foreground overflow-hidden"
                     key={cell.id}
-                    style={{ width: cell.column.getSize() }}
+                    style={{
+                      width: cell.column.getSize(),
+                      minWidth: cell.column.columnDef.minSize
+                    }}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>

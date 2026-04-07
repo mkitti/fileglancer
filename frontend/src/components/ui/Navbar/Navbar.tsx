@@ -16,8 +16,13 @@ import {
   HiOutlineSun,
   HiOutlineEye
 } from 'react-icons/hi';
-import { HiOutlineFolder, HiOutlineBriefcase } from 'react-icons/hi2';
+import {
+  HiOutlineFolder,
+  HiOutlineBriefcase,
+  HiOutlineRocketLaunch
+} from 'react-icons/hi2';
 import { TbBrandGithub } from 'react-icons/tb';
+import { FaRunning } from 'react-icons/fa';
 
 import ProfileMenu from '@/components/ui/Navbar/ProfileMenu';
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
@@ -39,6 +44,16 @@ const LINKS = [
     icon: HiOutlineEye,
     title: 'NG Links',
     href: '/nglinks'
+  },
+  {
+    icon: HiOutlineRocketLaunch,
+    title: 'Apps',
+    href: '/apps'
+  },
+  {
+    icon: FaRunning,
+    title: 'Jobs',
+    href: '/apps/jobs'
   },
   {
     icon: HiOutlineBriefcase,

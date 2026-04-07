@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Switch, Typography } from '@material-tailwind/react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import {
@@ -6,6 +6,7 @@ import {
   coy
 } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { HiOutlineDownload } from 'react-icons/hi';
+import { Formatter } from 'fracturedjsonjs';
 
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { formatFileSize, formatUnixTimestamp, getFileURL } from '@/utils';
@@ -17,6 +18,7 @@ import {
   isKnownBinaryExtension
 } from '@/queries/fileContentQueries';
 import HexDump from './HexDump';
+import useDarkMode from '@/hooks/useDarkMode';
 
 type FileViewerProps = {
   readonly file: FileOrFolder;
@@ -83,8 +85,7 @@ const getLanguageFromExtension = (filename: string): string => {
 
 export default function FileViewer({ file }: FileViewerProps) {
   const { fspName } = useFileBrowserContext();
-
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const isDarkMode = useDarkMode();
   const [formatJson, setFormatJson] = useState<boolean>(true);
 
   // Instant binary detection by file extension — no server round-trip needed
@@ -118,22 +119,6 @@ export default function FileViewer({ file }: FileViewerProps) {
 
   const language = getLanguageFromExtension(file.name);
   const isJsonFile = language === 'json';
-
-  // Detect dark mode from document
-  useEffect(() => {
-    const checkDarkMode = () => {
-      setIsDarkMode(document.documentElement.classList.contains('dark'));
-    };
-
-    checkDarkMode();
-    const observer = new MutationObserver(checkDarkMode);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class']
-    });
-
-    return () => observer.disconnect();
-  }, []);
 
   const renderViewer = () => {
     // Binary file: show hex preview as soon as the first bytes arrive
@@ -200,7 +185,9 @@ export default function FileViewer({ file }: FileViewerProps) {
     if (isJsonFile && formatJson && content) {
       try {
         const parsed = JSON.parse(content);
-        displayContent = JSON.stringify(parsed, null, 2);
+        const formatter = new Formatter();
+        formatter.Options.IndentSpaces = 2;
+        displayContent = formatter.Serialize(parsed);
       } catch {
         // If JSON parsing fails, show original content
         displayContent = content;
@@ -213,7 +200,8 @@ export default function FileViewer({ file }: FileViewerProps) {
     const mergedCodeTagProps = {
       style: {
         ...themeCodeStyles,
-        paddingBottom: '2em'
+        paddingBottom: '2em',
+        background: 'transparent'
       }
     };
 
@@ -222,13 +210,17 @@ export default function FileViewer({ file }: FileViewerProps) {
         codeTagProps={mergedCodeTagProps}
         customStyle={{
           margin: 0,
-          padding: '1rem',
+          paddingTop: '1em',
+          paddingRight: '1em',
+          paddingBottom: '0',
+          paddingLeft: '1em',
           fontSize: '14px',
           lineHeight: '1.5',
           overflow: 'visible',
           width: '100%',
           boxSizing: 'border-box',
-          minHeight: 'fit-content'
+          minHeight: 'fit-content',
+          background: 'transparent'
         }}
         language={language}
         showLineNumbers={false}

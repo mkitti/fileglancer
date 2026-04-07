@@ -3,13 +3,17 @@ import {
   Button,
   Card,
   IconButton,
-  Switch,
   Typography,
   Tabs
 } from '@material-tailwind/react';
 import toast from 'react-hot-toast';
-import { HiOutlineDocument, HiOutlineDuplicate, HiX } from 'react-icons/hi';
-import { HiOutlineFolder } from 'react-icons/hi2';
+import {
+  HiExternalLink,
+  HiOutlineDocument,
+  HiOutlineDuplicate,
+  HiX
+} from 'react-icons/hi';
+import { HiFolder } from 'react-icons/hi2';
 import { useLocation } from 'react-router';
 
 import PermissionsTable from '@/components/ui/PropertiesDrawer/PermissionsTable';
@@ -17,6 +21,9 @@ import OverviewTable from '@/components/ui/PropertiesDrawer/OverviewTable';
 import TicketDetails from '@/components/ui/PropertiesDrawer/TicketDetails';
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
 import DataLinkDialog from '@/components/ui/Dialogs/DataLink';
+import DataLinkUsageDialog from '@/components/ui/Dialogs/dataLinkUsage/DataLinkUsageDialog';
+import TextDialogBtn from '@/components/ui/buttons/DialogTextBtn';
+import FgSwitch from '@/components/ui/widgets/FgSwitch';
 import { getPreferredPathForDisplay } from '@/utils';
 import { copyToClipboard } from '@/utils/copyText';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
@@ -168,7 +175,7 @@ export default function PropertiesDrawer({
             ) : (
               <>
                 {fileBrowserState.propertiesTarget.is_dir ? (
-                  <HiOutlineFolder className="icon-default" />
+                  <HiFolder className="icon-default" />
                 ) : (
                   <HiOutlineDocument className="icon-default" />
                 )}
@@ -262,41 +269,34 @@ export default function PropertiesDrawer({
               ) : fileBrowserState.propertiesTarget.is_dir ? (
                 <>
                   <div className="flex flex-col gap-2 min-w-[175px] max-w-full pt-2">
-                    <div className="flex items-center gap-2 max-w-full">
-                      <Switch
-                        checked={
-                          externalDataUrlQuery.data ||
-                          proxiedPathByFspAndPathQuery.data
-                            ? true
-                            : false
-                        }
-                        className="before:bg-primary/50 after:border-primary/50 checked:disabled:before:bg-surface checked:disabled:before:border checked:disabled:before:border-surface-dark checked:disabled:after:border-surface-dark"
-                        disabled={Boolean(
-                          externalDataUrlQuery.data ||
-                            fileBrowserState.propertiesTarget.hasRead === false
-                        )}
-                        id="share-switch"
-                        onChange={async () => {
-                          if (
-                            areDataLinksAutomatic &&
-                            !proxiedPathByFspAndPathQuery.data
-                          ) {
-                            await handleCreateDataLink();
-                          } else {
-                            setShowDataLinkDialog(true);
-                          }
-                        }}
-                      />
-                      <Typography
-                        as="label"
-                        className={`${externalDataUrlQuery.data || fileBrowserState.propertiesTarget.hasRead === false ? 'cursor-default' : 'cursor-pointer'} text-foreground font-semibold`}
-                        htmlFor="share-switch"
-                      >
-                        {proxiedPathByFspAndPathQuery.data
+                    <FgSwitch
+                      checked={
+                        externalDataUrlQuery.data ||
+                        proxiedPathByFspAndPathQuery.data
+                          ? true
+                          : false
+                      }
+                      disabled={Boolean(
+                        externalDataUrlQuery.data ||
+                          fileBrowserState.propertiesTarget.hasRead === false
+                      )}
+                      id="share-switch"
+                      label={
+                        proxiedPathByFspAndPathQuery.data
                           ? 'Delete data link'
-                          : 'Create data link'}
-                      </Typography>
-                    </div>
+                          : 'Create data link'
+                      }
+                      onChange={async () => {
+                        if (
+                          areDataLinksAutomatic &&
+                          !proxiedPathByFspAndPathQuery.data
+                        ) {
+                          await handleCreateDataLink();
+                        } else {
+                          setShowDataLinkDialog(true);
+                        }
+                      }}
+                    />
                     <Typography
                       className="text-foreground whitespace-normal w-full"
                       type="small"
@@ -307,17 +307,52 @@ export default function PropertiesDrawer({
                           ? 'Deleting the data link will remove data access for collaborators with the link.'
                           : 'Creating a data link allows you to share the data at this path with internal collaborators or use tools to view the data.'}
                     </Typography>
+                    {!externalDataUrlQuery.data &&
+                    !proxiedPathByFspAndPathQuery.data ? (
+                      <a
+                        className="flex items-center gap-1 text-primary hover:underline"
+                        href="https://fileglancer-docs.janelia.org/features/data-sharing/"
+                        rel="noopener noreferrer"
+                        target="_blank"
+                      >
+                        <Typography type="small">
+                          Learn more about data links
+                        </Typography>
+                        <HiExternalLink className="icon-xsmall" />
+                      </a>
+                    ) : null}
                   </div>
-                  {externalDataUrlQuery.data ? (
-                    <CopyPathButton
-                      isDataLink={true}
-                      path={externalDataUrlQuery.data}
-                    />
-                  ) : proxiedPathByFspAndPathQuery.data?.url ? (
-                    <CopyPathButton
-                      isDataLink={true}
-                      path={proxiedPathByFspAndPathQuery.data.url}
-                    />
+                  {(externalDataUrlQuery.data ??
+                  proxiedPathByFspAndPathQuery.data?.url) ? (
+                    <>
+                      <CopyPathButton
+                        isDataLink={true}
+                        path={
+                          (externalDataUrlQuery.data ??
+                            proxiedPathByFspAndPathQuery.data?.url)!
+                        }
+                      />
+                      <TextDialogBtn
+                        label="How to use your data link"
+                        variant="solid"
+                      >
+                        {closeDialog => (
+                          <DataLinkUsageDialog
+                            dataLinkUrl={
+                              externalDataUrlQuery.data ??
+                              proxiedPathByFspAndPathQuery.data?.url ??
+                              ''
+                            }
+                            fspName={
+                              fileQuery.data?.currentFileSharePath?.name ?? ''
+                            }
+                            onClose={closeDialog}
+                            open={true}
+                            path={fileBrowserState.propertiesTarget?.path ?? ''}
+                          />
+                        )}
+                      </TextDialogBtn>
+                    </>
                   ) : null}
                 </>
               ) : null}
