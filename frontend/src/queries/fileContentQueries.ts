@@ -107,8 +107,8 @@ export function useFileContentQuery(
 
 /**
  * Fetch the first BINARY_PREVIEW_BYTES bytes of a file using an HTTP Range
- * request. Starts immediately — does not wait for HEAD/binary detection.
- * Used to render a hex preview for binary files.
+ * request. Used to render a hex preview for binary files.
+ * Enabled only after HEAD confirms the file is binary.
  */
 export function useFileBinaryPreviewQuery(
   fspName: string | undefined,
