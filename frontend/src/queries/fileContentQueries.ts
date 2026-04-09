@@ -16,7 +16,9 @@ export const fileContentQueryKeys = {
   detail: (fspName: string, filePath: string) =>
     ['fileContent', fspName, filePath] as const,
   head: (fspName: string, filePath: string) =>
-    ['fileContentHead', fspName, filePath] as const
+    ['fileContentHead', fspName, filePath] as const,
+  binaryPreview: (fspName: string, filePath: string) =>
+    ['fileBinaryPreview', fspName, filePath] as const
 };
 
 // Type for HEAD response metadata
@@ -114,7 +116,7 @@ export function useFileBinaryPreviewQuery(
   enabled: boolean = true
 ): UseQueryResult<Uint8Array, Error> {
   return useQuery<Uint8Array, Error>({
-    queryKey: ['fileBinaryPreview', fspName || '', filePath],
+    queryKey: fileContentQueryKeys.binaryPreview(fspName || '', filePath),
     queryFn: async ({ signal }: QueryFunctionContext) => {
       const url = buildUrl('/api/content/', fspName!, { subpath: filePath });
       const response = await sendFetchRequest(url, 'GET', undefined, {
