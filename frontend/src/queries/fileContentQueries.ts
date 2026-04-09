@@ -117,10 +117,9 @@ export function useFileBinaryPreviewQuery(
     queryKey: ['fileBinaryPreview', fspName || '', filePath],
     queryFn: async ({ signal }: QueryFunctionContext) => {
       const url = buildUrl('/api/content/', fspName!, { subpath: filePath });
-      const response = await fetch(url, {
-        credentials: 'include',
-        headers: { Range: `bytes=0-${BINARY_PREVIEW_BYTES - 1}` },
-        signal
+      const response = await sendFetchRequest(url, 'GET', undefined, {
+        signal,
+        headers: { Range: `bytes=0-${BINARY_PREVIEW_BYTES - 1}` }
       });
       // 206 Partial Content or 200 OK (if server ignores Range) are both fine
       if (!response.ok) {
