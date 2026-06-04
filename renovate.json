@@ -1,0 +1,32 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits"
+  ],
+  "timezone": "America/New_York",
+  "schedule": ["before 6am on monday"],
+  "labels": ["dependencies"],
+  "enabledManagers": ["pep621", "pixi"],
+  "prConcurrentLimit": 10,
+  "prHourlyLimit": 0,
+  "rangeStrategy": "bump",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on monday"]
+  },
+  "packageRules": [
+    {
+      "description": "Group all pyproject.toml (pep621 + pixi) dependency updates, including majors, into a single PR",
+      "matchManagers": ["pep621", "pixi"],
+      "groupName": "pyproject.toml dependencies",
+      "separateMajorMinor": false
+    },
+    {
+      "description": "Never update the python runtime pin",
+      "matchPackageNames": ["python"],
+      "enabled": false
+    }
+  ]
+}
