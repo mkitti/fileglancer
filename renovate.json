@@ -8,7 +8,7 @@
   "timezone": "America/New_York",
   "schedule": ["before 6am on monday"],
   "labels": ["dependencies"],
-  "enabledManagers": ["npm", "pep621", "pixi", "github-actions"],
+  "enabledManagers": ["pep621", "pixi"],
   "prConcurrentLimit": 10,
   "prHourlyLimit": 0,
   "rangeStrategy": "bump",
@@ -18,39 +18,10 @@
   },
   "packageRules": [
     {
-      "description": "Group GitHub Actions updates into a single PR",
-      "matchManagers": ["github-actions"],
-      "groupName": "github-actions"
-    },
-    {
-      "description": "Group non-major npm devDependency updates",
-      "matchManagers": ["npm"],
-      "matchDepTypes": ["devDependencies"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "groupName": "npm dev dependencies (non-major)"
-    },
-    {
-      "description": "Group the @storybook scope together",
-      "matchManagers": ["npm"],
-      "matchPackageNames": ["@storybook/{/,}**", "storybook"],
-      "groupName": "storybook"
-    },
-    {
-      "description": "Group the @tanstack scope together",
-      "matchManagers": ["npm"],
-      "matchPackageNames": ["@tanstack/{/,}**"],
-      "groupName": "tanstack"
-    },
-    {
-      "description": "Keep React core packages in lockstep",
-      "matchManagers": ["npm"],
-      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
-      "groupName": "react"
-    },
-    {
-      "description": "Group pytest plugins (pixi + pep621) together",
-      "matchPackageNames": ["pytest", "pytest-{/,}**"],
-      "groupName": "pytest"
+      "description": "Group all Python (pep621 + pixi) dependency updates, including majors, into a single PR",
+      "matchManagers": ["pep621", "pixi"],
+      "groupName": "python dependencies",
+      "separateMajorMinor": false
     }
   ]
 }
