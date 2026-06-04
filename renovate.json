@@ -18,10 +18,15 @@
   },
   "packageRules": [
     {
-      "description": "Group all Python (pep621 + pixi) dependency updates, including majors, into a single PR",
+      "description": "Group all pyproject.toml (pep621 + pixi) dependency updates, including majors, into a single PR",
       "matchManagers": ["pep621", "pixi"],
-      "groupName": "python dependencies",
+      "groupName": "pyproject.toml dependencies",
       "separateMajorMinor": false
+    },
+    {
+      "description": "Never update the python runtime pin",
+      "matchPackageNames": ["python"],
+      "enabled": false
     }
   ]
 }
