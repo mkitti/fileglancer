@@ -377,11 +377,14 @@ function JobOverview({
             value={
               job.commit_sha ? (
                 commitLink ? (
-                  <FgExternalLink className="font-mono" href={commitLink}>
+                  <FgExternalLink
+                    className="text-xs font-mono"
+                    href={commitLink}
+                  >
                     {job.commit_sha.slice(0, 7)}
                   </FgExternalLink>
                 ) : (
-                  <span className="font-mono">
+                  <span className="text-xs font-mono">
                     {job.commit_sha.slice(0, 7)}
                   </span>
                 )

@@ -45,11 +45,13 @@ export default function AppInfoTable({ app }: { readonly app: UserApp }) {
             <td className={labelClass}>Version</td>
             <td className={valueClass}>
               {commitUrl ? (
-                <FgExternalLink className="font-mono" href={commitUrl}>
+                <FgExternalLink className="text-xs font-mono" href={commitUrl}>
                   {app.commit_sha.slice(0, 7)}
                 </FgExternalLink>
               ) : (
-                <span className="font-mono">{app.commit_sha.slice(0, 7)}</span>
+                <span className="text-xs font-mono">
+                  {app.commit_sha.slice(0, 7)}
+                </span>
               )}
             </td>
           </tr>
