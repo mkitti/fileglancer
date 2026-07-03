@@ -52,7 +52,7 @@ export default function ListingCard({
 
   return (
     <Card
-      className="p-0 flex flex-col text-left w-full dark:border-surface-light cursor-pointer transition-colors hover:bg-surface dark:hover:bg-surface-light"
+      className="p-0 flex flex-col text-left w-full dark:border-surface-light cursor-pointer transition-colors hover:bg-surface/50 dark:hover:bg-surface-light/20"
       onClick={handleView}
       onKeyDown={handleKeyDown}
       role="link"
