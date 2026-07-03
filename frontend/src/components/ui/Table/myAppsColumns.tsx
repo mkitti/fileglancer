@@ -149,9 +149,9 @@ export function createMyAppsColumns(actions: AppActions): ColumnDef<UserApp>[] {
       enableSorting: true
     },
     {
-      id: 'shared',
+      id: 'status',
       accessorFn: row => (isAppShared(row) ? 'Shared' : ''),
-      header: 'Shared',
+      header: 'Status',
       cell: ({ row }) => (
         <div className="flex items-center h-full">
           {isAppShared(row.original) ? <SharedBadge /> : null}

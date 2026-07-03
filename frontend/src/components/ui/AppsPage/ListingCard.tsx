@@ -4,7 +4,8 @@ import { HiOutlinePlus } from 'react-icons/hi';
 import { HiOutlineEllipsisVertical } from 'react-icons/hi2';
 
 import CardActionsMenu from '@/components/ui/Menus/CardActionsMenu';
-import type { MenuItem } from '@/components/ui/Menus/FgMenuItems';
+import InYourAppsBadge from '@/components/ui/AppsPage/InYourAppsBadge';
+import { buildListingMenuItems } from '@/components/ui/AppsPage/listingMenuItems';
 import FgButton from '@/components/designSystem/atoms/FgButton';
 import FgIcon from '@/components/designSystem/atoms/FgIcon';
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
@@ -30,25 +31,12 @@ export default function ListingCard({
   const adding = actions.addingId === listing.id;
   const publishedAt = formatDateString(listing.published_at);
 
-  const menuItems: MenuItem<AppListing>[] = [
-    {
-      name: 'Add to my apps',
-      action: l => void actions.add(l),
-      shouldShow: !alreadyAdded
-    },
-    { name: 'View', action: l => actions.view(l) },
-    {
-      name: 'View in My Apps',
-      action: () => installedApp && actions.viewInMyApps(installedApp),
-      shouldShow: alreadyAdded
-    },
-    {
-      name: 'Unshare',
-      action: l => void actions.unshare(l),
-      color: 'text-error',
-      shouldShow: canManage
-    }
-  ];
+  const menuItems = buildListingMenuItems(
+    listing,
+    installedApp,
+    canManage,
+    actions
+  );
 
   const handleView = () => actions.view(listing);
 
@@ -76,11 +64,7 @@ export default function ListingCard({
             className="text-foreground flex-shrink-0"
             icon={getAppIconType(installedApp?.manifest)}
           />
-          {alreadyAdded ? (
-            <span className="inline-block px-2 py-0.5 rounded-sm bg-success/10 text-success text-xs font-medium">
-              In your apps
-            </span>
-          ) : null}
+          {alreadyAdded ? <InYourAppsBadge /> : null}
         </div>
         <div
           className="flex items-center gap-1"

@@ -3,14 +3,19 @@ import { Typography } from '@material-tailwind/react';
 
 import ListingCard from '@/components/ui/AppsPage/ListingCard';
 import FgCheckbox from '@/components/designSystem/atoms/formElements/FgCheckbox';
+import { TableCard } from '@/components/ui/Table/TableCard';
+import { createCatalogColumns } from '@/components/ui/Table/catalogColumns';
+import ViewModeToggle from '@/components/ui/widgets/ViewModeToggle';
 import { useAppsQuery, useCatalogQuery } from '@/queries/appsQueries';
 import { useListingActions } from '@/hooks/useListingActions';
+import { useViewMode } from '@/hooks/useViewMode';
 import { useProfileContext } from '@/contexts/ProfileContext';
-import type { UserApp } from '@/shared.types';
+import type { AppListing, UserApp } from '@/shared.types';
 
 export default function Catalog() {
   const [search, setSearch] = useState('');
   const [hideInstalled, setHideInstalled] = useState(false);
+  const [viewMode, changeViewMode] = useViewMode('catalogViewMode');
 
   const catalogQuery = useCatalogQuery();
   const appsQuery = useAppsQuery();
@@ -24,6 +29,18 @@ export default function Catalog() {
     );
     return map;
   }, [appsQuery.data]);
+
+  const catalogColumns = useMemo(
+    () =>
+      createCatalogColumns(
+        actions,
+        (listing: AppListing) =>
+          myAppsByKey.get(`${listing.url}::${listing.manifest_path}`),
+        profile?.username
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [myAppsByKey, profile?.username]
+  );
 
   const filteredListings = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -53,18 +70,21 @@ export default function Catalog() {
       </Typography>
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <input
-          className="w-full sm:max-w-sm p-2 text-foreground border rounded-sm focus:outline-none bg-background border-primary-light focus:border-primary"
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search by name, description, or sharer"
-          type="text"
-          value={search}
-        />
-        <FgCheckbox
-          checked={hideInstalled}
-          label="Hide already installed apps"
-          onChange={e => setHideInstalled(e.target.checked)}
-        />
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center">
+          <input
+            className="w-full sm:max-w-sm p-2 text-foreground border rounded-sm focus:outline-none bg-background border-primary-light focus:border-primary"
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by name, description, or sharer"
+            type="text"
+            value={search}
+          />
+          <FgCheckbox
+            checked={hideInstalled}
+            label="Hide already installed apps"
+            onChange={e => setHideInstalled(e.target.checked)}
+          />
+        </div>
+        <ViewModeToggle onChange={changeViewMode} viewMode={viewMode} />
       </div>
 
       {catalogQuery.isPending ? (
@@ -90,6 +110,17 @@ export default function Catalog() {
               ? `No listings match "${search}".`
               : 'All shared apps are already in your apps.'}
           </Typography>
+        </div>
+      ) : viewMode === 'table' ? (
+        <div className="mb-8">
+          <TableCard
+            columns={catalogColumns}
+            data={filteredListings}
+            dataType="shared apps"
+            errorState={catalogQuery.error}
+            gridColsClass="grid-cols-[2fr_3fr_1fr_1fr_1fr_1fr]"
+            loadingState={catalogQuery.isPending}
+          />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">

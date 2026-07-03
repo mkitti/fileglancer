@@ -71,7 +71,13 @@ declare module '@tanstack/react-table' {
   }
 }
 
-type DataType = 'data links' | 'tasks' | 'NG links' | 'jobs' | 'apps';
+type DataType =
+  | 'data links'
+  | 'tasks'
+  | 'NG links'
+  | 'jobs'
+  | 'apps'
+  | 'shared apps';
 
 type TableProps<TData> = {
   readonly columns: ColumnDef<TData>[];
