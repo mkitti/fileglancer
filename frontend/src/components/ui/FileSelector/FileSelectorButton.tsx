@@ -22,8 +22,9 @@ import type {
   FileSelectorMode
 } from '@/hooks/useFileSelector';
 
-// Remember the last confirmed selection's parent folder across all instances
-let lastSelectedParentPath: string | null = null;
+// Remember the folder of the last confirmed selection across all instances:
+// the selection itself when it was a folder, its parent when it was a file.
+let lastSelectedFolderPath: string | null = null;
 
 function getParentPath(fullPath: string): string {
   // Strip trailing slash, then take everything up to the last separator
@@ -64,9 +65,14 @@ export default function FileSelectorButton({
   // selection/location so pasting a path can navigate the browser there.
   const [pathInput, setPathInput] = useState('');
 
-  // Use initialPath if provided, otherwise fall back to last confirmed selection's parent
+  // Use initialPath if provided, otherwise fall back to the last confirmed
+  // selection's folder
   const effectiveInitialPath =
-    initialPath || lastSelectedParentPath || undefined;
+    initialPath || lastSelectedFolderPath || undefined;
+  // The field's own value in file mode names a file, so the browser should
+  // open its parent folder. The remembered fallback is already a folder and
+  // must be opened as-is.
+  const initialPathIsFile = Boolean(initialPath) && mode !== 'directory';
 
   const {
     state,
@@ -91,6 +97,7 @@ export default function FileSelectorButton({
   } = useFileSelector({
     initialLocation,
     initialPath: showDialog ? effectiveInitialPath : undefined,
+    initialPathIsFile,
     mode,
     pathPreferenceOverride: useServerPath ? ['linux_path'] : undefined,
     defaultToHome
@@ -163,7 +170,9 @@ export default function FileSelectorButton({
 
   const handleSelect = () => {
     if (state.selectedItem) {
-      lastSelectedParentPath = getParentPath(state.selectedItem.displayPath);
+      lastSelectedFolderPath = state.selectedItem.isDir
+        ? state.selectedItem.displayPath
+        : getParentPath(state.selectedItem.displayPath);
       onSelect(state.selectedItem.fullPath, state.selectedItem.displayPath);
       onClose();
     }

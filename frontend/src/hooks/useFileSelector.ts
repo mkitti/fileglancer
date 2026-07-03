@@ -38,6 +38,9 @@ export type FileSelectorMode = 'file' | 'directory' | 'any';
 type FileSelectorOptions = {
   initialLocation?: FileSelectorInitialLocation;
   initialPath?: string;
+  // When true, initialPath points at a file, so the browser opens its parent
+  // folder. Leave unset when initialPath is already a folder to open as-is.
+  initialPathIsFile?: boolean;
   mode?: FileSelectorMode;
   pathPreferenceOverride?: ['linux_path'];
   // When neither initialLocation nor initialPath resolves to a folder, open in
@@ -153,8 +156,8 @@ export default function useFileSelector(options?: FileSelectorOptions) {
 
     if (resolved) {
       let subPath = resolved.subpath;
-      // For file mode, navigate to the parent directory
-      if (subPath && mode !== 'directory') {
+      // When initialPath is a file, navigate to its parent directory
+      if (subPath && options?.initialPathIsFile) {
         const lastSlash = subPath.lastIndexOf('/');
         if (lastSlash >= 0) {
           subPath = subPath.slice(0, lastSlash);
@@ -172,7 +175,7 @@ export default function useFileSelector(options?: FileSelectorOptions) {
         selectedItem: null
       });
     }
-  }, [options?.initialPath, zonesAndFspQuery.data, mode]);
+  }, [options?.initialPath, options?.initialPathIsFile, zonesAndFspQuery.data]);
 
   // Fetch file data only when in filesystem mode
   const fileQuery = useFileQuery(
