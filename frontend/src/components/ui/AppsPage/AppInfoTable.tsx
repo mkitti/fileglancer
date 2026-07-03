@@ -7,15 +7,30 @@ import { formatDateString } from '@/utils';
 import {
   appRevision,
   buildGithubCommitUrl,
+  buildGithubFileUrl,
   canonicalGithubUrl
 } from '@/utils/appUrls';
 
 const labelClass =
   'text-foreground font-medium pr-4 py-1.5 align-top whitespace-nowrap';
 const valueClass = 'text-foreground py-1.5';
+const MANIFEST_FILENAME = 'runnables.yaml';
 
-function manifestPathLabel(path: string): string {
-  return path || 'Repository root';
+function manifestPathInfo(path: string): { filePath: string; label: string } {
+  const normalized = path
+    .trim()
+    .replace(/^\.?\//, '')
+    .replace(/\/+$/, '');
+
+  const filePath =
+    !normalized || normalized === '.'
+      ? MANIFEST_FILENAME
+      : normalized === MANIFEST_FILENAME ||
+          normalized.endsWith(`/${MANIFEST_FILENAME}`)
+        ? normalized
+        : `${normalized}/${MANIFEST_FILENAME}`;
+
+  return { filePath, label: `./${filePath}` };
 }
 
 function InfoRow({
@@ -42,20 +57,26 @@ function CommitValue({
 }) {
   if (href) {
     return (
-      <FgExternalLink className="break-all text-xs font-mono" href={href}>
+      <FgExternalLink className="break-all font-mono" href={href} size="sm">
         {sha}
       </FgExternalLink>
     );
   }
 
-  return <span className="break-all text-xs font-mono">{sha}</span>;
+  return <span className="break-all text-sm font-mono">{sha}</span>;
 }
 
 export default function AppInfoTable({ app }: { readonly app: UserApp }) {
   const revision = appRevision(app.url, app.branch);
+  const manifestPath = manifestPathInfo(app.manifest_path);
   const commitUrl = app.commit_sha
     ? buildGithubCommitUrl(app.url, app.commit_sha)
     : null;
+  const manifestUrl = buildGithubFileUrl(
+    app.url,
+    app.commit_sha ?? revision,
+    manifestPath.filePath
+  );
   const codeRepoUrl = app.manifest?.repo_url;
   const separateCodeRepoUrl =
     codeRepoUrl &&
@@ -75,7 +96,7 @@ export default function AppInfoTable({ app }: { readonly app: UserApp }) {
       <tbody>
         <InfoRow label="URL">
           <span className="py-1.5">
-            <FgExternalLink className="break-all" href={app.url}>
+            <FgExternalLink className="break-all" href={app.url} size="sm">
               {app.url}
             </FgExternalLink>
           </span>
@@ -86,7 +107,13 @@ export default function AppInfoTable({ app }: { readonly app: UserApp }) {
           </InfoRow>
         ) : null}
         <InfoRow label="Manifest path">
-          {manifestPathLabel(app.manifest_path)}
+          {manifestUrl ? (
+            <FgExternalLink className="break-all" href={manifestUrl} size="sm">
+              {manifestPath.label}
+            </FgExternalLink>
+          ) : (
+            manifestPath.label
+          )}
         </InfoRow>
         {app.commit_sha ? (
           <InfoRow label="App commit">
@@ -95,7 +122,11 @@ export default function AppInfoTable({ app }: { readonly app: UserApp }) {
         ) : null}
         {separateCodeRepoUrl ? (
           <InfoRow label="Code repo">
-            <FgExternalLink className="break-all" href={separateCodeRepoUrl}>
+            <FgExternalLink
+              className="break-all"
+              href={separateCodeRepoUrl}
+              size="sm"
+            >
               {separateCodeRepoUrl}
             </FgExternalLink>
           </InfoRow>
@@ -110,7 +141,7 @@ export default function AppInfoTable({ app }: { readonly app: UserApp }) {
         {app.listing_id ? (
           <InfoRow label="Catalog listing">
             <FgLink size="sm" to={`/apps/catalog/${app.listing_id}`}>
-              #{app.listing_id}
+              View catalog listing
             </FgLink>
           </InfoRow>
         ) : null}

@@ -4,6 +4,7 @@ import {
   buildAppDetailPath,
   buildAppUrl,
   buildLaunchPath,
+  buildGithubFileUrl,
   buildRelaunchPath,
   canonicalGithubUrl,
   isGithubRepoUrl,
@@ -86,6 +87,25 @@ describe('app URL helpers', () => {
     ).toBe(
       '/apps/launch/org/tool?branch=feature%2Fmy-tool&entryPointId=run&path=apps%2Fdemo'
     );
+  });
+
+  test('builds GitHub file URLs using explicit or URL revisions', () => {
+    expect(
+      buildGithubFileUrl(
+        'https://github.com/org/tool/tree/feature/my-tool',
+        undefined,
+        './apps/demo/runnables.yaml'
+      )
+    ).toBe(
+      'https://github.com/org/tool/blob/feature/my-tool/apps/demo/runnables.yaml'
+    );
+    expect(
+      buildGithubFileUrl(
+        'https://github.com/org/tool',
+        'abc123',
+        'runnables.yaml'
+      )
+    ).toBe('https://github.com/org/tool/blob/abc123/runnables.yaml');
   });
 
   test('builds detail paths, omitting the default branch and empty manifest path', () => {

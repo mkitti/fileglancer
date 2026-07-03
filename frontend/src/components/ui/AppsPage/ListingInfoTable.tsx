@@ -6,16 +6,30 @@ import type { AppListing, UserApp } from '@/shared.types';
 import { formatDateString } from '@/utils';
 import {
   buildAppDetailPath,
-  buildGithubCommitUrl,
+  buildGithubFileUrl,
   parseGithubUrl
 } from '@/utils/appUrls';
 
 const labelClass =
   'text-foreground font-medium pr-4 py-1.5 align-top whitespace-nowrap';
 const valueClass = 'text-foreground py-1.5';
+const MANIFEST_FILENAME = 'runnables.yaml';
 
-function manifestPathLabel(path: string): string {
-  return path || 'Repository root';
+function manifestPathInfo(path: string): { filePath: string; label: string } {
+  const normalized = path
+    .trim()
+    .replace(/^\.?\//, '')
+    .replace(/\/+$/, '');
+
+  const filePath =
+    !normalized || normalized === '.'
+      ? MANIFEST_FILENAME
+      : normalized === MANIFEST_FILENAME ||
+          normalized.endsWith(`/${MANIFEST_FILENAME}`)
+        ? normalized
+        : `${normalized}/${MANIFEST_FILENAME}`;
+
+  return { filePath, label: `./${filePath}` };
 }
 
 function InfoRow({
@@ -31,24 +45,6 @@ function InfoRow({
       <td className={valueClass}>{children}</td>
     </tr>
   );
-}
-
-function CommitValue({
-  sha,
-  href
-}: {
-  readonly sha: string;
-  readonly href: string | null;
-}) {
-  if (href) {
-    return (
-      <FgExternalLink className="break-all text-xs font-mono" href={href}>
-        {sha}
-      </FgExternalLink>
-    );
-  }
-
-  return <span className="break-all text-xs font-mono">{sha}</span>;
 }
 
 /**
@@ -75,16 +71,19 @@ export default function ListingInfoTable({
     ? formatDateString(listing.updated_at)
     : 'Not edited since publish';
   const revision = listingRevision(listing);
-  const installedCommitUrl = installedApp?.commit_sha
-    ? buildGithubCommitUrl(installedApp.url, installedApp.commit_sha)
-    : null;
+  const manifestPath = manifestPathInfo(listing.manifest_path);
+  const manifestUrl = buildGithubFileUrl(
+    listing.url,
+    revision,
+    manifestPath.filePath
+  );
 
   return (
     <table className="w-full text-sm mb-6">
       <tbody>
         <InfoRow label="URL">
           <span className="py-1.5">
-            <FgExternalLink className="break-all" href={listing.url}>
+            <FgExternalLink className="break-all" href={listing.url} size="sm">
               {listing.url}
             </FgExternalLink>
           </span>
@@ -95,7 +94,13 @@ export default function ListingInfoTable({
           </InfoRow>
         ) : null}
         <InfoRow label="Manifest path">
-          {manifestPathLabel(listing.manifest_path)}
+          {manifestUrl ? (
+            <FgExternalLink className="break-all" href={manifestUrl} size="sm">
+              {manifestPath.label}
+            </FgExternalLink>
+          ) : (
+            manifestPath.label
+          )}
         </InfoRow>
         <InfoRow label="Shared by">{listing.owner_username}</InfoRow>
         <InfoRow label="Published">{publishedAt}</InfoRow>
@@ -111,14 +116,6 @@ export default function ListingInfoTable({
             >
               View installed app
             </FgLink>
-          </InfoRow>
-        ) : null}
-        {installedApp?.commit_sha ? (
-          <InfoRow label="Installed commit">
-            <CommitValue
-              href={installedCommitUrl}
-              sha={installedApp.commit_sha}
-            />
           </InfoRow>
         ) : null}
         {listing.description ? (

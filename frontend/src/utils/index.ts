@@ -414,6 +414,7 @@ export {
   canonicalGithubUrl,
   buildAppUrl,
   buildGithubCommitUrl,
+  buildGithubFileUrl,
   buildGithubUrl,
   buildLaunchPath,
   buildLaunchPathFromApp,

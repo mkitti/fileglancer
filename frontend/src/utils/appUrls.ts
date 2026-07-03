@@ -123,6 +123,35 @@ export function buildGithubCommitUrl(
   }
 }
 
+/**
+ * GitHub link for a file in an app repo at a specific revision. Falls back to
+ * the revision encoded in the app URL when revision is not provided.
+ */
+export function buildGithubFileUrl(
+  appUrl: string,
+  revision: string | null | undefined,
+  filePath: string
+): string | null {
+  try {
+    const { owner, repo, branch } = parseGithubUrl(appUrl);
+    const ref = revision?.trim() || branch;
+    const normalizedPath = filePath
+      .trim()
+      .replace(/^\.?\//, '')
+      .replace(/^\/+/, '');
+    if (!ref || !normalizedPath) {
+      return null;
+    }
+    const encodedPath = normalizedPath
+      .split('/')
+      .map(segment => encodeURIComponent(segment))
+      .join('/');
+    return `https://github.com/${owner}/${repo}/blob/${ref}/${encodedPath}`;
+  } catch {
+    return null;
+  }
+}
+
 export function buildLaunchPath(
   owner: string,
   repo: string,
