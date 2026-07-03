@@ -12,10 +12,8 @@ import {
   HiOutlineTrash,
   HiOutlineUpload
 } from 'react-icons/hi';
-import { TbBrandGithub } from 'react-icons/tb';
 
 import FgButton from '@/components/designSystem/atoms/FgButton';
-import FgExternalLink from '@/components/designSystem/atoms/FgExternalLink';
 import FgIcon from '@/components/designSystem/atoms/FgIcon';
 import FileSelectorButton from '@/components/ui/FileSelector/FileSelectorButton';
 import FgSwitch from '@/components/ui/widgets/FgSwitch';
@@ -43,7 +41,6 @@ import type {
 
 interface AppLaunchFormProps {
   readonly entryPoint: AppEntryPoint;
-  readonly githubUrl: string;
   readonly headerActionsTarget?: HTMLElement | null;
   readonly onSubmit: (
     parameters: Record<string, unknown>,
@@ -737,7 +734,6 @@ function ClusterTabContent({
 
 export default function AppLaunchForm({
   entryPoint,
-  githubUrl,
   headerActionsTarget,
   onSubmit,
   submitting,
@@ -1296,28 +1292,9 @@ export default function AppLaunchForm({
         ref={fileInputRef}
         type="file"
       />
-      <div className="mb-6">
-        <Typography className="font-bold mb-1" type="h5">
-          {entryPoint.name}
-        </Typography>
-        <div className="flex items-center gap-1.5 text-foreground">
-          <FgIcon className="shrink-0" icon={TbBrandGithub} size="sm" />
-          <FgExternalLink
-            className="break-all"
-            href={githubUrl}
-            showIcon={false}
-            size="sm"
-          >
-            {githubUrl}
-          </FgExternalLink>
-        </div>
-      </div>
       {/* Errors (top) */}
       {validationErrorBanner}
       {submitErrorBanner}
-      {entryPoint.description ? (
-        <Typography className="block mb-6">{entryPoint.description}</Typography>
-      ) : null}
 
       {/* Tabs */}
       <Tabs onValueChange={setActiveTab} value={activeTab}>

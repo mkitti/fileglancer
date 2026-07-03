@@ -17,6 +17,7 @@ import {
   buildAppDetailPath,
   buildGithubUrl,
   canonicalGithubUrl,
+  getEntryPointTypeIconType,
   getAppIconType
 } from '@/utils';
 import { showErrorToast } from '@/utils/errorToast';
@@ -112,6 +113,10 @@ export default function AppLaunch() {
   // Prefer the user's saved app name (which may be a custom name chosen when
   // adding the app from the catalog) over the raw manifest name.
   const displayName = installedApp?.name ?? manifest?.name;
+  const headerTitle =
+    displayName && selectedEntryPoint
+      ? `${displayName} - ${selectedEntryPoint.name}`
+      : displayName;
   const isShared =
     installedApp?.listing_id !== undefined && installedApp.listing_id !== null;
 
@@ -196,8 +201,14 @@ export default function AppLaunch() {
             ? buildAppDetailPath(installedApp.url, installedApp.manifest_path)
             : '/apps'
         }
-        icon={getAppIconType()}
-        title={displayName}
+        description={selectedEntryPoint?.description ?? null}
+        githubUrl={selectedEntryPoint ? appUrl : null}
+        icon={
+          selectedEntryPoint
+            ? getEntryPointTypeIconType(selectedEntryPoint.type)
+            : getAppIconType()
+        }
+        title={headerTitle}
       >
         {isShared ? <SharedBadge /> : null}
       </AppPageHeader>
@@ -255,7 +266,6 @@ export default function AppLaunch() {
       ) : manifest && selectedEntryPoint ? (
         <AppLaunchForm
           entryPoint={selectedEntryPoint}
-          githubUrl={appUrl}
           headerActionsTarget={launchActionsTarget}
           initialContainer={relaunchContainer}
           initialContainerArgs={relaunchContainerArgs}

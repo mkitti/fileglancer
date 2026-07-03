@@ -55,6 +55,7 @@ import {
   useJobFileQuery,
   useCancelJobMutation
 } from '@/queries/jobsQueries';
+import { useManifestPreviewMutation } from '@/queries/appsQueries';
 import FgExternalLink from './designSystem/atoms/FgExternalLink';
 
 /** Drop null/undefined values so they aren't shown or persisted as parameters. */
@@ -501,6 +502,7 @@ export default function JobDetail() {
     activeTab === 'stderr' || activeTab === 'overview'
   );
   const cancelMutation = useCancelJobMutation();
+  const jobManifestMutation = useManifestPreviewMutation();
 
   const isService = jobQuery.data?.entry_point_type === 'service';
   const isActive = jobStatus === 'PENDING' || jobStatus === 'RUNNING';
@@ -519,6 +521,20 @@ export default function JobDetail() {
   }, []);
 
   const job = jobQuery.data;
+  const jobEntryPoint = jobManifestMutation.data?.runnables.find(
+    ep => ep.id === job?.entry_point_id
+  );
+
+  useEffect(() => {
+    if (job?.app_url) {
+      jobManifestMutation.mutate({
+        url: job.app_url,
+        manifest_path: job.manifest_path || ''
+      });
+    }
+    // Re-fetch when the job's app identity changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job?.app_url, job?.manifest_path]);
 
   // Download the full set of parameters used for this job (all three tabs of
   // the launch form) as a JSON file that can be re-uploaded to relaunch.
@@ -658,8 +674,10 @@ export default function JobDetail() {
             }
             backLabel="Back to Jobs"
             backTo="/apps/jobs"
+            description={jobEntryPoint?.description ?? null}
+            githubUrl={job.app_url}
             icon={getEntryPointTypeIconType(job.entry_point_type)}
-            title={`${job.app_name} — ${job.entry_point_name}`}
+            title={`${job.app_name} - ${job.entry_point_name}`}
           >
             <JobStatusBadge status={job.status} />
           </AppPageHeader>
