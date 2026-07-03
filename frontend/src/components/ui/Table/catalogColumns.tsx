@@ -1,6 +1,5 @@
 import type { ColumnDef } from '@tanstack/react-table';
 
-import FgExternalLink from '@/components/designSystem/atoms/FgExternalLink';
 import FgIcon from '@/components/designSystem/atoms/FgIcon';
 import FgLink from '@/components/designSystem/atoms/FgLink';
 import CardActionsMenu from '@/components/ui/Menus/CardActionsMenu';
@@ -9,7 +8,7 @@ import InYourAppsBadge from '@/components/ui/AppsPage/InYourAppsBadge';
 import { buildListingMenuItems } from '@/components/ui/AppsPage/listingMenuItems';
 import { buildListingDetailPath } from '@/hooks/useListingActions';
 import type { ListingActions } from '@/hooks/useListingActions';
-import { formatDateString, getAppIconType, repoLabel } from '@/utils';
+import { formatDateOnly, getAppIconType, repoLabel } from '@/utils';
 import type { AppListing, UserApp } from '@/shared.types';
 
 export function createCatalogColumns(
@@ -22,7 +21,7 @@ export function createCatalogColumns(
       id: 'repository',
       accessorFn: row => repoLabel(row.url),
       header: 'Repository',
-      cell: ({ getValue, row, table }) => {
+      cell: ({ getValue, table }) => {
         const value = getValue() as string;
         const onContextMenu = table.options.meta?.onCellContextMenu;
         return (
@@ -33,15 +32,7 @@ export function createCatalogColumns(
               onContextMenu?.(e, { value });
             }}
           >
-            {/* No icon: the inline-flex icon layout defeats text truncation */}
-            <FgExternalLink
-              className="truncate min-w-0"
-              href={row.original.url}
-              showIcon={false}
-              size="sm"
-            >
-              {value}
-            </FgExternalLink>
+            <span className="truncate min-w-0 text-sm">{value}</span>
           </div>
         );
       },
@@ -122,9 +113,9 @@ export function createCatalogColumns(
     },
     {
       accessorKey: 'published_at',
-      header: 'Shared on',
+      header: () => <span className="whitespace-nowrap">Shared on</span>,
       cell: ({ getValue, table }) => {
-        const formattedDate = formatDateString(getValue() as string);
+        const formattedDate = formatDateOnly(getValue() as string);
         const onContextMenu = table.options.meta?.onCellContextMenu;
         return (
           <div

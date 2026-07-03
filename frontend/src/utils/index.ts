@@ -105,6 +105,20 @@ const formatDateString = (dateStr: string) => {
   });
 };
 
+/** Like formatDateString, but date only — no time component. */
+const formatDateOnly = (dateStr: string) => {
+  let normalized = dateStr;
+  if (!/Z$|[+-]\d{2}:\d{2}$/.test(dateStr)) {
+    normalized = dateStr + 'Z';
+  }
+  const date = new Date(normalized);
+  return date.toLocaleDateString('en-US', {
+    month: 'numeric',
+    day: 'numeric',
+    year: 'numeric'
+  });
+};
+
 class HTTPError extends Error {
   responseCode: number;
 
@@ -366,6 +380,7 @@ export {
   checkSessionValidity,
   downloadTextFile,
   escapePathForUrl,
+  formatDateOnly,
   formatDateString,
   formatUnixTimestamp,
   formatFileSize,
