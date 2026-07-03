@@ -1249,13 +1249,25 @@ class TestExistsValidation:
         assert p.exists is True
 
     @pytest.mark.parametrize("bad_type", ["string", "integer", "enum"])
-    @pytest.mark.parametrize("value", [True, False])
-    def test_rejected_on_non_path_type(self, bad_type, value):
-        kwargs = {"key": "p", "name": "P", "type": bad_type, "exists": value}
+    def test_exists_false_rejected_on_non_path_type(self, bad_type):
+        kwargs = {"key": "p", "name": "P", "type": bad_type, "exists": False}
         if bad_type == "enum":
             kwargs["options"] = ["a", "b"]
         with pytest.raises(ValidationError):
             AppParameter(**kwargs)
+
+    def test_exists_true_tolerated_on_non_path_type(self):
+        # model_dump serializes the True default onto every param, so a
+        # round-tripped manifest carries exists=True on strings; that must
+        # revalidate cleanly.
+        p = AppParameter(key="s", name="S", type="string", exists=True)
+        assert p.exists is True
+
+    def test_round_trip_through_model_dump(self):
+        # Worker -> server and DB-cache paths reconstruct the model from its
+        # own model_dump; the validator must accept its own serialized output.
+        p = AppParameter(key="s", name="S", type="string", flag="--s")
+        assert AppParameter(**p.model_dump()) == p
 
 
 class TestCollectCreatableDirs:

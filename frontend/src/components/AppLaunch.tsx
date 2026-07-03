@@ -18,6 +18,7 @@ import {
   canonicalGithubUrl,
   getAppIconType
 } from '@/utils';
+import { showErrorToast } from '@/utils/errorToast';
 import {
   useAppsQuery,
   useAddAppMutation,
@@ -172,9 +173,7 @@ export default function AppLaunch() {
       const count = apps.length;
       toast.success(`${count} app${count !== 1 ? 's' : ''} added`);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to install app';
-      toast.error(message);
+      showErrorToast(error, 'Failed to install app');
     }
   };
 

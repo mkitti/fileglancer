@@ -375,7 +375,10 @@ class AppParameter(BaseModel):
 
     @model_validator(mode='after')
     def validate_exists(self):
-        if "exists" in self.model_fields_set and self.type not in ("file", "directory"):
+        # Check the value, not model_fields_set: manifests round-trip through
+        # model_dump (worker -> server, DB cache), which serializes the True
+        # default onto every param, so presence of the field is meaningless.
+        if not self.exists and self.type not in ("file", "directory"):
             raise ValueError(
                 f"exists is only valid on file and directory parameters, "
                 f"but '{self.name}' has type '{self.type}'"

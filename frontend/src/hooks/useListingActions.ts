@@ -6,6 +6,7 @@ import {
   useUnshareListingMutation
 } from '@/queries/appsQueries';
 import { buildAppDetailPath } from '@/utils';
+import { showErrorToast } from '@/utils/errorToast';
 import type { AppListing, UserApp } from '@/shared.types';
 
 export function buildListingDetailPath(listingId: number): string {
@@ -47,7 +48,7 @@ export function useListingActions(opts?: {
       await addFromListingMutation.mutateAsync({ listing_id: listing.id });
       toast.success(`Added "${listing.name}"`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to add app');
+      showErrorToast(e, 'Failed to add app');
     }
   };
 
@@ -57,7 +58,7 @@ export function useListingActions(opts?: {
       toast.success('Removed from catalog');
       opts?.onUnshared?.();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to unshare');
+      showErrorToast(e, 'Failed to unshare');
     }
   };
 

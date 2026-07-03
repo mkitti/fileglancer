@@ -9,6 +9,7 @@ import CancelJobDialog from '@/components/ui/Dialogs/CancelJob';
 import { TableCard } from '@/components/ui/Table/TableCard';
 import { createAppsJobsColumns } from '@/components/ui/Table/appsJobsColumns';
 import { buildRelaunchPath, parseGithubUrl } from '@/utils';
+import { showErrorToast } from '@/utils/errorToast';
 import type { Job } from '@/shared.types';
 import {
   useJobsQuery,
@@ -61,9 +62,7 @@ export default function AppJobs() {
         job.entry_point_type === 'service' ? 'Service stopped' : 'Job cancelled'
       );
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to cancel job';
-      toast.error(message);
+      showErrorToast(error, 'Failed to cancel job');
     }
   };
 
@@ -72,9 +71,7 @@ export default function AppJobs() {
       await deleteJobMutation.mutateAsync(jobId);
       toast.success('Job deleted');
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to delete job';
-      toast.error(message);
+      showErrorToast(error, 'Failed to delete job');
     }
   };
 

@@ -9,6 +9,7 @@ import {
   useUpdateAppMutation
 } from '@/queries/appsQueries';
 import { buildAppDetailPath, buildLaunchPathFromApp } from '@/utils';
+import { showErrorToast } from '@/utils/errorToast';
 import type { UserApp } from '@/shared.types';
 
 export interface AppActions {
@@ -80,9 +81,7 @@ export function useAppActions(opts?: { onRemoved?: () => void }): AppActions {
         toast.success(`Updated to ${updated.commit_sha.slice(0, 7)}`);
       }
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to update app';
-      toast.error(message);
+      showErrorToast(error, 'Failed to update app');
     }
   };
 
@@ -94,9 +93,7 @@ export function useAppActions(opts?: { onRemoved?: () => void }): AppActions {
       await unshareListingMutation.mutateAsync({ listing_id: app.listing_id });
       toast.success('Removed from catalog');
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to unshare';
-      toast.error(message);
+      showErrorToast(error, 'Failed to unshare');
     }
   };
 
@@ -124,9 +121,7 @@ export function useAppActions(opts?: { onRemoved?: () => void }): AppActions {
       setRemoveTarget(null);
       opts?.onRemoved?.();
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to remove app';
-      toast.error(message);
+      showErrorToast(error, 'Failed to remove app');
     }
   };
 
