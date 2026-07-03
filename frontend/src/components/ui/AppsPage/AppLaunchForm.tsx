@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
+import { createPortal } from 'react-dom';
 
 import { Accordion, Tabs, Typography } from '@material-tailwind/react';
 import toast from 'react-hot-toast';
@@ -11,8 +12,10 @@ import {
   HiOutlineTrash,
   HiOutlineUpload
 } from 'react-icons/hi';
+import { TbBrandGithub } from 'react-icons/tb';
 
 import FgButton from '@/components/designSystem/atoms/FgButton';
+import FgExternalLink from '@/components/designSystem/atoms/FgExternalLink';
 import FgIcon from '@/components/designSystem/atoms/FgIcon';
 import FileSelectorButton from '@/components/ui/FileSelector/FileSelectorButton';
 import FgSwitch from '@/components/ui/widgets/FgSwitch';
@@ -40,6 +43,8 @@ import type {
 
 interface AppLaunchFormProps {
   readonly entryPoint: AppEntryPoint;
+  readonly githubUrl: string;
+  readonly headerActionsTarget?: HTMLElement | null;
   readonly onSubmit: (
     parameters: Record<string, unknown>,
     envParameters: Record<string, unknown>,
@@ -732,6 +737,8 @@ function ClusterTabContent({
 
 export default function AppLaunchForm({
   entryPoint,
+  githubUrl,
+  headerActionsTarget,
   onSubmit,
   submitting,
   submitError,
@@ -1228,6 +1235,7 @@ export default function AppLaunchForm({
         className="!rounded-md whitespace-nowrap"
         icon={HiOutlineDownload}
         onClick={handleExport}
+        size="sm"
         variant="outline"
       >
         Export params
@@ -1236,6 +1244,7 @@ export default function AppLaunchForm({
         className="!rounded-md whitespace-nowrap"
         icon={HiOutlineUpload}
         onClick={() => fileInputRef.current?.click()}
+        size="sm"
         variant="outline"
       >
         Upload params file
@@ -1247,15 +1256,15 @@ export default function AppLaunchForm({
         loading={validating || submitting}
         loadingText={validating ? 'Validating...' : 'Submitting...'}
         onClick={handleSubmit}
+        size="sm"
       >
         {entryPoint.type === 'service' ? 'Start Service' : 'Submit Job'}
       </FgButton>
     </div>
   );
 
-  // Shown next to both the top and bottom submit buttons, so the user sees the
-  // error regardless of which button they used. Wording is direction-neutral
-  // since the same banner appears above and below the fields.
+  // Shown above the fields so errors stay near the header actions that submit
+  // the form.
   const submitErrorBanner = submitError ? (
     <div className="mt-2 mb-4 p-3 bg-error/10 rounded text-error text-sm">
       {submitError}
@@ -1270,6 +1279,9 @@ export default function AppLaunchForm({
 
   return (
     <div>
+      {headerActionsTarget
+        ? createPortal(actionButtons, headerActionsTarget)
+        : null}
       <input
         accept="application/json,.json"
         className="hidden"
@@ -1284,11 +1296,21 @@ export default function AppLaunchForm({
         ref={fileInputRef}
         type="file"
       />
-      <div className="flex items-start justify-between gap-4 mb-1">
+      <div className="mb-6">
         <Typography className="font-bold mb-1" type="h5">
           {entryPoint.name}
         </Typography>
-        {actionButtons}
+        <div className="flex items-center gap-1.5 text-foreground">
+          <FgIcon className="shrink-0" icon={TbBrandGithub} size="sm" />
+          <FgExternalLink
+            className="break-all"
+            href={githubUrl}
+            showIcon={false}
+            size="sm"
+          >
+            {githubUrl}
+          </FgExternalLink>
+        </div>
       </div>
       {/* Errors (top) */}
       {validationErrorBanner}
@@ -1489,9 +1511,6 @@ export default function AppLaunchForm({
       {/* Errors (bottom) */}
       {validationErrorBanner}
       {submitErrorBanner}
-
-      {/* Submit (bottom) */}
-      <div className="flex justify-end mt-6">{actionButtons}</div>
     </div>
   );
 }

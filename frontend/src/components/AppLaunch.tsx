@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 
 import AppLaunchForm from '@/components/ui/AppsPage/AppLaunchForm';
 import AppPageHeader from '@/components/ui/AppsPage/AppPageHeader';
+import SharedBadge from '@/components/ui/AppsPage/SharedBadge';
 import {
   buildAppDetailPath,
   buildGithubUrl,
@@ -49,6 +50,8 @@ export default function AppLaunch() {
   const addAppMutation = useAddAppMutation();
   const [selectedEntryPoint, setSelectedEntryPoint] =
     useState<AppEntryPoint | null>(null);
+  const [launchActionsTarget, setLaunchActionsTarget] =
+    useState<HTMLDivElement | null>(null);
 
   const manifestPath = searchParams.get('path') || '';
   const branch = searchParams.get('branch') || routeBranch || 'main';
@@ -109,6 +112,8 @@ export default function AppLaunch() {
   // Prefer the user's saved app name (which may be a custom name chosen when
   // adding the app from the catalog) over the raw manifest name.
   const displayName = installedApp?.name ?? manifest?.name;
+  const isShared =
+    installedApp?.listing_id !== undefined && installedApp.listing_id !== null;
 
   // Auto-select entry point from URL param, or if there's only one
   useEffect(() => {
@@ -180,6 +185,11 @@ export default function AppLaunch() {
   return (
     <div>
       <AppPageHeader
+        actions={
+          manifest && selectedEntryPoint ? (
+            <div ref={setLaunchActionsTarget} />
+          ) : null
+        }
         backLabel={installedApp ? 'Back to app details' : 'Back to My Apps'}
         backTo={
           installedApp
@@ -188,7 +198,9 @@ export default function AppLaunch() {
         }
         icon={getAppIconType()}
         title={displayName}
-      />
+      >
+        {isShared ? <SharedBadge /> : null}
+      </AppPageHeader>
 
       {/* Not-installed banner */}
       {!appsQuery.isPending && !isInstalled ? (
@@ -243,6 +255,8 @@ export default function AppLaunch() {
       ) : manifest && selectedEntryPoint ? (
         <AppLaunchForm
           entryPoint={selectedEntryPoint}
+          githubUrl={appUrl}
+          headerActionsTarget={launchActionsTarget}
           initialContainer={relaunchContainer}
           initialContainerArgs={relaunchContainerArgs}
           initialEnv={relaunchEnv}
