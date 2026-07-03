@@ -1,7 +1,6 @@
 import type { MouseEvent } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 
-import FgExternalLink from '@/components/designSystem/atoms/FgExternalLink';
 import FgIcon from '@/components/designSystem/atoms/FgIcon';
 import FgLink from '@/components/designSystem/atoms/FgLink';
 import CardActionsMenu from '@/components/ui/Menus/CardActionsMenu';
@@ -62,7 +61,7 @@ export function createMyAppsColumns(actions: AppActions): ColumnDef<UserApp>[] {
       id: 'repository',
       accessorFn: row => repoLabel(row.url),
       header: 'Repository',
-      cell: ({ getValue, row, table }) => {
+      cell: ({ getValue, table }) => {
         const value = getValue() as string;
         const onContextMenu = table.options.meta?.onCellContextMenu;
         return (
@@ -73,15 +72,9 @@ export function createMyAppsColumns(actions: AppActions): ColumnDef<UserApp>[] {
               onContextMenu?.(e, { value });
             }}
           >
-            {/* No icon: the inline-flex icon layout defeats text truncation */}
-            <FgExternalLink
-              className="truncate min-w-0"
-              href={row.original.url}
-              showIcon={false}
-              size="sm"
-            >
-              {value}
-            </FgExternalLink>
+            <FgTooltip label={value} triggerClasses="max-w-full truncate">
+              <span className="truncate text-sm">{value}</span>
+            </FgTooltip>
           </div>
         );
       },

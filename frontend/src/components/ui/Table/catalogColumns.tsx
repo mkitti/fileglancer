@@ -32,7 +32,9 @@ export function createCatalogColumns(
               onContextMenu?.(e, { value });
             }}
           >
-            <span className="truncate min-w-0 text-sm">{value}</span>
+            <FgTooltip label={value} triggerClasses="max-w-full truncate">
+              <span className="truncate text-sm">{value}</span>
+            </FgTooltip>
           </div>
         );
       },
