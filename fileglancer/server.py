@@ -1,3 +1,4 @@
+import asyncio
 import os
 import re
 import sys
@@ -1680,6 +1681,8 @@ def create_app(settings):
                     "name": row.name,
                     "description": row.description,
                     "branch": row.branch,
+                    "commit_sha": row.commit_sha,
+                    "code_commit_sha": row.code_commit_sha,
                     "manifest": row.manifest,
                     "added_at": row.added_at,
                     "updated_at": row.updated_at,
@@ -1710,6 +1713,8 @@ def create_app(settings):
                 name=snap["name"],
                 description=snap["description"],
                 branch=snap["branch"],
+                commit_sha=snap["commit_sha"],
+                code_commit_sha=snap["code_commit_sha"],
                 added_at=snap["added_at"],
                 updated_at=snap["updated_at"],
                 manifest=manifest_obj,
@@ -1732,14 +1737,73 @@ def create_app(settings):
             user_app.description = manifest.description
         return result
 
+    # How long a finished job keeps its snapshot alive. Work dirs carry a
+    # `repo` symlink into the snapshot, so collecting it immediately would
+    # break browsing a recent job's code; jobs older than this trade that
+    # for reclaiming the (potentially large) snapshot tree.
+    _JOB_SNAPSHOT_RETENTION = timedelta(days=14)
+    _TERMINAL_JOB_STATUSES = ("DONE", "FAILED", "KILLED")
+
+    def _collect_keep_shas(session, username: str) -> list[str]:
+        """Every snapshot SHA still referenced by this user: all app pins,
+        plus the commits of jobs that are not in a terminal state (UNKNOWN
+        counts as live — the poll loop writes raw executor statuses), plus
+        recently-created terminal jobs (their work dirs link into the
+        snapshot)."""
+        keep = set()
+        for row in db.list_user_apps(session, username):
+            if row.commit_sha:
+                keep.add(row.commit_sha)
+            if row.code_commit_sha:
+                keep.add(row.code_commit_sha)
+        cutoff = datetime.now(UTC).replace(tzinfo=None) - _JOB_SNAPSHOT_RETENTION
+        for j in db.get_jobs_by_username(session, username):
+            if not j.commit_sha:
+                continue
+            created = j.created_at.replace(tzinfo=None) if j.created_at else None
+            if j.status not in _TERMINAL_JOB_STATUSES or (
+                    created is not None and created >= cutoff):
+                keep.add(j.commit_sha)
+        return sorted(keep)
+
+    # Fire-and-forget tasks must be referenced until done — the event loop
+    # only holds weak references, so an unreferenced task can be gc'd
+    # mid-execution.
+    _background_tasks: set = set()
+
+    def _spawn_snapshot_gc(username: str, urls: list) -> None:
+        task = asyncio.create_task(_gc_app_snapshots(username, urls))
+        _background_tasks.add(task)
+        task.add_done_callback(_background_tasks.discard)
+
+    async def _gc_app_snapshots(username: str, urls: list):
+        """Fire-and-forget snapshot GC for the given repos.
+
+        The keep-set is over-inclusive (all of the user's pins, not just this
+        repo's) — a SHA that doesn't exist under a repo's .snapshots simply
+        matches nothing, and over-keeping is always safe.
+        """
+        try:
+            with db.get_db_session(settings.db_url) as session:
+                keep = _collect_keep_shas(session, username)
+        except Exception as e:
+            logger.warning(f"Snapshot GC skipped for {username}: {e}")
+            return
+        for url in dict.fromkeys(u for u in urls if u):
+            try:
+                await apps_module.gc_repo_snapshots(url, keep, username=username)
+            except Exception as e:
+                logger.warning(f"Snapshot GC failed for {url} ({username}): {e}")
+
     async def _discover_repo_manifests(url: str, username: str):
-        """Clone/scan a repo and return (resolved_branch, canonical_url, discovered).
+        """Clone/scan a repo and return (resolved_branch, head_sha,
+        canonical_url, discovered).
 
         Shared by the discover and add endpoints so both surface identical,
         user-facing errors for a bad URL/revision/private-repo clone.
         """
         try:
-            resolved_branch, discovered = await apps_module.discover_app_manifests(
+            resolved_branch, head_sha, discovered = await apps_module.discover_app_manifests(
                 url, username=username)
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e))
@@ -1766,13 +1830,13 @@ def create_app(settings):
         # Bake the worker-resolved revision into the stored URL (so a repo whose
         # default is e.g. "master" dedups against an explicit ".../tree/master").
         canonical_url, _ = apps_module.canonical_app_url(url, resolved_branch)
-        return resolved_branch, canonical_url, discovered
+        return resolved_branch, head_sha, canonical_url, discovered
 
     @app.post("/api/apps/discover", response_model=list[DiscoveredApp],
               description="Discover the apps (manifests) in a repo without adding them")
     async def discover_user_apps(body: AppAddRequest,
                                  username: str = Depends(get_current_user)):
-        _, canonical_url, discovered = await _discover_repo_manifests(body.url, username)
+        _, _, canonical_url, discovered = await _discover_repo_manifests(body.url, username)
         with db.get_db_session(settings.db_url) as session:
             return [
                 DiscoveredApp(
@@ -1791,7 +1855,7 @@ def create_app(settings):
                            username: str = Depends(get_current_user)):
         # Clone the repo and discover all manifests. The worker resolves the
         # branch as the user, so a private repo's real default is used.
-        resolved_branch, canonical_url, discovered = await _discover_repo_manifests(
+        resolved_branch, head_sha, canonical_url, discovered = await _discover_repo_manifests(
             body.url, username)
 
         # Restrict to the requested subset when manifest_paths is provided; an
@@ -1819,12 +1883,15 @@ def create_app(settings):
                     url=canonical_url, manifest_path=manifest_path,
                     name=manifest.name, description=manifest.description,
                     branch=requested,
+                    commit_sha=head_sha,
                     manifest=manifest.model_dump(mode="json"),
                 )
                 new_apps.append(UserApp(
                     url=row.url,
                     manifest_path=row.manifest_path,
                     branch=row.branch,
+                    commit_sha=row.commit_sha,
+                    code_commit_sha=row.code_commit_sha,
                     name=row.name,
                     description=row.description,
                     added_at=row.added_at,
@@ -1838,6 +1905,16 @@ def create_app(settings):
                 detail="All apps in this repository have already been added.",
             )
 
+        # Materialize the pinned snapshot now so the first launch doesn't pay
+        # for it. Non-fatal: launch re-ensures the snapshot if this failed.
+        if head_sha:
+            try:
+                clone_url = apps_module.clone_url_for_stored_app(canonical_url, requested)
+                await apps_module.ensure_repo_snapshot(
+                    clone_url, sha=head_sha, username=username)
+            except Exception as e:
+                logger.warning(f"Eager snapshot of {canonical_url}@{head_sha[:7]} failed: {e}")
+
         return new_apps
 
     @app.delete("/api/apps",
@@ -1846,41 +1923,55 @@ def create_app(settings):
                               manifest_path: str = Query("", description="Manifest path within the repo"),
                               username: str = Depends(get_current_user)):
         with db.get_db_session(settings.db_url) as session:
-            if not db.delete_user_app(session, username, url, manifest_path):
+            row = db.get_user_app(session, username, url, manifest_path)
+            if row is None:
                 raise HTTPException(status_code=404, detail="App not found")
+            # Repos whose snapshots may have just become unreferenced: the
+            # app's own repo, plus its separate code repo if one was declared.
+            gc_urls = [row.url, (row.manifest or {}).get("repo_url")]
+            db.delete_user_app(session, username, url, manifest_path)
+        _spawn_snapshot_gc(username, gc_urls)
         return {"message": "App removed"}
 
     @app.post("/api/apps/update", response_model=UserApp,
-              description="Pull latest code and re-read the manifest for an app")
+              description="Pull latest code and re-pin this app to the new tip commit")
     async def update_user_app(body: ManifestFetchRequest,
                               username: str = Depends(get_current_user)):
         # The revision is fixed at add time and baked into body.url, so update
-        # just pulls that revision again and re-reads the manifest — it never
-        # re-resolves the default branch or moves the app to a new URL.
+        # just pulls that revision again — it never re-resolves the default
+        # branch or moves the app to a new URL. Only THIS app's pin moves:
+        # sibling apps in the same repo keep their snapshots, and running jobs
+        # keep the tree they started with.
         with db.get_db_session(settings.db_url) as session:
             existing = db.get_user_app(session, username, body.url, body.manifest_path)
             if existing is None:
                 raise HTTPException(status_code=404, detail="App not found")
             stored_url = existing.url
             stored_branch = existing.branch
+            # If the update changes the manifest's repo_url, the old code
+            # repo's snapshots lose their last reference here — remember it
+            # so the GC below can target it.
+            old_repo_url = (existing.manifest or {}).get("repo_url")
 
         clone_url = apps_module.clone_url_for_stored_app(stored_url, stored_branch)
         try:
-            await apps_module._ensure_repo_cache(clone_url, pull=True, username=username)
+            _, new_sha = await apps_module.ensure_repo_snapshot(
+                clone_url, pull=True, username=username)
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Failed to pull latest code: {str(e)}")
 
         try:
             manifest = await apps_module.fetch_app_manifest(clone_url, body.manifest_path,
-                                                            username=username)
+                                                            username=username, sha=new_sha)
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e))
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Failed to read manifest after update: {str(e)}")
 
+        code_sha = None
         if manifest.repo_url and canonical_github_url(manifest.repo_url) != stored_url:
             try:
-                await apps_module._ensure_repo_cache(
+                _, code_sha = await apps_module.ensure_repo_snapshot(
                     manifest.repo_url,
                     pull=True,
                     username=username,
@@ -1897,18 +1988,83 @@ def create_app(settings):
                 session, username,
                 url=stored_url, manifest_path=body.manifest_path,
                 name=manifest.name, description=manifest.description,
+                commit_sha=new_sha, code_commit_sha=code_sha,
                 manifest=manifest.model_dump(mode="json"),
             )
-            return UserApp(
+            result = UserApp(
                 url=row.url,
                 manifest_path=row.manifest_path,
                 branch=row.branch,
+                commit_sha=row.commit_sha,
+                code_commit_sha=row.code_commit_sha,
                 name=row.name,
                 description=row.description,
                 added_at=row.added_at,
                 updated_at=row.updated_at,
                 manifest=manifest,
             )
+        _spawn_snapshot_gc(username, [stored_url, manifest.repo_url, old_repo_url])
+        return result
+
+    @app.get("/api/apps/check-updates", response_model=list[AppUpdateCheck],
+             description="Compare each app's pinned commits against their remote revision tips")
+    async def check_app_updates(username: str = Depends(get_current_user)):
+        with db.get_db_session(settings.db_url) as session:
+            rows = [
+                {
+                    "url": r.url,
+                    "manifest_path": r.manifest_path,
+                    "branch": r.branch,
+                    "commit_sha": r.commit_sha,
+                    "code_commit_sha": r.code_commit_sha,
+                    "repo_url": (r.manifest or {}).get("repo_url"),
+                }
+                for r in db.list_user_apps(session, username)
+            ]
+
+        # One batched worker round-trip resolves every distinct repo+revision
+        # (sibling apps share a lookup, and the ls-remotes run concurrently in
+        # the worker, so a slow remote costs one short timeout — not one per
+        # app queued on the user's serial worker).
+        lookup_urls: list[str] = []
+        for row in rows:
+            if not row["commit_sha"]:
+                continue
+            row["clone_url"] = apps_module.clone_url_for_stored_app(
+                row["url"], row["branch"])
+            lookup_urls.append(row["clone_url"])
+            if row["code_commit_sha"] and row["repo_url"]:
+                lookup_urls.append(row["repo_url"])
+        tips: dict[str, Optional[str]] = {}
+        if lookup_urls:
+            try:
+                tips = await apps_module.get_remote_heads(
+                    lookup_urls, username=username)
+            except Exception as e:
+                logger.warning(f"Update check failed for {username}: {e}")
+
+        results: list[AppUpdateCheck] = []
+        for row in rows:
+            if not row["commit_sha"]:
+                # Unpinned legacy row — nothing to compare against.
+                results.append(AppUpdateCheck(
+                    url=row["url"], manifest_path=row["manifest_path"]))
+                continue
+            latest = tips.get(row["clone_url"])
+            drifted = bool(latest) and latest != row["commit_sha"]
+            # An app whose code lives in a separate repo can also drift there.
+            if row["code_commit_sha"] and row["repo_url"]:
+                code_latest = tips.get(row["repo_url"])
+                drifted = drifted or (
+                    bool(code_latest) and code_latest != row["code_commit_sha"])
+            results.append(AppUpdateCheck(
+                url=row["url"],
+                manifest_path=row["manifest_path"],
+                commit_sha=row["commit_sha"],
+                latest_sha=latest,
+                update_available=drifted,
+            ))
+        return results
 
     @app.post("/api/apps/validate-paths", response_model=PathValidationResponse,
               description="Validate file/directory paths for app parameters")
@@ -2015,8 +2171,19 @@ def create_app(settings):
 
         clone_url = apps_module.clone_url_for_stored_app(listing_url, listing_branch)
         try:
+            # Pin the install to the revision's current tip and read the
+            # manifest from that immutable snapshot.
+            try:
+                _, pinned_sha = await apps_module.ensure_repo_snapshot(
+                    clone_url, pull=True, username=username)
+            except Exception:
+                # The pull needs the network; a warm cached clone doesn't.
+                # Fall back so installing a previously-cloned app still works
+                # offline (pinned to the cache's tip instead of the remote's).
+                _, pinned_sha = await apps_module.ensure_repo_snapshot(
+                    clone_url, username=username)
             manifest = await apps_module.fetch_app_manifest(
-                clone_url, listing_manifest_path, username=username,
+                clone_url, listing_manifest_path, username=username, sha=pinned_sha,
             )
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e))
@@ -2031,12 +2198,15 @@ def create_app(settings):
                 url=listing_url, manifest_path=listing_manifest_path,
                 name=listing_name, description=listing_description,
                 branch=listing_branch,
+                commit_sha=pinned_sha,
                 manifest=manifest.model_dump(mode="json"),
             )
             return UserApp(
                 url=row.url,
                 manifest_path=row.manifest_path,
                 branch=row.branch,
+                commit_sha=row.commit_sha,
+                code_commit_sha=row.code_commit_sha,
                 name=row.name,
                 description=row.description,
                 added_at=row.added_at,
@@ -2075,6 +2245,10 @@ def create_app(settings):
                 container=body.container,
                 container_args=body.container_args,
             )
+            # Launches of apps not in the user's library create snapshots that
+            # no delete/update endpoint ever GCs; sweep here (the new job's
+            # row is committed, so its own snapshot is in the keep-set).
+            _spawn_snapshot_gc(username, [body.app_url])
             return _convert_job(db_job)
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
@@ -2214,6 +2388,8 @@ def create_app(settings):
             conda_env=db_job.conda_env,
             requirements=db_job.requirements,
             work_dir=db_job.work_dir,
+            commit_sha=db_job.commit_sha,
+            code_repo_url=db_job.code_repo_url,
             cluster_job_id=db_job.cluster_job_id,
             service_url=service_url,
             phase=phase,

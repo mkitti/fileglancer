@@ -180,6 +180,13 @@ class JobDB(Base):
     # detail endpoint build browse links without realpath'ing mounts per read.
     work_dir_fsp_name = Column(String, nullable=True)
     work_dir_subpath = Column(String, nullable=True)
+    # Commit whose code this job executed (the code repo's SHA when the
+    # manifest declares a separate repo_url, else the app repo's SHA). NULL for
+    # jobs submitted before commit pinning existed.
+    commit_sha = Column(String, nullable=True)
+    # Repo the executed commit belongs to, when it differs from app_url
+    # (manifests with a separate repo_url). NULL means commit_sha is app_url's.
+    code_repo_url = Column(String, nullable=True)
     created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(UTC))
     started_at = Column(DateTime, nullable=True)
     finished_at = Column(DateTime, nullable=True)
@@ -196,6 +203,12 @@ class UserAppDB(Base):
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     branch = Column(String, nullable=True)
+    # Commit the app is pinned to: jobs run from an immutable snapshot of this
+    # SHA, and only an explicit Update moves it. NULL for legacy rows, which
+    # get pinned on their next launch or update.
+    commit_sha = Column(String, nullable=True)
+    # Pin for the manifest's separate code repo (repo_url), when declared.
+    code_commit_sha = Column(String, nullable=True)
     manifest = Column(JSON, nullable=True)
     added_at = Column(DateTime, nullable=False, default=lambda: datetime.now(UTC))
     updated_at = Column(DateTime, nullable=True)
@@ -956,7 +969,9 @@ def create_job(session: Session, username: str, app_url: str, app_name: str,
                container_args: Optional[str] = None,
                command: Optional[str] = None,
                conda_env: Optional[str] = None,
-               requirements: Optional[List[str]] = None) -> JobDB:
+               requirements: Optional[List[str]] = None,
+               commit_sha: Optional[str] = None,
+               code_repo_url: Optional[str] = None) -> JobDB:
     """Create a new job record"""
     now = datetime.now(UTC)
     job = JobDB(
@@ -978,6 +993,8 @@ def create_job(session: Session, username: str, app_url: str, app_name: str,
         command=command,
         conda_env=conda_env,
         requirements=requirements,
+        commit_sha=commit_sha,
+        code_repo_url=code_repo_url,
         status="PENDING",
         created_at=now
     )
@@ -1087,6 +1104,8 @@ def upsert_user_app(session: Session, username: str, url: str,
                     name: str,
                     description: Optional[str] = None,
                     branch: Optional[str] = None,
+                    commit_sha: Optional[str] = None,
+                    code_commit_sha: Optional[str] = None,
                     manifest: Optional[Dict] = None,
                     bump_updated_at: bool = True) -> UserAppDB:
     """Insert or update a user app row.
@@ -1102,6 +1121,10 @@ def upsert_user_app(session: Session, username: str, url: str,
     Pass branch=None to leave an existing row's branch untouched —
     manifest-cache refreshes use this so they don't clobber the requested
     revision with a resolved one.
+
+    commit_sha / code_commit_sha are the app's pins (see UserAppDB). Like
+    branch, None means "leave the existing value untouched" — only add, update
+    and launch-time backfill move a pin.
     """
     now = datetime.now(UTC)
     url = canonical_github_url(url)
@@ -1114,6 +1137,8 @@ def upsert_user_app(session: Session, username: str, url: str,
             name=name,
             description=description,
             branch=branch,
+            commit_sha=commit_sha,
+            code_commit_sha=code_commit_sha,
             manifest=manifest,
             added_at=now,
         )
@@ -1123,9 +1148,33 @@ def upsert_user_app(session: Session, username: str, url: str,
         row.description = description
         if branch is not None:
             row.branch = branch
+        if commit_sha is not None:
+            row.commit_sha = commit_sha
+        if code_commit_sha is not None:
+            row.code_commit_sha = code_commit_sha
         row.manifest = manifest
         if bump_updated_at:
             row.updated_at = now
+    session.commit()
+    return row
+
+
+def set_user_app_pins(session: Session, username: str, url: str,
+                      manifest_path: str = "", *,
+                      commit_sha: Optional[str] = None,
+                      code_commit_sha: Optional[str] = None) -> Optional[UserAppDB]:
+    """Set an app row's commit pins without touching any other field.
+
+    Used by launch-time backfill of legacy unpinned rows. None leaves a pin
+    unchanged. Returns the row, or None if it doesn't exist.
+    """
+    row = get_user_app(session, username, url, manifest_path)
+    if row is None:
+        return None
+    if commit_sha is not None:
+        row.commit_sha = commit_sha
+    if code_commit_sha is not None:
+        row.code_commit_sha = code_commit_sha
     session.commit()
     return row
 

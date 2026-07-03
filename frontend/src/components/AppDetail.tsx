@@ -14,7 +14,8 @@ import FgButton from '@/components/designSystem/atoms/FgButton';
 import FgLink from '@/components/designSystem/atoms/FgLink';
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
 import JobStatusBadge from '@/components/ui/AppsPage/JobStatusBadge';
-import { useAppsQuery } from '@/queries/appsQueries';
+import UpdateAvailableBadge from '@/components/ui/AppsPage/UpdateAvailableBadge';
+import { useAppsQuery, useAppUpdateAvailable } from '@/queries/appsQueries';
 import { useJobsQuery } from '@/queries/jobsQueries';
 import { useAppActions } from '@/hooks/useAppActions';
 import {
@@ -46,6 +47,7 @@ export default function AppDetail() {
     a =>
       canonicalGithubUrl(a.url) === appUrl && a.manifest_path === manifestPath
   );
+  const updateAvailable = useAppUpdateAvailable(app);
 
   if (appsQuery.isPending) {
     return (
@@ -165,6 +167,7 @@ export default function AppDetail() {
             Shared
           </span>
         ) : null}
+        {updateAvailable ? <UpdateAvailableBadge /> : null}
       </AppPageHeader>
 
       <div className="max-w-2xl">

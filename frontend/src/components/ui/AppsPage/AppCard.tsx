@@ -9,7 +9,9 @@ import type { MenuItem } from '@/components/ui/Menus/FgMenuItems';
 import FgButton from '@/components/designSystem/atoms/FgButton';
 import FgIcon from '@/components/designSystem/atoms/FgIcon';
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
+import UpdateAvailableBadge from '@/components/ui/AppsPage/UpdateAvailableBadge';
 import type { AppActions } from '@/hooks/useAppActions';
+import { useAppUpdateAvailable } from '@/queries/appsQueries';
 import { getAppIconType } from '@/utils';
 import type { UserApp } from '@/shared.types';
 
@@ -20,6 +22,7 @@ interface AppCardProps {
 
 export default function AppCard({ app, actions }: AppCardProps) {
   const isShared = app.listing_id !== undefined && app.listing_id !== null;
+  const updateAvailable = useAppUpdateAvailable(app);
 
   const menuItems: MenuItem<UserApp>[] = [
     { name: 'Launch', action: a => actions.launch(a) },
@@ -73,6 +76,7 @@ export default function AppCard({ app, actions }: AppCardProps) {
               Shared
             </span>
           ) : null}
+          {updateAvailable ? <UpdateAvailableBadge /> : null}
         </div>
         <div
           className="flex items-center gap-1"

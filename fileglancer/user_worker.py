@@ -1075,11 +1075,13 @@ def _action_discover_manifests(request: dict, ctx: WorkerContext) -> dict:
 
     Resolves the default branch here, in the user's worker, so a private repo's
     real default (reachable via the user's SSH key) is used rather than the
-    server process's "main" fallback.
+    server process's "main" fallback. Also reports the tip commit so apps added
+    from this discovery can be pinned to it.
     """
     from fileglancer.apps.manifest import (
         _ensure_repo_cache,
         _find_manifests_in_repo,
+        _git_head_sha,
         _parse_github_url,
         _repo_cache_base,
     )
@@ -1091,9 +1093,11 @@ def _action_discover_manifests(request: dict, ctx: WorkerContext) -> dict:
     branch = repo_dir.relative_to(
         (_repo_cache_base() / owner / repo).resolve()
     ).as_posix()
+    head_sha = _run_async(_git_head_sha(repo_dir))
     results = _find_manifests_in_repo(repo_dir)
     return {
         "branch": branch,
+        "head_sha": head_sha,
         "manifests": [
             {"path": path, "manifest": manifest.model_dump(mode="json")}
             for path, manifest in results
@@ -1103,20 +1107,60 @@ def _action_discover_manifests(request: dict, ctx: WorkerContext) -> dict:
 
 @action("read_manifest")
 def _action_read_manifest(request: dict, ctx: WorkerContext) -> dict:
-    """Fetch and read a single manifest from a cached repo."""
+    """Fetch and read a single manifest from a cached repo.
+
+    With "sha", reads from the immutable snapshot of that commit (materializing
+    it if needed) instead of the mutable branch clone.
+    """
     from fileglancer.apps.manifest import (
         _ensure_repo_cache,
         _read_manifest_file,
         _safe_repo_subdir,
+        ensure_repo_snapshot,
     )
-    repo_dir = _run_async(_ensure_repo_cache(
-        url=request["url"],
-        pull=request.get("pull", False),
-    ))
+    sha = request.get("sha")
+    if sha:
+        repo_dir, _ = _run_async(ensure_repo_snapshot(url=request["url"], sha=sha))
+    else:
+        repo_dir = _run_async(_ensure_repo_cache(
+            url=request["url"],
+            pull=request.get("pull", False),
+        ))
     manifest_path = request.get("manifest_path", "")
     target_dir = _safe_repo_subdir(repo_dir, manifest_path)
     manifest = _read_manifest_file(target_dir)
     return {"manifest": manifest.model_dump(mode="json")}
+
+
+@action("ensure_snapshot")
+def _action_ensure_snapshot(request: dict, ctx: WorkerContext) -> dict:
+    """Materialize (or find) the immutable snapshot of a repo at a commit."""
+    from fileglancer.apps.manifest import ensure_repo_snapshot
+    snapshot_dir, sha = _run_async(ensure_repo_snapshot(
+        url=request["url"],
+        sha=request.get("sha"),
+        pull=request.get("pull", False),
+    ))
+    return {"snapshot_dir": str(snapshot_dir), "sha": sha}
+
+
+@action("gc_snapshots")
+def _action_gc_snapshots(request: dict, ctx: WorkerContext) -> dict:
+    """Remove snapshots of a repo that no app or active job references."""
+    from fileglancer.apps.manifest import gc_repo_snapshots
+    removed = _run_async(gc_repo_snapshots(
+        url=request["url"],
+        keep_shas=request.get("keep_shas") or [],
+    ))
+    return {"removed": removed}
+
+
+@action("remote_heads")
+def _action_remote_heads(request: dict, ctx: WorkerContext) -> dict:
+    """Resolve remote tip commits for stored app URLs (batched: the lookups
+    run concurrently so one slow remote doesn't multiply worker occupancy)."""
+    from fileglancer.apps.manifest import get_remote_heads
+    return {"shas": _run_async(get_remote_heads(request.get("urls") or []))}
 
 
 # ---------------------------------------------------------------------------

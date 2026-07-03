@@ -82,6 +82,22 @@ export function buildGithubUrl(
   return `https://github.com/${owner}/${repo}/tree/${branch}`;
 }
 
+/**
+ * GitHub link for a specific commit of an app; null if the app URL isn't
+ * parseable.
+ */
+export function buildGithubCommitUrl(
+  appUrl: string,
+  sha: string
+): string | null {
+  try {
+    const { owner, repo } = parseGithubUrl(appUrl);
+    return `https://github.com/${owner}/${repo}/commit/${sha}`;
+  } catch {
+    return null;
+  }
+}
+
 export function buildLaunchPath(
   owner: string,
   repo: string,

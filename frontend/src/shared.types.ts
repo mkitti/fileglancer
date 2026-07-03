@@ -144,12 +144,22 @@ type UserApp = {
   url: string;
   manifest_path: string;
   branch?: string;
+  commit_sha?: string;
+  code_commit_sha?: string;
   name: string;
   description?: string;
   added_at: string;
   updated_at?: string;
   manifest?: AppManifest;
   listing_id?: number;
+};
+
+type AppUpdateCheck = {
+  url: string;
+  manifest_path: string;
+  commit_sha?: string;
+  latest_sha?: string;
+  update_available: boolean;
 };
 
 type DiscoveredApp = {
@@ -186,6 +196,8 @@ type Job = {
   entry_point_id: string;
   entry_point_name: string;
   entry_point_type?: 'job' | 'service';
+  commit_sha?: string;
+  code_repo_url?: string;
   parameters: Record<string, unknown>;
   env_parameters?: Record<string, unknown>;
   status: 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED' | 'KILLED';
@@ -268,6 +280,7 @@ export type {
   AppParameterItem,
   AppParameterSection,
   AppResourceDefaults,
+  AppUpdateCheck,
   DiscoveredApp,
   FetchRequestOptions,
   FileOrFolder,

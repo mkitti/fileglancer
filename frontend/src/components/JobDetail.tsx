@@ -32,6 +32,7 @@ import JobStatusBadge from '@/components/ui/AppsPage/JobStatusBadge';
 import {
   formatDateString,
   buildAppDetailPath,
+  buildGithubCommitUrl,
   buildRelaunchPath,
   parseGithubUrl,
   buildGithubUrl,
@@ -305,6 +306,11 @@ function JobOverview({
     : null;
   const exitMeaning = exitCodeMeaning(job.exit_code);
   const repoLink = appRepoLink(job.app_url);
+  // The executed commit may belong to a separate code repo (manifests with
+  // repo_url); link the commit against whichever repo it came from.
+  const commitLink = job.commit_sha
+    ? buildGithubCommitUrl(job.code_repo_url || job.app_url, job.commit_sha)
+    : null;
   const detailPath = appDetailLink(job);
 
   const stdoutTail =
@@ -363,6 +369,22 @@ function JobOverview({
                 <FgExternalLink href={repoLink.href}>
                   {repoLink.label}
                 </FgExternalLink>
+              ) : null
+            }
+          />
+          <InfoRow
+            label="Version"
+            value={
+              job.commit_sha ? (
+                commitLink ? (
+                  <FgExternalLink className="font-mono" href={commitLink}>
+                    {job.commit_sha.slice(0, 7)}
+                  </FgExternalLink>
+                ) : (
+                  <span className="font-mono">
+                    {job.commit_sha.slice(0, 7)}
+                  </span>
+                )
               ) : null
             }
           />

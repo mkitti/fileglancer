@@ -396,6 +396,7 @@ export {
   isGithubRepoUrl,
   canonicalGithubUrl,
   buildAppUrl,
+  buildGithubCommitUrl,
   buildGithubUrl,
   buildLaunchPath,
   buildLaunchPathFromApp,

@@ -62,11 +62,23 @@ export function useAppActions(opts?: { onRemoved?: () => void }): AppActions {
 
   const update = async (app: UserApp) => {
     try {
-      await updateAppMutation.mutateAsync({
+      const updated = await updateAppMutation.mutateAsync({
         url: app.url,
         manifest_path: app.manifest_path
       });
-      toast.success('App updated');
+      // Either repo may move: the app repo pin or (for manifests with a
+      // separate repo_url) the code repo pin. A legacy app with no prior pin
+      // can't be compared, so report a neutral success.
+      const moved =
+        updated.commit_sha !== app.commit_sha ||
+        updated.code_commit_sha !== app.code_commit_sha;
+      if (!app.commit_sha || !updated.commit_sha) {
+        toast.success('App updated');
+      } else if (!moved) {
+        toast.success('Already up to date');
+      } else {
+        toast.success(`Updated to ${updated.commit_sha.slice(0, 7)}`);
+      }
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Failed to update app';

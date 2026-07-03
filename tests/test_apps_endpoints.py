@@ -30,6 +30,8 @@ from fileglancer.model import AppEntryPoint, AppManifest
 
 
 TEST_USERNAME = "testuser"
+TEST_SHA = "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0"
+TEST_SHA_2 = "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1"
 
 
 def _make_manifest(name="Demo App", description="Demo"):
@@ -37,6 +39,15 @@ def _make_manifest(name="Demo App", description="Demo"):
         name=name,
         description=description,
         runnables=[AppEntryPoint(id="run", name="Run", command="echo hi")],
+    )
+
+
+def _patch_snapshot(sha=TEST_SHA):
+    """Patch ensure_repo_snapshot as the server sees it, so add/update tests
+    never touch git or the worker."""
+    return patch(
+        "fileglancer.apps.ensure_repo_snapshot",
+        new=AsyncMock(return_value=(f"/tmp/snapshots/{sha}", sha)),
     )
 
 
@@ -101,7 +112,7 @@ def db_session(test_app):
 
 def _seed_app(db_session, *, url="https://github.com/owner/repo",
               manifest_path="", manifest=None, name="Demo App",
-              description="Demo", branch="main",
+              description="Demo", branch="main", commit_sha=None,
               added_at=None, updated_at=None):
     row = UserAppDB(
         username=TEST_USERNAME,
@@ -110,6 +121,7 @@ def _seed_app(db_session, *, url="https://github.com/owner/repo",
         name=name,
         description=description,
         branch=branch,
+        commit_sha=commit_sha,
         manifest=manifest,
         added_at=added_at or datetime.now(UTC),
         updated_at=updated_at,
@@ -254,7 +266,8 @@ def test_add_app_persists_manifest_and_branch(test_client, db_session):
     to the bare canonical URL."""
     manifest = _make_manifest(name="From Add")
     with patch("fileglancer.apps.discover_app_manifests",
-               new=AsyncMock(return_value=("main", [("", manifest)]))):
+               new=AsyncMock(return_value=("main", TEST_SHA, [("", manifest)]))), \
+         _patch_snapshot() as mock_snapshot:
         response = test_client.post(
             "/api/apps",
             json={"url": "https://github.com/owner/repo"},
@@ -266,12 +279,22 @@ def test_add_app_persists_manifest_and_branch(test_client, db_session):
     assert body[0]["name"] == "From Add"
     assert body[0]["branch"] == ""
     assert body[0]["url"] == "https://github.com/owner/repo"
+    assert body[0]["commit_sha"] == TEST_SHA
     assert body[0]["manifest"]["name"] == "From Add"
+
+    # The pinned snapshot is materialized eagerly, at the discovered tip.
+    assert mock_snapshot.await_count == 1
+    assert mock_snapshot.await_args.args == ("https://github.com/owner/repo/tree/main",)
+    assert mock_snapshot.await_args.kwargs == {
+        "sha": TEST_SHA,
+        "username": TEST_USERNAME,
+    }
 
     rows = list_user_apps(db_session, TEST_USERNAME)
     assert len(rows) == 1
     assert rows[0].manifest["name"] == "From Add"
     assert rows[0].branch == ""
+    assert rows[0].commit_sha == TEST_SHA
 
 
 def test_add_app_bakes_resolved_default_into_url(test_client, db_session):
@@ -279,7 +302,8 @@ def test_add_app_bakes_resolved_default_into_url(test_client, db_session):
     it dedups against an explicit '/tree/master' add. branch stays "" (unpinned)."""
     manifest = _make_manifest(name="Master Default")
     with patch("fileglancer.apps.discover_app_manifests",
-               new=AsyncMock(return_value=("master", [("", manifest)]))):
+               new=AsyncMock(return_value=("master", TEST_SHA, [("", manifest)]))), \
+         _patch_snapshot():
         response = test_client.post(
             "/api/apps",
             json={"url": "https://github.com/owner/repo"},
@@ -302,9 +326,10 @@ def test_add_uses_worker_resolved_branch_not_server(test_client, db_session):
     repo's non-main default would be lost to the server's 'main' fallback."""
     manifest = _make_manifest(name="Private")
     with patch("fileglancer.apps.discover_app_manifests",
-               new=AsyncMock(return_value=("develop", [("", manifest)]))), \
+               new=AsyncMock(return_value=("develop", TEST_SHA, [("", manifest)]))), \
          patch("fileglancer.apps.manifest._resolve_default_branch",
-               new=AsyncMock(side_effect=AssertionError("server must not resolve"))):
+               new=AsyncMock(side_effect=AssertionError("server must not resolve"))), \
+         _patch_snapshot():
         response = test_client.post(
             "/api/apps",
             json={"url": "https://github.com/owner/private-repo"},
@@ -322,7 +347,8 @@ def test_add_app_pinned_revision_kept(test_client, db_session):
     """An explicit '/tree/dev' URL is pinned: branch records 'dev'."""
     manifest = _make_manifest(name="Pinned")
     with patch("fileglancer.apps.discover_app_manifests",
-               new=AsyncMock(return_value=("dev", [("", manifest)]))):
+               new=AsyncMock(return_value=("dev", TEST_SHA, [("", manifest)]))), \
+         _patch_snapshot():
         response = test_client.post(
             "/api/apps",
             json={"url": "https://github.com/owner/repo/tree/dev"},
@@ -340,7 +366,7 @@ def test_discover_lists_all_apps(test_client):
     m1 = _make_manifest(name="VS Code", description="IDE")
     m2 = _make_manifest(name="JupyterLab", description="Notebook")
     with patch("fileglancer.apps.discover_app_manifests",
-               new=AsyncMock(return_value=("main", [("vscode", m1), ("jupyterlab", m2)]))):
+               new=AsyncMock(return_value=("main", TEST_SHA, [("vscode", m1), ("jupyterlab", m2)]))):
         response = test_client.post(
             "/api/apps/discover",
             json={"url": "https://github.com/owner/monorepo"},
@@ -363,7 +389,7 @@ def test_discover_marks_already_added(test_client, db_session):
               manifest_path="vscode", branch="",
               manifest=m1.model_dump(mode="json"))
     with patch("fileglancer.apps.discover_app_manifests",
-               new=AsyncMock(return_value=("main", [("vscode", m1), ("jupyterlab", m2)]))):
+               new=AsyncMock(return_value=("main", TEST_SHA, [("vscode", m1), ("jupyterlab", m2)]))):
         response = test_client.post(
             "/api/apps/discover",
             json={"url": "https://github.com/owner/monorepo"},
@@ -377,7 +403,7 @@ def test_discover_marks_already_added(test_client, db_session):
 
 def test_discover_no_manifests_404(test_client):
     with patch("fileglancer.apps.discover_app_manifests",
-               new=AsyncMock(return_value=("main", []))):
+               new=AsyncMock(return_value=("main", TEST_SHA, []))):
         response = test_client.post(
             "/api/apps/discover",
             json={"url": "https://github.com/owner/empty"},
@@ -392,7 +418,8 @@ def test_add_subset_via_manifest_paths(test_client, db_session):
     m3 = _make_manifest(name="marimo")
     discovered = [("vscode", m1), ("jupyterlab", m2), ("marimo", m3)]
     with patch("fileglancer.apps.discover_app_manifests",
-               new=AsyncMock(return_value=("main", discovered))):
+               new=AsyncMock(return_value=("main", TEST_SHA, discovered))), \
+         _patch_snapshot():
         response = test_client.post(
             "/api/apps",
             json={
@@ -413,7 +440,8 @@ def test_add_null_manifest_paths_adds_all(test_client, db_session):
     m1 = _make_manifest(name="VS Code")
     m2 = _make_manifest(name="JupyterLab")
     with patch("fileglancer.apps.discover_app_manifests",
-               new=AsyncMock(return_value=("main", [("vscode", m1), ("jupyterlab", m2)]))):
+               new=AsyncMock(return_value=("main", TEST_SHA, [("vscode", m1), ("jupyterlab", m2)]))), \
+         _patch_snapshot():
         response = test_client.post(
             "/api/apps",
             json={"url": "https://github.com/owner/monorepo"},
@@ -428,7 +456,7 @@ def test_add_manifest_paths_no_match_400(test_client, db_session):
     """A manifest_paths list matching nothing in the repo is a client error."""
     m1 = _make_manifest(name="VS Code")
     with patch("fileglancer.apps.discover_app_manifests",
-               new=AsyncMock(return_value=("main", [("vscode", m1)]))):
+               new=AsyncMock(return_value=("main", TEST_SHA, [("vscode", m1)]))):
         response = test_client.post(
             "/api/apps",
             json={
@@ -449,7 +477,7 @@ def test_add_app_dedups_bare_against_resolved_default(test_client, db_session):
               branch="", manifest=manifest.model_dump(mode="json"))
 
     with patch("fileglancer.apps.discover_app_manifests",
-               new=AsyncMock(return_value=("master", [("", manifest)]))):
+               new=AsyncMock(return_value=("master", TEST_SHA, [("", manifest)]))):
         response = test_client.post(
             "/api/apps",
             json={"url": "https://github.com/owner/repo"},
@@ -466,7 +494,7 @@ def test_add_app_dedups(test_client, db_session):
               manifest=manifest.model_dump(mode="json"))
 
     with patch("fileglancer.apps.discover_app_manifests",
-               new=AsyncMock(return_value=("main", [("", manifest)]))):
+               new=AsyncMock(return_value=("main", TEST_SHA, [("", manifest)]))):
         response = test_client.post(
             "/api/apps",
             json={"url": "https://github.com/owner/repo"},
@@ -483,27 +511,29 @@ def test_update_app_persists_manifest(test_client, db_session):
     fresh = _make_manifest(name="New", description="New")
 
     with patch("fileglancer.apps.fetch_app_manifest",
-               new=AsyncMock(return_value=fresh)), \
+               new=AsyncMock(return_value=fresh)) as mock_fetch, \
          patch("fileglancer.apps.manifest._resolve_default_branch",
                new=AsyncMock(side_effect=AssertionError("must not re-resolve"))), \
-         patch("fileglancer.apps._ensure_repo_cache",
-               new=AsyncMock(return_value="/tmp/x")) as mock_ensure:
+         _patch_snapshot() as mock_snapshot:
         response = test_client.post(
             "/api/apps/update",
             json={"url": "https://github.com/owner/repo", "manifest_path": ""},
         )
 
     assert response.status_code == 200
-    assert mock_ensure.await_count == 1
-    assert mock_ensure.await_args.kwargs == {
+    assert mock_snapshot.await_count == 1
+    assert mock_snapshot.await_args.kwargs == {
         "pull": True,
         "username": TEST_USERNAME,
     }
     # A stored bare URL means the fixed "main" revision, not current default.
-    assert mock_ensure.await_args.args == ("https://github.com/owner/repo/tree/main",)
+    assert mock_snapshot.await_args.args == ("https://github.com/owner/repo/tree/main",)
+    # The manifest is read from the freshly pinned snapshot, not the branch clone.
+    assert mock_fetch.await_args.kwargs["sha"] == TEST_SHA
     body = response.json()
     assert body["url"] == "https://github.com/owner/repo"
     assert body["name"] == "New"
+    assert body["commit_sha"] == TEST_SHA
     assert body["updated_at"] is not None
 
     rows = list_user_apps(db_session, TEST_USERNAME)
@@ -511,6 +541,7 @@ def test_update_app_persists_manifest(test_client, db_session):
     assert rows[0].url == "https://github.com/owner/repo"
     assert rows[0].name == "New"
     assert rows[0].manifest["name"] == "New"
+    assert rows[0].commit_sha == TEST_SHA
     assert rows[0].updated_at is not None
     # added_at preserved across update.
     assert rows[0].added_at.replace(tzinfo=None) == older.replace(tzinfo=None)
@@ -531,16 +562,15 @@ def test_update_app_pulls_separate_code_repo(test_client, db_session):
                new=AsyncMock(return_value=fresh)), \
          patch("fileglancer.apps.manifest._resolve_default_branch",
                new=AsyncMock(side_effect=AssertionError("must not re-resolve"))), \
-         patch("fileglancer.apps._ensure_repo_cache",
-               new=AsyncMock(return_value="/tmp/x")) as mock_ensure:
+         _patch_snapshot() as mock_snapshot:
         response = test_client.post(
             "/api/apps/update",
             json={"url": "https://github.com/owner/repo", "manifest_path": ""},
         )
 
     assert response.status_code == 200
-    assert mock_ensure.await_count == 2
-    first_call, second_call = mock_ensure.await_args_list
+    assert mock_snapshot.await_count == 2
+    first_call, second_call = mock_snapshot.await_args_list
     assert first_call.args == ("https://github.com/owner/repo/tree/main",)
     assert first_call.kwargs == {"pull": True, "username": TEST_USERNAME}
     assert second_call.args == ("https://github.com/tools/code",)
@@ -548,6 +578,9 @@ def test_update_app_pulls_separate_code_repo(test_client, db_session):
 
     rows = list_user_apps(db_session, TEST_USERNAME)
     assert rows[0].manifest["repo_url"] == "https://github.com/tools/code"
+    # Both repos are pinned: the app repo and the separate code repo.
+    assert rows[0].commit_sha == TEST_SHA
+    assert rows[0].code_commit_sha == TEST_SHA
 
 
 def test_update_app_does_not_pull_same_repo_with_cosmetic_url(test_client, db_session):
@@ -567,16 +600,15 @@ def test_update_app_does_not_pull_same_repo_with_cosmetic_url(test_client, db_se
                new=AsyncMock(return_value=fresh)), \
          patch("fileglancer.apps.manifest._resolve_default_branch",
                new=AsyncMock(side_effect=AssertionError("must not re-resolve"))), \
-         patch("fileglancer.apps._ensure_repo_cache",
-               new=AsyncMock(return_value="/tmp/x")) as mock_ensure:
+         _patch_snapshot() as mock_snapshot:
         response = test_client.post(
             "/api/apps/update",
             json={"url": "https://github.com/owner/repo", "manifest_path": ""},
         )
 
     assert response.status_code == 200
-    assert mock_ensure.await_count == 1
-    assert mock_ensure.await_args.args == (
+    assert mock_snapshot.await_count == 1
+    assert mock_snapshot.await_args.args == (
         "https://github.com/owner/repo/tree/main",
     )
 
@@ -606,15 +638,14 @@ def test_update_pulls_stored_revision_and_never_re_resolves(
                new=AsyncMock(return_value=fresh)), \
          patch("fileglancer.apps.manifest._resolve_default_branch",
                new=AsyncMock(side_effect=AssertionError("must not re-resolve"))), \
-         patch("fileglancer.apps._ensure_repo_cache",
-               new=AsyncMock(return_value="/tmp/x")) as mock_ensure:
+         _patch_snapshot() as mock_snapshot:
         response = test_client.post(
             "/api/apps/update",
             json={"url": stored_url, "manifest_path": ""},
         )
 
     assert response.status_code == 200
-    assert mock_ensure.await_args_list[0].args == (clone_url,)
+    assert mock_snapshot.await_args_list[0].args == (clone_url,)
     body = response.json()
     assert body["url"] == stored_url
     assert body["branch"] == stored_branch
@@ -625,6 +656,91 @@ def test_update_pulls_stored_revision_and_never_re_resolves(
     assert rows[0].url == stored_url
     # The revision fixed at add time is preserved.
     assert rows[0].branch == stored_branch
+
+
+def test_update_repins_only_target_app(test_client, db_session):
+    """The core pinning invariant: updating one app in a multi-app repo moves
+    only that app's pin. Sibling apps keep their commit (and their snapshot)."""
+    m1 = _make_manifest(name="VS Code")
+    m2 = _make_manifest(name="JupyterLab")
+    _seed_app(db_session, url="https://github.com/owner/monorepo",
+              manifest_path="vscode", branch="", commit_sha=TEST_SHA,
+              manifest=m1.model_dump(mode="json"), name="VS Code")
+    _seed_app(db_session, url="https://github.com/owner/monorepo",
+              manifest_path="jupyterlab", branch="", commit_sha=TEST_SHA,
+              manifest=m2.model_dump(mode="json"), name="JupyterLab")
+
+    with patch("fileglancer.apps.fetch_app_manifest",
+               new=AsyncMock(return_value=m1)), \
+         _patch_snapshot(sha=TEST_SHA_2):
+        response = test_client.post(
+            "/api/apps/update",
+            json={"url": "https://github.com/owner/monorepo",
+                  "manifest_path": "vscode"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["commit_sha"] == TEST_SHA_2
+
+    rows = {r.manifest_path: r for r in list_user_apps(db_session, TEST_USERNAME)}
+    assert rows["vscode"].commit_sha == TEST_SHA_2
+    assert rows["jupyterlab"].commit_sha == TEST_SHA
+
+
+def test_check_updates_reports_newer_remote_tip(test_client, db_session):
+    """An app pinned behind the remote tip is flagged; one at the tip is not.
+    Apps from the same repo+revision share a single remote lookup."""
+    m = _make_manifest()
+    _seed_app(db_session, url="https://github.com/owner/monorepo",
+              manifest_path="vscode", branch="", commit_sha=TEST_SHA,
+              manifest=m.model_dump(mode="json"))
+    _seed_app(db_session, url="https://github.com/owner/monorepo",
+              manifest_path="jupyterlab", branch="", commit_sha=TEST_SHA_2,
+              manifest=m.model_dump(mode="json"))
+
+    with patch("fileglancer.apps.get_remote_heads",
+               new=AsyncMock(return_value={
+                   "https://github.com/owner/monorepo/tree/main": TEST_SHA_2,
+               })) as mock_heads:
+        response = test_client.get("/api/apps/check-updates")
+
+    assert response.status_code == 200
+    assert mock_heads.await_count == 1  # one batched lookup for both apps
+    by_path = {r["manifest_path"]: r for r in response.json()}
+    assert by_path["vscode"]["update_available"] is True
+    assert by_path["vscode"]["latest_sha"] == TEST_SHA_2
+    assert by_path["jupyterlab"]["update_available"] is False
+
+
+def test_check_updates_skips_unpinned_rows(test_client, db_session):
+    """Legacy rows without a pin can't be compared — no badge, no remote call."""
+    _seed_app(db_session, manifest=_make_manifest().model_dump(mode="json"),
+              branch="", commit_sha=None)
+
+    with patch("fileglancer.apps.get_remote_heads",
+               new=AsyncMock()) as mock_heads:
+        response = test_client.get("/api/apps/check-updates")
+
+    assert response.status_code == 200
+    assert mock_heads.await_count == 0
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["update_available"] is False
+
+
+def test_check_updates_remote_failure_is_not_an_error(test_client, db_session):
+    """An unreachable remote yields update_available=False, not a 5xx."""
+    _seed_app(db_session, manifest=_make_manifest().model_dump(mode="json"),
+              branch="", commit_sha=TEST_SHA)
+
+    with patch("fileglancer.apps.get_remote_heads",
+               new=AsyncMock(side_effect=RuntimeError("network down"))):
+        response = test_client.get("/api/apps/check-updates")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body[0]["update_available"] is False
+    assert body[0]["latest_sha"] is None
 
 
 def test_delete_app_removes_row(test_client, db_session):
@@ -903,8 +1019,9 @@ def test_alembic_migration_moves_legacy_apps(temp_dir, monkeypatch):
     s.commit()
     s.close()
 
-    # 3) Run our migration.
-    command.upgrade(cfg, "c4e8a7d92b15")
+    # 3) Run our migration (and everything after it, so the schema matches
+    # the current models used to query below).
+    command.upgrade(cfg, "head")
 
     # 4) Verify rows moved and preference is gone.
     s = Session()

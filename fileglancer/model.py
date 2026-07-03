@@ -682,6 +682,14 @@ class UserApp(BaseModel):
     url: str = Field(description="URL to the app manifest")
     manifest_path: str = Field(description="Relative directory path to the manifest within the repo", default="")
     branch: Optional[str] = Field(description="Revision the user requested; empty means no explicit revision was requested. The fixed actually-cloned revision is baked into url; a bare stored URL means main.", default=None)
+    commit_sha: Optional[str] = Field(
+        description="Commit the app is pinned to; jobs run an immutable snapshot of this SHA. None for legacy rows not yet pinned.",
+        default=None,
+    )
+    code_commit_sha: Optional[str] = Field(
+        description="Pin for the manifest's separate code repo (repo_url), when declared.",
+        default=None,
+    )
     name: str = Field(description="App name from manifest")
     description: Optional[str] = Field(description="App description from manifest", default=None)
     added_at: datetime = Field(description="When the app was added")
@@ -786,6 +794,21 @@ class DiscoveredApp(BaseModel):
     )
 
 
+class AppUpdateCheck(BaseModel):
+    """Whether a newer commit exists on an app's pinned revision"""
+    url: str = Field(description="Canonical URL of the app")
+    manifest_path: str = Field(description="Manifest path within the repo", default="")
+    commit_sha: Optional[str] = Field(description="Commit the app is currently pinned to", default=None)
+    latest_sha: Optional[str] = Field(
+        description="Tip of the pinned revision on the remote; None if it could not be resolved",
+        default=None,
+    )
+    update_available: bool = Field(
+        description="True when the remote tip differs from the pinned commit",
+        default=False,
+    )
+
+
 class AppRemoveRequest(BaseModel):
     """Request to remove an app"""
     url: str = Field(description="URL of the app to remove")
@@ -825,6 +848,11 @@ class Job(BaseModel):
     conda_env: Optional[str] = Field(description="Conda environment activated for the job", default=None)
     requirements: Optional[List[str]] = Field(description="Declared runtime requirements (e.g. ['nextflow', 'apptainer'])", default=None)
     work_dir: Optional[str] = Field(description="Working directory the job ran in", default=None)
+    commit_sha: Optional[str] = Field(description="Commit whose code the job executed", default=None)
+    code_repo_url: Optional[str] = Field(
+        description="Repo the executed commit belongs to, when it differs from app_url",
+        default=None,
+    )
     cluster_job_id: Optional[str] = Field(description="Cluster-assigned job ID", default=None)
     service_url: Optional[str] = Field(description="URL of the running service (for service-type jobs)", default=None)
     phase: Optional[str] = Field(description="Startup phase of a running service before its URL is ready, e.g. 'pulling_image' or 'starting'", default=None)

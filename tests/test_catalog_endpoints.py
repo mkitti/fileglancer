@@ -34,6 +34,7 @@ from fileglancer.model import (
 
 OWNER = "alice"
 ADOPTER = "bob"
+TEST_SHA = "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0"
 
 
 def _make_manifest(name="Demo App", description="Demo"):
@@ -350,14 +351,24 @@ def test_add_from_listing_creates_independent_user_app(
     with patch(
         "fileglancer.apps.fetch_app_manifest",
         new=AsyncMock(return_value=fresh),
-    ) as mock_fetch:
+    ) as mock_fetch, patch(
+        "fileglancer.apps.ensure_repo_snapshot",
+        new=AsyncMock(return_value=(f"/tmp/snapshots/{TEST_SHA}", TEST_SHA)),
+    ) as mock_snapshot:
         response = client.post(f"/api/catalog/{listing.id}/add")
 
     assert response.status_code == 200
+    # The install is pinned to the revision's current tip and the manifest is
+    # read from that snapshot.
+    assert mock_snapshot.await_args.args == (
+        "https://github.com/owner/repo/tree/main",
+    )
+    assert mock_snapshot.await_args.kwargs == {"pull": True, "username": ADOPTER}
     assert mock_fetch.await_args.args == (
         "https://github.com/owner/repo/tree/main",
         "",
     )
+    assert mock_fetch.await_args.kwargs["sha"] == TEST_SHA
     body = response.json()
     assert body["name"] == "Custom Name"
     assert body["description"] == "Custom description"
@@ -369,6 +380,7 @@ def test_add_from_listing_creates_independent_user_app(
     assert rows[0].url == "https://github.com/owner/repo"
     assert rows[0].name == "Custom Name"
     assert rows[0].description == "Custom description"
+    assert rows[0].commit_sha == TEST_SHA
 
 
 def test_add_from_listing_rejects_when_already_added(

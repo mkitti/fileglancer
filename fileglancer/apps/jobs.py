@@ -21,7 +21,7 @@ from fileglancer import database as db
 from fileglancer.apps.manifest import (
     clone_url_for_stored_app,
     _dispatch,
-    _ensure_repo_cache,
+    ensure_repo_snapshot,
     get_or_load_manifest,
     validate_manifest_path,
 )
@@ -687,6 +687,9 @@ async def submit_job(
     # Not in the user's library: clone the URL as given (a bare URL resolves the
     # current default). Overridden below with the pinned URL when installed.
     app_clone_url = app_url
+    app_installed = False
+    pinned_sha = None
+    pinned_code_sha = None
 
     with db.get_db_session(settings.db_url) as session:
         # Read user's container cache dir preference
@@ -699,9 +702,50 @@ async def submit_job(
         user_app = db.get_user_app(session, username, app_url, manifest_path)
         app_name = user_app.name if user_app is not None else manifest.name
         if user_app is not None:
+            app_installed = True
             stored_app_url = user_app.url
             app_clone_url = clone_url_for_stored_app(stored_app_url, user_app.branch)
+            pinned_sha = user_app.commit_sha
+            pinned_code_sha = user_app.code_commit_sha
 
+    # Resolve the immutable snapshot the job will run from. A pinned app finds
+    # its snapshot already on disk (no git work, no network); a legacy unpinned
+    # row resolves the branch clone's current HEAD and is pinned to it below,
+    # so it never drifts again. Pulling is never done here; updates are an
+    # explicit user action via the "Update" app endpoint.
+    executed_repo_url = None
+    if manifest.repo_url and canonical_github_url(manifest.repo_url) != stored_app_url:
+        # Manifest and tool code live in separate repos: the job runs from the
+        # code repo's snapshot root.
+        cached_repo_dir, executed_sha = await ensure_repo_snapshot(
+            manifest.repo_url, sha=pinned_code_sha, username=username)
+        cd_suffix = "repo"
+        executed_repo_url = canonical_github_url(manifest.repo_url)
+        if app_installed and (pinned_sha is None or pinned_code_sha is None):
+            app_sha = pinned_sha
+            if app_sha is None:
+                # Pin the manifest repo as well — left unpinned, this app's
+                # manifest would keep drifting with the shared branch clone
+                # and update checks would skip it forever.
+                _, app_sha = await ensure_repo_snapshot(
+                    app_clone_url, username=username)
+            with db.get_db_session(settings.db_url) as session:
+                db.set_user_app_pins(session, username, stored_app_url,
+                                     manifest_path,
+                                     commit_sha=app_sha,
+                                     code_commit_sha=executed_sha)
+    else:
+        # Manifest and tool code share one repo: run from the subdirectory
+        # that contains the manifest.
+        cached_repo_dir, executed_sha = await ensure_repo_snapshot(
+            app_clone_url, sha=pinned_sha, username=username)
+        cd_suffix = f"repo/{manifest_path}" if manifest_path else "repo"
+        if app_installed and pinned_sha is None:
+            with db.get_db_session(settings.db_url) as session:
+                db.set_user_app_pins(session, username, stored_app_url,
+                                     manifest_path, commit_sha=executed_sha)
+
+    with db.get_db_session(settings.db_url) as session:
         db_job = db.create_job(
             session=session,
             username=username,
@@ -722,6 +766,8 @@ async def submit_job(
             command=entry_point.command,
             conda_env=entry_point.conda_env,
             requirements=effective_requirements,
+            commit_sha=executed_sha,
+            code_repo_url=executed_repo_url,
         )
         job_id = db_job.id
 
@@ -731,20 +777,6 @@ async def submit_job(
                                    username=username)
         db_job.work_dir = str(work_dir)
         session.commit()
-
-    # Ensure the repo is cached in the user's cache (~username/.fileglancer/apps).
-    # Pulling is never done here; updates are an explicit user action via the
-    # "Update" app endpoint. The manifest read above already reflects the cache.
-    if manifest.repo_url and canonical_github_url(manifest.repo_url) != stored_app_url:
-        # Manifest and tool code live in separate repos: cache the code repo
-        # and run from its root.
-        cached_repo_dir = await _ensure_repo_cache(manifest.repo_url, username=username)
-        cd_suffix = "repo"
-    else:
-        # Manifest and tool code share one repo: cache it and run from the
-        # subdirectory that contains the manifest.
-        cached_repo_dir = await _ensure_repo_cache(app_clone_url, username=username)
-        cd_suffix = f"repo/{manifest_path}" if manifest_path else "repo"
 
     # Build environment variable export lines
     env_lines = ""
