@@ -105,9 +105,7 @@ export default function AppInfoTable({ app }: { readonly app: UserApp }) {
             <CommitValue href={codeCommitUrl} sha={app.code_commit_sha} />
           </InfoRow>
         ) : null}
-        <InfoRow label="Added to My Apps">
-          {formatDateString(app.added_at)}
-        </InfoRow>
+        <InfoRow label="Added">{formatDateString(app.added_at)}</InfoRow>
         <InfoRow label="Last updated">{updatedAt}</InfoRow>
         {app.listing_id ? (
           <InfoRow label="Catalog listing">

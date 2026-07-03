@@ -1,4 +1,4 @@
-import { ButtonGroup, IconButton } from '@material-tailwind/react';
+import { IconButton } from '@material-tailwind/react';
 import { HiOutlineSquares2X2, HiOutlineTableCells } from 'react-icons/hi2';
 
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
@@ -19,7 +19,7 @@ export default function ViewModeToggle({
       ? 'text-primary bg-primary/10'
       : 'text-foreground/60 hover:text-foreground';
   return (
-    <ButtonGroup className="gap-1">
+    <div className="flex items-center gap-1">
       <FgTooltip
         as={IconButton}
         icon={HiOutlineSquares2X2}
@@ -36,6 +36,6 @@ export default function ViewModeToggle({
         triggerClasses={triggerClasses(viewMode === 'table')}
         variant="ghost"
       />
-    </ButtonGroup>
+    </div>
   );
 }

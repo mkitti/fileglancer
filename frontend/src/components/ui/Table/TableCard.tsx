@@ -20,7 +20,6 @@ import {
   type SortingState
 } from '@tanstack/react-table';
 import {
-  ButtonGroup,
   Card,
   IconButton,
   Input,
@@ -227,32 +226,36 @@ function TableHeader({
               of {table.getPageCount().toLocaleString()}
             </Typography>
           </div>
-          <ButtonGroup variant="ghost">
+          <div className="flex items-center gap-1">
             <IconButton
               disabled={!table.getCanPreviousPage()}
               onClick={() => table.firstPage()}
+              variant="ghost"
             >
               <FgIcon icon={HiChevronDoubleLeft} />
             </IconButton>
             <IconButton
               disabled={!table.getCanPreviousPage()}
               onClick={() => table.previousPage()}
+              variant="ghost"
             >
               <FgIcon icon={HiChevronLeft} />
             </IconButton>
             <IconButton
               disabled={!table.getCanNextPage()}
               onClick={() => table.nextPage()}
+              variant="ghost"
             >
               <FgIcon icon={HiChevronRight} />
             </IconButton>
             <IconButton
               disabled={!table.getCanNextPage()}
               onClick={() => table.lastPage()}
+              variant="ghost"
             >
               <FgIcon icon={HiChevronDoubleRight} />
             </IconButton>
-          </ButtonGroup>
+          </div>
         </div>
         <div>
           <Select

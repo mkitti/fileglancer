@@ -123,7 +123,7 @@ export default function ListingInfoTable({
           </InfoRow>
         ) : null}
         {installedApp ? (
-          <InfoRow label="Added to My Apps">
+          <InfoRow label="Added">
             {formatDateString(installedApp.added_at)}
           </InfoRow>
         ) : null}
