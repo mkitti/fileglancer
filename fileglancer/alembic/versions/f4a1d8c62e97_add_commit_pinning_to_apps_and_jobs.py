@@ -25,15 +25,32 @@ branch_labels = None
 depends_on = None
 
 
+def _missing(table: str, column: str) -> bool:
+    inspector = sa.inspect(op.get_bind())
+    return column not in {c["name"] for c in inspector.get_columns(table)}
+
+
 def upgrade() -> None:
-    op.add_column('user_apps', sa.Column('commit_sha', sa.String(), nullable=True))
-    op.add_column('user_apps', sa.Column('code_commit_sha', sa.String(), nullable=True))
-    op.add_column('jobs', sa.Column('commit_sha', sa.String(), nullable=True))
-    op.add_column('jobs', sa.Column('code_repo_url', sa.String(), nullable=True))
+    # Guarded adds: this revision briefly existed without jobs.code_repo_url,
+    # so a dev database migrated during that window is stamped at this head
+    # while missing the column. Re-running after `alembic stamp c1f9a4e7b2d8`
+    # converges any such state without erroring on the columns that do exist.
+    if _missing('user_apps', 'commit_sha'):
+        op.add_column('user_apps', sa.Column('commit_sha', sa.String(), nullable=True))
+    if _missing('user_apps', 'code_commit_sha'):
+        op.add_column('user_apps', sa.Column('code_commit_sha', sa.String(), nullable=True))
+    if _missing('jobs', 'commit_sha'):
+        op.add_column('jobs', sa.Column('commit_sha', sa.String(), nullable=True))
+    if _missing('jobs', 'code_repo_url'):
+        op.add_column('jobs', sa.Column('code_repo_url', sa.String(), nullable=True))
 
 
 def downgrade() -> None:
-    op.drop_column('jobs', 'code_repo_url')
-    op.drop_column('jobs', 'commit_sha')
-    op.drop_column('user_apps', 'code_commit_sha')
-    op.drop_column('user_apps', 'commit_sha')
+    if not _missing('jobs', 'code_repo_url'):
+        op.drop_column('jobs', 'code_repo_url')
+    if not _missing('jobs', 'commit_sha'):
+        op.drop_column('jobs', 'commit_sha')
+    if not _missing('user_apps', 'code_commit_sha'):
+        op.drop_column('user_apps', 'code_commit_sha')
+    if not _missing('user_apps', 'commit_sha'):
+        op.drop_column('user_apps', 'commit_sha')
