@@ -187,7 +187,7 @@ export default function AppLaunch() {
             ? buildAppDetailPath(installedApp.url, installedApp.manifest_path)
             : '/apps'
         }
-        icon={manifest ? getAppIconType(manifest) : undefined}
+        icon={getAppIconType()}
         title={displayName}
       />
 

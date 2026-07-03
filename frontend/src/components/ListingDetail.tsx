@@ -40,8 +40,7 @@ export default function ListingDetail() {
   const listingUrl = listing?.url;
   const listingManifestPath = listing?.manifest_path;
 
-  // Listings don't carry the manifest, so fetch a preview to show the entry
-  // points and the correct type icon.
+  // Listings don't carry the manifest, so fetch a preview to show entry points.
   useEffect(() => {
     if (listingUrl !== undefined) {
       manifestMutation.mutate({
@@ -135,7 +134,7 @@ export default function ListingDetail() {
             ) : null}
           </>
         }
-        icon={getAppIconType(manifest)}
+        icon={getAppIconType()}
         title={listing.name}
       >
         {alreadyAdded ? (

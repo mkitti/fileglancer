@@ -62,7 +62,7 @@ export default function ListingCard({
         <div className="flex items-center gap-2 min-w-0">
           <FgIcon
             className="text-foreground flex-shrink-0"
-            icon={getAppIconType(installedApp?.manifest)}
+            icon={getAppIconType()}
           />
           {alreadyAdded ? <InYourAppsBadge /> : null}
         </div>

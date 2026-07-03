@@ -54,7 +54,7 @@ export default function AppCard({ app, actions }: AppCardProps) {
         <div className="flex items-center gap-2 min-w-0">
           <FgIcon
             className="text-foreground flex-shrink-0"
-            icon={getAppIconType(app.manifest)}
+            icon={getAppIconType()}
           />
           {isShared ? <SharedBadge /> : null}
           {updateAvailable ? <UpdateAvailableBadge /> : null}

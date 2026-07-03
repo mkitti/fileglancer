@@ -159,7 +159,7 @@ export default function AppDetail() {
             />
           </>
         }
-        icon={getAppIconType(app.manifest)}
+        icon={getAppIconType()}
         title={app.name}
       >
         {isShared ? (

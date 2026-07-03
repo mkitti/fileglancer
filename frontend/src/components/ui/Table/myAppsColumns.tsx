@@ -2,6 +2,7 @@ import type { MouseEvent } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import FgExternalLink from '@/components/designSystem/atoms/FgExternalLink';
+import FgIcon from '@/components/designSystem/atoms/FgIcon';
 import FgLink from '@/components/designSystem/atoms/FgLink';
 import CardActionsMenu from '@/components/ui/Menus/CardActionsMenu';
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
@@ -10,7 +11,12 @@ import {
   buildAppMenuItems,
   isAppShared
 } from '@/components/ui/AppsPage/appMenuItems';
-import { appRevision, buildAppDetailPath, parseGithubUrl } from '@/utils';
+import {
+  appRevision,
+  buildAppDetailPath,
+  getAppIconType,
+  parseGithubUrl
+} from '@/utils';
 import type { AppActions } from '@/hooks/useAppActions';
 import type { UserApp } from '@/shared.types';
 
@@ -44,14 +50,18 @@ function NameCell({
   }
   return (
     <div
-      className="flex items-center gap-2 truncate w-full h-full"
+      className="flex items-center gap-2 min-w-0 truncate w-full h-full"
       onContextMenu={e => {
         e.preventDefault();
         onContextMenu?.(e, { value: app.name });
       }}
     >
+      <FgIcon
+        className="text-foreground flex-shrink-0"
+        icon={getAppIconType()}
+      />
       {detailPath ? (
-        <FgLink className="truncate" to={detailPath}>
+        <FgLink className="truncate min-w-0" to={detailPath}>
           {app.name}
         </FgLink>
       ) : (
