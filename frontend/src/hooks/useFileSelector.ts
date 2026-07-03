@@ -156,14 +156,27 @@ export default function useFileSelector(options?: FileSelectorOptions) {
 
     if (resolved) {
       let subPath = resolved.subpath;
-      // When initialPath is a file, navigate to its parent directory
+      let selectedItem: FileSelectorState['selectedItem'] = null;
+      // When initialPath is a file, navigate to its parent directory and keep
+      // the file itself selected, so reopening the dialog shows the current
+      // value ready to be confirmed or replaced.
       if (subPath && options?.initialPathIsFile) {
         const lastSlash = subPath.lastIndexOf('/');
-        if (lastSlash >= 0) {
-          subPath = subPath.slice(0, lastSlash);
-        } else {
-          subPath = '';
-        }
+        selectedItem = {
+          name: subPath.slice(lastSlash + 1),
+          isDir: false,
+          fullPath: getPreferredPathForDisplay(
+            effectivePathPreference,
+            resolved.fsp,
+            subPath
+          ),
+          displayPath: getPreferredPathForDisplay(
+            pathPreference,
+            resolved.fsp,
+            subPath
+          )
+        };
+        subPath = lastSlash >= 0 ? subPath.slice(0, lastSlash) : '';
       }
 
       setState({
@@ -172,10 +185,16 @@ export default function useFileSelector(options?: FileSelectorOptions) {
           fspName: resolved.fsp.name,
           path: subPath || '.'
         },
-        selectedItem: null
+        selectedItem
       });
     }
-  }, [options?.initialPath, options?.initialPathIsFile, zonesAndFspQuery.data]);
+  }, [
+    options?.initialPath,
+    options?.initialPathIsFile,
+    zonesAndFspQuery.data,
+    effectivePathPreference,
+    pathPreference
+  ]);
 
   // Fetch file data only when in filesystem mode
   const fileQuery = useFileQuery(
@@ -378,73 +397,93 @@ export default function useFileSelector(options?: FileSelectorOptions) {
   // If no item provided, selects the current folder/location
   const selectItem = useCallback(
     (item?: FileOrFolder) => {
+      // Case 1: No item provided - select the current folder. Runs as a
+      // functional update so it composes with a navigation landing in the
+      // same commit (e.g. the initialPath resolution on dialog open), and it
+      // keeps an existing selection (e.g. the file preselected from
+      // initialPath) rather than replacing it with the folder.
+      if (!item) {
+        setState(prev => {
+          if (prev.selectedItem || prev.currentLocation.type !== 'filesystem') {
+            return prev;
+          }
+          const fspKey = makeMapKey('fsp', prev.currentLocation.fspName);
+          const fsp = zonesAndFspQuery.data?.[fspKey] as
+            | FileSharePath
+            | undefined;
+          if (!fsp) {
+            return prev;
+          }
+
+          const subPath =
+            prev.currentLocation.path === '.' ? '' : prev.currentLocation.path;
+          const fullPath = getPreferredPathForDisplay(
+            effectivePathPreference,
+            fsp,
+            subPath
+          );
+          if (!fullPath) {
+            return prev;
+          }
+
+          // Get the folder name from the path
+          const pathParts = prev.currentLocation.path
+            .split('/')
+            .filter(Boolean);
+          return {
+            ...prev,
+            selectedItem: {
+              name:
+                pathParts.length > 0
+                  ? pathParts[pathParts.length - 1]
+                  : fsp.name,
+              isDir: true,
+              fullPath,
+              displayPath: getPreferredPathForDisplay(
+                pathPreference,
+                fsp,
+                subPath
+              )
+            }
+          };
+        });
+        return;
+      }
+
+      // Case 2: Item provided - select that item
+      // Only reject files in directory mode
+      if (!item.is_dir && mode === 'directory') {
+        return;
+      }
+
+      // Don't allow selecting zones - user must select an FSP or folder within FSP
+      if (state.currentLocation.type === 'zones') {
+        return;
+      }
+
       let fullPath = '';
       let displayPath = '';
-      let name = '';
-      let isDir = true;
 
-      // Case 1: No item provided - select current folder
-      if (!item) {
-        if (state.currentLocation.type !== 'filesystem' || !currentFsp) {
-          // Can't select current location at zones or zone level
-          return;
+      if (state.currentLocation.type === 'zone') {
+        // Selecting an FSP
+        const fspKey = makeMapKey('fsp', item.name);
+        const fsp = zonesAndFspQuery.data?.[fspKey] as FileSharePath;
+        if (fsp) {
+          fullPath = getPreferredPathForDisplay(effectivePathPreference, fsp);
+          displayPath = getPreferredPathForDisplay(pathPreference, fsp);
         }
-
-        const subPath =
-          state.currentLocation.path === '.' ? '' : state.currentLocation.path;
+      } else if (currentFsp) {
+        // In filesystem mode, generate path from current FSP + item path
         fullPath = getPreferredPathForDisplay(
           effectivePathPreference,
           currentFsp,
-          subPath
+          item.path
         );
         displayPath = getPreferredPathForDisplay(
           pathPreference,
           currentFsp,
-          subPath
+          item.path
         );
-
-        // Get the folder name from the path
-        const pathParts = state.currentLocation.path.split('/').filter(Boolean);
-        name =
-          pathParts.length > 0
-            ? pathParts[pathParts.length - 1]
-            : currentFsp.name;
-      } else {
-        // Case 2: Item provided - select that item
-        // Only reject files in directory mode
-        if (!item.is_dir && mode === 'directory') {
-          return;
-        }
-
-        // Don't allow selecting zones - user must select an FSP or folder within FSP
-        if (state.currentLocation.type === 'zones') {
-          return;
-        }
-
-        if (state.currentLocation.type === 'zone') {
-          // Selecting an FSP
-          const fspKey = makeMapKey('fsp', item.name);
-          const fsp = zonesAndFspQuery.data?.[fspKey] as FileSharePath;
-          if (fsp) {
-            fullPath = getPreferredPathForDisplay(effectivePathPreference, fsp);
-            displayPath = getPreferredPathForDisplay(pathPreference, fsp);
-          }
-        } else if (currentFsp) {
-          // In filesystem mode, generate path from current FSP + item path
-          fullPath = getPreferredPathForDisplay(
-            effectivePathPreference,
-            currentFsp,
-            item.path
-          );
-          displayPath = getPreferredPathForDisplay(
-            pathPreference,
-            currentFsp,
-            item.path
-          );
-        }
-
-        name = item.name;
-        isDir = item.is_dir;
       }
 
       // Only set state if we have a valid path
@@ -452,8 +491,8 @@ export default function useFileSelector(options?: FileSelectorOptions) {
         setState(prev => ({
           ...prev,
           selectedItem: {
-            name,
-            isDir,
+            name: item.name,
+            isDir: item.is_dir,
             fullPath,
             displayPath
           }
