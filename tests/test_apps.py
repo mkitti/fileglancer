@@ -2006,7 +2006,7 @@ class TestNextflowAdapterNaming:
 
         with patch("fileglancer.apps.manifest._repo_cache_base", return_value=cache_base):
             manifest = NextflowAdapter().convert(repo_dir)
-            assert manifest.name == "nf-core/rnaseq"
+            assert manifest.name == "rnaseq"
 
     def test_slashed_branch_naming(self, tmp_path):
         from unittest.mock import patch
@@ -2017,7 +2017,7 @@ class TestNextflowAdapterNaming:
 
         with patch("fileglancer.apps.manifest._repo_cache_base", return_value=cache_base):
             manifest = NextflowAdapter().convert(repo_dir)
-            assert manifest.name == "nf-core/rnaseq"
+            assert manifest.name == "rnaseq"
 
 
 class TestEffectiveWorkingDir:

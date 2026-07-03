@@ -99,15 +99,16 @@ class NextflowAdapter:
         schema_path = directory / _NEXTFLOW_SCHEMA_FILENAME
         schema = json.loads(schema_path.read_text())
 
-        # Determine app metadata — use owner/repo from the cache path
-        # (directory is {cache_base}/{owner}/{repo}/{branch})
+        # Determine app metadata — use the repo name from the cache path
+        # (directory is {cache_base}/{owner}/{repo}/{branch}, where branch may
+        # span multiple path segments)
         try:
             from fileglancer.apps.manifest import _repo_cache_base
             cache_base = _repo_cache_base().resolve()
             relative = directory.resolve().relative_to(cache_base)
-            name = f"{relative.parts[0]}/{relative.parts[1]}"
+            name = relative.parts[1]
         except Exception:
-            name = f"{directory.parent.parent.name}/{directory.parent.name}"
+            name = directory.parent.name
         description = schema.get("description")
 
         # Build parameters from definitions, ordered by allOf
