@@ -83,6 +83,21 @@ export function buildGithubUrl(
 }
 
 /**
+ * The revision actually cloned, parsed out of the canonical app URL (which
+ * always carries it). Falls back to the requested branch, then null.
+ */
+export function appRevision(
+  appUrl: string,
+  fallbackBranch?: string
+): string | null {
+  try {
+    return parseGithubUrl(appUrl).branch;
+  } catch {
+    return fallbackBranch || null;
+  }
+}
+
+/**
  * GitHub link for a specific commit of an app; null if the app URL isn't
  * parseable.
  */

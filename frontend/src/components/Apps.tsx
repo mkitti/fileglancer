@@ -1,12 +1,19 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
-import { Typography } from '@material-tailwind/react';
-import { HiOutlineLink } from 'react-icons/hi2';
+import { ButtonGroup, IconButton, Typography } from '@material-tailwind/react';
+import {
+  HiOutlineLink,
+  HiOutlineSquares2X2,
+  HiOutlineTableCells
+} from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 
 import AppCard from '@/components/ui/AppsPage/AppCard';
 import AddAppDialog from '@/components/ui/AppsPage/AddAppDialog';
 import AppActionDialogs from '@/components/ui/AppsPage/AppActionDialogs';
+import { TableCard } from '@/components/ui/Table/TableCard';
+import { createMyAppsColumns } from '@/components/ui/Table/myAppsColumns';
+import FgTooltip from '@/components/ui/widgets/FgTooltip';
 import {
   useAppsQuery,
   useAddAppMutation,
@@ -17,13 +24,64 @@ import FgButton from './designSystem/atoms/FgButton';
 import FgExternalLink from '@/components/designSystem/atoms/FgExternalLink';
 import { DOCS_BASE_URL } from '@/constants/docs';
 
+type AppsViewMode = 'cards' | 'table';
+
+const VIEW_MODE_STORAGE_KEY = 'appsViewMode';
+
+function ViewModeToggle({
+  viewMode,
+  onChange
+}: {
+  readonly viewMode: AppsViewMode;
+  readonly onChange: (mode: AppsViewMode) => void;
+}) {
+  const triggerClasses = (active: boolean) =>
+    active
+      ? 'text-primary bg-primary/10'
+      : 'text-foreground/60 hover:text-foreground';
+  return (
+    <ButtonGroup className="gap-1">
+      <FgTooltip
+        as={IconButton}
+        icon={HiOutlineSquares2X2}
+        label="Card view"
+        onClick={() => onChange('cards')}
+        triggerClasses={triggerClasses(viewMode === 'cards')}
+        variant="ghost"
+      />
+      <FgTooltip
+        as={IconButton}
+        icon={HiOutlineTableCells}
+        label="Table view"
+        onClick={() => onChange('table')}
+        triggerClasses={triggerClasses(viewMode === 'table')}
+        variant="ghost"
+      />
+    </ButtonGroup>
+  );
+}
+
 export default function Apps() {
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [viewMode, setViewMode] = useState<AppsViewMode>(() =>
+    localStorage.getItem(VIEW_MODE_STORAGE_KEY) === 'table' ? 'table' : 'cards'
+  );
 
   const appsQuery = useAppsQuery();
   const addAppMutation = useAddAppMutation();
   const discoverAppsMutation = useDiscoverAppsMutation();
   const actions = useAppActions();
+
+  const appsColumns = useMemo(
+    () => createMyAppsColumns(actions),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  const changeViewMode = (mode: AppsViewMode) => {
+    setViewMode(mode);
+    localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode);
+  };
 
   const handleDiscover = (url: string) => discoverAppsMutation.mutateAsync(url);
 
@@ -49,7 +107,7 @@ export default function Apps() {
         .
       </Typography>
 
-      <div className="mb-6">
+      <div className="mb-6 flex items-center justify-between gap-2">
         <FgButton
           icon={HiOutlineLink}
           onClick={() => setShowAddDialog(true)}
@@ -57,9 +115,21 @@ export default function Apps() {
         >
           Add from URL
         </FgButton>
+        <ViewModeToggle onChange={changeViewMode} viewMode={viewMode} />
       </div>
 
-      {appsQuery.isPending ? (
+      {viewMode === 'table' ? (
+        <div className="mb-8">
+          <TableCard
+            columns={appsColumns}
+            data={appsQuery.data || []}
+            dataType="apps"
+            errorState={appsQuery.error}
+            gridColsClass="grid-cols-[2fr_1fr_2fr_3fr_1fr_1fr]"
+            loadingState={appsQuery.isPending}
+          />
+        </div>
+      ) : appsQuery.isPending ? (
         <Typography className="text-foreground mb-6" type="small">
           Loading apps...
         </Typography>

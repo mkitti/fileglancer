@@ -5,11 +5,15 @@ import { HiOutlinePlay } from 'react-icons/hi';
 import { HiOutlineEllipsisVertical } from 'react-icons/hi2';
 
 import CardActionsMenu from '@/components/ui/Menus/CardActionsMenu';
-import type { MenuItem } from '@/components/ui/Menus/FgMenuItems';
 import FgButton from '@/components/designSystem/atoms/FgButton';
 import FgIcon from '@/components/designSystem/atoms/FgIcon';
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
+import SharedBadge from '@/components/ui/AppsPage/SharedBadge';
 import UpdateAvailableBadge from '@/components/ui/AppsPage/UpdateAvailableBadge';
+import {
+  buildAppMenuItems,
+  isAppShared
+} from '@/components/ui/AppsPage/appMenuItems';
 import type { AppActions } from '@/hooks/useAppActions';
 import { useAppUpdateAvailable } from '@/queries/appsQueries';
 import { getAppIconType } from '@/utils';
@@ -21,29 +25,10 @@ interface AppCardProps {
 }
 
 export default function AppCard({ app, actions }: AppCardProps) {
-  const isShared = app.listing_id !== undefined && app.listing_id !== null;
+  const isShared = isAppShared(app);
   const updateAvailable = useAppUpdateAvailable(app);
 
-  const menuItems: MenuItem<UserApp>[] = [
-    { name: 'Launch', action: a => actions.launch(a) },
-    { name: 'View', action: a => actions.view(a) },
-    {
-      name: 'Share to Catalog',
-      action: a => actions.requestShare(a),
-      shouldShow: !isShared
-    },
-    {
-      name: 'Unshare',
-      action: a => void actions.unshare(a),
-      shouldShow: isShared
-    },
-    { name: 'Update', action: a => void actions.update(a) },
-    {
-      name: 'Remove',
-      action: a => actions.requestRemove(a),
-      color: 'text-error'
-    }
-  ];
+  const menuItems = buildAppMenuItems(app, actions);
 
   const handleView = () => actions.view(app);
 
@@ -71,11 +56,7 @@ export default function AppCard({ app, actions }: AppCardProps) {
             className="text-foreground flex-shrink-0"
             icon={getAppIconType(app.manifest)}
           />
-          {isShared ? (
-            <span className="inline-block px-2 py-0.5 rounded-sm bg-success/10 text-success text-xs font-medium">
-              Shared
-            </span>
-          ) : null}
+          {isShared ? <SharedBadge /> : null}
           {updateAvailable ? <UpdateAvailableBadge /> : null}
         </div>
         <div
