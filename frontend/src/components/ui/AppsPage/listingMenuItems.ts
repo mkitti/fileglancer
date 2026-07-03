@@ -26,6 +26,11 @@ export function buildListingMenuItems(
       shouldShow: alreadyAdded
     },
     {
+      name: 'Edit',
+      action: l => actions.requestEdit(l),
+      shouldShow: canManage
+    },
+    {
       name: 'Unshare',
       action: l => void actions.unshare(l),
       color: 'text-error',

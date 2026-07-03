@@ -7,30 +7,13 @@ import { formatDateString } from '@/utils';
 import {
   buildAppDetailPath,
   buildGithubFileUrl,
+  manifestPathInfo,
   parseGithubUrl
 } from '@/utils/appUrls';
 
 const labelClass =
   'text-foreground font-medium pr-4 py-1.5 align-top whitespace-nowrap';
 const valueClass = 'text-foreground py-1.5';
-const MANIFEST_FILENAME = 'runnables.yaml';
-
-function manifestPathInfo(path: string): { filePath: string; label: string } {
-  const normalized = path
-    .trim()
-    .replace(/^\.?\//, '')
-    .replace(/\/+$/, '');
-
-  const filePath =
-    !normalized || normalized === '.'
-      ? MANIFEST_FILENAME
-      : normalized === MANIFEST_FILENAME ||
-          normalized.endsWith(`/${MANIFEST_FILENAME}`)
-        ? normalized
-        : `${normalized}/${MANIFEST_FILENAME}`;
-
-  return { filePath, label: `./${filePath}` };
-}
 
 function InfoRow({
   label,

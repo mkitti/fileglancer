@@ -419,7 +419,8 @@ export {
   buildLaunchPath,
   buildLaunchPathFromApp,
   buildAppDetailPath,
-  buildRelaunchPath
+  buildRelaunchPath,
+  manifestPathInfo
 } from './appUrls';
 
 // Re-export app icon utilities

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Typography } from '@material-tailwind/react';
 
+import ListingActionDialogs from '@/components/ui/AppsPage/ListingActionDialogs';
 import ListingCard from '@/components/ui/AppsPage/ListingCard';
 import FgCheckbox from '@/components/designSystem/atoms/formElements/FgCheckbox';
 import { TableCard } from '@/components/ui/Table/TableCard';
@@ -143,6 +144,8 @@ export default function Catalog() {
           })}
         </div>
       )}
+
+      <ListingActionDialogs actions={actions} />
     </div>
   );
 }

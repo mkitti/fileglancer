@@ -302,15 +302,15 @@ export function useShareAppMutation(): UseMutationResult<
 export function useUpdateListingMutation(): UseMutationResult<
   AppListing,
   Error,
-  { listing_id: number; name?: string; description?: string }
+  { listing_id: number; url?: string; name?: string; description?: string }
 > {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ listing_id, name, description }) => {
+    mutationFn: async ({ listing_id, url, name, description }) => {
       const response = await sendFetchRequest(
         `/api/catalog/${listing_id}`,
         'PATCH',
-        { name, description }
+        { url, name, description }
       );
       const data = await getResponseJsonOrError(response);
       if (!response.ok) {
@@ -320,6 +320,9 @@ export function useUpdateListingMutation(): UseMutationResult<
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: catalogQueryKeys.all });
+      // A url change can (un)link the listing from the owner's installed
+      // copy, which is surfaced via listing_id on /api/apps.
+      queryClient.invalidateQueries({ queryKey: appsQueryKeys.all });
     }
   });
 }

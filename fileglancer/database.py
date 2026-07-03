@@ -1247,15 +1247,35 @@ def create_app_listing(session: Session, owner_username: str, url: str,
 
 def update_app_listing(session: Session, listing_id: int, owner_username: str, *,
                        name: Optional[str] = None,
-                       description: Optional[str] = None) -> Optional[AppListingDB]:
+                       description: Optional[str] = None,
+                       url: Optional[str] = None,
+                       branch: Optional[str] = None) -> Optional[AppListingDB]:
     """Update an existing listing's editable metadata. Returns the listing, or
-    None if it doesn't exist or isn't owned by owner_username."""
+    None if it doesn't exist or isn't owned by owner_username.
+
+    url repoints the listing (the caller has already validated that the new
+    repo/revision still contains the listing's manifest path); branch is the
+    requested revision that goes with it and is only applied alongside url.
+    Raises ValueError if the new url collides with another listing by the
+    same owner (unique on owner/url/manifest_path)."""
     listing = session.query(AppListingDB).filter_by(
         id=listing_id,
         owner_username=owner_username,
     ).first()
     if listing is None:
         return None
+    if url is not None:
+        url = canonical_github_url(url)
+        duplicate = session.query(AppListingDB).filter(
+            AppListingDB.owner_username == owner_username,
+            AppListingDB.url == url,
+            AppListingDB.manifest_path == listing.manifest_path,
+            AppListingDB.id != listing_id,
+        ).first()
+        if duplicate is not None:
+            raise ValueError("You already have another listing for this app")
+        listing.url = url
+        listing.branch = branch
     if name is not None:
         listing.name = name
     if description is not None:

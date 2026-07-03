@@ -309,6 +309,129 @@ def test_update_listing(client_factory, db_session):
     assert body["description"] == "New desc"
 
 
+def test_update_listing_metadata_only_skips_git(client_factory, db_session):
+    """A name/description edit (no url in the request) must not touch git."""
+    listing = _seed_listing(db_session, owner_username=OWNER)
+    client = client_factory(OWNER)
+    with patch(
+        "fileglancer.apps.discover_app_manifests",
+        new=AsyncMock(),
+    ) as mock_discover:
+        response = client.patch(
+            f"/api/catalog/{listing.id}",
+            json={"name": "Renamed"},
+        )
+    assert response.status_code == 200
+    mock_discover.assert_not_awaited()
+
+
+def test_update_listing_same_url_skips_validation(client_factory, db_session):
+    """Sending the listing's current URL back unchanged is a metadata edit."""
+    listing = _seed_listing(db_session, owner_username=OWNER)
+    client = client_factory(OWNER)
+    with patch(
+        "fileglancer.apps.discover_app_manifests",
+        new=AsyncMock(),
+    ) as mock_discover:
+        response = client.patch(
+            f"/api/catalog/{listing.id}",
+            json={"url": "https://github.com/owner/repo", "name": "Renamed"},
+        )
+    assert response.status_code == 200
+    assert response.json()["name"] == "Renamed"
+    mock_discover.assert_not_awaited()
+
+
+def test_update_listing_url_revalidates_manifest(client_factory, db_session):
+    """Changing the URL/revision clones the new repo as the user, checks the
+    manifest path, and stores the canonical URL + requested revision."""
+    listing = _seed_listing(db_session, owner_username=OWNER, branch="main")
+    client = client_factory(OWNER)
+    with patch(
+        "fileglancer.apps.discover_app_manifests",
+        new=AsyncMock(return_value=("v2", TEST_SHA, [("", _make_manifest())])),
+    ) as mock_discover:
+        response = client.patch(
+            f"/api/catalog/{listing.id}",
+            json={"url": "https://github.com/owner/repo/tree/v2"},
+        )
+    assert response.status_code == 200
+    mock_discover.assert_awaited_once_with(
+        "https://github.com/owner/repo/tree/v2", username=OWNER)
+    body = response.json()
+    assert body["url"] == "https://github.com/owner/repo/tree/v2"
+    assert body["branch"] == "v2"
+    db_session.expire_all()
+    row = db_session.query(AppListingDB).filter_by(id=listing.id).one()
+    assert row.url == "https://github.com/owner/repo/tree/v2"
+    assert row.branch == "v2"
+
+
+def test_update_listing_url_rejects_missing_manifest_path(
+    client_factory, db_session
+):
+    """The new repo/revision must still contain the listing's manifest path."""
+    listing = _seed_listing(
+        db_session, owner_username=OWNER, manifest_path="apps/foo")
+    client = client_factory(OWNER)
+    with patch(
+        "fileglancer.apps.discover_app_manifests",
+        new=AsyncMock(
+            return_value=("main", TEST_SHA, [("apps/bar", _make_manifest())])
+        ),
+    ):
+        response = client.patch(
+            f"/api/catalog/{listing.id}",
+            json={"url": "https://github.com/owner/other-repo"},
+        )
+    assert response.status_code == 400
+    assert "apps/foo" in response.json()["error"]
+    assert "apps/bar" in response.json()["error"]
+    db_session.expire_all()
+    row = db_session.query(AppListingDB).filter_by(id=listing.id).one()
+    assert row.url == "https://github.com/owner/repo"
+
+
+def test_update_listing_url_rejects_duplicate(client_factory, db_session):
+    """Repointing a listing onto a repo the owner already lists is a 409."""
+    _seed_listing(db_session, owner_username=OWNER,
+                  url="https://github.com/owner/target")
+    listing = _seed_listing(db_session, owner_username=OWNER,
+                            url="https://github.com/owner/source")
+    client = client_factory(OWNER)
+    with patch(
+        "fileglancer.apps.discover_app_manifests",
+        new=AsyncMock(return_value=("main", TEST_SHA, [("", _make_manifest())])),
+    ):
+        response = client.patch(
+            f"/api/catalog/{listing.id}",
+            json={"url": "https://github.com/owner/target"},
+        )
+    assert response.status_code == 409
+    db_session.expire_all()
+    row = db_session.query(AppListingDB).filter_by(id=listing.id).one()
+    assert row.url == "https://github.com/owner/source"
+
+
+def test_update_listing_url_surfaces_clone_failure(client_factory, db_session):
+    """A repo that can't be cloned (bad URL, missing revision) fails the edit."""
+    listing = _seed_listing(db_session, owner_username=OWNER)
+    client = client_factory(OWNER)
+    with patch(
+        "fileglancer.apps.discover_app_manifests",
+        new=AsyncMock(side_effect=ValueError("Revision 'v9' was not found")),
+    ):
+        response = client.patch(
+            f"/api/catalog/{listing.id}",
+            json={"url": "https://github.com/owner/repo/tree/v9"},
+        )
+    assert response.status_code == 404
+    assert "not found" in response.json()["error"]
+    db_session.expire_all()
+    row = db_session.query(AppListingDB).filter_by(id=listing.id).one()
+    assert row.url == "https://github.com/owner/repo"
+
+
 def test_update_listing_rejects_non_owner(client_factory, db_session):
     listing = _seed_listing(db_session, owner_username=OWNER)
     client = client_factory(ADOPTER)

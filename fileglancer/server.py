@@ -2133,10 +2133,43 @@ def create_app(settings):
                                      body: UpdateAppListingRequest,
                                      username: str = Depends(get_current_user)):
         with db.get_db_session(settings.db_url) as session:
-            listing = db.update_app_listing(
-                session, listing_id, username,
-                name=body.name, description=body.description,
-            )
+            existing = db.get_app_listing(session, listing_id)
+            if existing is None or existing.owner_username != username:
+                raise HTTPException(status_code=404, detail="Listing not found")
+            current_url = existing.url
+            manifest_path = existing.manifest_path
+
+        # Repointing the listing at a different repo/revision: clone/scan it
+        # as the user (outside any DB session — this can take a while) and
+        # require the listing's manifest path to still exist there, so the
+        # catalog never advertises an app that can't be added.
+        new_url = None
+        new_branch = None
+        if body.url is not None and canonical_github_url(body.url) != current_url:
+            resolved_branch, _, canonical_url, discovered = await _discover_repo_manifests(
+                body.url, username)
+            found_paths = [p for p, _ in discovered]
+            if manifest_path not in found_paths:
+                locations = ", ".join(f"'{p}'" if p else "the repository root"
+                                      for p in found_paths)
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"No app manifest found at '{manifest_path or '(root)'}' "
+                           f"in that repository/revision. Manifests were found at: "
+                           f"{locations}.",
+                )
+            new_url = canonical_url
+            _, new_branch = apps_module.canonical_app_url(body.url, resolved_branch)
+
+        with db.get_db_session(settings.db_url) as session:
+            try:
+                listing = db.update_app_listing(
+                    session, listing_id, username,
+                    name=body.name, description=body.description,
+                    url=new_url, branch=new_branch,
+                )
+            except ValueError as e:
+                raise HTTPException(status_code=409, detail=str(e))
             if listing is None:
                 raise HTTPException(status_code=404, detail="Listing not found")
             return _listing_to_model(listing)

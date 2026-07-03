@@ -762,6 +762,15 @@ class ShareAppRequest(BaseModel):
 
 class UpdateAppListingRequest(BaseModel):
     """Request to update a listing's editable metadata"""
+    url: Optional[str] = Field(
+        description=(
+            "New GitHub URL for the listing, optionally carrying a revision "
+            "as /tree/<rev> (same form the add flow uses). When it differs "
+            "from the stored URL, the repo is cloned and the listing's "
+            "manifest path must still exist there."
+        ),
+        default=None,
+    )
     name: Optional[str] = Field(description="New display name", default=None)
     description: Optional[str] = Field(description="New description", default=None)
 

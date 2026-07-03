@@ -2,11 +2,15 @@ import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Typography } from '@material-tailwind/react';
 import { HiOutlinePlus } from 'react-icons/hi';
-import { HiOutlineEllipsisVertical } from 'react-icons/hi2';
+import {
+  HiOutlineEllipsisVertical,
+  HiOutlinePencilSquare
+} from 'react-icons/hi2';
 import { FaUsersSlash } from 'react-icons/fa6';
 
 import AppPageHeader from '@/components/ui/AppsPage/AppPageHeader';
 import EntryPointsList from '@/components/ui/AppsPage/EntryPointsList';
+import ListingActionDialogs from '@/components/ui/AppsPage/ListingActionDialogs';
 import ListingInfoTable from '@/components/ui/AppsPage/ListingInfoTable';
 import CardActionsMenu from '@/components/ui/Menus/CardActionsMenu';
 import type { MenuItem } from '@/components/ui/Menus/FgMenuItems';
@@ -123,19 +127,31 @@ export default function ListingDetail() {
               </FgButton>
             ) : null}
             {canManage ? (
-              <FgTooltip label="Unshare from catalog">
-                <FgButton
-                  disabled={unsharing}
-                  icon={FaUsersSlash}
-                  loading={unsharing}
-                  loadingText="Unsharing..."
-                  onClick={() => void actions.unshare(listing)}
-                  size="sm"
-                  variant="outline"
-                >
-                  Unshare
-                </FgButton>
-              </FgTooltip>
+              <>
+                <FgTooltip label="Edit this listing">
+                  <FgButton
+                    icon={HiOutlinePencilSquare}
+                    onClick={() => actions.requestEdit(listing)}
+                    size="sm"
+                    variant="outline"
+                  >
+                    Edit
+                  </FgButton>
+                </FgTooltip>
+                <FgTooltip label="Unshare from catalog">
+                  <FgButton
+                    disabled={unsharing}
+                    icon={FaUsersSlash}
+                    loading={unsharing}
+                    loadingText="Unsharing..."
+                    onClick={() => void actions.unshare(listing)}
+                    size="sm"
+                    variant="outline"
+                  >
+                    Unshare
+                  </FgButton>
+                </FgTooltip>
+              </>
             ) : null}
             {hasMenuItems ? (
               <CardActionsMenu<AppListing>
@@ -178,6 +194,8 @@ export default function ListingDetail() {
           />
         )}
       </div>
+
+      <ListingActionDialogs actions={actions} />
     </div>
   );
 }

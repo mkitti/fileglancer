@@ -123,6 +123,33 @@ export function buildGithubCommitUrl(
   }
 }
 
+const MANIFEST_FILENAME = 'runnables.yaml';
+
+/**
+ * The repo-relative file path and "./"-prefixed display label of an app's
+ * runnables.yaml, given the manifest path stored on an app or listing (a
+ * directory path, "" for the repo root).
+ */
+export function manifestPathInfo(path: string): {
+  filePath: string;
+  label: string;
+} {
+  const normalized = path
+    .trim()
+    .replace(/^\.?\//, '')
+    .replace(/\/+$/, '');
+
+  const filePath =
+    !normalized || normalized === '.'
+      ? MANIFEST_FILENAME
+      : normalized === MANIFEST_FILENAME ||
+          normalized.endsWith(`/${MANIFEST_FILENAME}`)
+        ? normalized
+        : `${normalized}/${MANIFEST_FILENAME}`;
+
+  return { filePath, label: `./${filePath}` };
+}
+
 /**
  * GitHub link for a file in an app repo at a specific revision. Falls back to
  * the revision encoded in the app URL when revision is not provided.

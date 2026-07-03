@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import toast from 'react-hot-toast';
 
 import {
   useAddFromListingMutation,
-  useUnshareListingMutation
+  useUnshareListingMutation,
+  useUpdateListingMutation
 } from '@/queries/appsQueries';
 import { buildAppDetailPath } from '@/utils';
 import { showErrorToast } from '@/utils/errorToast';
@@ -18,6 +20,16 @@ export interface ListingActions {
   viewInMyApps: (app: UserApp) => void;
   add: (listing: AppListing) => Promise<void>;
   unshare: (listing: AppListing) => Promise<void>;
+  saveEdit: (params: {
+    listing_id: number;
+    url: string;
+    name: string;
+    description: string;
+  }) => Promise<void>;
+  requestEdit: (listing: AppListing) => void;
+  editTarget: AppListing | null;
+  closeEdit: () => void;
+  saving: boolean;
   /** Listing id the add/unshare mutation is currently running for, if any. */
   addingId: number | null;
   unsharingId: number | null;
@@ -25,15 +37,19 @@ export interface ListingActions {
 
 /**
  * Navigation and mutation handlers for the actions offered on a catalog
- * listing (view details, add to my apps, unshare), shared by the catalog
- * cards and the listing detail page.
+ * listing (view details, add to my apps, edit, unshare), shared by the
+ * catalog cards and the listing detail page. Edit is a two-step flow:
+ * `requestEdit` sets a target listing whose dialog is rendered by
+ * `ListingActionDialogs`.
  */
 export function useListingActions(opts?: {
   onUnshared?: () => void;
 }): ListingActions {
   const navigate = useNavigate();
+  const [editTarget, setEditTarget] = useState<AppListing | null>(null);
   const addFromListingMutation = useAddFromListingMutation();
   const unshareListingMutation = useUnshareListingMutation();
+  const updateListingMutation = useUpdateListingMutation();
 
   const view = (listing: AppListing) => {
     navigate(buildListingDetailPath(listing.id));
@@ -62,11 +78,27 @@ export function useListingActions(opts?: {
     }
   };
 
+  // Errors intentionally propagate so EditListingDialog can show them inline.
+  const saveEdit = async (params: {
+    listing_id: number;
+    url: string;
+    name: string;
+    description: string;
+  }) => {
+    await updateListingMutation.mutateAsync(params);
+    toast.success('Listing updated');
+  };
+
   return {
     view,
     viewInMyApps,
     add,
     unshare,
+    saveEdit,
+    requestEdit: setEditTarget,
+    editTarget,
+    closeEdit: () => setEditTarget(null),
+    saving: updateListingMutation.isPending,
     addingId: addFromListingMutation.isPending
       ? (addFromListingMutation.variables?.listing_id ?? null)
       : null,
