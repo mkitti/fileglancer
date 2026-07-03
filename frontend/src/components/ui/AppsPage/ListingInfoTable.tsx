@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
+import { TbBrandGithub } from 'react-icons/tb';
 
 import FgExternalLink from '@/components/designSystem/atoms/FgExternalLink';
+import FgIcon from '@/components/designSystem/atoms/FgIcon';
 import FgLink from '@/components/designSystem/atoms/FgLink';
 import type { AppListing, UserApp } from '@/shared.types';
 import { formatDateString } from '@/utils';
@@ -27,6 +29,22 @@ function InfoRow({
       <td className={labelClass}>{label}</td>
       <td className={valueClass}>{children}</td>
     </tr>
+  );
+}
+
+function GithubUrlValue({ url }: { readonly url: string }) {
+  return (
+    <div className="flex items-center gap-1.5 text-foreground">
+      <FgIcon className="shrink-0" icon={TbBrandGithub} size="sm" />
+      <FgExternalLink
+        className="break-all"
+        href={url}
+        showIcon={false}
+        size="sm"
+      >
+        {url}
+      </FgExternalLink>
+    </div>
   );
 }
 
@@ -65,11 +83,7 @@ export default function ListingInfoTable({
     <table className="w-full text-sm mb-6">
       <tbody>
         <InfoRow label="URL">
-          <span className="py-1.5">
-            <FgExternalLink className="break-all" href={listing.url} size="sm">
-              {listing.url}
-            </FgExternalLink>
-          </span>
+          <GithubUrlValue url={listing.url} />
         </InfoRow>
         {revision ? (
           <InfoRow label="Revision">

@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
+import { TbBrandGithub } from 'react-icons/tb';
 
 import FgExternalLink from '@/components/designSystem/atoms/FgExternalLink';
+import FgIcon from '@/components/designSystem/atoms/FgIcon';
 import FgLink from '@/components/designSystem/atoms/FgLink';
 import type { UserApp } from '@/shared.types';
 import { formatDateString } from '@/utils';
@@ -40,13 +42,29 @@ function CommitValue({
 }) {
   if (href) {
     return (
-      <FgExternalLink className="break-all font-mono" href={href} size="sm">
+      <FgExternalLink className="break-all" href={href} size="sm">
         {sha}
       </FgExternalLink>
     );
   }
 
-  return <span className="break-all text-sm font-mono">{sha}</span>;
+  return <span className="break-all text-sm">{sha}</span>;
+}
+
+function GithubUrlValue({ url }: { readonly url: string }) {
+  return (
+    <div className="flex items-center gap-1.5 text-foreground">
+      <FgIcon className="shrink-0" icon={TbBrandGithub} size="sm" />
+      <FgExternalLink
+        className="break-all"
+        href={url}
+        showIcon={false}
+        size="sm"
+      >
+        {url}
+      </FgExternalLink>
+    </div>
+  );
 }
 
 export default function AppInfoTable({ app }: { readonly app: UserApp }) {
@@ -78,11 +96,7 @@ export default function AppInfoTable({ app }: { readonly app: UserApp }) {
     <table className="w-full text-sm mb-6">
       <tbody>
         <InfoRow label="URL">
-          <span className="py-1.5">
-            <FgExternalLink className="break-all" href={app.url} size="sm">
-              {app.url}
-            </FgExternalLink>
-          </span>
+          <GithubUrlValue url={app.url} />
         </InfoRow>
         {revision ? (
           <InfoRow label="Revision">
