@@ -97,7 +97,6 @@ export default function ListingInfoTable({
         <InfoRow label="Manifest path">
           {manifestPathLabel(listing.manifest_path)}
         </InfoRow>
-        <InfoRow label="Listing ID">#{listing.id}</InfoRow>
         <InfoRow label="Shared by">{listing.owner_username}</InfoRow>
         <InfoRow label="Published">{publishedAt}</InfoRow>
         <InfoRow label="Last edited">{editedAt}</InfoRow>
@@ -120,18 +119,6 @@ export default function ListingInfoTable({
               href={installedCommitUrl}
               sha={installedApp.commit_sha}
             />
-          </InfoRow>
-        ) : null}
-        {installedApp ? (
-          <InfoRow label="Added">
-            {formatDateString(installedApp.added_at)}
-          </InfoRow>
-        ) : null}
-        {installedApp ? (
-          <InfoRow label="My Apps updated">
-            {installedApp.updated_at
-              ? formatDateString(installedApp.updated_at)
-              : 'Not updated since added'}
           </InfoRow>
         ) : null}
         {listing.description ? (
