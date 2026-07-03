@@ -1,7 +1,55 @@
+import type { ReactNode } from 'react';
+
 import FgExternalLink from '@/components/designSystem/atoms/FgExternalLink';
-import type { AppListing } from '@/shared.types';
+import FgLink from '@/components/designSystem/atoms/FgLink';
+import type { AppListing, UserApp } from '@/shared.types';
 import { formatDateString } from '@/utils';
-import { parseGithubUrl } from '@/utils/appUrls';
+import {
+  buildAppDetailPath,
+  buildGithubCommitUrl,
+  parseGithubUrl
+} from '@/utils/appUrls';
+
+const labelClass =
+  'text-foreground font-medium pr-4 py-1.5 align-top whitespace-nowrap';
+const valueClass = 'text-foreground py-1.5';
+
+function manifestPathLabel(path: string): string {
+  return path || 'Repository root';
+}
+
+function InfoRow({
+  label,
+  children
+}: {
+  readonly label: string;
+  readonly children: ReactNode;
+}) {
+  return (
+    <tr>
+      <td className={labelClass}>{label}</td>
+      <td className={valueClass}>{children}</td>
+    </tr>
+  );
+}
+
+function CommitValue({
+  sha,
+  href
+}: {
+  readonly sha: string;
+  readonly href: string | null;
+}) {
+  if (href) {
+    return (
+      <FgExternalLink className="break-all text-xs font-mono" href={href}>
+        {sha}
+      </FgExternalLink>
+    );
+  }
+
+  return <span className="break-all text-xs font-mono">{sha}</span>;
+}
 
 /**
  * The revision actually cloned, parsed out of the canonical listing URL (which
@@ -16,45 +64,78 @@ function listingRevision(listing: AppListing): string | null {
 }
 
 export default function ListingInfoTable({
+  installedApp,
   listing
 }: {
+  readonly installedApp?: UserApp;
   readonly listing: AppListing;
 }) {
-  const labelClass =
-    'text-foreground font-medium pr-4 py-1.5 align-top whitespace-nowrap';
-  const valueClass = 'text-foreground py-1.5';
-
   const publishedAt = formatDateString(listing.published_at);
+  const editedAt = listing.updated_at
+    ? formatDateString(listing.updated_at)
+    : 'Not edited since publish';
   const revision = listingRevision(listing);
+  const installedCommitUrl = installedApp?.commit_sha
+    ? buildGithubCommitUrl(installedApp.url, installedApp.commit_sha)
+    : null;
 
   return (
     <table className="w-full text-sm mb-6">
       <tbody>
-        <tr>
-          <td className={labelClass}>URL</td>
-          <td className="py-1.5">
+        <InfoRow label="URL">
+          <span className="py-1.5">
             <FgExternalLink className="break-all" href={listing.url}>
               {listing.url}
             </FgExternalLink>
-          </td>
-        </tr>
+          </span>
+        </InfoRow>
         {revision ? (
-          <tr>
-            <td className={labelClass}>Revision</td>
-            <td className={valueClass}>{revision}</td>
-          </tr>
+          <InfoRow label="Revision">
+            <span className="break-all">{revision}</span>
+          </InfoRow>
         ) : null}
-        <tr>
-          <td className={labelClass}>Shared by</td>
-          <td className={valueClass}>
-            {listing.owner_username} on {publishedAt}
-          </td>
-        </tr>
+        <InfoRow label="Manifest path">
+          {manifestPathLabel(listing.manifest_path)}
+        </InfoRow>
+        <InfoRow label="Listing ID">#{listing.id}</InfoRow>
+        <InfoRow label="Shared by">{listing.owner_username}</InfoRow>
+        <InfoRow label="Published">{publishedAt}</InfoRow>
+        <InfoRow label="Last edited">{editedAt}</InfoRow>
+        {installedApp ? (
+          <InfoRow label="In My Apps">
+            <FgLink
+              size="sm"
+              to={buildAppDetailPath(
+                installedApp.url,
+                installedApp.manifest_path
+              )}
+            >
+              View installed app
+            </FgLink>
+          </InfoRow>
+        ) : null}
+        {installedApp?.commit_sha ? (
+          <InfoRow label="Installed commit">
+            <CommitValue
+              href={installedCommitUrl}
+              sha={installedApp.commit_sha}
+            />
+          </InfoRow>
+        ) : null}
+        {installedApp ? (
+          <InfoRow label="Added to My Apps">
+            {formatDateString(installedApp.added_at)}
+          </InfoRow>
+        ) : null}
+        {installedApp ? (
+          <InfoRow label="My Apps updated">
+            {installedApp.updated_at
+              ? formatDateString(installedApp.updated_at)
+              : 'Not updated since added'}
+          </InfoRow>
+        ) : null}
         {listing.description ? (
-          <tr>
-            <td className={labelClass}>Description</td>
-            <td className={valueClass}>{listing.description}</td>
-          </tr>
+          <InfoRow label="Description">{listing.description}</InfoRow>
         ) : null}
       </tbody>
     </table>
