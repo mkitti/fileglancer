@@ -6,12 +6,10 @@ import FgLink from '@/components/designSystem/atoms/FgLink';
 import CardActionsMenu from '@/components/ui/Menus/CardActionsMenu';
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
 import SharedBadge from '@/components/ui/AppsPage/SharedBadge';
-import UpdateAvailableBadge from '@/components/ui/AppsPage/UpdateAvailableBadge';
 import {
   buildAppMenuItems,
   isAppShared
 } from '@/components/ui/AppsPage/appMenuItems';
-import { useAppUpdateAvailable } from '@/queries/appsQueries';
 import { appRevision, buildAppDetailPath, parseGithubUrl } from '@/utils';
 import type { AppActions } from '@/hooks/useAppActions';
 import type { UserApp } from '@/shared.types';
@@ -38,7 +36,6 @@ function NameCell({
   readonly app: UserApp;
   readonly onContextMenu?: OnCellContextMenu;
 }) {
-  const updateAvailable = useAppUpdateAvailable(app);
   let detailPath: string | null = null;
   try {
     detailPath = buildAppDetailPath(app.url, app.manifest_path);
@@ -60,7 +57,6 @@ function NameCell({
       ) : (
         <span className="truncate">{app.name}</span>
       )}
-      {updateAvailable ? <UpdateAvailableBadge /> : null}
     </div>
   );
 }
