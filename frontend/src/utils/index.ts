@@ -394,6 +394,7 @@ export type {
 export {
   appRevision,
   parseGithubUrl,
+  repoLabel,
   isGithubRepoUrl,
   canonicalGithubUrl,
   buildAppUrl,

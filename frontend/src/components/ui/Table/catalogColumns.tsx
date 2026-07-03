@@ -1,5 +1,7 @@
 import type { ColumnDef } from '@tanstack/react-table';
 
+import FgExternalLink from '@/components/designSystem/atoms/FgExternalLink';
+import FgIcon from '@/components/designSystem/atoms/FgIcon';
 import FgLink from '@/components/designSystem/atoms/FgLink';
 import CardActionsMenu from '@/components/ui/Menus/CardActionsMenu';
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
@@ -7,7 +9,7 @@ import InYourAppsBadge from '@/components/ui/AppsPage/InYourAppsBadge';
 import { buildListingMenuItems } from '@/components/ui/AppsPage/listingMenuItems';
 import { buildListingDetailPath } from '@/hooks/useListingActions';
 import type { ListingActions } from '@/hooks/useListingActions';
-import { formatDateString } from '@/utils';
+import { formatDateString, getAppIconType, repoLabel } from '@/utils';
 import type { AppListing, UserApp } from '@/shared.types';
 
 export function createCatalogColumns(
@@ -17,21 +19,54 @@ export function createCatalogColumns(
 ): ColumnDef<AppListing>[] {
   return [
     {
-      accessorKey: 'name',
-      header: 'Name',
+      id: 'repository',
+      accessorFn: row => repoLabel(row.url),
+      header: 'Repository',
       cell: ({ getValue, row, table }) => {
         const value = getValue() as string;
         const onContextMenu = table.options.meta?.onCellContextMenu;
         return (
           <div
-            className="flex items-center gap-2 truncate w-full h-full"
+            className="flex items-center truncate w-full h-full"
             onContextMenu={e => {
               e.preventDefault();
               onContextMenu?.(e, { value });
             }}
           >
+            {/* No icon: the inline-flex icon layout defeats text truncation */}
+            <FgExternalLink
+              className="truncate min-w-0"
+              href={row.original.url}
+              showIcon={false}
+              size="sm"
+            >
+              {value}
+            </FgExternalLink>
+          </div>
+        );
+      },
+      enableSorting: true
+    },
+    {
+      accessorKey: 'name',
+      header: 'App Name',
+      cell: ({ getValue, row, table }) => {
+        const value = getValue() as string;
+        const onContextMenu = table.options.meta?.onCellContextMenu;
+        return (
+          <div
+            className="flex items-center gap-2 min-w-0 truncate w-full h-full"
+            onContextMenu={e => {
+              e.preventDefault();
+              onContextMenu?.(e, { value });
+            }}
+          >
+            <FgIcon
+              className="text-foreground flex-shrink-0"
+              icon={getAppIconType()}
+            />
             <FgLink
-              className="truncate"
+              className="truncate min-w-0"
               to={buildListingDetailPath(row.original.id)}
             >
               {value}

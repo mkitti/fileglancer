@@ -11,24 +11,9 @@ import {
   buildAppMenuItems,
   isAppShared
 } from '@/components/ui/AppsPage/appMenuItems';
-import {
-  appRevision,
-  buildAppDetailPath,
-  getAppIconType,
-  parseGithubUrl
-} from '@/utils';
+import { buildAppDetailPath, getAppIconType, repoLabel } from '@/utils';
 import type { AppActions } from '@/hooks/useAppActions';
 import type { UserApp } from '@/shared.types';
-
-/** "org/repo" label for an app's GitHub URL; falls back to the raw URL. */
-function repoLabel(app: UserApp): string {
-  try {
-    const { owner, repo } = parseGithubUrl(app.url);
-    return `${owner}/${repo}`;
-  } catch {
-    return app.url;
-  }
-}
 
 type OnCellContextMenu = (
   e: MouseEvent<HTMLElement>,
@@ -75,7 +60,7 @@ export function createMyAppsColumns(actions: AppActions): ColumnDef<UserApp>[] {
   return [
     {
       id: 'repository',
-      accessorFn: repoLabel,
+      accessorFn: row => repoLabel(row.url),
       header: 'Repository',
       cell: ({ getValue, row, table }) => {
         const value = getValue() as string;
@@ -103,29 +88,8 @@ export function createMyAppsColumns(actions: AppActions): ColumnDef<UserApp>[] {
       enableSorting: true
     },
     {
-      id: 'revision',
-      accessorFn: row => appRevision(row.url, row.branch) ?? '',
-      header: 'Revision',
-      cell: ({ getValue, table }) => {
-        const value = getValue() as string;
-        const onContextMenu = table.options.meta?.onCellContextMenu;
-        return (
-          <div
-            className="flex items-center truncate w-full h-full"
-            onContextMenu={e => {
-              e.preventDefault();
-              onContextMenu?.(e, { value });
-            }}
-          >
-            <span className="truncate text-sm">{value}</span>
-          </div>
-        );
-      },
-      enableSorting: true
-    },
-    {
       accessorKey: 'name',
-      header: 'Name',
+      header: 'App Name',
       cell: ({ row, table }) => (
         <NameCell
           app={row.original}

@@ -78,7 +78,7 @@ export default function Apps() {
             data={appsQuery.data || []}
             dataType="apps"
             errorState={appsQuery.error}
-            gridColsClass="grid-cols-[2fr_1fr_2fr_3fr_1fr_1fr]"
+            gridColsClass="grid-cols-[2fr_2fr_3fr_1fr_1fr]"
             loadingState={appsQuery.isPending}
           />
         </div>

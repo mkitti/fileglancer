@@ -118,7 +118,7 @@ export default function Catalog() {
             data={filteredListings}
             dataType="shared apps"
             errorState={catalogQuery.error}
-            gridColsClass="grid-cols-[2fr_3fr_1fr_1fr_1fr_1fr]"
+            gridColsClass="grid-cols-[2fr_2fr_3fr_1fr_1fr_1fr_1fr]"
             loadingState={catalogQuery.isPending}
           />
         </div>

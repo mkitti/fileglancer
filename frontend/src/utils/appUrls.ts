@@ -35,6 +35,16 @@ export function parseGithubUrl(url: string): {
   throw new Error(`Invalid GitHub URL: ${url}`);
 }
 
+/** "org/repo" label for an app's GitHub URL; falls back to the raw URL. */
+export function repoLabel(url: string): string {
+  try {
+    const { owner, repo } = parseGithubUrl(url);
+    return `${owner}/${repo}`;
+  } catch {
+    return url;
+  }
+}
+
 /**
  * Normalize a GitHub URL to its canonical https form (no ".git" suffix, no
  * trailing slash, no redundant "/tree/main"). Returns the input unchanged if it
