@@ -268,19 +268,26 @@ def validate_path_for_shell(path_value: str) -> str | None:
     return None
 
 
-def validate_path_in_filestore(path_value: str, fsps: list, check_access: bool = True) -> str | None:
+def validate_path_in_filestore(path_value: str, fsps: list, check_access: bool = True,
+                               expected_type: str | None = None) -> str | None:
     """Validate a path within an allowed file share.
 
     Always performs syntax checks and confirms the path resolves within an
     allowed file share; both checks are euid-independent. When check_access is
     True, additionally verifies the path exists and is readable.
 
-    The exists/readable check reflects the *calling process's* identity, so it
-    is only meaningful when this runs as the target user (i.e. in the setuid
-    worker). Callers running on the root server must pass check_access=False —
-    otherwise validation reflects root's access, not the user's (false-pass on
-    local FS where root bypasses perms, false-reject on root-squash NFS) — and
-    defer the access check to the worker (see submit_job).
+    When expected_type is 'file' or 'directory' and the path exists, its type
+    must match — a folder pasted into a file parameter (or vice versa) is
+    rejected here rather than failing at job runtime. A missing path is not
+    type-checked (an exists=false output has no type yet).
+
+    The exists/readable/type checks reflect the *calling process's* identity,
+    so they are only meaningful when this runs as the target user (i.e. in the
+    setuid worker). Callers running on the root server must pass
+    check_access=False — otherwise validation reflects root's access, not the
+    user's (false-pass on local FS where root bypasses perms, false-reject on
+    root-squash NFS) — and defer the access check to the worker (see
+    submit_job).
 
     Returns an error message string if invalid, or None if valid.
     """
@@ -304,14 +311,23 @@ def validate_path_in_filestore(path_value: str, fsps: list, check_access: bool =
     if result is None:
         return "Path is not within an allowed file share"
 
-    if not check_access:
-        return None
-
     fsp, subpath = result
 
-    from fileglancer.filestore import Filestore
-    filestore = Filestore(fsp)
-    return filestore.validate_path(subpath)
+    if check_access:
+        from fileglancer.filestore import Filestore
+        filestore = Filestore(fsp)
+        error = filestore.validate_path(subpath)
+        if error:
+            return error
+
+    if expected_type in ("file", "directory") and os.path.exists(expanded):
+        is_dir = os.path.isdir(expanded)
+        if expected_type == "file" and is_dir:
+            return "Path is a folder, but a file is required"
+        if expected_type == "directory" and not is_dir:
+            return "Path is a file, but a folder is required"
+
+    return None
 
 
 # --- Command Building ---
@@ -375,7 +391,8 @@ def _validate_parameter_value(param: AppParameter, value, session=None, username
         str_val = expand_user_path(str_val, username)
         if session is not None:
             fsps = db.get_file_share_paths(session)
-            error = validate_path_in_filestore(str_val, fsps, check_access=check_access)
+            error = validate_path_in_filestore(str_val, fsps, check_access=check_access,
+                                               expected_type=param.type)
         else:
             error = validate_path_for_shell(str_val)
         if error:
@@ -488,14 +505,13 @@ def build_command(entry_point: AppEntryPoint, parameters: dict,
 
 
 def collect_path_parameters(entry_point: AppEntryPoint, parameters: dict,
-                            env_parameters: dict = None) -> list[tuple[str, str, str, bool]]:
+                            env_parameters: dict = None) -> list[tuple[AppParameter, str]]:
     """Collect effective file/directory parameter values needing path validation.
 
     Mirrors build_command's effective-value computation (user-provided merged
     with defaults, across both the env and pipeline namespaces) but returns only
-    file/directory parameters as (param_key, param_name, raw_value, exists)
-    tuples. exists=False params are outputs the job may create, so they are
-    validated for file-share containment only, not existence.
+    file/directory parameters as (param, raw_value) tuples, so callers can key
+    validation off the parameter's type and exists flag.
 
     Raw (un-expanded) values are returned so that authoritative validation can
     run in the setuid worker, where '~' and access checks resolve as the target
@@ -506,7 +522,7 @@ def collect_path_parameters(entry_point: AppEntryPoint, parameters: dict,
     param_flat = _flatten_param_items(entry_point.parameters)
     groups = ((env_flat, env_parameters), (param_flat, parameters))
 
-    result: list[tuple[str, str, str, bool]] = []
+    result: list[tuple[AppParameter, str]] = []
     for flat, values in groups:
         for param in flat:
             if param.type not in ("file", "directory"):
@@ -517,7 +533,7 @@ def collect_path_parameters(entry_point: AppEntryPoint, parameters: dict,
                 value = param.default
             else:
                 continue
-            result.append((param.key, param.name, str(value), param.exists))
+            result.append((param, str(value)))
     return result
 
 

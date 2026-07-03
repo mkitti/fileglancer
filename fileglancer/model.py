@@ -920,6 +920,11 @@ class PathValidationRequest(BaseModel):
         description="Keys whose path may not exist yet (exists=false params): "
                     "validated for file-share containment only, not existence",
     )
+    types: Dict[str, str] = Field(
+        default={},
+        description="Expected type per key ('file' or 'directory'): when the "
+                    "path exists, its type must match",
+    )
 
 
 class PathValidationResponse(BaseModel):

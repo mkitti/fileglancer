@@ -41,7 +41,6 @@ type FileSelectorOptions = {
   // When true, initialPath points at a file, so the browser opens its parent
   // folder. Leave unset when initialPath is already a folder to open as-is.
   initialPathIsFile?: boolean;
-  mode?: FileSelectorMode;
   pathPreferenceOverride?: ['linux_path'];
   // When neither initialLocation nor initialPath resolves to a folder, open in
   // the user's home directory instead of the top-level zones list.
@@ -54,7 +53,6 @@ export default function useFileSelector(options?: FileSelectorOptions) {
   const { profile } = useProfileContext();
 
   const initialLocation = options?.initialLocation;
-  const mode = options?.mode ?? 'any';
   const defaultToHome = options?.defaultToHome ?? false;
   const overrideKey = options?.pathPreferenceOverride?.[0];
   const effectivePathPreference = useMemo(
@@ -450,11 +448,10 @@ export default function useFileSelector(options?: FileSelectorOptions) {
         return;
       }
 
-      // Case 2: Item provided - select that item
-      // Only reject files in directory mode
-      if (!item.is_dir && mode === 'directory') {
-        return;
-      }
+      // Case 2: Item provided - select that item. Files are selectable even
+      // in directory mode (and vice versa) — the consumer surfaces a
+      // validation error for type mismatches instead of the dialog silently
+      // ignoring the click.
 
       // Don't allow selecting zones - user must select an FSP or folder within FSP
       if (state.currentLocation.type === 'zones') {
@@ -504,7 +501,6 @@ export default function useFileSelector(options?: FileSelectorOptions) {
       currentFsp,
       effectivePathPreference,
       pathPreference,
-      mode,
       zonesAndFspQuery.data
     ]
   );

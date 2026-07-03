@@ -34,7 +34,11 @@ function getParentPath(fullPath: string): string {
 }
 
 type FileSelectorButtonProps = {
-  readonly onSelect: (path: string, displayPath: string) => void;
+  readonly onSelect: (
+    path: string,
+    displayPath: string,
+    isDir: boolean
+  ) => void;
   readonly triggerClasses?: string;
   readonly label?: string;
   readonly initialLocation?: FileSelectorInitialLocation;
@@ -98,7 +102,6 @@ export default function FileSelectorButton({
     initialLocation,
     initialPath: showDialog ? effectiveInitialPath : undefined,
     initialPathIsFile,
-    mode,
     pathPreferenceOverride: useServerPath ? ['linux_path'] : undefined,
     defaultToHome
   });
@@ -173,7 +176,11 @@ export default function FileSelectorButton({
       lastSelectedFolderPath = state.selectedItem.isDir
         ? state.selectedItem.displayPath
         : getParentPath(state.selectedItem.displayPath);
-      onSelect(state.selectedItem.fullPath, state.selectedItem.displayPath);
+      onSelect(
+        state.selectedItem.fullPath,
+        state.selectedItem.displayPath,
+        state.selectedItem.isDir
+      );
       onClose();
     }
   };

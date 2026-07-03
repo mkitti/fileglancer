@@ -1018,6 +1018,41 @@ class TestValidatePathInFilestore:
         assert error is not None
         assert "not within an allowed file share" in error
 
+    def test_folder_rejected_when_file_expected(self, tmp_path):
+        from fileglancer.model import FileSharePath
+        subdir = tmp_path / "results"
+        subdir.mkdir()
+        fsp = FileSharePath(zone="test", name="test", mount_path=str(tmp_path))
+        error = validate_path_in_filestore(str(subdir), [fsp], expected_type="file")
+        assert error == "Path is a folder, but a file is required"
+
+    def test_file_rejected_when_directory_expected(self, tmp_path):
+        from fileglancer.model import FileSharePath
+        test_file = tmp_path / "data.txt"
+        test_file.write_text("hello")
+        fsp = FileSharePath(zone="test", name="test", mount_path=str(tmp_path))
+        error = validate_path_in_filestore(str(test_file), [fsp],
+                                           expected_type="directory")
+        assert error == "Path is a file, but a folder is required"
+
+    def test_matching_type_passes(self, tmp_path):
+        from fileglancer.model import FileSharePath
+        test_file = tmp_path / "data.txt"
+        test_file.write_text("hello")
+        fsp = FileSharePath(zone="test", name="test", mount_path=str(tmp_path))
+        assert validate_path_in_filestore(str(test_file), [fsp],
+                                          expected_type="file") is None
+        assert validate_path_in_filestore(str(tmp_path), [fsp],
+                                          expected_type="directory") is None
+
+    def test_missing_path_not_type_checked(self, tmp_path):
+        """An exists=false output has no type yet, so only containment applies."""
+        from fileglancer.model import FileSharePath
+        fsp = FileSharePath(zone="test", name="test", mount_path=str(tmp_path))
+        missing = str(tmp_path / "report.html")
+        assert validate_path_in_filestore(missing, [fsp], check_access=False,
+                                          expected_type="file") is None
+
 
 
 class TestBuildCommandTildeExpansion:
@@ -1163,10 +1198,10 @@ class TestCollectPathParameters:
         )
         # Only file/directory params; non-path 'count' excluded. Env namespace
         # default included; pipeline 'outdir' falls back to its default.
-        assert result == [
-            ("envdir", "Env Dir", "/data/envdefault", True),
-            ("input", "Input Path", "/data/in.txt", True),
-            ("outdir", "Out Dir", "/data/outdefault", True),
+        assert [(p.key, p.type, v) for p, v in result] == [
+            ("envdir", "directory", "/data/envdefault"),
+            ("input", "file", "/data/in.txt"),
+            ("outdir", "directory", "/data/outdefault"),
         ]
 
     def test_carries_exists_flag(self):
@@ -1183,9 +1218,9 @@ class TestCollectPathParameters:
         result = collect_path_parameters(
             ep, {"report": "/data/report.html", "input": "/data/in.txt"}
         )
-        assert result == [
-            ("report", "Report", "/data/report.html", False),
-            ("input", "Input Path", "/data/in.txt", True),
+        assert [(p.key, p.exists, v) for p, v in result] == [
+            ("report", False, "/data/report.html"),
+            ("input", True, "/data/in.txt"),
         ]
 
     def test_omits_path_params_without_value_or_default(self):

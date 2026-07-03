@@ -69,11 +69,13 @@ type EnvVar = { key: string; value: string };
 function ParameterField({
   param,
   value,
-  onChange
+  onChange,
+  onError
 }: {
   readonly param: AppParameter;
   readonly value: unknown;
   readonly onChange: (value: unknown) => void;
+  readonly onError?: (message: string) => void;
 }) {
   // For file/directory fields, track a display-formatted path separately from
   // the server-formatted value used for submission. When the user selects a
@@ -170,9 +172,20 @@ function ParameterField({
             }
             label="Browse..."
             mode={param.type === 'file' ? 'file' : 'directory'}
-            onSelect={(serverPath, displayPath) => {
+            onSelect={(serverPath, displayPath, isDir) => {
+              // onChange clears any previous error for this param; flag a
+              // type mismatch right away rather than at submit time.
               onChange(serverPath);
               setFileDisplayPath(displayPath);
+              if (param.type === 'file' && isDir) {
+                onError?.(
+                  `${param.name} must be a file, but a folder was selected`
+                );
+              } else if (param.type === 'directory' && !isDir) {
+                onError?.(
+                  `${param.name} must be a folder, but a file was selected`
+                );
+              }
             }}
             useServerPath
           />
@@ -196,12 +209,14 @@ function ParameterFieldRow({
   param,
   value,
   error,
-  onChange
+  onChange,
+  onError
 }: {
   readonly param: AppParameter;
   readonly value: unknown;
   readonly error?: string;
   readonly onChange: (value: unknown) => void;
+  readonly onError?: (message: string) => void;
 }) {
   return (
     <div>
@@ -219,7 +234,12 @@ function ParameterFieldRow({
           {param.description}
         </Typography>
       ) : null}
-      <ParameterField onChange={onChange} param={param} value={value} />
+      <ParameterField
+        onChange={onChange}
+        onError={onError}
+        param={param}
+        value={value}
+      />
       {param.description && param.type === 'boolean' ? (
         <Typography className="text-foreground mt-1" type="small">
           {param.description}
@@ -272,12 +292,14 @@ function SectionContent({
   section,
   values,
   errors,
-  onParamChange
+  onParamChange,
+  onParamError
 }: {
   readonly section: AppParameterSection;
   readonly values: Record<string, unknown>;
   readonly errors: Record<string, string>;
   readonly onParamChange: (paramId: string, value: unknown) => void;
+  readonly onParamError?: (paramId: string, message: string) => void;
 }) {
   return (
     <div className="space-y-4">
@@ -286,6 +308,7 @@ function SectionContent({
           error={errors[param.key]}
           key={param.key}
           onChange={val => onParamChange(param.key, val)}
+          onError={message => onParamError?.(param.key, message)}
           param={param}
           value={values[param.key]}
         />
@@ -855,6 +878,13 @@ export default function AppLaunchForm({
     }
   };
 
+  // Immediate per-field validation errors (e.g. a folder picked from the
+  // Browse dialog where a file is required), raised without waiting for
+  // submit. handleChange clears them on the next value change.
+  const handleParamError = (paramId: string, message: string) => {
+    setErrors(prev => ({ ...prev, [paramId]: message }));
+  };
+
   // Env-tab params have their own value dict so their keys can't collide with
   // pipeline param keys.
   const handleEnvChange = (paramId: string, value: unknown) => {
@@ -969,6 +999,9 @@ export default function AppLaunchForm({
     // fail pre-submit validation. (Directory params among them are created by
     // Fileglancer at submit time.)
     const mayBeMissingKeys: string[] = [];
+    // Expected type per key, so a folder pasted into a file param (or vice
+    // versa) is rejected by server-side validation.
+    const pathParamTypes: Record<string, string> = {};
     for (const [key, val] of Object.entries(values)) {
       if (val !== undefined && val !== null && val !== '') {
         const paramDef = paramDefs.get(key);
@@ -988,6 +1021,7 @@ export default function AppLaunchForm({
             !normalized.startsWith('https://')
           ) {
             pathParams[key] = normalized;
+            pathParamTypes[key] = paramDef.type;
             if (paramDef.exists === false) {
               mayBeMissingKeys.push(key);
             }
@@ -1002,7 +1036,11 @@ export default function AppLaunchForm({
     if (Object.keys(pathParams).length > 0) {
       setValidating(true);
       try {
-        const pathErrors = await validatePaths(pathParams, mayBeMissingKeys);
+        const pathErrors = await validatePaths(
+          pathParams,
+          mayBeMissingKeys,
+          pathParamTypes
+        );
         if (Object.keys(pathErrors).length > 0) {
           setErrors(prev => ({ ...prev, ...pathErrors }));
           setValidating(false);
@@ -1306,6 +1344,7 @@ export default function AppLaunchForm({
                           <SectionContent
                             errors={errors}
                             onParamChange={handleChange}
+                            onParamError={handleParamError}
                             section={item}
                             values={values}
                           />
@@ -1316,6 +1355,7 @@ export default function AppLaunchForm({
                         error={errors[item.key]}
                         key={item.key}
                         onChange={val => handleChange(item.key, val)}
+                        onError={message => handleParamError(item.key, message)}
                         param={item}
                         value={values[item.key]}
                       />
@@ -1329,6 +1369,7 @@ export default function AppLaunchForm({
                       error={errors[item.key]}
                       key={item.key}
                       onChange={val => handleChange(item.key, val)}
+                      onError={message => handleParamError(item.key, message)}
                       param={item}
                       value={values[item.key]}
                     />

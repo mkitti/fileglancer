@@ -641,20 +641,23 @@ async def submit_job(
 
     path_params = collect_path_parameters(entry_point, parameters, env_parameters)
     if path_params:
-        paths_to_check = {str(i): value for i, (_, _, value, _) in enumerate(path_params)}
+        paths_to_check = {str(i): value for i, (_, value) in enumerate(path_params)}
         # exists=false params are outputs the job may create: containment check
         # only. Directory params among them were just created above, but file
         # params (e.g. a Nextflow output file) never exist pre-launch.
-        may_be_missing = [str(i) for i, (_, _, _, exists) in enumerate(path_params)
-                          if not exists]
+        may_be_missing = [str(i) for i, (param, _) in enumerate(path_params)
+                          if not param.exists]
+        # Expected type per key, so a folder pasted into a file param (or vice
+        # versa) is rejected here rather than failing at job runtime.
+        types = {str(i): param.type for i, (param, _) in enumerate(path_params)}
         validation = await _dispatch(username, "validate_paths", paths=paths_to_check,
-                                     may_be_missing=may_be_missing)
+                                     may_be_missing=may_be_missing, types=types)
         errors = (validation or {}).get("errors") or {}
         if errors:
             # Report the first failure, keyed back to its parameter name, to
             # match the single-message format build_command would have raised.
             idx = min(int(i) for i in errors)
-            _, param_name, _, _ = path_params[idx]
+            param_name = path_params[idx][0].name
             raise ValueError(f"Parameter '{param_name}': {errors[str(idx)]}")
 
     # Build resource spec (extra_args passed separately, not from manifest)

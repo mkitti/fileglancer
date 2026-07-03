@@ -713,3 +713,47 @@ class TestValidatePathsAction:
             ctx,
         )
         assert "logdir" in result["errors"]
+
+    def test_folder_rejected_when_file_expected(self, tmp_path):
+        ctx = self._ctx(tmp_path)
+        subdir = tmp_path / "results"
+        subdir.mkdir()
+        result = _action_validate_paths(
+            {"paths": {"input": str(subdir)}, "types": {"input": "file"}},
+            ctx,
+        )
+        assert result["errors"]["input"] == "Path is a folder, but a file is required"
+
+    def test_file_rejected_when_directory_expected(self, tmp_path):
+        ctx = self._ctx(tmp_path)
+        csv = tmp_path / "samples.csv"
+        csv.write_text("sample\n")
+        result = _action_validate_paths(
+            {"paths": {"outdir": str(csv)}, "types": {"outdir": "directory"}},
+            ctx,
+        )
+        assert result["errors"]["outdir"] == "Path is a file, but a folder is required"
+
+    def test_existing_wrong_type_rejected_even_when_may_be_missing(self, tmp_path):
+        # An exists=false param skips the existence check, but a path that DOES
+        # exist with the wrong type is still an error.
+        ctx = self._ctx(tmp_path)
+        csv = tmp_path / "samples.csv"
+        csv.write_text("sample\n")
+        result = _action_validate_paths(
+            {"paths": {"outdir": str(csv)}, "may_be_missing": ["outdir"],
+             "types": {"outdir": "directory"}},
+            ctx,
+        )
+        assert result["errors"]["outdir"] == "Path is a file, but a folder is required"
+
+    def test_matching_type_passes(self, tmp_path):
+        ctx = self._ctx(tmp_path)
+        csv = tmp_path / "samples.csv"
+        csv.write_text("sample\n")
+        result = _action_validate_paths(
+            {"paths": {"input": str(csv), "outdir": str(tmp_path)},
+             "types": {"input": "file", "outdir": "directory"}},
+            ctx,
+        )
+        assert result == {"errors": {}}

@@ -2071,7 +2071,8 @@ def create_app(settings):
     async def validate_paths(body: PathValidationRequest,
                              username: str = Depends(get_current_user)):
         result = await _worker_exec(username, "validate_paths", paths=body.paths,
-                                    may_be_missing=body.may_be_missing)
+                                    may_be_missing=body.may_be_missing,
+                                    types=body.types)
         return PathValidationResponse(errors=result.get("errors", {}))
 
     # --- Catalog (shared apps) API ---
