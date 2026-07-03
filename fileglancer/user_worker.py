@@ -646,15 +646,16 @@ def _action_validate_paths(request: dict, ctx: WorkerContext) -> dict:
     from fileglancer.apps.command import validate_path_in_filestore
 
     paths = request["paths"]
-    # Keys whose directory may not exist yet (create_if_missing params) are
-    # checked for file-share containment only — Fileglancer creates them at
-    # submit time, so a missing-but-in-share path is valid here.
-    create_if_missing = set(request.get("create_if_missing") or [])
+    # Keys whose path may not exist yet (exists=false params) are checked for
+    # file-share containment only — these are outputs the job creates
+    # (directories are created by Fileglancer at submit time), so a
+    # missing-but-in-share path is valid here.
+    may_be_missing = set(request.get("may_be_missing") or [])
     fsps = ctx.db.get_file_share_paths()
     errors = {}
     for param_key, path_value in paths.items():
         error = validate_path_in_filestore(
-            path_value, fsps, check_access=param_key not in create_if_missing
+            path_value, fsps, check_access=param_key not in may_be_missing
         )
         if error:
             errors[param_key] = error
@@ -663,7 +664,7 @@ def _action_validate_paths(request: dict, ctx: WorkerContext) -> dict:
 
 @action("create_dirs")
 def _action_create_dirs(request: dict, ctx: WorkerContext) -> dict:
-    """Create directories for app params with create_if_missing set.
+    """Create directories for app params with exists=false.
 
     Runs as the target user in the setuid worker. Each path is expanded ('~'
     resolves to this user's home), confirmed to be within an allowed file share

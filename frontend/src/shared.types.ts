@@ -79,7 +79,9 @@ type AppParameter = {
   pattern?: string;
   hidden?: boolean;
   raw?: boolean;
-  create_if_missing?: boolean;
+  /** file/directory params: when false, the path is an output the job may
+   * create, so it need not exist before launch. Defaults to true. */
+  exists?: boolean;
 };
 
 type AppParameterSection = {

@@ -53,6 +53,12 @@ def _convert_property(name: str, prop: dict, is_required: bool) -> AppParameter:
     if is_required:
         kwargs["required"] = True
 
+    # Nextflow schemas only require a path to exist when "exists": true is set;
+    # anything else (outdir, report paths, ...) is an output the pipeline
+    # creates, so don't demand it exists before launch.
+    if param_type in ("file", "directory"):
+        kwargs["exists"] = prop.get("exists") is True
+
     if "default" in prop:
         default = prop["default"]
         if isinstance(default, str):

@@ -488,12 +488,14 @@ def build_command(entry_point: AppEntryPoint, parameters: dict,
 
 
 def collect_path_parameters(entry_point: AppEntryPoint, parameters: dict,
-                            env_parameters: dict = None) -> list[tuple[str, str, str]]:
+                            env_parameters: dict = None) -> list[tuple[str, str, str, bool]]:
     """Collect effective file/directory parameter values needing path validation.
 
     Mirrors build_command's effective-value computation (user-provided merged
     with defaults, across both the env and pipeline namespaces) but returns only
-    file/directory parameters as (param_key, param_name, raw_value) tuples.
+    file/directory parameters as (param_key, param_name, raw_value, exists)
+    tuples. exists=False params are outputs the job may create, so they are
+    validated for file-share containment only, not existence.
 
     Raw (un-expanded) values are returned so that authoritative validation can
     run in the setuid worker, where '~' and access checks resolve as the target
@@ -504,7 +506,7 @@ def collect_path_parameters(entry_point: AppEntryPoint, parameters: dict,
     param_flat = _flatten_param_items(entry_point.parameters)
     groups = ((env_flat, env_parameters), (param_flat, parameters))
 
-    result: list[tuple[str, str, str]] = []
+    result: list[tuple[str, str, str, bool]] = []
     for flat, values in groups:
         for param in flat:
             if param.type not in ("file", "directory"):
@@ -515,19 +517,19 @@ def collect_path_parameters(entry_point: AppEntryPoint, parameters: dict,
                 value = param.default
             else:
                 continue
-            result.append((param.key, param.name, str(value)))
+            result.append((param.key, param.name, str(value), param.exists))
     return result
 
 
 def collect_creatable_dirs(entry_point: AppEntryPoint, parameters: dict,
                            env_parameters: dict = None) -> list[tuple[str, str]]:
-    """Collect effective directory values for params with create_if_missing set.
+    """Collect effective directory values for params with exists=false.
 
     Mirrors collect_path_parameters' effective-value logic (user value else
     default, across both the env and pipeline namespaces) but returns only
-    directory params carrying create_if_missing, as (param_name, raw_value)
-    tuples. Raw (un-expanded) values are returned so the setuid worker resolves
-    '~' as the target user. See submit_job.
+    directory params whose path need not exist yet (exists=false), as
+    (param_name, raw_value) tuples. Raw (un-expanded) values are returned so
+    the setuid worker resolves '~' as the target user. See submit_job.
     """
     env_parameters = env_parameters or {}
     env_flat = _flatten_param_items(entry_point.env_parameters)
@@ -537,7 +539,7 @@ def collect_creatable_dirs(entry_point: AppEntryPoint, parameters: dict,
     result: list[tuple[str, str]] = []
     for flat, values in groups:
         for param in flat:
-            if param.type != "directory" or not param.create_if_missing:
+            if param.type != "directory" or param.exists:
                 continue
             if param.key in values:
                 value = values[param.key]

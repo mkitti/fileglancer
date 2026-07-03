@@ -682,7 +682,7 @@ class TestCreateDirsAction:
 
 
 class TestValidatePathsAction:
-    """validate_paths checks existence, except for create_if_missing keys."""
+    """validate_paths checks existence, except for may_be_missing keys."""
 
     def _ctx(self, mount_path):
         fsp = FileSharePath(zone="test", name="vp", mount_path=str(mount_path))
@@ -694,22 +694,22 @@ class TestValidatePathsAction:
         result = _action_validate_paths({"paths": {"logdir": str(missing)}}, ctx)
         assert "logdir" in result["errors"]
 
-    def test_missing_dir_ok_when_create_if_missing(self, tmp_path):
+    def test_missing_dir_ok_when_may_be_missing(self, tmp_path):
         ctx = self._ctx(tmp_path)
         missing = tmp_path / "logs"
         result = _action_validate_paths(
-            {"paths": {"logdir": str(missing)}, "create_if_missing": ["logdir"]},
+            {"paths": {"logdir": str(missing)}, "may_be_missing": ["logdir"]},
             ctx,
         )
         assert result == {"errors": {}}
 
-    def test_create_if_missing_still_enforces_containment(self, tmp_path):
+    def test_may_be_missing_still_enforces_containment(self, tmp_path):
         share = tmp_path / "share"
         share.mkdir()
         ctx = self._ctx(share)
         outside = tmp_path / "outside" / "logs"
         result = _action_validate_paths(
-            {"paths": {"logdir": str(outside)}, "create_if_missing": ["logdir"]},
+            {"paths": {"logdir": str(outside)}, "may_be_missing": ["logdir"]},
             ctx,
         )
         assert "logdir" in result["errors"]

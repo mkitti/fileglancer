@@ -1164,9 +1164,28 @@ class TestCollectPathParameters:
         # Only file/directory params; non-path 'count' excluded. Env namespace
         # default included; pipeline 'outdir' falls back to its default.
         assert result == [
-            ("envdir", "Env Dir", "/data/envdefault"),
-            ("input", "Input Path", "/data/in.txt"),
-            ("outdir", "Out Dir", "/data/outdefault"),
+            ("envdir", "Env Dir", "/data/envdefault", True),
+            ("input", "Input Path", "/data/in.txt", True),
+            ("outdir", "Out Dir", "/data/outdefault", True),
+        ]
+
+    def test_carries_exists_flag(self):
+        ep = AppEntryPoint(
+            id="test",
+            name="test",
+            command="test_cmd",
+            parameters=[
+                {"key": "report", "name": "Report", "type": "file",
+                 "flag": "--report", "exists": False},
+                {"key": "input", "name": "Input Path", "type": "file", "flag": "--input"},
+            ],
+        )
+        result = collect_path_parameters(
+            ep, {"report": "/data/report.html", "input": "/data/in.txt"}
+        )
+        assert result == [
+            ("report", "Report", "/data/report.html", False),
+            ("input", "Input Path", "/data/in.txt", True),
         ]
 
     def test_omits_path_params_without_value_or_default(self):
@@ -1179,20 +1198,25 @@ class TestCollectPathParameters:
         assert collect_path_parameters(ep, {}) == []
 
 
-class TestCreateIfMissingValidation:
-    """create_if_missing is only valid on directory params."""
+class TestExistsValidation:
+    """exists is only valid on file and directory params."""
 
     def test_accepted_on_directory(self):
-        p = AppParameter(key="d", name="Dir", type="directory", create_if_missing=True)
-        assert p.create_if_missing is True
+        p = AppParameter(key="d", name="Dir", type="directory", exists=False)
+        assert p.exists is False
 
-    def test_defaults_false(self):
+    def test_accepted_on_file(self):
+        p = AppParameter(key="f", name="File", type="file", exists=False)
+        assert p.exists is False
+
+    def test_defaults_true(self):
         p = AppParameter(key="d", name="Dir", type="directory")
-        assert p.create_if_missing is False
+        assert p.exists is True
 
-    @pytest.mark.parametrize("bad_type", ["file", "string", "integer", "enum"])
-    def test_rejected_on_non_directory(self, bad_type):
-        kwargs = {"key": "p", "name": "P", "type": bad_type, "create_if_missing": True}
+    @pytest.mark.parametrize("bad_type", ["string", "integer", "enum"])
+    @pytest.mark.parametrize("value", [True, False])
+    def test_rejected_on_non_path_type(self, bad_type, value):
+        kwargs = {"key": "p", "name": "P", "type": bad_type, "exists": value}
         if bad_type == "enum":
             kwargs["options"] = ["a", "b"]
         with pytest.raises(ValidationError):
@@ -1200,7 +1224,7 @@ class TestCreateIfMissingValidation:
 
 
 class TestCollectCreatableDirs:
-    """collect_creatable_dirs gathers directory params flagged create_if_missing."""
+    """collect_creatable_dirs gathers directory params with exists=false."""
 
     def test_collects_via_default_and_user_value(self):
         ep = AppEntryPoint(
@@ -1209,12 +1233,12 @@ class TestCollectCreatableDirs:
             command="test_cmd",
             env_parameters=[{
                 "key": "envdir", "name": "Env Dir", "type": "directory",
-                "default": "~/.fileglancer/env", "create_if_missing": True,
+                "default": "~/.fileglancer/env", "exists": False,
             }],
             parameters=[
                 {"key": "logdir", "name": "Log Dir", "type": "directory",
                  "flag": "--logdir", "default": "~/.fileglancer/logs",
-                 "create_if_missing": True},
+                 "exists": False},
                 # directory without the flag -> excluded
                 {"key": "indir", "name": "In Dir", "type": "directory",
                  "flag": "--indir", "default": "/data/in"},
@@ -1226,11 +1250,24 @@ class TestCollectCreatableDirs:
             env_parameters={},
         )
         # Env default included; pipeline 'logdir' uses the user value; 'indir'
-        # excluded (no create_if_missing).
+        # excluded (must exist, so it is never created).
         assert result == [
             ("Env Dir", "~/.fileglancer/env"),
             ("Log Dir", "/data/mylogs"),
         ]
+
+    def test_omits_file_params(self):
+        # exists=false file params skip the existence check but are never
+        # created (there is nothing sensible to create for a file output).
+        ep = AppEntryPoint(
+            id="test",
+            name="test",
+            command="test_cmd",
+            parameters=[{"key": "report", "name": "Report", "type": "file",
+                         "flag": "--report", "default": "~/report.html",
+                         "exists": False}],
+        )
+        assert collect_creatable_dirs(ep, {}) == []
 
     def test_omits_when_no_effective_value(self):
         ep = AppEntryPoint(
@@ -1238,7 +1275,7 @@ class TestCollectCreatableDirs:
             name="test",
             command="test_cmd",
             parameters=[{"key": "logdir", "name": "Log Dir", "type": "directory",
-                         "flag": "--logdir", "create_if_missing": True}],
+                         "flag": "--logdir", "exists": False}],
         )
         assert collect_creatable_dirs(ep, {}) == []
 
@@ -1249,7 +1286,7 @@ class TestCollectCreatableDirs:
             command="test_cmd",
             parameters=[{"key": "logdir", "name": "Log Dir", "type": "directory",
                          "flag": "--logdir", "default": "~/logs",
-                         "create_if_missing": True}],
+                         "exists": False}],
         )
         assert collect_creatable_dirs(ep, {"logdir": ""}) == []
 
@@ -1987,6 +2024,48 @@ class TestNextflowRunsFromWorkDir:
         ep = NextflowAdapter().convert(tmp_path).runnables[0]
         param = next(p for p in ep.flat_parameters() if p.key == "ribo_database_manifest")
         assert param.default == "./repo/assets/rrna-db-defaults.txt"
+
+
+class TestNextflowPathExists:
+    """Nextflow path params only require existence when the schema sets
+    "exists": true — anything else (outdir, report paths, ...) is an output
+    the pipeline creates."""
+
+    def _convert(self, tmp_path, properties):
+        (tmp_path / "nextflow_schema.json").write_text(json.dumps({
+            "$defs": {"opts": {"title": "Options", "properties": properties}},
+            "allOf": [{"$ref": "#/$defs/opts"}],
+        }))
+        ep = NextflowAdapter().convert(tmp_path).runnables[0]
+        return {p.key: p for p in ep.flat_parameters()}
+
+    def test_exists_true_requires_existence(self, tmp_path):
+        params = self._convert(tmp_path, {
+            "input": {"type": "string", "format": "file-path", "exists": True},
+        })
+        assert params["input"].exists is True
+
+    def test_path_without_exists_may_be_missing(self, tmp_path):
+        params = self._convert(tmp_path, {
+            "outdir": {"type": "string", "format": "directory-path"},
+            "report": {"type": "string", "format": "file-path"},
+        })
+        assert params["outdir"].exists is False
+        assert params["report"].exists is False
+
+    def test_exists_false_may_be_missing(self, tmp_path):
+        # nf-schema uses "exists": false to assert non-existence; either way
+        # the path is not required to exist before launch.
+        params = self._convert(tmp_path, {
+            "outdir": {"type": "string", "format": "directory-path", "exists": False},
+        })
+        assert params["outdir"].exists is False
+
+    def test_non_path_params_unaffected(self, tmp_path):
+        params = self._convert(tmp_path, {
+            "title": {"type": "string"},
+        })
+        assert params["title"].exists is True  # model default, not path-validated
 
 
 class TestNextflowAdapterNaming:

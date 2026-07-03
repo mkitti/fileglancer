@@ -625,10 +625,10 @@ async def submit_job(
     # as a service account that isn't in the user's groups, so a redundant
     # server-side check would wrongly reject (or, on local FS, wrongly accept)
     # paths the user can actually access.
-    # Create any directory params flagged create_if_missing first, as the user,
-    # so a home default like '~/.fileglancer/logs' exists by the time the
-    # existence check below runs. Containment (within a file share) is enforced
-    # in the worker before makedirs, so this never writes outside a share.
+    # Create any directory params with exists=false first, as the user, so a
+    # home default like '~/.fileglancer/logs' exists by the time the job runs.
+    # Containment (within a file share) is enforced in the worker before
+    # makedirs, so this never writes outside a share.
     creatable_dirs = collect_creatable_dirs(entry_point, parameters, env_parameters)
     if creatable_dirs:
         paths_to_create = {str(i): value for i, (_, value) in enumerate(creatable_dirs)}
@@ -641,14 +641,20 @@ async def submit_job(
 
     path_params = collect_path_parameters(entry_point, parameters, env_parameters)
     if path_params:
-        paths_to_check = {str(i): value for i, (_, _, value) in enumerate(path_params)}
-        validation = await _dispatch(username, "validate_paths", paths=paths_to_check)
+        paths_to_check = {str(i): value for i, (_, _, value, _) in enumerate(path_params)}
+        # exists=false params are outputs the job may create: containment check
+        # only. Directory params among them were just created above, but file
+        # params (e.g. a Nextflow output file) never exist pre-launch.
+        may_be_missing = [str(i) for i, (_, _, _, exists) in enumerate(path_params)
+                          if not exists]
+        validation = await _dispatch(username, "validate_paths", paths=paths_to_check,
+                                     may_be_missing=may_be_missing)
         errors = (validation or {}).get("errors") or {}
         if errors:
             # Report the first failure, keyed back to its parameter name, to
             # match the single-message format build_command would have raised.
             idx = min(int(i) for i in errors)
-            _, param_name, _ = path_params[idx]
+            _, param_name, _, _ = path_params[idx]
             raise ValueError(f"Parameter '{param_name}': {errors[str(idx)]}")
 
     # Build resource spec (extra_args passed separately, not from manifest)

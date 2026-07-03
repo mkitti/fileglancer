@@ -340,11 +340,15 @@ class AppParameter(BaseModel):
     pattern: Optional[str] = Field(description="Regex validation pattern for string types", default=None)
     hidden: bool = Field(description="Whether the parameter is hidden by default in the UI", default=False)
     raw: bool = Field(description="If true, value is appended to the command without shell quoting", default=False)
-    create_if_missing: bool = Field(
-        description="directory params only: create the resolved directory (as the user, "
-                    "within an allowed file share) before the existence check, so a home "
-                    "default like '~/.fileglancer/logs' works on first launch",
-        default=False,
+    exists: bool = Field(
+        description="file/directory params only: when true (the default), the path "
+                    "must exist and be readable before launch. Set false for outputs "
+                    "the job creates — the pre-launch existence check is skipped "
+                    "(file-share containment is still enforced), and directory params "
+                    "are created (as the user, within an allowed file share) before "
+                    "launch, so a home default like '~/.fileglancer/logs' works on "
+                    "first launch",
+        default=True,
     )
 
     @field_validator("flag")
@@ -370,10 +374,10 @@ class AppParameter(BaseModel):
         return [str(item) for item in v]
 
     @model_validator(mode='after')
-    def validate_create_if_missing(self):
-        if self.create_if_missing and self.type != "directory":
+    def validate_exists(self):
+        if "exists" in self.model_fields_set and self.type not in ("file", "directory"):
             raise ValueError(
-                f"create_if_missing is only valid on directory parameters, "
+                f"exists is only valid on file and directory parameters, "
                 f"but '{self.name}' has type '{self.type}'"
             )
         return self
@@ -911,10 +915,10 @@ class JobSubmitRequest(BaseModel):
 class PathValidationRequest(BaseModel):
     """Request to validate file/directory paths"""
     paths: Dict[str, str] = Field(description="Map of parameter key to path value")
-    create_if_missing: List[str] = Field(
+    may_be_missing: List[str] = Field(
         default=[],
-        description="Keys whose directory may not exist yet (create_if_missing "
-                    "params): validated for file-share containment only, not existence",
+        description="Keys whose path may not exist yet (exists=false params): "
+                    "validated for file-share containment only, not existence",
     )
 
 

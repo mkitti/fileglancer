@@ -964,10 +964,11 @@ export default function AppLaunchForm({
     // Filter out undefined/empty values and normalize paths to Linux format
     const params: Record<string, unknown> = {};
     const pathParams: Record<string, string> = {};
-    // Directory params flagged create_if_missing are validated for file-share
-    // containment only — Fileglancer creates them at submit time, so their
-    // absence must not fail pre-submit validation.
-    const createIfMissingKeys: string[] = [];
+    // Path params with exists=false are outputs the job may create, so they
+    // are validated for file-share containment only — their absence must not
+    // fail pre-submit validation. (Directory params among them are created by
+    // Fileglancer at submit time.)
+    const mayBeMissingKeys: string[] = [];
     for (const [key, val] of Object.entries(values)) {
       if (val !== undefined && val !== null && val !== '') {
         const paramDef = paramDefs.get(key);
@@ -987,8 +988,8 @@ export default function AppLaunchForm({
             !normalized.startsWith('https://')
           ) {
             pathParams[key] = normalized;
-            if (paramDef.type === 'directory' && paramDef.create_if_missing) {
-              createIfMissingKeys.push(key);
+            if (paramDef.exists === false) {
+              mayBeMissingKeys.push(key);
             }
           }
         } else {
@@ -1001,7 +1002,7 @@ export default function AppLaunchForm({
     if (Object.keys(pathParams).length > 0) {
       setValidating(true);
       try {
-        const pathErrors = await validatePaths(pathParams, createIfMissingKeys);
+        const pathErrors = await validatePaths(pathParams, mayBeMissingKeys);
         if (Object.keys(pathErrors).length > 0) {
           setErrors(prev => ({ ...prev, ...pathErrors }));
           setValidating(false);
