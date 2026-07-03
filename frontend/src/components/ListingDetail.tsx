@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router';
 import { Typography } from '@material-tailwind/react';
 import { HiOutlinePlus } from 'react-icons/hi';
 import { HiOutlineEllipsisVertical } from 'react-icons/hi2';
+import { FaUsersSlash } from 'react-icons/fa6';
 
 import AppPageHeader from '@/components/ui/AppsPage/AppPageHeader';
 import EntryPointsList from '@/components/ui/AppsPage/EntryPointsList';
@@ -10,6 +11,7 @@ import ListingInfoTable from '@/components/ui/AppsPage/ListingInfoTable';
 import CardActionsMenu from '@/components/ui/Menus/CardActionsMenu';
 import type { MenuItem } from '@/components/ui/Menus/FgMenuItems';
 import FgButton from '@/components/designSystem/atoms/FgButton';
+import FgTooltip from '@/components/ui/widgets/FgTooltip';
 import {
   useAppsQuery,
   useCatalogQuery,
@@ -91,18 +93,13 @@ export default function ListingDetail() {
     profile?.username !== undefined &&
     profile.username === listing.owner_username;
   const adding = actions.addingId === listing.id;
+  const unsharing = actions.unsharingId === listing.id;
 
   const menuItems: MenuItem<AppListing>[] = [
     {
       name: 'View in My Apps',
       action: () => installedApp && actions.viewInMyApps(installedApp),
       shouldShow: alreadyAdded
-    },
-    {
-      name: 'Unshare',
-      action: l => void actions.unshare(l),
-      color: 'text-error',
-      shouldShow: canManage
     }
   ];
   const hasMenuItems = menuItems.some(item => item.shouldShow !== false);
@@ -124,6 +121,21 @@ export default function ListingDetail() {
               >
                 Add to my apps
               </FgButton>
+            ) : null}
+            {canManage ? (
+              <FgTooltip label="Unshare from catalog">
+                <FgButton
+                  disabled={unsharing}
+                  icon={FaUsersSlash}
+                  loading={unsharing}
+                  loadingText="Unsharing..."
+                  onClick={() => void actions.unshare(listing)}
+                  size="sm"
+                  variant="outline"
+                >
+                  Unshare
+                </FgButton>
+              </FgTooltip>
             ) : null}
             {hasMenuItems ? (
               <CardActionsMenu<AppListing>
