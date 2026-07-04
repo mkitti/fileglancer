@@ -18,7 +18,10 @@ export function buildListingDetailPath(listingId: number): string {
 export interface ListingActions {
   view: (listing: AppListing) => void;
   viewInMyApps: (app: UserApp) => void;
-  add: (listing: AppListing) => Promise<void>;
+  requestAdd: (listing: AppListing) => void;
+  confirmAdd: () => Promise<void>;
+  addTarget: AppListing | null;
+  closeAdd: () => void;
   requestUnshare: (listing: AppListing) => void;
   confirmUnshare: () => Promise<void>;
   unshareTarget: AppListing | null;
@@ -50,6 +53,7 @@ export function useListingActions(opts?: {
 }): ListingActions {
   const navigate = useNavigate();
   const [editTarget, setEditTarget] = useState<AppListing | null>(null);
+  const [addTarget, setAddTarget] = useState<AppListing | null>(null);
   const [unshareTarget, setUnshareTarget] = useState<AppListing | null>(null);
   const addFromListingMutation = useAddFromListingMutation();
   const unshareListingMutation = useUnshareListingMutation();
@@ -63,10 +67,15 @@ export function useListingActions(opts?: {
     navigate(buildAppDetailPath(app.url, app.manifest_path));
   };
 
-  const add = async (listing: AppListing) => {
+  const confirmAdd = async () => {
+    const listing = addTarget;
+    if (!listing) {
+      return;
+    }
     try {
       await addFromListingMutation.mutateAsync({ listing_id: listing.id });
       toast.success(`Added "${listing.name}"`);
+      setAddTarget(null);
     } catch (e) {
       showErrorToast(e, 'Failed to add app');
     }
@@ -101,7 +110,10 @@ export function useListingActions(opts?: {
   return {
     view,
     viewInMyApps,
-    add,
+    requestAdd: setAddTarget,
+    confirmAdd,
+    addTarget,
+    closeAdd: () => setAddTarget(null),
     requestUnshare: setUnshareTarget,
     confirmUnshare,
     unshareTarget,

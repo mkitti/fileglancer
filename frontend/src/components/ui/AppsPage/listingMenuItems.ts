@@ -16,7 +16,7 @@ export function buildListingMenuItems(
   return [
     {
       name: 'Add to my apps',
-      action: l => void actions.add(l),
+      action: l => actions.requestAdd(l),
       shouldShow: !alreadyAdded
     },
     { name: 'View', action: l => actions.view(l) },

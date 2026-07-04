@@ -77,7 +77,7 @@ export default function ListingCard({
                 icon={HiOutlinePlus}
                 loading={adding}
                 loadingText="Adding..."
-                onClick={() => void actions.add(listing)}
+                onClick={() => actions.requestAdd(listing)}
                 size="sm"
               >
                 Add

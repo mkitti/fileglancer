@@ -1,3 +1,4 @@
+import AddFromCatalogDialog from '@/components/ui/AppsPage/AddFromCatalogDialog';
 import EditListingDialog from '@/components/ui/AppsPage/EditListingDialog';
 import UnshareDialog from '@/components/ui/AppsPage/UnshareDialog';
 import type { ListingActions } from '@/hooks/useListingActions';
@@ -13,6 +14,13 @@ export default function ListingActionDialogs({
 }) {
   return (
     <>
+      <AddFromCatalogDialog
+        adding={actions.addingId !== null}
+        listing={actions.addTarget}
+        onClose={actions.closeAdd}
+        onConfirm={actions.confirmAdd}
+        open={actions.addTarget !== null}
+      />
       <EditListingDialog
         listing={actions.editTarget}
         onClose={actions.closeEdit}
