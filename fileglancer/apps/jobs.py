@@ -687,7 +687,7 @@ async def submit_job(
                 "memory": resource_spec.memory,
                 "walltime": resource_spec.walltime,
                 "queue": resource_spec.queue,
-                "extra_args": " ".join(resource_spec.extra_args) if resource_spec.extra_args else None,
+                "extra_args": shlex.join(resource_spec.extra_args) if resource_spec.extra_args else None,
             }.items()
             if v is not None
         }
@@ -973,7 +973,12 @@ def _build_resource_spec(entry_point: AppEntryPoint, overrides: Optional[dict], 
         if overrides.get("queue") is not None:
             queue = overrides["queue"]
         if overrides.get("extra_args") is not None:
-            extra_args = [overrides["extra_args"]]
+            # The UI/preferences deliver extra_args as one string (e.g.
+            # '-P proj -R "select[mem>8000]"'); split into individual argv
+            # tokens so the scheduler receives distinct options rather than a
+            # single malformed argument. Quotes group tokens that contain
+            # spaces.
+            extra_args = shlex.split(overrides["extra_args"])
 
     return ResourceSpec(
         cpus=cpus,

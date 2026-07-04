@@ -1,4 +1,5 @@
 import re
+import shlex
 from datetime import datetime
 from typing import Annotated, Any, List, Literal, Optional, Dict, Union
 
@@ -905,8 +906,19 @@ class JobSubmitRequest(BaseModel):
     @field_validator("extra_args")
     @classmethod
     def validate_extra_args(cls, v):
-        if v is not None and _SHELL_METACHAR_PATTERN.search(v):
-            raise ValueError(f"extra_args contains forbidden characters: {v!r}")
+        # extra_args are shlex-split into argv tokens and passed to the
+        # scheduler via exec (no shell — see cluster_api's bsub), so shell
+        # metacharacters are safe and in fact required: LSF resource strings
+        # like -R "select[mem>8000]" contain '>', '[' and ']'. Only require
+        # that the string parses into balanced tokens and carries no NUL.
+        if v is None:
+            return v
+        if "\x00" in v:
+            raise ValueError("extra_args must not contain NUL bytes")
+        try:
+            shlex.split(v)
+        except ValueError as e:
+            raise ValueError(f"extra_args could not be parsed into arguments: {e}")
         return v
 
     @field_validator("container")

@@ -567,7 +567,9 @@ class TestContainerValidation:
 
 
 class TestJobSubmitExtraArgsValidation:
-    """Validate that extra_args rejects shell metacharacters."""
+    """extra_args are shlex-split into argv tokens and exec'd (no shell) by the
+    scheduler, so shell metacharacters are safe; only unparseable strings and
+    NUL bytes are rejected."""
 
     _BASE = dict(
         app_url="https://github.com/org/repo",
@@ -583,21 +585,54 @@ class TestJobSubmitExtraArgsValidation:
         req = JobSubmitRequest(**self._BASE, extra_args=None)
         assert req.extra_args is None
 
-    def test_rejects_semicolon(self):
-        with pytest.raises(ValidationError, match="forbidden characters"):
-            JobSubmitRequest(**self._BASE, extra_args="--gres=gpu:1; rm -rf /")
+    def test_lsf_resource_string_allowed(self):
+        # The regression this fixes: LSF -R strings use '>', '[' and ']', which
+        # the old shell-metachar denylist wrongly rejected (and which the UI
+        # placeholder actually suggests).
+        req = JobSubmitRequest(
+            **self._BASE, extra_args='-P proj -R "select[mem>8000]"')
+        assert req.extra_args == '-P proj -R "select[mem>8000]"'
 
-    def test_rejects_backtick(self):
-        with pytest.raises(ValidationError, match="forbidden characters"):
-            JobSubmitRequest(**self._BASE, extra_args="--gres=`whoami`")
+    @pytest.mark.parametrize("value", [
+        "--gres=gpu:1; rm -rf /",
+        "--gres=`whoami`",
+        "--queue=$USER",
+        "--flag | cat /etc/passwd",
+    ])
+    def test_shell_metacharacters_allowed_as_literal_argv(self, value):
+        # These are safe now: shlex.split turns them into literal argv tokens
+        # passed to the scheduler via exec, so no shell interprets them.
+        req = JobSubmitRequest(**self._BASE, extra_args=value)
+        assert req.extra_args == value
 
-    def test_rejects_dollar(self):
-        with pytest.raises(ValidationError, match="forbidden characters"):
-            JobSubmitRequest(**self._BASE, extra_args="--queue=$USER")
+    def test_rejects_unbalanced_quotes(self):
+        with pytest.raises(ValidationError, match="could not be parsed"):
+            JobSubmitRequest(**self._BASE, extra_args='-R "unterminated')
 
-    def test_rejects_pipe(self):
-        with pytest.raises(ValidationError, match="forbidden characters"):
-            JobSubmitRequest(**self._BASE, extra_args="--flag | cat /etc/passwd")
+    def test_rejects_nul(self):
+        with pytest.raises(ValidationError, match="NUL"):
+            JobSubmitRequest(**self._BASE, extra_args="--flag\x00")
+
+
+class TestBuildResourceSpecExtraArgs:
+    """extra_args strings are tokenized (not wrapped as one argv element)."""
+
+    def _settings(self):
+        from fileglancer.settings import Settings
+        return Settings(db_url="sqlite://", file_share_mounts=[], cli_mode=True)
+
+    def test_string_is_split_into_tokens(self):
+        from fileglancer.apps.jobs import _build_resource_spec
+        ep = AppEntryPoint(id="t", name="T", command="echo")
+        spec = _build_resource_spec(
+            ep, {"extra_args": '-P proj -R "select[mem>8000]"'}, self._settings())
+        assert spec.extra_args == ["-P", "proj", "-R", "select[mem>8000]"]
+
+    def test_empty_string_yields_no_args(self):
+        from fileglancer.apps.jobs import _build_resource_spec
+        ep = AppEntryPoint(id="t", name="T", command="echo")
+        spec = _build_resource_spec(ep, {"extra_args": ""}, self._settings())
+        assert spec.extra_args == []
 
 
 class TestContainerSifName:
