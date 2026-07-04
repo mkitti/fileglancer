@@ -14,6 +14,7 @@ import {
   materialDark,
   coy
 } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import toast from 'react-hot-toast';
 
 import AnsiText from '@/components/ui/AppsPage/AnsiText';
 import AppPageHeader from '@/components/ui/AppsPage/AppPageHeader';
@@ -22,6 +23,7 @@ import FgIcon from '@/components/designSystem/atoms/FgIcon';
 import FgLink from '@/components/designSystem/atoms/FgLink';
 import CancelJobDialog from '@/components/ui/Dialogs/CancelJob';
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
+import { showErrorToast } from '@/utils/errorToast';
 import type {
   JobFileInfo,
   FileSharePath,
@@ -601,6 +603,26 @@ export default function JobDetail() {
     });
   };
 
+  // Cancel/stop the job, reporting success and — critically — failure, so a
+  // failed stop of a running service isn't silently swallowed (the service
+  // would keep consuming cluster resources). Keep the dialog open on error so
+  // the user can retry.
+  const handleStopConfirm = async () => {
+    if (!job) {
+      return;
+    }
+    try {
+      await cancelMutation.mutateAsync(job.id);
+      toast.success(isService ? 'Service stopped' : 'Job cancelled');
+      setShowStopConfirm(false);
+    } catch (error) {
+      showErrorToast(
+        error,
+        isService ? 'Failed to stop service' : 'Failed to cancel job'
+      );
+    }
+  };
+
   return (
     <div>
       {jobQuery.isPending ? (
@@ -756,10 +778,7 @@ export default function JobDetail() {
             isPending={cancelMutation.isPending}
             isService={isService}
             onClose={() => setShowStopConfirm(false)}
-            onConfirm={() => {
-              cancelMutation.mutate(job.id);
-              setShowStopConfirm(false);
-            }}
+            onConfirm={handleStopConfirm}
             open={showStopConfirm}
           />
 
