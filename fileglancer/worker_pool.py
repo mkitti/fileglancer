@@ -49,6 +49,30 @@ _HEADER_SIZE = struct.calcsize(_HEADER_FMT)
 _MAX_MESSAGE_SIZE = 64 * 1024 * 1024  # 64 MB safety limit
 
 
+def _build_worker_env(base_env: dict, home_dir: str, log_level: str,
+                      child_fd: int) -> dict:
+    """Build the environment for a worker subprocess.
+
+    Workers run as the (untrusted) target user, so anything in their
+    environment is readable by that user via /proc/<pid>/environ. Every
+    Fileglancer setting is exposed through the ``fgc_`` env prefix (see
+    Settings), so we strip *all* ``FGC_*`` variables — the session secret key,
+    Okta client secret, Atlassian token, DB URL, etc. — rather than an
+    ad-hoc denylist that would miss newly-added secrets. The worker receives
+    its config over the IPC socket instead (DB access via RpcDbProxy), plus the
+    two operational vars set below.
+
+    Non-``FGC_`` variables (PATH, HOME, locale, SSH, and scheduler vars such as
+    LSF_*) are preserved so git, ssh, and the cluster tools still function; an
+    allowlist would risk silently dropping scheduler env the submit host needs.
+    """
+    env = {k: v for k, v in base_env.items() if not k.upper().startswith("FGC_")}
+    env["HOME"] = home_dir
+    env["FGC_LOG_LEVEL"] = log_level
+    env["FGC_WORKER_FD"] = str(child_fd)
+    return env
+
+
 class WorkerError(Exception):
     """Raised when a worker returns an error response."""
     def __init__(self, message: str, status_code: int = 500):
@@ -351,17 +375,13 @@ class WorkerPool:
         # Create Unix socketpair for IPC
         parent_sock, child_sock = socket.socketpair()
 
-        # Worker subprocess deliberately does NOT receive the DB URL — it
-        # runs as the (untrusted) target user, so credentials would be
-        # readable via /proc/<pid>/environ. All DB queries reverse-RPC back
-        # to the parent over the IPC socket instead.
-        env = {
-            **os.environ,
-            "HOME": home_dir,
-            "FGC_LOG_LEVEL": self.settings.log_level,
-            "FGC_WORKER_FD": str(child_sock.fileno()),
-        }
-        env.pop("FGC_DB_URL", None)
+        # Worker subprocess deliberately does NOT receive any Fileglancer
+        # secrets (DB URL, session secret key, Okta client secret, Atlassian
+        # token, ...) — it runs as the (untrusted) target user, so they would
+        # be readable via /proc/<pid>/environ. See _build_worker_env.
+        env = _build_worker_env(
+            os.environ, home_dir, self.settings.log_level, child_sock.fileno()
+        )
 
         logger.info(
             f"Spawning persistent worker for {username} "

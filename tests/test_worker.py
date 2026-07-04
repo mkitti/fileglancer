@@ -41,12 +41,57 @@ from fileglancer.worker_pool import (
     WorkerPool,
     WorkerError,
     WorkerDead,
+    _build_worker_env,
 )
 
 
 # ---------------------------------------------------------------------------
 # IPC protocol tests (user_worker.py _send/_recv/_send_with_fd)
 # ---------------------------------------------------------------------------
+
+class TestBuildWorkerEnv:
+    """Worker environment must not carry Fileglancer secrets to the user."""
+
+    def test_strips_all_fgc_variables(self):
+        base = {
+            "PATH": "/usr/bin",
+            "FGC_DB_URL": "postgresql://admin:pw@db/fg",
+            "FGC_SESSION_SECRET_KEY": "super-secret",
+            "FGC_OKTA_CLIENT_SECRET": "okta-secret",
+            "FGC_ATLASSIAN_TOKEN": "atlassian-secret",
+            "fgc_test_api_key": "lowercase-secret",
+        }
+        env = _build_worker_env(base, "/home/user", "INFO", 7)
+        for key in list(env):
+            assert not key.upper().startswith("FGC_") or key in (
+                "FGC_LOG_LEVEL",
+                "FGC_WORKER_FD",
+            ), f"secret leaked: {key}"
+        # The specific secrets are gone regardless of case.
+        assert "FGC_DB_URL" not in env
+        assert "FGC_SESSION_SECRET_KEY" not in env
+        assert "FGC_OKTA_CLIENT_SECRET" not in env
+        assert "FGC_ATLASSIAN_TOKEN" not in env
+        assert "fgc_test_api_key" not in env
+
+    def test_preserves_non_fgc_and_sets_operational_vars(self):
+        base = {
+            "PATH": "/usr/bin:/bin",
+            "LSF_ENVDIR": "/opt/lsf/conf",
+            "LANG": "en_US.UTF-8",
+            "SSH_AUTH_SOCK": "/tmp/ssh-agent.sock",
+        }
+        env = _build_worker_env(base, "/home/alice", "DEBUG", 9)
+        # Scheduler / git / locale vars survive so cluster tools keep working.
+        assert env["PATH"] == "/usr/bin:/bin"
+        assert env["LSF_ENVDIR"] == "/opt/lsf/conf"
+        assert env["LANG"] == "en_US.UTF-8"
+        assert env["SSH_AUTH_SOCK"] == "/tmp/ssh-agent.sock"
+        # Operational vars the worker needs are set explicitly.
+        assert env["HOME"] == "/home/alice"
+        assert env["FGC_LOG_LEVEL"] == "DEBUG"
+        assert env["FGC_WORKER_FD"] == "9"
+
 
 class TestIPCProtocol:
     """Test the length-prefixed JSON wire protocol."""
