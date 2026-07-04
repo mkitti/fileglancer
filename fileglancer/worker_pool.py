@@ -48,6 +48,30 @@ _HEADER_FMT = "!I"
 _HEADER_SIZE = struct.calcsize(_HEADER_FMT)
 _MAX_MESSAGE_SIZE = 64 * 1024 * 1024  # 64 MB safety limit
 
+# Per-request receive timeout (seconds). The default covers ordinary IPC
+# round-trips. Git-heavy actions get a far larger ceiling because they
+# legitimately run much longer than a normal request: git clone is bounded at
+# 120s (manifest.py), snapshot creation clones and checks out with 300s ceilings
+# each, and discovery walks/converts the repo on top of a clone. A fixed 120s
+# timeout would make the parent treat the worker as dead mid-clone; keeping the
+# ceiling comfortably above the underlying operation timeouts lets a
+# slow-but-valid clone/snapshot return its result instead.
+_DEFAULT_REQUEST_TIMEOUT = 120
+_GIT_ACTION_TIMEOUT = 900
+_LONG_ACTIONS = frozenset({
+    "ensure_repo",
+    "discover_manifests",
+    "read_manifest",
+    "ensure_snapshot",
+    "gc_snapshots",
+    "submit",
+})
+
+
+def _timeout_for_action(action: str) -> float:
+    """Return the receive timeout (seconds) for a worker action."""
+    return _GIT_ACTION_TIMEOUT if action in _LONG_ACTIONS else _DEFAULT_REQUEST_TIMEOUT
+
 
 def _build_worker_env(base_env: dict, home_dir: str, log_level: str,
                       child_fd: int) -> dict:
@@ -136,8 +160,9 @@ class UserWorker:
             try:
                 request = {"action": action, **kwargs}
                 loop = asyncio.get_event_loop()
+                timeout = _timeout_for_action(action)
                 response = await loop.run_in_executor(
-                    None, self._send_and_recv, request)
+                    None, self._send_and_recv, request, timeout)
 
                 if response.get("error"):
                     # Close any fd that arrived with an error response
@@ -156,14 +181,19 @@ class UserWorker:
                 self._busy = False
                 self.last_activity = time.monotonic()
 
-    def _send_and_recv(self, request: dict) -> dict:
+    def _send_and_recv(self, request: dict, timeout: float = _DEFAULT_REQUEST_TIMEOUT) -> dict:
         """Send a request and receive the action response (blocking, runs in thread).
+
+        ``timeout`` bounds each blocking receive on the socket; it is set per
+        request (requests are serialized under the per-worker lock, so this is
+        safe) so that a long git clone/snapshot isn't misread as a dead worker.
 
         Loops on receive: any inbound ``_kind == "db_request"`` message is a
         reverse-RPC from the worker (which has no DB credentials) asking the
         parent to run a DB query on its behalf. We dispatch it, send back a
         ``db_response``, and keep reading. Anything else is the action result.
         """
+        self.sock.settimeout(timeout)
         self._send_msg(request)
 
         while True:

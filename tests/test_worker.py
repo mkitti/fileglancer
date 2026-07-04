@@ -42,6 +42,9 @@ from fileglancer.worker_pool import (
     WorkerError,
     WorkerDead,
     _build_worker_env,
+    _timeout_for_action,
+    _DEFAULT_REQUEST_TIMEOUT,
+    _GIT_ACTION_TIMEOUT,
 )
 
 
@@ -91,6 +94,25 @@ class TestBuildWorkerEnv:
         assert env["HOME"] == "/home/alice"
         assert env["FGC_LOG_LEVEL"] == "DEBUG"
         assert env["FGC_WORKER_FD"] == "9"
+
+
+class TestActionTimeout:
+    """Git-heavy actions get a longer receive timeout than the default."""
+
+    def test_default_for_ordinary_action(self):
+        assert _timeout_for_action("validate_paths") == _DEFAULT_REQUEST_TIMEOUT
+
+    def test_git_actions_get_longer_ceiling(self):
+        assert _GIT_ACTION_TIMEOUT > _DEFAULT_REQUEST_TIMEOUT
+        for action in ("ensure_repo", "discover_manifests", "read_manifest",
+                       "ensure_snapshot", "gc_snapshots", "submit"):
+            assert _timeout_for_action(action) == _GIT_ACTION_TIMEOUT
+
+    def test_ceiling_exceeds_snapshot_operation_timeout(self):
+        # snapshot creation runs a 300s clone then a 300s checkout; the IPC
+        # ceiling must sit above that so a valid snapshot isn't read as a
+        # dead worker.
+        assert _GIT_ACTION_TIMEOUT >= 600
 
 
 class TestIPCProtocol:
