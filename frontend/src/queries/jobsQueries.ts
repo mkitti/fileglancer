@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryResult, UseMutationResult } from '@tanstack/react-query';
 
@@ -145,17 +146,31 @@ export function useJobFileQuery(
   enabled: boolean = true
 ): UseQueryResult<string | null, Error> {
   const isActive = jobStatus === 'PENDING' || jobStatus === 'RUNNING';
-  return useQuery({
+  const query = useQuery({
     queryKey: [...jobsQueryKeys.detail(jobId), 'file', fileType],
     queryFn: ({ signal }) => fetchJobFile(jobId, fileType, signal),
     // Defer fetching the file content until its tab is viewed, so opening a
     // job doesn't load all three log files up front.
     enabled,
     refetchInterval: () => {
-      // Auto-refresh while job is active, or if file doesn't exist yet
+      // Auto-refresh while the job is active; polling stops once it's terminal.
       return isActive ? 5000 : false;
     }
   });
+
+  // Polling stops the moment the job goes terminal, but the last ~5s of output
+  // (and the scheduler epilogue) is written right around then. Do one final
+  // refetch on the active -> terminal edge so the viewed log isn't left stale.
+  const { refetch } = query;
+  const wasActive = useRef(isActive);
+  useEffect(() => {
+    if (wasActive.current && !isActive && enabled) {
+      void refetch();
+    }
+    wasActive.current = isActive;
+  }, [isActive, enabled, refetch]);
+
+  return query;
 }
 
 // --- Mutation Hooks ---
