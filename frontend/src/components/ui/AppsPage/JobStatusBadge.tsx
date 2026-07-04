@@ -21,7 +21,12 @@ export default function JobStatusBadge({
 }: {
   readonly status: Job['status'];
 }) {
-  const { color, label, dot } = STATUS_MAP[status] ?? STATUS_MAP.FAILED;
+  // An unrecognized status (e.g. the cluster API's UNKNOWN, which the server
+  // treats as live) is shown neutrally rather than mislabeled as a failure.
+  const { color, label, dot } = STATUS_MAP[status] ?? {
+    color: 'neutral' as const,
+    label: 'Unknown'
+  };
   return (
     <FgBadge color={color} dot={dot} variant="pill">
       {label}
