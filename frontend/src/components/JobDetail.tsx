@@ -30,6 +30,7 @@ import type {
   AppLaunchParamsFile,
   AppResourceDefaults
 } from '@/shared.types';
+import { isActiveJobStatus } from '@/shared.types';
 import JobStatusBadge from '@/components/ui/AppsPage/JobStatusBadge';
 import {
   formatDateString,
@@ -302,7 +303,7 @@ function JobOverview({
   readonly onViewStdout: () => void;
   readonly onViewStderr: () => void;
 }) {
-  const isActive = job.status === 'PENDING' || job.status === 'RUNNING';
+  const isActive = isActiveJobStatus(job.status);
   const runtime = formatDuration(job.started_at, job.finished_at);
   const queueWait = job.started_at
     ? formatDuration(job.created_at, job.started_at)
@@ -507,7 +508,7 @@ export default function JobDetail() {
   const jobManifestMutation = useManifestPreviewMutation();
 
   const isService = jobQuery.data?.entry_point_type === 'service';
-  const isActive = jobStatus === 'PENDING' || jobStatus === 'RUNNING';
+  const isActive = isActiveJobStatus(jobStatus);
 
   useEffect(() => {
     const checkDarkMode = () => {

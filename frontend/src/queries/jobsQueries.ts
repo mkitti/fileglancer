@@ -7,6 +7,7 @@ import {
   getResponseJsonOrError,
   throwResponseNotOkError
 } from '@/queries/queryUtils';
+import { isActiveJobStatus } from '@/shared.types';
 import type { Job, JobSubmitRequest } from '@/shared.types';
 
 // --- Types ---
@@ -115,9 +116,7 @@ export function useJobsQuery(): UseQueryResult<Job[], Error> {
       if (!jobs) {
         return false;
       }
-      const hasActive = jobs.some(
-        j => j.status === 'PENDING' || j.status === 'RUNNING'
-      );
+      const hasActive = jobs.some(j => isActiveJobStatus(j.status));
       return hasActive ? 5000 : false;
     }
   });
@@ -132,9 +131,7 @@ export function useJobQuery(jobId: number): UseQueryResult<Job, Error> {
       if (!job) {
         return false;
       }
-      return job.status === 'PENDING' || job.status === 'RUNNING'
-        ? 5000
-        : false;
+      return isActiveJobStatus(job.status) ? 5000 : false;
     }
   });
 }
@@ -145,7 +142,7 @@ export function useJobFileQuery(
   jobStatus?: string,
   enabled: boolean = true
 ): UseQueryResult<string | null, Error> {
-  const isActive = jobStatus === 'PENDING' || jobStatus === 'RUNNING';
+  const isActive = isActiveJobStatus(jobStatus);
   const query = useQuery({
     queryKey: [...jobsQueryKeys.detail(jobId), 'file', fileType],
     queryFn: ({ signal }) => fetchJobFile(jobId, fileType, signal),

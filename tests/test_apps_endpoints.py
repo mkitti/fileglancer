@@ -802,7 +802,7 @@ def test_delete_app_removes_row(test_client, db_session):
     assert response.status_code == 404
 
 
-@pytest.mark.parametrize("status", ["PENDING", "RUNNING"])
+@pytest.mark.parametrize("status", ["PENDING", "RUNNING", "UNKNOWN", "SUSPENDED"])
 def test_delete_active_job_is_rejected(test_client, db_session, status):
     job = _seed_job(db_session, status=status)
     job_id = job.id

@@ -6,6 +6,7 @@ import FgTooltip from '@/components/ui/widgets/FgTooltip';
 import JobStatusBadge from '@/components/ui/AppsPage/JobStatusBadge';
 import { formatDateString } from '@/utils';
 import type { MenuItem } from '@/components/ui/Menus/FgMenuItems';
+import { isActiveJobStatus } from '@/shared.types';
 import type { Job } from '@/shared.types';
 
 function formatDuration(job: Job): string {
@@ -146,7 +147,7 @@ export function createAppsJobsColumns(
       header: 'Actions',
       cell: ({ row }) => {
         const job = row.original;
-        const canCancel = job.status === 'PENDING' || job.status === 'RUNNING';
+        const canCancel = isActiveJobStatus(job.status);
 
         const isService = job.entry_point_type === 'service';
         const menuItems: MenuItem<JobRowActionProps>[] = [

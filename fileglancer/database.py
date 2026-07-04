@@ -958,6 +958,19 @@ def delete_expired_sessions(session: Session):
 
 # --- Job database functions ---
 
+TERMINAL_JOB_STATUSES = ("DONE", "FAILED", "KILLED")
+
+
+def is_terminal_job_status(status: str | None) -> bool:
+    """Return True when a job status means no scheduler work should remain.
+
+    Any status outside this explicit terminal set (including UNKNOWN or a
+    scheduler-specific transient state) is treated as active so polling,
+    cancellation, and delete guards do not drop a potentially live job.
+    """
+    return status in TERMINAL_JOB_STATUSES
+
+
 def create_job(session: Session, username: str, app_url: str, app_name: str,
                entry_point_id: str, entry_point_name: str, parameters: Dict,
                env_parameters: Optional[Dict] = None,
@@ -1017,9 +1030,14 @@ def get_job(session: Session, job_id: int, username: str) -> Optional[JobDB]:
 
 
 def get_active_jobs(session: Session) -> List[JobDB]:
-    """Get all jobs with PENDING or RUNNING status"""
+    """Get all jobs that are not known-terminal.
+
+    UNKNOWN and future scheduler-specific statuses are considered active:
+    until a job reaches DONE/FAILED/KILLED, Fileglancer should keep polling and
+    must not allow the record to be deleted as if the cluster job were gone.
+    """
     return session.query(JobDB).filter(
-        JobDB.status.in_(["PENDING", "RUNNING"])
+        ~JobDB.status.in_(TERMINAL_JOB_STATUSES)
     ).all()
 
 
@@ -1070,7 +1088,7 @@ def delete_old_jobs(session: Session, days: int = 30) -> int:
     """Delete completed/failed jobs older than the specified number of days"""
     cutoff = datetime.now(UTC) - timedelta(days=days)
     deleted = session.query(JobDB).filter(
-        JobDB.status.in_(["DONE", "FAILED", "KILLED"]),
+        JobDB.status.in_(TERMINAL_JOB_STATUSES),
         JobDB.created_at < cutoff
     ).delete(synchronize_session='fetch')
     session.commit()

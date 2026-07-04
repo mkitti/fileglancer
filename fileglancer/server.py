@@ -1743,7 +1743,6 @@ def create_app(settings):
     # break browsing a recent job's code; jobs older than this trade that
     # for reclaiming the (potentially large) snapshot tree.
     _JOB_SNAPSHOT_RETENTION = timedelta(days=14)
-    _TERMINAL_JOB_STATUSES = ("DONE", "FAILED", "KILLED")
 
     def _collect_keep_shas(session, username: str) -> list[str]:
         """Every snapshot SHA still referenced by this user: all app pins,
@@ -1762,7 +1761,7 @@ def create_app(settings):
             if not j.commit_sha:
                 continue
             created = j.created_at.replace(tzinfo=None) if j.created_at else None
-            if j.status not in _TERMINAL_JOB_STATUSES or (
+            if not db.is_terminal_job_status(j.status) or (
                     created is not None and created >= cutoff):
                 keep.add(j.commit_sha)
         return sorted(keep)
@@ -2392,7 +2391,7 @@ def create_app(settings):
             db_job = db.get_job(session, job_id, username)
             if db_job is None:
                 raise HTTPException(status_code=404, detail="Job not found")
-            if db_job.status in ("PENDING", "RUNNING"):
+            if not db.is_terminal_job_status(db_job.status):
                 raise HTTPException(
                     status_code=409,
                     detail="Job is active; cancel or stop it before deleting.",

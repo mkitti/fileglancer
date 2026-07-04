@@ -117,7 +117,7 @@ async def stop_job_monitor():
 
 
 def _get_any_active_username(settings) -> str | None:
-    """Return any username that has active (PENDING/RUNNING) jobs, or None."""
+    """Return any username that has non-terminal jobs, or None."""
     with db.get_db_session(settings.db_url) as session:
         active_jobs = db.get_active_jobs(session)
         for job in active_jobs:
@@ -158,7 +158,7 @@ async def _reconnect_as_any_user(settings):
                 continue
             new_status = info["status"].upper()
             if new_status != db_job.status:
-                is_terminal = new_status in ("DONE", "FAILED", "KILLED")
+                is_terminal = db.is_terminal_job_status(new_status)
                 finished_at = _parse_iso_dt(info.get("finish_time")) if is_terminal else None
                 db.update_job_status(
                     session, db_job.id, new_status,
@@ -304,7 +304,7 @@ async def _poll_jobs(settings):
             old_status = db_job.status
             if new_status == old_status:
                 continue
-            is_terminal = new_status in ("DONE", "FAILED", "KILLED")
+            is_terminal = db.is_terminal_job_status(new_status)
             finished_at = _parse_iso_dt(info.get("finish_time")) if is_terminal else None
             db.update_job_status(
                 session, db_job.id, new_status,
@@ -994,14 +994,14 @@ def _build_resource_spec(entry_point: AppEntryPoint, overrides: Optional[dict], 
 
 
 async def cancel_job(job_id: int, username: str) -> db.JobDB:
-    """Cancel a running or pending job."""
+    """Cancel a non-terminal job."""
     settings = get_settings()
 
     with db.get_db_session(settings.db_url) as session:
         db_job = db.get_job(session, job_id, username)
         if db_job is None:
             raise ValueError(f"Job {job_id} not found")
-        if db_job.status not in ("PENDING", "RUNNING"):
+        if db.is_terminal_job_status(db_job.status):
             raise ValueError(f"Job {job_id} is not cancellable (status: {db_job.status})")
 
         # Actually stop the running job as the target user. The local executor

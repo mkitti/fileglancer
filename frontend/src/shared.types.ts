@@ -190,6 +190,26 @@ type JobFileInfo = {
   subpath?: string;
 };
 
+type KnownJobStatus =
+  | 'PENDING'
+  | 'RUNNING'
+  | 'DONE'
+  | 'FAILED'
+  | 'KILLED'
+  | 'UNKNOWN';
+
+type JobStatus = KnownJobStatus | (string & {});
+
+const TERMINAL_JOB_STATUSES = new Set<string>(['DONE', 'FAILED', 'KILLED']);
+
+function isTerminalJobStatus(status?: string | null): boolean {
+  return typeof status === 'string' && TERMINAL_JOB_STATUSES.has(status);
+}
+
+function isActiveJobStatus(status?: string | null): boolean {
+  return typeof status === 'string' && !isTerminalJobStatus(status);
+}
+
 type Job = {
   id: number;
   app_url: string;
@@ -202,7 +222,7 @@ type Job = {
   code_repo_url?: string;
   parameters: Record<string, unknown>;
   env_parameters?: Record<string, unknown>;
-  status: 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED' | 'KILLED';
+  status: JobStatus;
   exit_code?: number;
   resources?: Record<string, unknown>;
   env?: Record<string, string>;
@@ -290,6 +310,7 @@ export type {
   Failure,
   Job,
   JobFileInfo,
+  JobStatus,
   JobSubmitRequest,
   Profile,
   Result,
@@ -299,4 +320,10 @@ export type {
   ZonesAndFileSharePathsMap
 };
 
-export { flattenParameters, isParameterSection, parseAppLaunchParamsFile };
+export {
+  flattenParameters,
+  isActiveJobStatus,
+  isParameterSection,
+  isTerminalJobStatus,
+  parseAppLaunchParamsFile
+};

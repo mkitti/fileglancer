@@ -123,6 +123,39 @@ def test_user_preferences(db_session):
     assert pref is None
 
 
+def test_get_active_jobs_treats_non_terminal_statuses_as_active(db_session):
+    job_ids_by_status = {}
+    for status in [
+        "PENDING",
+        "RUNNING",
+        "UNKNOWN",
+        "SUSPENDED",
+        "DONE",
+        "FAILED",
+        "KILLED",
+    ]:
+        job = create_job(
+            db_session,
+            "testuser",
+            "https://github.com/owner/repo",
+            "App",
+            "run",
+            "Run",
+            {},
+        )
+        update_job_status(db_session, job.id, status)
+        job_ids_by_status[status] = job.id
+
+    active = get_active_jobs(db_session)
+
+    assert {job.id for job in active} == {
+        job_ids_by_status["PENDING"],
+        job_ids_by_status["RUNNING"],
+        job_ids_by_status["UNKNOWN"],
+        job_ids_by_status["SUSPENDED"],
+    }
+
+
 def test_create_proxied_path(db_session, fsp):
     # Test creating a new proxied path
     username = "testuser"
@@ -585,5 +618,4 @@ class TestFindBestFspMatch:
             lambda f: [f.mount_path],
         )
         assert result is None
-
 
