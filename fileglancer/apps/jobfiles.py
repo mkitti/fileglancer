@@ -149,19 +149,8 @@ def _make_file_info(file_path: str, exists: bool,
     }
 
 
-def get_service_url(db_job: db.JobDB) -> Optional[str]:
-    """Read the service URL from a job's work directory.
-
-    Only returns a URL when the job is a service type and is currently RUNNING.
-    The service writes its URL to a plain text file named 'service_url' in the
-    job's work directory.
-    """
-    if getattr(db_job, 'entry_point_type', 'job') != 'service':
-        return None
-    if db_job.status != 'RUNNING':
-        return None
-
-    work_dir = _resolve_work_dir(db_job)
+def read_service_url_file(work_dir: Path) -> Optional[str]:
+    """Read and validate the 'service_url' file in a job work directory."""
     url_file = work_dir / "service_url"
 
     if not url_file.is_file():
@@ -178,9 +167,38 @@ def get_service_url(db_job: db.JobDB) -> Optional[str]:
     return url
 
 
+def get_service_url(db_job: db.JobDB) -> Optional[str]:
+    """Read the service URL from a job's work directory.
+
+    Only returns a URL when the job is a service type and is currently RUNNING.
+    The service writes its URL to a plain text file named 'service_url' in the
+    job's work directory.
+    """
+    if getattr(db_job, 'entry_point_type', 'job') != 'service':
+        return None
+    if db_job.status != 'RUNNING':
+        return None
+
+    return read_service_url_file(_resolve_work_dir(db_job))
+
+
 # Startup phases a service job writes to its 'phase' file so the UI can explain
 # a wait before the URL appears (chiefly a container image still downloading).
 _SERVICE_PHASES = ("pulling_image", "starting")
+
+
+def read_service_phase_file(work_dir: Path) -> Optional[str]:
+    """Read and validate the 'phase' file in a job work directory."""
+    phase_file = work_dir / "phase"
+    if not phase_file.is_file():
+        return None
+
+    try:
+        phase = phase_file.read_text().strip()
+    except OSError:
+        return None
+
+    return phase if phase in _SERVICE_PHASES else None
 
 
 def get_service_phase(db_job: db.JobDB) -> Optional[str]:
@@ -197,16 +215,7 @@ def get_service_phase(db_job: db.JobDB) -> Optional[str]:
     if db_job.status != 'RUNNING':
         return None
 
-    phase_file = _resolve_work_dir(db_job) / "phase"
-    if not phase_file.is_file():
-        return None
-
-    try:
-        phase = phase_file.read_text().strip()
-    except OSError:
-        return None
-
-    return phase if phase in _SERVICE_PHASES else None
+    return read_service_phase_file(_resolve_work_dir(db_job))
 
 
 def get_job_file_paths(db_job: db.JobDB) -> dict[str, dict]:

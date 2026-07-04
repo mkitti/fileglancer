@@ -963,24 +963,30 @@ def test_get_jobs_lists_and_filters_by_status(test_client, db_session):
     assert jobs[0]["status"] == "DONE"
 
 
-def test_get_jobs_running_service_includes_url_and_phase(test_client, db_session, temp_dir):
-    """A running service's URL and startup phase are read from its work dir
-    (through the worker layer) and included in the listing."""
-    work_dir = os.path.join(temp_dir, "svc")
-    os.makedirs(work_dir)
-    with open(os.path.join(work_dir, "service_url"), "w", encoding="utf-8") as f:
+def test_get_jobs_running_services_include_url_and_phase(test_client, db_session, temp_dir):
+    """Running services' URLs and startup phases are read from their work dirs
+    (through the batched worker action) and included in the listing."""
+    ready_dir = os.path.join(temp_dir, "svc-ready")
+    os.makedirs(ready_dir)
+    with open(os.path.join(ready_dir, "service_url"), "w", encoding="utf-8") as f:
         f.write("http://node1:8888\n")
-    with open(os.path.join(work_dir, "phase"), "w", encoding="utf-8") as f:
+    starting_dir = os.path.join(temp_dir, "svc-starting")
+    os.makedirs(starting_dir)
+    with open(os.path.join(starting_dir, "phase"), "w", encoding="utf-8") as f:
         f.write("starting\n")
-    _seed_job(db_session, status="RUNNING", entry_point_type="service",
-              work_dir=work_dir)
+    ready = _seed_job(db_session, status="RUNNING", entry_point_type="service",
+                      work_dir=ready_dir)
+    starting = _seed_job(db_session, status="RUNNING", entry_point_type="service",
+                         work_dir=starting_dir)
 
     response = test_client.get("/api/jobs")
 
     assert response.status_code == 200
-    (entry,) = response.json()["jobs"]
-    assert entry["service_url"] == "http://node1:8888"
-    assert entry["phase"] == "starting"
+    by_id = {j["id"]: j for j in response.json()["jobs"]}
+    assert by_id[ready.id]["service_url"] == "http://node1:8888"
+    assert by_id[ready.id]["phase"] is None
+    assert by_id[starting.id]["service_url"] is None
+    assert by_id[starting.id]["phase"] == "starting"
 
 
 def test_get_job_includes_file_paths(test_client, db_session):
