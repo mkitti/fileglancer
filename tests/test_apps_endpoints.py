@@ -1,6 +1,7 @@
 """Tests for /api/apps endpoints backed by the user_apps table."""
 
 import os
+import shlex
 import shutil
 import tempfile
 from datetime import datetime, UTC, timedelta
@@ -823,6 +824,26 @@ def test_delete_finished_job_removes_row(test_client, db_session):
     assert response.status_code == 200
     db_session.expire_all()
     assert get_job(db_session, job_id, TEST_USERNAME) is None
+
+
+def test_cluster_defaults_preserves_extra_args_tokens(temp_dir):
+    """Cluster default extra_args are shell-quoted so the launch form can submit
+    them back through shlex.split without losing spaces or scheduler syntax."""
+    args = ["-P", "project with spaces", "-R", "select[mem>8000] rusage[mem=8000]"]
+    settings = Settings(
+        db_url=f"sqlite:///{os.path.join(temp_dir, 'defaults.db')}",
+        file_share_mounts=[],
+        cli_mode=True,
+        cluster={"extra_args": args},
+    )
+    client = TestClient(create_app(settings))
+
+    response = client.get("/api/cluster-defaults")
+
+    assert response.status_code == 200
+    value = response.json()["extra_args"]
+    assert value == shlex.join(args)
+    assert shlex.split(value) == args
 
 
 def test_fetch_manifest_uses_cache_for_installed_app(test_client, db_session):

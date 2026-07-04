@@ -1,6 +1,7 @@
 import asyncio
 import os
 import re
+import shlex
 import sys
 try:
     import pwd
@@ -2291,7 +2292,7 @@ def create_app(settings):
              description="Get cluster configuration defaults")
     async def get_cluster_defaults():
         return {
-            "extra_args": " ".join(settings.cluster.extra_args),
+            "extra_args": shlex.join(settings.cluster.extra_args),
         }
 
     @app.post("/api/jobs", response_model=Job,
