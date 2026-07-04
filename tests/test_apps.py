@@ -2482,3 +2482,200 @@ class TestSubmitJobOrphanCleanup:
         with pytest.raises(RuntimeError, match="worker down"):
             self._submit(tmp_path, monkeypatch, dispatch=dispatch)
         assert self._job_count(tmp_path) == 0
+
+
+class TestSubmitJobAssembly:
+    """Happy-path coverage for submit_job's assembly.
+
+    The building blocks (build_command, _build_container_script, preamble
+    helpers) have their own unit tests; these cover how submit_job composes
+    them — the exact script text and resource spec dispatched to the worker,
+    which is what actually runs as the user — and the job row it creates.
+    """
+
+    WORKER_RESULT = {
+        "job_id": "cluster-42",
+        "script_path": "/home/alice/.fileglancer/jobs/1-demo-run/script.sh",
+        "work_dir_fsp_name": "home",
+        "work_dir_subpath": ".fileglancer/jobs/1-demo-run",
+    }
+
+    def _submit(self, tmp_path, monkeypatch, entry_point=None, cluster=None,
+                file_share_mounts=None, validate_errors=None, **submit_kwargs):
+        """Run submit_job with worker seams mocked; return (job, dispatch calls)."""
+        import asyncio
+        from unittest.mock import AsyncMock
+        import fileglancer.apps.jobs as jobs_mod
+        from fileglancer import database as db
+        from fileglancer.settings import Settings
+
+        db_url = f"sqlite:///{tmp_path / 'jobs.db'}"
+        db.Base.metadata.create_all(db._get_engine(db_url))
+        settings = Settings(db_url=db_url,
+                            file_share_mounts=file_share_mounts or [],
+                            cli_mode=True,
+                            cluster=cluster or {})
+        monkeypatch.setattr(jobs_mod, "get_settings", lambda: settings)
+        # build_command validates path params against the file shares, which
+        # get_file_share_paths reads from settings.
+        monkeypatch.setattr(db, "get_settings", lambda: settings)
+
+        manifest = AppManifest(
+            name="demo",
+            runnables=[AppEntryPoint(id="run", name="Run", command="echo hi",
+                                     **(entry_point or {}))],
+        )
+        monkeypatch.setattr(jobs_mod, "get_or_load_manifest",
+                            AsyncMock(return_value=manifest))
+        monkeypatch.setattr(jobs_mod, "ensure_repo_snapshot",
+                            AsyncMock(return_value=(tmp_path / "repo", "a" * 40)))
+        monkeypatch.setattr(jobs_mod, "ensure_poll_loop", lambda: None)
+
+        calls = []
+
+        async def fake_dispatch(username, action, **kwargs):
+            calls.append((action, kwargs))
+            if action == "validate_paths":
+                return {"errors": validate_errors or {}}
+            if action == "create_dirs":
+                return {"errors": {}}
+            if action == "submit":
+                return dict(self.WORKER_RESULT)
+            return {}
+
+        monkeypatch.setattr(jobs_mod, "_dispatch", fake_dispatch)
+
+        async def run():
+            return await jobs_mod.submit_job(
+                username="alice",
+                app_url="https://github.com/org/demo",
+                entry_point_id="run",
+                parameters=submit_kwargs.pop("parameters", {}),
+                **submit_kwargs,
+            )
+        return asyncio.run(run()), calls
+
+    def _submitted(self, calls):
+        """Return the kwargs of the single worker 'submit' dispatch."""
+        submits = [kwargs for action, kwargs in calls if action == "submit"]
+        assert len(submits) == 1
+        return submits[0]
+
+    def test_creates_pending_job_with_cluster_metadata(self, tmp_path, monkeypatch):
+        job, calls = self._submit(tmp_path, monkeypatch)
+
+        assert job.status == "PENDING"
+        assert job.cluster_job_id == "cluster-42"
+        assert job.script_path == self.WORKER_RESULT["script_path"]
+        assert job.work_dir_fsp_name == "home"
+        assert job.work_dir_subpath == ".fileglancer/jobs/1-demo-run"
+        assert job.commit_sha == "a" * 40
+        assert job.app_name == "demo"
+        assert f"{job.id}-demo-run" in job.work_dir
+
+        submitted = self._submitted(calls)
+        assert submitted["work_dir"] == job.work_dir
+        assert submitted["job_name"] == "demo-run"
+        assert submitted["resources"]["stdout_path"] == f"{job.work_dir}/stdout.log"
+        assert submitted["resources"]["stderr_path"] == f"{job.work_dir}/stderr.log"
+
+    def test_script_layout_and_parameter_quoting(self, tmp_path, monkeypatch):
+        job, calls = self._submit(
+            tmp_path, monkeypatch,
+            # A developer config.yaml deep-merges into Settings, so pin the
+            # executor rather than relying on the 'local' default.
+            cluster={"executor": "local"},
+            entry_point={
+                "conda_env": "tools",
+                "env": {"GREETING": "hello world"},
+                "pre_run": "echo before",
+                "post_run": "echo after",
+                "parameters": [{"flag": "--name", "name": "Name", "type": "string"}],
+            },
+            parameters={"name": "Ada Lovelace"},
+        )
+        script = self._submitted(calls)["command"]
+
+        assert script.startswith("unset PIXI_PROJECT_MANIFEST")
+        assert f"export FG_WORK_DIR={shlex.quote(job.work_dir)}" in script
+        # Default working dir is the repo snapshot (no manifest subdir here).
+        assert 'cd "$FG_WORK_DIR"/repo' in script
+        assert "conda activate tools" in script
+        # User-facing values reach the script shell-quoted.
+        assert "export GREETING='hello world'" in script
+        assert "echo hi" in script
+        assert "--name 'Ada Lovelace'" in script
+        # pre_run -> command -> post_run ordering.
+        assert (script.index("echo before")
+                < script.index("echo hi")
+                < script.index("echo after"))
+        # The local executor records the exit code for PID polling.
+        assert 'trap \'echo $? > "$FG_WORK_DIR/exit_code"\' EXIT' in script
+
+    def test_non_local_executor_omits_exit_code_trap(self, tmp_path, monkeypatch):
+        _, calls = self._submit(tmp_path, monkeypatch, cluster={"executor": "lsf"})
+        assert "exit_code" not in self._submitted(calls)["command"]
+
+    def test_service_entry_point_preamble(self, tmp_path, monkeypatch):
+        _, calls = self._submit(
+            tmp_path, monkeypatch,
+            entry_point={"type": "service", "auto_url": True},
+        )
+        script = self._submitted(calls)["command"]
+        assert 'export SERVICE_URL_PATH="$FG_WORK_DIR/service_url"' in script
+        assert "FG_SERVICE_PORT" in script
+
+    def test_container_wraps_command_and_binds_default_paths(self, tmp_path, monkeypatch):
+        input_file = tmp_path / "input.txt"
+        input_file.write_text("data")
+        job, calls = self._submit(
+            tmp_path, monkeypatch,
+            entry_point={
+                "container": "docker://busybox",
+                "parameters": [{"flag": "--input", "name": "Input", "type": "file",
+                                "default": str(input_file)}],
+            },
+            file_share_mounts=[str(tmp_path)],
+        )
+        script = self._submitted(calls)["command"]
+
+        assert "apptainer" in script
+        # The file param came from its manifest default (not the submitted
+        # parameters), and its parent dir must still be bind-mounted.
+        assert f"--bind {shlex.quote(str(tmp_path))}" in script
+        # Container runnables default to running from the work dir.
+        assert 'cd "$FG_WORK_DIR"\n' in script or script.endswith('cd "$FG_WORK_DIR"')
+        assert 'cd "$FG_WORK_DIR"/repo' not in script
+
+    def test_resource_overrides_and_extra_args_tokens(self, tmp_path, monkeypatch):
+        job, calls = self._submit(
+            tmp_path, monkeypatch,
+            resources={"cpus": 4, "memory": "8G", "queue": "gpu"},
+            extra_args='-P proj -R "select[mem>8000]"',
+        )
+        resources = self._submitted(calls)["resources"]
+        assert resources["cpus"] == 4
+        assert resources["memory"] == "8G"
+        assert resources["queue"] == "gpu"
+        # The user's string arrives at the scheduler as distinct argv tokens.
+        assert resources["extra_args"] == ["-P", "proj", "-R", "select[mem>8000]"]
+        # The job row stores the same tokens, shell-joined for lossless
+        # round-tripping into the relaunch form.
+        assert job.resources["extra_args"] == "-P proj -R 'select[mem>8000]'"
+        assert job.resources["cpus"] == 4
+
+    def test_worker_path_validation_failure_names_parameter(self, tmp_path, monkeypatch):
+        from fileglancer import database as db
+        with pytest.raises(ValueError, match="Parameter 'Input': not readable"):
+            self._submit(
+                tmp_path, monkeypatch,
+                entry_point={
+                    "parameters": [{"flag": "--input", "name": "Input", "type": "file"}],
+                },
+                parameters={"input": str(tmp_path / "missing.txt")},
+                file_share_mounts=[str(tmp_path)],
+                validate_errors={"0": "not readable"},
+            )
+        # Validation runs before the job row is created — nothing to clean up.
+        with db.get_db_session(f"sqlite:///{tmp_path / 'jobs.db'}") as session:
+            assert session.query(db.JobDB).count() == 0

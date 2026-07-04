@@ -14,6 +14,7 @@ from fileglancer.settings import Settings
 from fileglancer.server import create_app, get_current_user
 from fileglancer.database import (
     Base,
+    FileSharePathDB,
     UserAppDB,
     UserPreferenceDB,
     create_engine,
@@ -132,7 +133,9 @@ def _seed_app(db_session, *, url="https://github.com/owner/repo",
     return row
 
 
-def _seed_job(db_session, *, status="DONE"):
+def _seed_job(db_session, *, status="DONE", entry_point_type="job",
+              work_dir=None, cluster_job_id=None, script_path=None,
+              started_at=None, work_dir_fsp_name=None, work_dir_subpath=None):
     job = create_job(
         session=db_session,
         username=TEST_USERNAME,
@@ -140,10 +143,20 @@ def _seed_job(db_session, *, status="DONE"):
         app_name="Demo App",
         entry_point_id="run",
         entry_point_name="Run",
+        entry_point_type=entry_point_type,
         parameters={},
     )
-    if status != "PENDING":
-        update_job_status(db_session, job.id, status)
+    if work_dir:
+        job.work_dir = work_dir
+        db_session.commit()
+    update_job_status(
+        db_session, job.id, status,
+        cluster_job_id=cluster_job_id,
+        script_path=script_path,
+        started_at=started_at,
+        work_dir_fsp_name=work_dir_fsp_name,
+        work_dir_subpath=work_dir_subpath,
+    )
     db_session.refresh(job)
     return job
 
@@ -868,6 +881,243 @@ def test_cluster_defaults_preserves_extra_args_tokens(temp_dir):
     value = response.json()["extra_args"]
     assert value == shlex.join(args)
     assert shlex.split(value) == args
+
+
+# --- Job endpoints (submit, list, get, cancel, files, validate-paths) ---
+
+
+def _install_app_with_manifest(db_session, name="My Custom Name"):
+    """Seed an installed, pinned app whose manifest is cached in the DB, so
+    submit_job's manifest load never touches git or the worker."""
+    manifest = _make_manifest(name="Manifest Name")
+    return _seed_app(db_session, manifest=manifest.model_dump(mode="json"),
+                     name=name, commit_sha=TEST_SHA)
+
+
+def test_submit_job_creates_pending_job(test_client, db_session):
+    _install_app_with_manifest(db_session)
+    dispatch = AsyncMock(return_value={
+        "job_id": "lsf-123",
+        "script_path": "/home/u/.fileglancer/jobs/1-demo-run/script.sh",
+        "work_dir_fsp_name": "home",
+        "work_dir_subpath": ".fileglancer/jobs/1-demo-run",
+    })
+
+    with patch("fileglancer.apps.jobs._dispatch", new=dispatch), \
+         patch("fileglancer.apps.jobs.ensure_repo_snapshot",
+               new=AsyncMock(return_value=("/tmp/snapshots/x", TEST_SHA))), \
+         patch("fileglancer.apps.jobs.ensure_poll_loop", new=lambda: None):
+        response = test_client.post("/api/jobs", json={
+            "app_url": "https://github.com/owner/repo",
+            "entry_point_id": "run",
+            "parameters": {},
+            "resources": {"cpus": 2},
+            "extra_args": "-P proj -W 60",
+        })
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "PENDING"
+    assert body["cluster_job_id"] == "lsf-123"
+    # The job is labeled with the name the user saved for the app, not the
+    # raw manifest name.
+    assert body["app_name"] == "My Custom Name"
+    assert body["commit_sha"] == TEST_SHA
+
+    # The worker received the resource overrides, with the extra_args string
+    # split into distinct argv tokens for the scheduler.
+    submit_calls = [c for c in dispatch.await_args_list if c.args[1] == "submit"]
+    assert len(submit_calls) == 1
+    resources = submit_calls[0].kwargs["resources"]
+    assert resources["cpus"] == 2
+    assert resources["extra_args"] == ["-P", "proj", "-W", "60"]
+
+    db_session.expire_all()
+    assert get_job(db_session, body["id"], TEST_USERNAME).status == "PENDING"
+
+
+def test_submit_job_unknown_entry_point_400(test_client, db_session):
+    _install_app_with_manifest(db_session)
+
+    response = test_client.post("/api/jobs", json={
+        "app_url": "https://github.com/owner/repo",
+        "entry_point_id": "nope",
+        "parameters": {},
+    })
+
+    assert response.status_code == 400
+    assert "Entry point" in response.json()["error"]
+
+
+def test_get_jobs_lists_and_filters_by_status(test_client, db_session):
+    done = _seed_job(db_session, status="DONE")
+    running = _seed_job(db_session, status="RUNNING")
+
+    response = test_client.get("/api/jobs")
+    assert response.status_code == 200
+    assert {j["id"] for j in response.json()["jobs"]} == {done.id, running.id}
+
+    response = test_client.get("/api/jobs", params={"status": "DONE"})
+    jobs = response.json()["jobs"]
+    assert [j["id"] for j in jobs] == [done.id]
+    assert jobs[0]["status"] == "DONE"
+
+
+def test_get_jobs_running_service_includes_url_and_phase(test_client, db_session, temp_dir):
+    """A running service's URL and startup phase are read from its work dir
+    (through the worker layer) and included in the listing."""
+    work_dir = os.path.join(temp_dir, "svc")
+    os.makedirs(work_dir)
+    with open(os.path.join(work_dir, "service_url"), "w", encoding="utf-8") as f:
+        f.write("http://node1:8888\n")
+    with open(os.path.join(work_dir, "phase"), "w", encoding="utf-8") as f:
+        f.write("starting\n")
+    _seed_job(db_session, status="RUNNING", entry_point_type="service",
+              work_dir=work_dir)
+
+    response = test_client.get("/api/jobs")
+
+    assert response.status_code == 200
+    (entry,) = response.json()["jobs"]
+    assert entry["service_url"] == "http://node1:8888"
+    assert entry["phase"] == "starting"
+
+
+def test_get_job_includes_file_paths(test_client, db_session):
+    work_dir = "/home/u/.fileglancer/jobs/9-Demo_App-run"
+    job = _seed_job(
+        db_session, status="RUNNING",
+        work_dir=work_dir,
+        script_path=f"{work_dir}/job.sh",
+        started_at=datetime.now(UTC),
+        work_dir_fsp_name="home",
+        work_dir_subpath=".fileglancer/jobs/9-Demo_App-run",
+    )
+
+    response = test_client.get(f"/api/jobs/{job.id}")
+
+    assert response.status_code == 200
+    files = response.json()["files"]
+    assert files["script"]["path"] == f"{work_dir}/job.sh"
+    assert files["script"]["exists"] is True
+    assert files["stdout"]["path"] == f"{work_dir}/stdout.log"
+    assert files["stdout"]["exists"] is True
+    assert files["stdout"]["fsp_name"] == "home"
+    assert files["stdout"]["subpath"] == ".fileglancer/jobs/9-Demo_App-run/stdout.log"
+    assert files["work_dir"]["subpath"] == ".fileglancer/jobs/9-Demo_App-run"
+
+
+def test_get_job_missing_404(test_client):
+    response = test_client.get("/api/jobs/9999")
+    assert response.status_code == 404
+
+
+def test_cancel_running_job(test_client, db_session):
+    job = _seed_job(db_session, status="RUNNING",
+                    work_dir="/home/u/.fileglancer/jobs/1-Demo_App-run",
+                    cluster_job_id="lsf-1")
+    # The worker action differs by executor (cancel_local vs cancel); the mock
+    # result satisfies both, so this test is independent of any developer
+    # config.yaml that deep-merges an executor into Settings.
+    dispatch = AsyncMock(return_value={"terminated": True})
+
+    with patch("fileglancer.apps.jobs._dispatch", new=dispatch):
+        response = test_client.post(f"/api/jobs/{job.id}/cancel")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "KILLED"
+    assert response.json()["finished_at"] is not None
+    assert dispatch.await_args.args[1] in ("cancel_local", "cancel")
+    db_session.expire_all()
+    assert get_job(db_session, job.id, TEST_USERNAME).status == "KILLED"
+
+
+@pytest.mark.parametrize("status", ["DONE", "FAILED", "KILLED"])
+def test_cancel_terminal_job_400(test_client, db_session, status):
+    job = _seed_job(db_session, status=status)
+
+    response = test_client.post(f"/api/jobs/{job.id}/cancel")
+
+    assert response.status_code == 400
+    assert "not cancellable" in response.json()["error"]
+    db_session.expire_all()
+    assert get_job(db_session, job.id, TEST_USERNAME).status == status
+
+
+def test_get_job_file_returns_content(test_client, db_session, temp_dir):
+    work_dir = os.path.join(temp_dir, "job1")
+    os.makedirs(work_dir)
+    with open(os.path.join(work_dir, "stdout.log"), "w", encoding="utf-8") as f:
+        f.write("hello from the job\n")
+    script_path = os.path.join(work_dir, "job.sh")
+    with open(script_path, "w", encoding="utf-8") as f:
+        f.write("#!/bin/bash\necho hi\n")
+    job = _seed_job(db_session, status="DONE", work_dir=work_dir,
+                    script_path=script_path)
+
+    response = test_client.get(f"/api/jobs/{job.id}/files/stdout")
+    assert response.status_code == 200
+    assert response.text == "hello from the job\n"
+
+    response = test_client.get(f"/api/jobs/{job.id}/files/script")
+    assert response.status_code == 200
+    assert response.text == "#!/bin/bash\necho hi\n"
+
+
+def test_get_job_file_missing_file_404(test_client, db_session, temp_dir):
+    work_dir = os.path.join(temp_dir, "job2")
+    os.makedirs(work_dir)
+    job = _seed_job(db_session, status="DONE", work_dir=work_dir)
+
+    response = test_client.get(f"/api/jobs/{job.id}/files/stderr")
+
+    assert response.status_code == 404
+    assert "File not found" in response.json()["error"]
+
+
+def test_get_job_file_invalid_type_400(test_client, db_session):
+    job = _seed_job(db_session, status="DONE")
+
+    response = test_client.get(f"/api/jobs/{job.id}/files/env")
+
+    assert response.status_code == 400
+
+
+def test_get_job_file_unknown_job_404(test_client):
+    response = test_client.get("/api/jobs/9999/files/stdout")
+    assert response.status_code == 404
+
+
+def test_validate_paths_endpoint(test_client, db_session, temp_dir):
+    # With settings.file_share_mounts empty, file shares come from the DB.
+    db_session.add(FileSharePathDB(
+        name="scratch", zone="Local", group="local", storage="local",
+        mount_path=temp_dir, mac_path=temp_dir, windows_path=temp_dir,
+        linux_path=temp_dir,
+    ))
+    db_session.commit()
+    inside = os.path.join(temp_dir, "data.txt")
+    with open(inside, "w", encoding="utf-8") as f:
+        f.write("x")
+
+    response = test_client.post("/api/apps/validate-paths", json={
+        "paths": {
+            "input": inside,
+            "outside": "/definitely/not/shared/file.txt",
+            "output": os.path.join(temp_dir, "results"),
+            "wrongtype": temp_dir,
+        },
+        "may_be_missing": ["output"],
+        "types": {"input": "file", "wrongtype": "file"},
+    })
+
+    assert response.status_code == 200
+    errors = response.json()["errors"]
+    assert "input" not in errors
+    # exists=false outputs are containment-checked only.
+    assert "output" not in errors
+    assert "not within an allowed file share" in errors["outside"]
+    assert "a file is required" in errors["wrongtype"]
 
 
 def test_fetch_manifest_uses_cache_for_installed_app(test_client, db_session):
