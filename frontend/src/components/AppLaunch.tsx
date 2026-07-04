@@ -179,7 +179,12 @@ export default function AppLaunch() {
 
   const handleInstall = async () => {
     try {
-      const apps = await addAppMutation.mutateAsync({ url: appUrl });
+      // Install only the app on this page, not every manifest in the repo:
+      // scope the add to this manifest_path ('' is the repo-root manifest).
+      const apps = await addAppMutation.mutateAsync({
+        url: appUrl,
+        manifest_paths: [manifestPath]
+      });
       const count = apps.length;
       toast.success(`${count} app${count !== 1 ? 's' : ''} added`);
     } catch (error) {
