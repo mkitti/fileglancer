@@ -660,9 +660,8 @@ class TestJobSubmitExtraArgsValidation:
         assert req.extra_args is None
 
     def test_lsf_resource_string_allowed(self):
-        # The regression this fixes: LSF -R strings use '>', '[' and ']', which
-        # the old shell-metachar denylist wrongly rejected (and which the UI
-        # placeholder actually suggests).
+        # LSF -R strings use '>', '[' and ']' — exactly what the UI placeholder
+        # suggests — so they must be accepted.
         req = JobSubmitRequest(
             **self._BASE, extra_args='-P proj -R "select[mem>8000]"')
         assert req.extra_args == '-P proj -R "select[mem>8000]"'
@@ -674,7 +673,7 @@ class TestJobSubmitExtraArgsValidation:
         "--flag | cat /etc/passwd",
     ])
     def test_shell_metacharacters_allowed_as_literal_argv(self, value):
-        # These are safe now: shlex.split turns them into literal argv tokens
+        # These are safe: shlex.split turns them into literal argv tokens
         # passed to the scheduler via exec, so no shell interprets them.
         req = JobSubmitRequest(**self._BASE, extra_args=value)
         assert req.extra_args == value
@@ -2349,7 +2348,7 @@ class TestPixiTaskEnv:
         ep = _task_to_entry_point(
             "build", {"cmd": "make", "env": {"FOO": "bar"}}
         )
-        # No parameter should carry an --env: flag anymore.
+        # No parameter should carry an --env: flag.
         assert all(
             p.flag is None or not p.flag.startswith("--env:")
             for p in ep.flat_parameters()
@@ -2362,8 +2361,9 @@ class TestPixiTaskEnv:
 
 
 class TestPixiAdapterName:
-    """The generated app name should come from the pixi project's name, not a
-    repo/branch combination (which produced ugly names like 'repo/HEAD')."""
+    """The generated app name should come from the pixi project's name, falling
+    back to the git repo name, then the directory name — never a repo/branch
+    combination like 'repo/HEAD'."""
 
     def _write_pixi(self, tmp_path, body: str):
         (tmp_path / "pixi.toml").write_text(body)

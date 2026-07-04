@@ -529,8 +529,7 @@ def create_app(settings):
             logger.info("Worker pool started")
 
         # Wire the apps module to dispatch through the persistent worker
-        # pool (or in-process in dev mode) instead of spawning ephemeral
-        # subprocesses.
+        # pool (or in-process in dev mode).
         apps_module.set_worker_exec(_worker_exec)
 
         # Start cluster job monitor

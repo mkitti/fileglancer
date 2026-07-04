@@ -56,8 +56,8 @@ def _make_db_job(job_id, cluster_job_id, status, username="alice",
 
 class TestPollSkipsSameStatus:
     """When the worker returns the same status already in the DB,
-    _poll_jobs must NOT call update_job_status.  This was the bug that
-    caused 'RUNNING -> RUNNING' log spam with multiple workers."""
+    _poll_jobs must NOT call update_job_status — otherwise multiple workers
+    produce 'RUNNING -> RUNNING' log spam."""
 
     @patch("fileglancer.apps.jobs._dispatch", new_callable=AsyncMock)
     @patch("fileglancer.apps.jobs.db")

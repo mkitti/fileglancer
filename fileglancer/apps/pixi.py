@@ -153,8 +153,6 @@ def _task_to_entry_point(name: str, task: dict) -> AppEntryPoint | None:
     # Surface task env vars as entry-point env defaults. Pixi already applies
     # task env natively when running the task; exporting them in the generated
     # job script keeps the values visible and overridable via the job's env.
-    # (Previously these were emitted as `--env:VAR` CLI flags, which `pixi run`
-    # does not understand and which broke the generated command.)
     task_env = task.get("env")
     env = {k: str(v) for k, v in task_env.items()} if task_env else None
 

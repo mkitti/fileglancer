@@ -182,8 +182,8 @@ class TestCancelLocalAction:
         return not _proc_alive(pid)
 
     def test_kills_launcher_and_child_workload(self, tmp_path):
-        """The reported bug: signalling only the launcher bash left its child
-        workload running. The whole tree must be terminated."""
+        """Signalling only the launcher bash would leave its child workload
+        running. The whole tree must be terminated."""
         import subprocess as sp
         # `; :` prevents bash from exec-optimizing into sleep, so bash stays the
         # parent of a real child `sleep` — mirroring a job script's workload.

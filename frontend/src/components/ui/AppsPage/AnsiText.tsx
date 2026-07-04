@@ -6,7 +6,7 @@ import {
   coy
 } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-// Standard ANSI 8-color palette (codes 30-37 foreground, 40-47 background)
+// Standard ANSI 8-color palette (foreground codes 30-37)
 const ANSI_COLORS = [
   '#000000', // 0 black
   '#cc0000', // 1 red

@@ -677,9 +677,8 @@ async def submit_job(
                                 session=session, username=username, check_access=False)
 
     # Authoritative per-user path validation: check that file/directory params
-    # exist and are readable, run in the setuid worker as the target user. This
-    # is the same fix applied to data links in commit f9858f48 — the server runs
-    # as a service account that isn't in the user's groups, so a redundant
+    # exist and are readable, run in the setuid worker as the target user. The
+    # server runs as a service account that isn't in the user's groups, so a
     # server-side check would wrongly reject (or, on local FS, wrongly accept)
     # paths the user can actually access.
     # Create any directory params with exists=false first, as the user, so a

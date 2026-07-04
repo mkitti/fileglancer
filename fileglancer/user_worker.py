@@ -1103,7 +1103,7 @@ def _action_validate_proxied_path(request: dict, ctx: WorkerContext, filestore, 
 
 
 # ---------------------------------------------------------------------------
-# Action handlers — cluster operations (absorbed from apps/worker.py)
+# Action handlers — cluster operations
 # ---------------------------------------------------------------------------
 
 def _get_executor(request: dict):
@@ -1241,7 +1241,7 @@ def _action_reconnect(request: dict, ctx: WorkerContext) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Action handlers — git/manifest operations (absorbed from apps/worker.py)
+# Action handlers — git/manifest operations
 # ---------------------------------------------------------------------------
 
 @action("ensure_repo")
