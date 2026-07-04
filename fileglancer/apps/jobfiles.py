@@ -4,6 +4,7 @@ import ntpath
 import os
 import posixpath
 import re
+import shutil
 from pathlib import Path
 from typing import Optional
 
@@ -38,6 +39,68 @@ def _resolve_work_dir(db_job: db.JobDB) -> Path:
     if db_job.work_dir:
         return Path(db_job.work_dir)
     return _build_work_dir(db_job.id, db_job.app_name, db_job.entry_point_id)
+
+
+def _safe_work_dir_delete_target(db_job: db.JobDB) -> Path:
+    """Return the normalized work-dir path if it is safe to delete.
+
+    Job work directories are created under ``.fileglancer/jobs`` and include
+    the job id in their leaf name. Keep deletion constrained to that shape so a
+    stale or corrupted DB row cannot turn "delete this job" into arbitrary
+    filesystem removal.
+    """
+    raw_target = Path(os.path.expanduser(os.fspath(db_job.work_dir)))
+    if not raw_target.is_absolute():
+        raise PermissionError(
+            f"Refusing to delete relative job work directory: {raw_target}"
+        )
+    target = Path(os.path.abspath(os.fspath(raw_target)))
+    parts = target.parts
+    under_jobs_root = any(
+        part == ".fileglancer"
+        and idx + 2 < len(parts)
+        and parts[idx + 1] == "jobs"
+        for idx, part in enumerate(parts)
+    )
+    if not under_jobs_root:
+        raise PermissionError(
+            f"Refusing to delete unexpected job work directory: {target}"
+        )
+
+    job_id = re.escape(str(db_job.id))
+    if not re.search(rf"(^|-){job_id}-", target.name):
+        raise PermissionError(
+            f"Refusing to delete job work directory without job id {db_job.id}: {target}"
+        )
+
+    return target
+
+
+def delete_job_work_dir(db_job: db.JobDB) -> bool:
+    """Delete a job's work directory, returning True when something was removed.
+
+    Missing stored paths or already-removed work directories are treated as
+    already deleted so the DB record can still be cleaned up. Directory symlinks
+    are unlinked rather than followed.
+    """
+    if not getattr(db_job, "work_dir", None):
+        return False
+
+    target = _safe_work_dir_delete_target(db_job)
+    try:
+        if target.is_symlink():
+            target.unlink()
+            return True
+        if not target.exists():
+            return False
+        if not target.is_dir():
+            raise NotADirectoryError(
+                f"Job work directory is not a directory: {target}"
+            )
+        shutil.rmtree(target)
+        return True
+    except FileNotFoundError:
+        return False
 
 
 def _stored_work_dir_path(db_job: db.JobDB) -> str:

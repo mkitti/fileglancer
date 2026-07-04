@@ -826,6 +826,30 @@ def test_delete_finished_job_removes_row(test_client, db_session):
     assert get_job(db_session, job_id, TEST_USERNAME) is None
 
 
+def test_delete_finished_job_removes_work_dir(test_client, db_session, temp_dir):
+    job = _seed_job(db_session, status="DONE")
+    job_id = job.id
+    work_dir = os.path.join(
+        temp_dir,
+        ".fileglancer",
+        "jobs",
+        f"{job_id}-Demo_App-run",
+    )
+    os.makedirs(work_dir)
+    with open(os.path.join(work_dir, "stdout.log"), "w", encoding="utf-8") as f:
+        f.write("job output")
+
+    job.work_dir = work_dir
+    db_session.commit()
+
+    response = test_client.delete(f"/api/jobs/{job_id}")
+
+    assert response.status_code == 200
+    assert not os.path.exists(work_dir)
+    db_session.expire_all()
+    assert get_job(db_session, job_id, TEST_USERNAME) is None
+
+
 def test_cluster_defaults_preserves_extra_args_tokens(temp_dir):
     """Cluster default extra_args are shell-quoted so the launch form can submit
     them back through shlex.split without losing spaces or scheduler syntax."""

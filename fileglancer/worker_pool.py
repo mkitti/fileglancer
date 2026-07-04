@@ -65,6 +65,7 @@ _LONG_ACTIONS = frozenset({
     "ensure_snapshot",
     "gc_snapshots",
     "submit",
+    "delete_job_work_dir",
 })
 
 

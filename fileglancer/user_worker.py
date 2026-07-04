@@ -168,8 +168,8 @@ def _job_db_to_dict(j) -> dict:
     """Serialize a JobDB row to a JSON-safe dict for transport to the worker.
 
     Only includes fields used by worker-side handlers (read_job_file,
-    get_service_url) — keep this list minimal so the worker sees as little of
-    the DB row as possible.
+    get_service_url, delete_job_work_dir) — keep this list minimal so the
+    worker sees as little of the DB row as possible.
     """
     return {
         "id": j.id,
@@ -782,6 +782,31 @@ def _action_get_job_file(request: dict, ctx: WorkerContext) -> dict:
     if content is None:
         return {"content": None}
     return {"content": content}
+
+
+@action("delete_job_work_dir")
+def _action_delete_job_work_dir(request: dict, ctx: WorkerContext) -> dict:
+    """Delete a terminal job's work directory as the target user."""
+    from fileglancer import database as db
+    from fileglancer.apps.jobfiles import delete_job_work_dir
+
+    job_id = request["job_id"]
+    db_job = ctx.db.get_job(job_id, ctx.username)
+    if db_job is None:
+        return {"error": f"Job {job_id} not found", "status_code": 404}
+    if not db.is_terminal_job_status(db_job.status):
+        return {
+            "error": "Job is active; cancel or stop it before deleting.",
+            "status_code": 409,
+        }
+
+    try:
+        deleted = delete_job_work_dir(db_job)
+        return {"ok": True, "work_dir_deleted": deleted}
+    except PermissionError as e:
+        return {"error": str(e), "status_code": 403}
+    except OSError as e:
+        return {"error": str(e), "status_code": 500}
 
 
 def _proc_alive(pid: int) -> bool:

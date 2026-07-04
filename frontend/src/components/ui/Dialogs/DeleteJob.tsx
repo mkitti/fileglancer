@@ -24,7 +24,8 @@ export default function DeleteJobDialog({
       </Typography>
       <Typography className="text-foreground mb-4">
         Are you sure you want to delete this job? Its record, parameters, and
-        logs will be removed. This cannot be undone.
+        entire working directory, including logs, will be removed. This cannot
+        be undone.
       </Typography>
       <div className="flex justify-end gap-2">
         <FgButton onClick={onClose} variant="ghost">

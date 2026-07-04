@@ -2384,7 +2384,7 @@ def create_app(settings):
             raise HTTPException(status_code=400, detail=str(e))
 
     @app.delete("/api/jobs/{job_id}",
-                description="Delete a job record")
+                description="Delete a job record and its work directory")
     async def delete_job(job_id: int,
                          username: str = Depends(get_current_user)):
         with db.get_db_session(settings.db_url) as session:
@@ -2395,6 +2395,12 @@ def create_app(settings):
                 raise HTTPException(
                     status_code=409,
                     detail="Job is active; cancel or stop it before deleting.",
+                )
+            result = await _worker_exec(username, "delete_job_work_dir", job_id=job_id)
+            if result.get("error"):
+                raise HTTPException(
+                    status_code=result.get("status_code", 500),
+                    detail=result["error"],
                 )
             db.delete_job(session, job_id, username)
         return {"message": "Job deleted"}
