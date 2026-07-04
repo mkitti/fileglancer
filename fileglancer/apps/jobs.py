@@ -520,15 +520,20 @@ def _build_container_script(
     return "\n".join(lines)
 
 
-def _container_bind_paths(entry_point, parameters: dict, username: Optional[str],
+def _container_bind_paths(entry_point, parameters: dict,
+                          env_parameters: Optional[dict], username: Optional[str],
                           cached_repo_dir) -> list[str]:
     """Compute the host paths to bind-mount into a container runnable.
 
     Binds are drawn from three sources, in order:
 
-    1. Each file/directory parameter's value (a file binds its parent dir).
-       Cloud-storage URIs and non-absolute values are skipped — they are not
-       bind-mountable and would otherwise produce garbage binds.
+    1. Each effective file/directory parameter's value (a file binds its parent
+       dir). "Effective" means the same set the command is built from — user
+       values merged with manifest defaults, across BOTH the pipeline
+       (`parameters`) and env-tab (`env_parameters`) namespaces — so a file
+       default or an env-tab file parameter is mounted rather than left
+       dangling. Cloud-storage URIs and non-absolute values are skipped — they
+       are not bind-mountable and would otherwise produce garbage binds.
     2. The runnable's explicit `bind_paths`.
     3. The cached repo clone, but only when the command runs from `repo`. The
        `repo` symlink lives inside the (already-bound) work dir yet points at
@@ -540,16 +545,15 @@ def _container_bind_paths(entry_point, parameters: dict, username: Optional[str]
     not included here.
     """
     bind_paths: list[str] = []
-    for param in entry_point.flat_parameters():
-        if param.type in ("file", "directory") and param.key in parameters:
-            path_val = str(parameters[param.key])
-            expanded = expand_user_path(path_val, username)
-            if expanded.startswith(_URI_PREFIXES) or not expanded.startswith("/"):
-                continue
-            if param.type == "directory":
-                bind_paths.append(expanded)
-            else:
-                bind_paths.append(str(Path(expanded).parent))
+    for param, raw_value in collect_path_parameters(
+            entry_point, parameters, env_parameters):
+        expanded = expand_user_path(str(raw_value), username)
+        if expanded.startswith(_URI_PREFIXES) or not expanded.startswith("/"):
+            continue
+        if param.type == "directory":
+            bind_paths.append(expanded)
+        else:
+            bind_paths.append(str(Path(expanded).parent))
     if entry_point.bind_paths:
         bind_paths.extend(entry_point.bind_paths)
     if entry_point.effective_working_dir == "repo":
@@ -852,7 +856,7 @@ async def submit_job(
     # If container is defined, wrap command in apptainer exec
     if effective_container:
         bind_paths = _container_bind_paths(
-            entry_point, parameters, username, cached_repo_dir
+            entry_point, parameters, env_parameters, username, cached_repo_dir
         )
 
         command = _build_container_script(

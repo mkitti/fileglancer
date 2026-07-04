@@ -734,14 +734,14 @@ class TestContainerBindPaths:
         ep = self._ep(parameters=[
             AppParameter(flag="--data", name="Data", type="directory")
         ])
-        binds = _container_bind_paths(ep, {"data": "/groups/lab/data"}, None, "/cache/repo")
+        binds = _container_bind_paths(ep, {"data": "/groups/lab/data"}, None, None, "/cache/repo")
         assert "/groups/lab/data" in binds
 
     def test_file_param_binds_parent_dir(self):
         ep = self._ep(parameters=[
             AppParameter(flag="--in", name="In", type="file")
         ])
-        binds = _container_bind_paths(ep, {"in": "/groups/lab/x.tif"}, None, "/cache/repo")
+        binds = _container_bind_paths(ep, {"in": "/groups/lab/x.tif"}, None, None, "/cache/repo")
         assert "/groups/lab" in binds
         assert "/groups/lab/x.tif" not in binds
 
@@ -751,24 +751,45 @@ class TestContainerBindPaths:
             AppParameter(flag="--b", name="B", type="directory"),
         ])
         binds = _container_bind_paths(
-            ep, {"a": "s3://bucket/key", "b": "./rel"}, None, "/cache/repo"
+            ep, {"a": "s3://bucket/key", "b": "./rel"}, None, None, "/cache/repo"
         )
         assert binds == []  # neither is a bind-mountable absolute local path
 
     def test_explicit_bind_paths_included(self):
         ep = self._ep(bind_paths=["/shared/ref", "/scratch"])
-        binds = _container_bind_paths(ep, {}, None, "/cache/repo")
+        binds = _container_bind_paths(ep, {}, None, None, "/cache/repo")
         assert "/shared/ref" in binds and "/scratch" in binds
 
     def test_repo_bound_only_when_working_dir_repo(self):
         # Container default is working_dir=work → repo NOT bound.
         work_ep = self._ep()
         assert "work" == work_ep.effective_working_dir
-        assert "/cache/repo" not in _container_bind_paths(work_ep, {}, None, "/cache/repo")
+        assert "/cache/repo" not in _container_bind_paths(work_ep, {}, None, None, "/cache/repo")
 
         # Opt into repo → the cached clone is bound so the repo symlink resolves.
         repo_ep = self._ep(working_dir="repo")
-        assert "/cache/repo" in _container_bind_paths(repo_ep, {}, None, "/cache/repo")
+        assert "/cache/repo" in _container_bind_paths(repo_ep, {}, None, None, "/cache/repo")
+
+    def test_file_directory_default_is_bound(self):
+        # A file/directory param the user did not override still contributes its
+        # default path to the binds (the command references it, so it must be
+        # mounted).
+        ep = self._ep(parameters=[
+            AppParameter(flag="--ref", name="Ref", type="directory",
+                         default="/groups/lab/reference"),
+        ])
+        binds = _container_bind_paths(ep, {}, None, None, "/cache/repo")
+        assert "/groups/lab/reference" in binds
+
+    def test_env_tab_file_param_is_bound(self):
+        # A file/directory parameter declared in the env tab has its value in
+        # env_parameters, not parameters; it must still be bound.
+        ep = self._ep(env_parameters=[
+            AppParameter(flag="--cfg", name="Cfg", type="file"),
+        ])
+        binds = _container_bind_paths(
+            ep, {}, {"cfg": "/groups/lab/config/app.yaml"}, None, "/cache/repo")
+        assert "/groups/lab/config" in binds
 
 
 # --- Service port / URL tests (FG_SERVICE_PORT + auto_url) ---
