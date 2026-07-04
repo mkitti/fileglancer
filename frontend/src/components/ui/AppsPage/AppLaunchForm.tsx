@@ -1283,10 +1283,25 @@ export default function AppLaunchForm({
       {submitError}
     </div>
   ) : null;
+  // Errors keyed by a parameter render inline next to their field; any other
+  // key (e.g. `_general`, set when server-side path validation cannot run) has
+  // no field to highlight, so its message must appear in the banner itself.
+  const fieldErrorKeys = new Set(
+    [...allParams, ...envParamsFlat].map(p => p.key)
+  );
+  const nonFieldErrors = Object.entries(errors).filter(
+    ([key]) => !fieldErrorKeys.has(key)
+  );
+  const hasFieldErrors = Object.keys(errors).length > nonFieldErrors.length;
   const validationErrorBanner =
     Object.keys(errors).length > 0 ? (
       <div className="mt-2 mb-4 p-3 bg-error/10 rounded text-error text-sm">
-        Please fix the highlighted errors before submitting.
+        {hasFieldErrors ? (
+          <p>Please fix the highlighted errors before submitting.</p>
+        ) : null}
+        {nonFieldErrors.map(([key, message]) => (
+          <p key={key}>{message}</p>
+        ))}
       </div>
     ) : null;
 
