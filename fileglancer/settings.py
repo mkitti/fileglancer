@@ -38,6 +38,13 @@ class ClusterSettings(BaseModel):
 class AppsSettings(BaseModel):
     """Apps-specific configuration (not passed to py-cluster-api)."""
     extra_paths: List[str] = []
+    # Extra environment variable names (exact) or prefixes (ending in '_') to
+    # pass through to per-user workers, on top of the built-in allowlist. The
+    # worker env is an allowlist so no server secret leaks to the user via
+    # /proc/<pid>/environ; add site-specific vars your scheduler or tools need
+    # here rather than widening the allowlist in code. FGC_* is never passed
+    # through regardless of this list.
+    worker_env_passthrough: List[str] = []
 
 
 class Settings(BaseSettings):

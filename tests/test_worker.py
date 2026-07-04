@@ -56,7 +56,7 @@ from fileglancer.worker_pool import (
 # ---------------------------------------------------------------------------
 
 class TestBuildWorkerEnv:
-    """Worker environment must not carry Fileglancer secrets to the user."""
+    """Worker environment is an allowlist: no server secret reaches the user."""
 
     def test_strips_all_fgc_variables(self):
         base = {
@@ -80,23 +80,71 @@ class TestBuildWorkerEnv:
         assert "FGC_ATLASSIAN_TOKEN" not in env
         assert "fgc_test_api_key" not in env
 
-    def test_preserves_non_fgc_and_sets_operational_vars(self):
+    def test_drops_generic_deployment_secrets(self):
+        # Non-FGC secrets that may sit in a server's environment must not reach
+        # the user's worker either.
         base = {
             "PATH": "/usr/bin:/bin",
-            "LSF_ENVDIR": "/opt/lsf/conf",
+            "AWS_SECRET_ACCESS_KEY": "aws-secret",
+            "AWS_SESSION_TOKEN": "aws-token",
+            "GITHUB_TOKEN": "gh-secret",
+            "DATABASE_URL": "postgres://u:pw@h/db",
+            "MY_APP_CREDENTIALS": "creds",
+        }
+        env = _build_worker_env(base, "/home/user", "INFO", 7)
+        assert env["PATH"] == "/usr/bin:/bin"  # allowlisted, kept
+        assert "AWS_SECRET_ACCESS_KEY" not in env
+        assert "AWS_SESSION_TOKEN" not in env
+        assert "GITHUB_TOKEN" not in env
+        assert "DATABASE_URL" not in env
+        assert "MY_APP_CREDENTIALS" not in env
+
+    def test_preserves_allowlisted_and_sets_operational_vars(self):
+        base = {
+            "PATH": "/usr/bin:/bin",
+            "LSF_ENVDIR": "/opt/lsf/conf",       # LSF_ prefix
+            "LSB_JOBID": "42",                    # LSB_ prefix
+            "SLURM_CONF": "/etc/slurm.conf",      # SLURM_ prefix
+            "MODULEPATH": "/opt/modules",         # MODULE prefix
+            "CONDA_EXE": "/opt/conda/bin/conda",  # CONDA_ prefix
+            "APPTAINER_CACHEDIR": "/scratch/ac",  # APPTAINER_ prefix
             "LANG": "en_US.UTF-8",
+            "LC_ALL": "en_US.UTF-8",              # LC_ prefix
             "SSH_AUTH_SOCK": "/tmp/ssh-agent.sock",
+            "HTTPS_PROXY": "http://proxy:8080",
         }
         env = _build_worker_env(base, "/home/alice", "DEBUG", 9)
-        # Scheduler / git / locale vars survive so cluster tools keep working.
-        assert env["PATH"] == "/usr/bin:/bin"
-        assert env["LSF_ENVDIR"] == "/opt/lsf/conf"
-        assert env["LANG"] == "en_US.UTF-8"
-        assert env["SSH_AUTH_SOCK"] == "/tmp/ssh-agent.sock"
+        for key in base:
+            assert key in env, f"{key} should be allowlisted"
         # Operational vars the worker needs are set explicitly.
         assert env["HOME"] == "/home/alice"
         assert env["FGC_LOG_LEVEL"] == "DEBUG"
         assert env["FGC_WORKER_FD"] == "9"
+
+    def test_passthrough_allows_site_specific_names_and_prefixes(self):
+        base = {
+            "PATH": "/usr/bin",
+            "SITE_LICENSE_SERVER": "27000@lic",  # exact name
+            "ACME_FOO": "a",                       # ACME_ prefix
+            "ACME_BAR": "b",
+            "OTHER_VAR": "dropped",
+        }
+        env = _build_worker_env(
+            base, "/home/user", "INFO", 7,
+            passthrough=["SITE_LICENSE_SERVER", "ACME_"],
+        )
+        assert env["SITE_LICENSE_SERVER"] == "27000@lic"
+        assert env["ACME_FOO"] == "a"
+        assert env["ACME_BAR"] == "b"
+        assert "OTHER_VAR" not in env  # not allowlisted, not in passthrough
+
+    def test_passthrough_cannot_reintroduce_fgc_secrets(self):
+        base = {"FGC_SESSION_SECRET_KEY": "super-secret"}
+        env = _build_worker_env(
+            base, "/home/user", "INFO", 7,
+            passthrough=["FGC_SESSION_SECRET_KEY", "FGC_"],
+        )
+        assert "FGC_SESSION_SECRET_KEY" not in env
 
 
 class TestActionTimeout:

@@ -73,24 +73,62 @@ def _timeout_for_action(action: str) -> float:
     return _GIT_ACTION_TIMEOUT if action in _LONG_ACTIONS else _DEFAULT_REQUEST_TIMEOUT
 
 
+# Worker env is an allowlist, not a denylist: workers run as the (untrusted)
+# target user, so anything in their environment is readable by that user via
+# /proc/<pid>/environ. Only pass variables the worker legitimately needs (git,
+# ssh, locale, tmp, the scheduler, environment modules, conda/pixi, containers)
+# so no server secret leaks — not Fileglancer's own FGC_* vars, and not generic
+# deployment secrets like AWS_SECRET_ACCESS_KEY or GITHUB_TOKEN. Site-specific
+# additions go through settings.apps.worker_env_passthrough, not code.
+_WORKER_ENV_ALLOW_NAMES = frozenset({
+    "PATH", "HOME", "USER", "LOGNAME", "SHELL", "PWD",
+    "LANG", "LANGUAGE", "TZ", "TERM",
+    "TMPDIR", "TMP", "TEMP",
+    "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY",
+    "http_proxy", "https_proxy", "no_proxy",
+    "SSH_AUTH_SOCK",
+    # Needed for the worker's own imports under path-based installs (not a
+    # secret); harmless when unused (site-packages installs don't rely on it).
+    "PYTHONPATH", "VIRTUAL_ENV",
+})
+_WORKER_ENV_ALLOW_PREFIXES = (
+    "LC_",                          # locale
+    "LSF_", "LSB_", "EGO_",         # IBM Spectrum LSF
+    "SLURM_",                       # Slurm
+    "SGE_", "PBS_",                 # SGE / PBS / Torque
+    "MODULE", "MODULES_", "LMOD_",  # environment modules
+    "CONDA_", "MAMBA_", "PIXI_",    # conda / pixi
+    "APPTAINER_", "SINGULARITY_",   # containers
+    "GIT_",                         # git config via env (not secrets by convention)
+)
+
+
 def _build_worker_env(base_env: dict, home_dir: str, log_level: str,
-                      child_fd: int) -> dict:
-    """Build the environment for a worker subprocess.
+                      child_fd: int, passthrough: Optional[list] = None) -> dict:
+    """Build the environment for a worker subprocess (allowlist).
 
-    Workers run as the (untrusted) target user, so anything in their
-    environment is readable by that user via /proc/<pid>/environ. Every
-    Fileglancer setting is exposed through the ``fgc_`` env prefix (see
-    Settings), so we strip *all* ``FGC_*`` variables — the session secret key,
-    Okta client secret, Atlassian token, DB URL, etc. — rather than an
-    ad-hoc denylist that would miss newly-added secrets. The worker receives
-    its config over the IPC socket instead (DB access via RpcDbProxy), plus the
-    two operational vars set below.
+    Keeps only allowlisted variables (see the module constants) plus any
+    operator-configured ``passthrough`` names/prefixes, then always sets the
+    two operational vars the worker itself needs. FGC_* is dropped
+    unconditionally — even if an operator lists it in passthrough — so
+    Fileglancer secrets (session key, Okta/Atlassian secrets, DB URL) can never
+    reach the user. The worker gets its config over the IPC socket instead (DB
+    access via RpcDbProxy).
 
-    Non-``FGC_`` variables (PATH, HOME, locale, SSH, and scheduler vars such as
-    LSF_*) are preserved so git, ssh, and the cluster tools still function; an
-    allowlist would risk silently dropping scheduler env the submit host needs.
+    A passthrough entry ending in ``_`` is treated as a prefix; otherwise it is
+    an exact variable name.
     """
-    env = {k: v for k, v in base_env.items() if not k.upper().startswith("FGC_")}
+    extra_names = {p for p in (passthrough or []) if not p.endswith("_")}
+    extra_prefixes = tuple(p for p in (passthrough or []) if p.endswith("_"))
+    allow_names = _WORKER_ENV_ALLOW_NAMES | extra_names
+    allow_prefixes = _WORKER_ENV_ALLOW_PREFIXES + extra_prefixes
+
+    def _allowed(key: str) -> bool:
+        if key.upper().startswith("FGC_"):
+            return False  # never leak Fileglancer secrets
+        return key in allow_names or key.startswith(allow_prefixes)
+
+    env = {k: v for k, v in base_env.items() if _allowed(k)}
     env["HOME"] = home_dir
     env["FGC_LOG_LEVEL"] = log_level
     env["FGC_WORKER_FD"] = str(child_fd)
@@ -405,12 +443,13 @@ class WorkerPool:
         # Create Unix socketpair for IPC
         parent_sock, child_sock = socket.socketpair()
 
-        # Worker subprocess deliberately does NOT receive any Fileglancer
-        # secrets (DB URL, session secret key, Okta client secret, Atlassian
-        # token, ...) — it runs as the (untrusted) target user, so they would
-        # be readable via /proc/<pid>/environ. See _build_worker_env.
+        # The worker runs as the (untrusted) target user, so its environment is
+        # readable via /proc/<pid>/environ. Build it from an allowlist so no
+        # server secret leaks — neither Fileglancer's FGC_* vars nor generic
+        # deployment secrets. See _build_worker_env.
         env = _build_worker_env(
-            os.environ, home_dir, self.settings.log_level, child_sock.fileno()
+            os.environ, home_dir, self.settings.log_level, child_sock.fileno(),
+            passthrough=self.settings.apps.worker_env_passthrough,
         )
 
         logger.info(
