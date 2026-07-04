@@ -110,6 +110,7 @@ function ParameterField({
       return (
         <input
           className={baseInputClass}
+          id={`param-${param.key}`}
           max={param.max}
           min={param.min}
           onChange={e => {
@@ -133,6 +134,7 @@ function ParameterField({
       return (
         <select
           className={baseInputClass}
+          id={`param-${param.key}`}
           onChange={e => onChange(e.target.value)}
           value={value !== undefined && value !== null ? String(value) : ''}
         >
@@ -151,6 +153,7 @@ function ParameterField({
         <div className="flex gap-2">
           <input
             className={`flex-1 ${baseInputClass}`}
+            id={`param-${param.key}`}
             onChange={e => {
               setFileDisplayPath(null);
               onChange(e.target.value);
@@ -198,6 +201,7 @@ function ParameterField({
       return (
         <input
           className={baseInputClass}
+          id={`param-${param.key}`}
           onChange={e => onChange(e.target.value)}
           placeholder={param.name}
           type="text"

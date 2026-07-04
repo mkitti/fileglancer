@@ -73,6 +73,7 @@ export default function Catalog() {
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center">
           <input
+            aria-label="Search shared apps"
             className="w-full sm:max-w-sm p-2 text-foreground border rounded-sm focus:outline-none bg-background border-primary-light focus:border-primary"
             onChange={e => setSearch(e.target.value)}
             placeholder="Search by name, description, or sharer"
