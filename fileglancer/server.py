@@ -1915,6 +1915,30 @@ def create_app(settings):
             except Exception as e:
                 logger.warning(f"Eager snapshot of {canonical_url}@{head_sha[:7]} failed: {e}")
 
+        # Pin each app's separate code repo (manifest repo_url) now, at add
+        # time, so a later launch can't silently run code that moved after the
+        # app was added/reviewed — and so update-checks can see code drift
+        # before the first launch. Best-effort: submit_job still backfills the
+        # code pin at launch if this fails (e.g. a transient network error),
+        # so a flaky code remote never blocks adding the app.
+        for app in new_apps:
+            repo_url = app.manifest.repo_url if app.manifest else None
+            if not repo_url or canonical_github_url(repo_url) == canonical_url:
+                continue
+            try:
+                _, code_sha = await apps_module.ensure_repo_snapshot(
+                    repo_url, pull=True, username=username)
+            except Exception as e:
+                logger.warning(
+                    f"Eager code-repo pin of {repo_url} for {canonical_url} "
+                    f"({app.manifest_path}) failed: {e}")
+                continue
+            with db.get_db_session(settings.db_url) as session:
+                db.set_user_app_pins(
+                    session, username, canonical_url, app.manifest_path,
+                    code_commit_sha=code_sha)
+            app.code_commit_sha = code_sha
+
         return new_apps
 
     @app.delete("/api/apps",
@@ -2224,6 +2248,20 @@ def create_app(settings):
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Failed to fetch manifest: {str(e)}")
 
+        # Pin the manifest's separate code repo (repo_url) now, at add time, so
+        # a later launch can't silently run code that moved after the app was
+        # added. Best-effort: submit_job backfills this pin at launch if it
+        # fails here, so a flaky code remote never blocks adding the app.
+        code_sha = None
+        if manifest.repo_url and canonical_github_url(manifest.repo_url) != listing_url:
+            try:
+                _, code_sha = await apps_module.ensure_repo_snapshot(
+                    manifest.repo_url, pull=True, username=username)
+            except Exception as e:
+                logger.warning(
+                    f"Eager code-repo pin of {manifest.repo_url} for "
+                    f"{listing_url} ({listing_manifest_path}) failed: {e}")
+
         # The listing already carries the canonical URL (resolved revision baked
         # in) and the requested revision, so copy them straight over.
         with db.get_db_session(settings.db_url) as session:
@@ -2233,6 +2271,7 @@ def create_app(settings):
                 name=listing_name, description=listing_description,
                 branch=listing_branch,
                 commit_sha=pinned_sha,
+                code_commit_sha=code_sha,
                 manifest=manifest.model_dump(mode="json"),
             )
             return UserApp(

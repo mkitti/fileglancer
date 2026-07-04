@@ -297,6 +297,45 @@ def test_add_app_persists_manifest_and_branch(test_client, db_session):
     assert rows[0].commit_sha == TEST_SHA
 
 
+def test_add_app_pins_separate_code_repo(test_client, db_session):
+    """A manifest with a separate repo_url gets its code repo pinned at add
+    time, so a later launch can't run code that moved after the app was added."""
+    manifest = AppManifest(
+        name="With Code Repo",
+        description="Demo",
+        repo_url="https://github.com/tools/code",
+        runnables=[AppEntryPoint(id="run", name="Run", command="echo hi")],
+    )
+
+    def _snapshot(url, *args, **kwargs):
+        if "tools/code" in url:
+            return (f"/tmp/snapshots/{TEST_SHA_2}", TEST_SHA_2)
+        return (f"/tmp/snapshots/{TEST_SHA}", TEST_SHA)
+
+    with patch("fileglancer.apps.discover_app_manifests",
+               new=AsyncMock(return_value=("main", TEST_SHA, [("", manifest)]))), \
+         patch("fileglancer.apps.ensure_repo_snapshot",
+               new=AsyncMock(side_effect=_snapshot)) as mock_snapshot:
+        response = test_client.post(
+            "/api/apps",
+            json={"url": "https://github.com/owner/repo"},
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body[0]["code_commit_sha"] == TEST_SHA_2
+
+    # Two snapshots: the app repo (pinned tip) and the separate code repo.
+    assert mock_snapshot.await_count == 2
+    code_call = mock_snapshot.await_args_list[1]
+    assert code_call.args == ("https://github.com/tools/code",)
+    assert code_call.kwargs == {"pull": True, "username": TEST_USERNAME}
+
+    rows = list_user_apps(db_session, TEST_USERNAME)
+    assert rows[0].commit_sha == TEST_SHA
+    assert rows[0].code_commit_sha == TEST_SHA_2
+
+
 def test_add_app_bakes_resolved_default_into_url(test_client, db_session):
     """A bare URL for a repo whose default is 'master' stores '/tree/master', so
     it dedups against an explicit '/tree/master' add. branch stays "" (unpinned)."""
