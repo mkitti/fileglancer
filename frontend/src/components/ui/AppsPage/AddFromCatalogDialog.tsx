@@ -4,7 +4,8 @@ import { HiOutlinePlus } from 'react-icons/hi';
 import FgDialog from '@/components/ui/Dialogs/FgDialog';
 import FgButton from '@/components/designSystem/atoms/FgButton';
 import AppTrustNotice from '@/components/ui/AppsPage/AppTrustNotice';
-import { repoLabel } from '@/utils';
+import GithubUrlValue from '@/components/ui/AppsPage/GithubUrlValue';
+import { formatDateString } from '@/utils';
 import type { AppListing } from '@/shared.types';
 
 interface AddFromCatalogDialogProps {
@@ -38,15 +39,22 @@ export default function AddFromCatalogDialog({
         to your apps?
       </Typography>
       {listing ? (
-        <Typography className="text-foreground text-sm mb-3">
-          Source: <span className="font-mono">{repoLabel(listing.url)}</span>
-          {listing.branch ? (
-            <>
-              {' '}
-              (revision <span className="font-mono">{listing.branch}</span>)
-            </>
-          ) : null}
-        </Typography>
+        <div className="mb-4 space-y-1.5 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-foreground font-medium shrink-0">
+              Source:
+            </span>
+            <GithubUrlValue url={listing.url} />
+          </div>
+          <div className="text-foreground">
+            <span className="font-medium">Shared by:</span>{' '}
+            {listing.owner_username}
+          </div>
+          <div className="text-foreground">
+            <span className="font-medium">Shared on:</span>{' '}
+            {formatDateString(listing.published_at)}
+          </div>
+        </div>
       ) : null}
       <AppTrustNotice className="mb-4" />
       <div className="flex justify-end gap-2">

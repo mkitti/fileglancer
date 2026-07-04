@@ -1,9 +1,8 @@
 import type { ReactNode } from 'react';
-import { TbBrandGithub } from 'react-icons/tb';
 
 import FgExternalLink from '@/components/designSystem/atoms/FgExternalLink';
-import FgIcon from '@/components/designSystem/atoms/FgIcon';
 import FgLink from '@/components/designSystem/atoms/FgLink';
+import GithubUrlValue from '@/components/ui/AppsPage/GithubUrlValue';
 import type { AppListing, UserApp } from '@/shared.types';
 import { formatDateString } from '@/utils';
 import {
@@ -29,22 +28,6 @@ function InfoRow({
       <td className={labelClass}>{label}</td>
       <td className={valueClass}>{children}</td>
     </tr>
-  );
-}
-
-function GithubUrlValue({ url }: { readonly url: string }) {
-  return (
-    <div className="flex items-center gap-1.5 text-foreground">
-      <FgIcon className="shrink-0" icon={TbBrandGithub} size="sm" />
-      <FgExternalLink
-        className="break-all"
-        href={url}
-        showIcon={false}
-        size="sm"
-      >
-        {url}
-      </FgExternalLink>
-    </div>
   );
 }
 
