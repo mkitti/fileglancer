@@ -844,110 +844,114 @@ async def submit_job(
         db_job.work_dir = str(work_dir)
         session.commit()
 
-    # Build environment variable export lines
-    env_lines = ""
-    if merged_env:
-        parts = []
-        for var_name, var_value in merged_env.items():
-            if not _ENV_VAR_NAME_PATTERN.match(var_name):
-                raise ValueError(f"Invalid environment variable name: '{var_name}'")
-            parts.append(f"export {var_name}={shlex.quote(var_value)}")
-        env_lines = "\n".join(parts) + "\n"
-
-    # Set up the script preamble:
-    # - FG_WORK_DIR: the job's working directory (used by subsequent variables)
-    # - Unset PIXI_PROJECT_MANIFEST so pixi uses the repo's own manifest
-    # - SERVICE_URL_PATH: for service-type jobs, where to write the service URL
-    # - cd into the repo so commands can find project files (pixi.toml, scripts, etc.)
-    preamble_lines = [
-        "unset PIXI_PROJECT_MANIFEST",
-        f"export FG_WORK_DIR={shlex.quote(str(work_dir))}",
-        # Where the script reports its startup phase (e.g. pulling a container
-        # image). The UI reads this to explain a wait before a service is ready.
-        'export FG_PHASE_PATH="$FG_WORK_DIR/phase"',
-    ]
-    # For local executor, trap EXIT to write the exit code to a file so
-    # PID-based polling can determine the final status after the process exits.
-    if settings.cluster.executor == "local":
-        preamble_lines.append(
-            'trap \'echo $? > "$FG_WORK_DIR/exit_code"\' EXIT'
-        )
-    if settings.apps.extra_paths:
-        path_suffix = os.pathsep.join(shlex.quote(p) for p in settings.apps.extra_paths)
-        preamble_lines.append(f"export PATH=$PATH:{path_suffix}")
-    if entry_point.type == "service":
-        preamble_lines.append('export SERVICE_URL_PATH="$FG_WORK_DIR/service_url"')
-        preamble_lines.append(_SERVICE_PORT_HELPER)
-        # With auto_url, Fileglancer publishes the URL for the author: a
-        # background probe waits for $FG_SERVICE_PORT to accept connections and
-        # then writes http://$FG_HOSTNAME:$FG_SERVICE_PORT plus the optional
-        # (validated) service_url_suffix. A service that manages its own URL
-        # leaves auto_url unset and writes SERVICE_URL_PATH itself.
-        if entry_point.auto_url:
-            preamble_lines.append(
-                _build_service_url_publisher(entry_point.service_url_suffix or "")
-            )
-    # Choose the working directory. 'work' runs from the job's work dir (the
-    # repo is still reachable via the `repo` symlink); 'repo' runs from the
-    # cloned project (optionally the manifest's subdirectory). cd_suffix may
-    # include a Git-derived directory name, so shell-escape it — FG_WORK_DIR
-    # stays in its own double-quoted segment so it still expands.
-    if entry_point.effective_working_dir == "work":
-        preamble_lines.append('cd "$FG_WORK_DIR"')
-    else:
-        preamble_lines.append(f'cd "$FG_WORK_DIR"/{shlex.quote(cd_suffix)}')
-    script_parts = ["\n".join(preamble_lines)]
-
-    # Conda environment activation
-    if entry_point.conda_env:
-        conda_activation = (
-            'eval "$(conda shell.bash hook)"\n'
-            f'conda activate {shlex.quote(entry_point.conda_env)}'
-        )
-        script_parts.append(conda_activation)
-
-    # If container is defined, wrap command in apptainer exec
-    if effective_container:
-        bind_paths = _container_bind_paths(
-            entry_point, parameters, env_parameters, username, cached_repo_dir
-        )
-
-        command = _build_container_script(
-            container_url=effective_container,
-            command=command,
-            work_dir=str(work_dir),
-            bind_paths=bind_paths,
-            container_args=effective_container_args,
-            cache_dir=container_cache_dir,
-            username=username,
-        )
-
-    if env_lines:
-        script_parts.append(env_lines.rstrip())
-    # Verify required tools now that PATH, conda, and env vars are set up, but
-    # before pre_run/command do any real work. Fails the job with a readable
-    # message in stderr if a requirement is unmet.
-    req_check = build_requirements_check(effective_requirements)
-    if req_check:
-        script_parts.append(req_check)
-    if effective_pre_run:
-        script_parts.append(effective_pre_run.rstrip())
-    script_parts.append(command)
-    if effective_post_run:
-        script_parts.append(effective_post_run.rstrip())
-    full_command = "\n\n".join(script_parts)
-
-    # Set work_dir and log paths on resource spec
-    resource_spec.work_dir = str(work_dir)
-    resource_spec.stdout_path = str(work_dir / "stdout.log")
-    resource_spec.stderr_path = str(work_dir / "stderr.log")
-
-    # Submit to the cluster as the target user via the persistent worker:
-    # it creates the work directory, symlinks the repo, and calls
-    # executor.submit() — all with the user's identity.
-    job_name = f"{manifest.name}-{entry_point.id}"
-    cluster_config = settings.cluster.model_dump(exclude_none=True)
+    # The job row exists but the cluster knows nothing about it yet: any
+    # failure between here and a successful worker submit (env-var
+    # validation, script assembly, the submit dispatch) must remove the
+    # row, or it lingers as a phantom PENDING job that never runs.
     try:
+        # Build environment variable export lines
+        env_lines = ""
+        if merged_env:
+            parts = []
+            for var_name, var_value in merged_env.items():
+                if not _ENV_VAR_NAME_PATTERN.match(var_name):
+                    raise ValueError(f"Invalid environment variable name: '{var_name}'")
+                parts.append(f"export {var_name}={shlex.quote(var_value)}")
+            env_lines = "\n".join(parts) + "\n"
+
+        # Set up the script preamble:
+        # - FG_WORK_DIR: the job's working directory (used by subsequent variables)
+        # - Unset PIXI_PROJECT_MANIFEST so pixi uses the repo's own manifest
+        # - SERVICE_URL_PATH: for service-type jobs, where to write the service URL
+        # - cd into the repo so commands can find project files (pixi.toml, scripts, etc.)
+        preamble_lines = [
+            "unset PIXI_PROJECT_MANIFEST",
+            f"export FG_WORK_DIR={shlex.quote(str(work_dir))}",
+            # Where the script reports its startup phase (e.g. pulling a container
+            # image). The UI reads this to explain a wait before a service is ready.
+            'export FG_PHASE_PATH="$FG_WORK_DIR/phase"',
+        ]
+        # For local executor, trap EXIT to write the exit code to a file so
+        # PID-based polling can determine the final status after the process exits.
+        if settings.cluster.executor == "local":
+            preamble_lines.append(
+                'trap \'echo $? > "$FG_WORK_DIR/exit_code"\' EXIT'
+            )
+        if settings.apps.extra_paths:
+            path_suffix = os.pathsep.join(shlex.quote(p) for p in settings.apps.extra_paths)
+            preamble_lines.append(f"export PATH=$PATH:{path_suffix}")
+        if entry_point.type == "service":
+            preamble_lines.append('export SERVICE_URL_PATH="$FG_WORK_DIR/service_url"')
+            preamble_lines.append(_SERVICE_PORT_HELPER)
+            # With auto_url, Fileglancer publishes the URL for the author: a
+            # background probe waits for $FG_SERVICE_PORT to accept connections and
+            # then writes http://$FG_HOSTNAME:$FG_SERVICE_PORT plus the optional
+            # (validated) service_url_suffix. A service that manages its own URL
+            # leaves auto_url unset and writes SERVICE_URL_PATH itself.
+            if entry_point.auto_url:
+                preamble_lines.append(
+                    _build_service_url_publisher(entry_point.service_url_suffix or "")
+                )
+        # Choose the working directory. 'work' runs from the job's work dir (the
+        # repo is still reachable via the `repo` symlink); 'repo' runs from the
+        # cloned project (optionally the manifest's subdirectory). cd_suffix may
+        # include a Git-derived directory name, so shell-escape it — FG_WORK_DIR
+        # stays in its own double-quoted segment so it still expands.
+        if entry_point.effective_working_dir == "work":
+            preamble_lines.append('cd "$FG_WORK_DIR"')
+        else:
+            preamble_lines.append(f'cd "$FG_WORK_DIR"/{shlex.quote(cd_suffix)}')
+        script_parts = ["\n".join(preamble_lines)]
+
+        # Conda environment activation
+        if entry_point.conda_env:
+            conda_activation = (
+                'eval "$(conda shell.bash hook)"\n'
+                f'conda activate {shlex.quote(entry_point.conda_env)}'
+            )
+            script_parts.append(conda_activation)
+
+        # If container is defined, wrap command in apptainer exec
+        if effective_container:
+            bind_paths = _container_bind_paths(
+                entry_point, parameters, env_parameters, username, cached_repo_dir
+            )
+
+            command = _build_container_script(
+                container_url=effective_container,
+                command=command,
+                work_dir=str(work_dir),
+                bind_paths=bind_paths,
+                container_args=effective_container_args,
+                cache_dir=container_cache_dir,
+                username=username,
+            )
+
+        if env_lines:
+            script_parts.append(env_lines.rstrip())
+        # Verify required tools now that PATH, conda, and env vars are set up, but
+        # before pre_run/command do any real work. Fails the job with a readable
+        # message in stderr if a requirement is unmet.
+        req_check = build_requirements_check(effective_requirements)
+        if req_check:
+            script_parts.append(req_check)
+        if effective_pre_run:
+            script_parts.append(effective_pre_run.rstrip())
+        script_parts.append(command)
+        if effective_post_run:
+            script_parts.append(effective_post_run.rstrip())
+        full_command = "\n\n".join(script_parts)
+
+        # Set work_dir and log paths on resource spec
+        resource_spec.work_dir = str(work_dir)
+        resource_spec.stdout_path = str(work_dir / "stdout.log")
+        resource_spec.stderr_path = str(work_dir / "stderr.log")
+
+        # Submit to the cluster as the target user via the persistent worker:
+        # it creates the work directory, symlinks the repo, and calls
+        # executor.submit() — all with the user's identity.
+        job_name = f"{manifest.name}-{entry_point.id}"
+        cluster_config = settings.cluster.model_dump(exclude_none=True)
         worker_result = await _dispatch(
             username, "submit",
             cluster_config=cluster_config,
@@ -969,8 +973,6 @@ async def submit_job(
             cached_repo_dir=str(cached_repo_dir),
         )
     except Exception:
-        # Cluster submission failed — remove the PENDING DB record so
-        # the job does not appear in the user's jobs list.
         with db.get_db_session(settings.db_url) as session:
             db.delete_job(session, job_id, username)
         raise

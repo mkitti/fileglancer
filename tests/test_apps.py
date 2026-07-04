@@ -2412,3 +2412,73 @@ class TestPollLoopStopRace:
         assert poll_jobs.await_count == 2
         assert active_user.call_count == 2
         assert jobs_mod._poll_task is None
+
+
+class TestSubmitJobOrphanCleanup:
+    """A submit-time failure after the job row is created must delete the row.
+
+    Env-var validation, script assembly, and the worker submit all run after
+    create_job; if any of them fails without cleanup, the user is left with a
+    phantom PENDING job that never runs and never resolves.
+    """
+
+    def _submit(self, tmp_path, monkeypatch, entry_point=None, dispatch=None,
+                **submit_kwargs):
+        import asyncio
+        from unittest.mock import AsyncMock
+        import fileglancer.apps.jobs as jobs_mod
+        from fileglancer import database as db
+        from fileglancer.model import AppEntryPoint, AppManifest
+        from fileglancer.settings import Settings
+
+        db_url = f"sqlite:///{tmp_path / 'jobs.db'}"
+        db.Base.metadata.create_all(db._get_engine(db_url))
+        settings = Settings(db_url=db_url, file_share_mounts=[], cli_mode=True)
+        monkeypatch.setattr(jobs_mod, "get_settings", lambda: settings)
+
+        manifest = AppManifest(
+            name="demo",
+            runnables=[AppEntryPoint(id="run", name="Run", command="echo hi",
+                                     **(entry_point or {}))],
+        )
+        monkeypatch.setattr(jobs_mod, "get_or_load_manifest",
+                            AsyncMock(return_value=manifest))
+        monkeypatch.setattr(jobs_mod, "ensure_repo_snapshot",
+                            AsyncMock(return_value=(tmp_path / "repo", "abc123")))
+        monkeypatch.setattr(jobs_mod, "_dispatch",
+                            dispatch or AsyncMock(return_value={}))
+
+        async def run():
+            return await jobs_mod.submit_job(
+                username="alice",
+                app_url="https://github.com/org/demo",
+                entry_point_id="run",
+                parameters={},
+                **submit_kwargs,
+            )
+        return asyncio.run(run())
+
+    def _job_count(self, tmp_path):
+        from fileglancer import database as db
+        with db.get_db_session(f"sqlite:///{tmp_path / 'jobs.db'}") as session:
+            return session.query(db.JobDB).count()
+
+    def test_invalid_env_var_name_deletes_row(self, tmp_path, monkeypatch):
+        with pytest.raises(ValueError, match="Invalid environment variable name"):
+            self._submit(tmp_path, monkeypatch, env={"BAD NAME": "x"})
+        assert self._job_count(tmp_path) == 0
+
+    def test_malformed_container_args_deletes_row(self, tmp_path, monkeypatch):
+        # shlex.split raises "No closing quotation" during script assembly
+        with pytest.raises(ValueError):
+            self._submit(tmp_path, monkeypatch,
+                         container="docker://busybox",
+                         container_args="'unterminated")
+        assert self._job_count(tmp_path) == 0
+
+    def test_worker_submit_failure_deletes_row(self, tmp_path, monkeypatch):
+        from unittest.mock import AsyncMock
+        dispatch = AsyncMock(side_effect=RuntimeError("worker down"))
+        with pytest.raises(RuntimeError, match="worker down"):
+            self._submit(tmp_path, monkeypatch, dispatch=dispatch)
+        assert self._job_count(tmp_path) == 0
