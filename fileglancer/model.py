@@ -351,11 +351,20 @@ class AppParameter(BaseModel):
     raw: bool = Field(description="If true, value is appended to the command without shell quoting", default=False)
     value_separator: Literal["space", "equals"] = Field(
         description=(
-            "How non-boolean flagged parameters are joined to their value in "
-            "the generated command: 'space' emits '--flag value', while "
-            "'equals' emits '--flag=value'."
+            "How flagged parameters are joined to their value in the generated "
+            "command: 'space' emits '--flag value', while 'equals' emits "
+            "'--flag=value'."
         ),
         default="space",
+    )
+    boolean_style: Literal["flag", "value"] = Field(
+        description=(
+            "How flagged boolean parameters are emitted: 'flag' emits '--flag' "
+            "for true and omits false, while 'value' emits '--flag true' or "
+            "'--flag false' (or '--flag=true/false' when value_separator is "
+            "'equals')."
+        ),
+        default="flag",
     )
     exists: bool = Field(
         description="file/directory params only: when true (the default), the path "
@@ -407,6 +416,11 @@ class AppParameter(BaseModel):
         if not self.exists and self.type not in ("file", "directory"):
             raise ValueError(
                 f"exists is only valid on file and directory parameters, "
+                f"but '{self.name}' has type '{self.type}'"
+            )
+        if self.boolean_style != "flag" and self.type != "boolean":
+            raise ValueError(
+                f"boolean_style is only valid on boolean parameters, "
                 f"but '{self.name}' has type '{self.type}'"
             )
         return self

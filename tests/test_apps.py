@@ -2138,6 +2138,53 @@ class TestBuildCommandValueSeparator:
         assert "--runtime_opts='--bind /data in'" in cmd
 
 
+class TestBuildCommandBooleanStyle:
+    def test_flag_style_preserves_generic_switch_behavior(self):
+        ep = AppEntryPoint(
+            id="run",
+            name="run",
+            command="tool",
+            parameters=[AppParameter(flag="--verbose", name="Verbose", type="boolean")],
+        )
+        assert build_command(ep, {"verbose": True}) == "tool \\\n  --verbose"
+        assert build_command(ep, {"verbose": False}) == "tool"
+
+    def test_value_style_emits_explicit_boolean_values(self):
+        ep = AppEntryPoint(
+            id="run",
+            name="run",
+            command="tool",
+            parameters=[
+                AppParameter(
+                    flag="--skip_qc",
+                    name="Skip QC",
+                    type="boolean",
+                    boolean_style="value",
+                ),
+            ],
+        )
+        assert "--skip_qc true" in build_command(ep, {"skip_qc": True})
+        assert "--skip_qc false" in build_command(ep, {"skip_qc": False})
+
+    def test_value_style_can_use_equals_separator(self):
+        ep = AppEntryPoint(
+            id="run",
+            name="run",
+            command="tool",
+            parameters=[
+                AppParameter(
+                    flag="--skip_qc",
+                    name="Skip QC",
+                    type="boolean",
+                    boolean_style="value",
+                    value_separator="equals",
+                ),
+            ],
+        )
+        assert "--skip_qc=true" in build_command(ep, {"skip_qc": True})
+        assert "--skip_qc=false" in build_command(ep, {"skip_qc": False})
+
+
 class TestParameterKeyGeneration:
     """AppEntryPoint auto-generates parameter keys from the flag or a positional
     index, but honors an explicitly-authored key."""
@@ -2269,6 +2316,66 @@ class TestNextflowRunsFromWorkDir:
         cmd = build_command(ep, {"runtime_opts": "--nv"})
         assert "--runtime_opts=--nv" in cmd
         assert "--runtime_opts --nv" not in cmd
+
+    def test_boolean_params_are_emitted_explicitly(self, tmp_path):
+        (tmp_path / "nextflow_schema.json").write_text(json.dumps({
+            "$defs": {
+                "opts": {
+                    "title": "Options",
+                    "properties": {
+                        "skip_qc": {"type": "boolean", "default": True},
+                    },
+                }
+            },
+            "allOf": [{"$ref": "#/$defs/opts"}],
+        }))
+        ep = NextflowAdapter().convert(tmp_path).runnables[0]
+        param = next(p for p in ep.flat_parameters() if p.key == "skip_qc")
+        assert param.boolean_style == "value"
+
+        assert "--skip_qc=true" in build_command(ep, {})
+        assert "--skip_qc=false" in build_command(ep, {"skip_qc": False})
+        assert "--skip_qc false" not in build_command(ep, {"skip_qc": False})
+
+    def test_legacy_cached_nextflow_params_use_safe_forms(self):
+        # Cached manifests created before Fileglancer knew about
+        # value_separator/boolean_style still validate with those fields at
+        # their generic defaults. Command generation must recognize Nextflow
+        # pipeline params and use the safe forms anyway, otherwise existing
+        # installed apps keep the old bugs until manually updated/re-added.
+        ep = AppEntryPoint(
+            id="run",
+            name="Run pipeline",
+            command="nextflow run repo -ansi-log false",
+            working_dir="work",
+            env_parameters=[
+                AppParameter(flag="-profile", name="Profiles", type="string"),
+            ],
+            parameters=[
+                AppParameter(
+                    flag="--runtime_opts",
+                    name="Runtime opts",
+                    type="string",
+                ),
+                AppParameter(
+                    flag="--skip_qc",
+                    name="Skip QC",
+                    type="boolean",
+                    default=True,
+                ),
+            ],
+        )
+
+        cmd = build_command(
+            ep,
+            {"runtime_opts": "--nv", "skip_qc": False},
+            env_parameters={"profile": "janeliaLSF"},
+        )
+        assert "-profile janeliaLSF" in cmd
+        assert "--runtime_opts=--nv" in cmd
+        assert "--skip_qc=false" in cmd
+        assert "--runtime_opts --nv" not in cmd
+        assert "--skip_qc false" not in cmd
 
     def test_projectdir_default_rewritten_to_repo(self, tmp_path):
         # Running from the work dir, projectDir assets live under ./repo/, so a

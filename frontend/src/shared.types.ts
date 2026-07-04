@@ -80,6 +80,7 @@ type AppParameter = {
   hidden?: boolean;
   raw?: boolean;
   value_separator?: 'space' | 'equals';
+  boolean_style?: 'flag' | 'value';
   /** file/directory params: when false, the path is an output the job may
    * create, so it need not exist before launch. Defaults to true. */
   exists?: boolean;

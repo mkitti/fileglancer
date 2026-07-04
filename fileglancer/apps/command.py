@@ -416,6 +416,15 @@ def _flatten_param_items(items) -> list:
     return result
 
 
+def _is_nextflow_run_command(command: str) -> bool:
+    """Return true when the base command appears to be ``nextflow run``."""
+    try:
+        argv = shlex.split(command)
+    except ValueError:
+        argv = command.strip().split()
+    return len(argv) >= 2 and argv[0] == "nextflow" and argv[1] == "run"
+
+
 def build_command(entry_point: AppEntryPoint, parameters: dict,
                   env_parameters: dict = None, session=None, username=None,
                   check_access: bool = True) -> str:
@@ -473,6 +482,7 @@ def build_command(entry_point: AppEntryPoint, parameters: dict,
 
     # Start with the base command
     parts = [entry_point.command]
+    nextflow_run = _is_nextflow_run_command(entry_point.command)
 
     # Pass 1: Flagged args in declaration order
     for p, value in effective:
@@ -480,12 +490,27 @@ def build_command(entry_point: AppEntryPoint, parameters: dict,
             continue
         validated = _validate_parameter_value(p, value, session=session, username=username,
                                               check_access=check_access)
+        # Nextflow pipeline params (`--foo`) are parsed differently from normal
+        # CLI switches: a separate leading-dash value becomes another param, and
+        # omitting a false boolean leaves any pipeline default in effect. Apply
+        # the Nextflow-safe forms at command-build time too, so cached
+        # auto-generated manifests from older Fileglancer versions are fixed
+        # without requiring users to update/re-add the app.
+        is_nextflow_pipeline_param = nextflow_run and p.flag.startswith("--")
+        value_separator = "equals" if is_nextflow_pipeline_param else p.value_separator
+        boolean_style = "value" if is_nextflow_pipeline_param else p.boolean_style
         if p.type == "boolean":
-            if value is True:
+            if boolean_style == "value":
+                bool_value = "true" if value is True else "false"
+                if value_separator == "equals":
+                    parts.append(f"{p.flag}={bool_value}")
+                else:
+                    parts.append(f"{p.flag} {bool_value}")
+            elif value is True:
                 parts.append(p.flag)
         else:
             quoted = shlex.quote(validated)
-            if p.value_separator == "equals":
+            if value_separator == "equals":
                 parts.append(f"{p.flag}={quoted}")
             else:
                 parts.append(f"{p.flag} {quoted}")

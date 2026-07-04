@@ -59,6 +59,12 @@ def _convert_property(name: str, prop: dict, is_required: bool) -> AppParameter:
     if is_required:
         kwargs["required"] = True
 
+    # Nextflow boolean params are not generic CLI switches: omitting a false
+    # value leaves any pipeline default in effect (e.g. a default true stays
+    # true). Emit explicit true/false values for schema-derived booleans.
+    if param_type == "boolean":
+        kwargs["boolean_style"] = "value"
+
     # Nextflow schemas only require a path to exist when "exists": true is set;
     # anything else (outdir, report paths, ...) is an output the pipeline
     # creates, so don't demand it exists before launch.
