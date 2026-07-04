@@ -143,6 +143,9 @@ session_cookie_secure: true
 #                               # env is an allowlist so no server secret leaks
 #                               # to the user; add only non-secret vars your
 #                               # scheduler or tools need. FGC_* is never passed.
+#   unknown_timeout_hours: 24    # Give up polling a job stuck in UNKNOWN after
+#                               # this many hours and mark it FAILED (the
+#                               # scheduler can no longer report it). 0 disables.
 
 # Cluster configuration
 # Mirrors py-cluster-api ClusterConfig - all fields are optional

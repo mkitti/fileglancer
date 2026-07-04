@@ -246,12 +246,15 @@ async def _poll_jobs(settings):
         if not active_jobs:
             return False
 
+        now_naive = datetime.now(UTC).replace(tzinfo=None)
+        unknown_timeout_hours = settings.apps.unknown_timeout_hours
+
         # Handle zombie jobs (no cluster_job_id after timeout)
         jobs_to_poll = []
         for db_job in active_jobs:
             if not db_job.cluster_job_id:
                 created = db_job.created_at.replace(tzinfo=None) if db_job.created_at.tzinfo else db_job.created_at
-                age_minutes = (datetime.now(UTC).replace(tzinfo=None) - created).total_seconds() / 60
+                age_minutes = (now_naive - created).total_seconds() / 60
                 if age_minutes > settings.cluster.zombie_timeout_minutes:
                     db.update_job_status(session, db_job.id, "FAILED", finished_at=datetime.now(UTC))
                     logger.warning(
@@ -259,6 +262,24 @@ async def _poll_jobs(settings):
                         f"{age_minutes:.0f} minutes, marked FAILED"
                     )
                 continue
+            # Give up on jobs stuck in UNKNOWN past the cutoff: the scheduler can
+            # no longer report them (aged out of the queue/history), so continued
+            # polling would never resolve them. Measure from status_updated_at
+            # (when it entered UNKNOWN), falling back to created_at for rows
+            # predating that column.
+            if unknown_timeout_hours and db_job.status == "UNKNOWN":
+                ref = db_job.status_updated_at or db_job.created_at
+                if ref is not None:
+                    ref_naive = ref.replace(tzinfo=None) if ref.tzinfo else ref
+                    age_hours = (now_naive - ref_naive).total_seconds() / 3600
+                    if age_hours > unknown_timeout_hours:
+                        db.update_job_status(session, db_job.id, "FAILED",
+                                             finished_at=datetime.now(UTC))
+                        logger.warning(
+                            f"Job {db_job.id} stuck in UNKNOWN for {age_hours:.0f}h "
+                            f"(cutoff {unknown_timeout_hours}h), marked FAILED"
+                        )
+                        continue
             jobs_to_poll.append(db_job)
 
         if not jobs_to_poll:

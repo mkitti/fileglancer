@@ -188,6 +188,10 @@ class JobDB(Base):
     # (manifests with a separate repo_url). NULL means commit_sha is app_url's.
     code_repo_url = Column(String, nullable=True)
     created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(UTC))
+    # When the status column last changed value. Lets the poll loop measure how
+    # long a job has sat in a non-progressing state (e.g. UNKNOWN) without
+    # conflating it with created_at. NULL for rows created before this column.
+    status_updated_at = Column(DateTime, nullable=True)
     started_at = Column(DateTime, nullable=True)
     finished_at = Column(DateTime, nullable=True)
 
@@ -1009,7 +1013,8 @@ def create_job(session: Session, username: str, app_url: str, app_name: str,
         commit_sha=commit_sha,
         code_repo_url=code_repo_url,
         status="PENDING",
-        created_at=now
+        created_at=now,
+        status_updated_at=now,
     )
     session.add(job)
     session.commit()
@@ -1058,6 +1063,11 @@ def update_job_status(session: Session, job_id: int, status: str,
     job = session.query(JobDB).filter_by(id=job_id).first()
     if not job:
         return None
+    # Record when the status actually changes so the poll loop can tell how long
+    # a job has been in a stuck state (e.g. UNKNOWN). A no-op update (same
+    # status) leaves the timestamp untouched, so it marks entry into the state.
+    if job.status != status:
+        job.status_updated_at = datetime.now(UTC)
     job.status = status
     if exit_code is not None:
         job.exit_code = exit_code
