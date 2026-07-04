@@ -5,6 +5,8 @@ from typing import Annotated, Any, List, Literal, Optional, Dict, Union
 
 from pydantic import BaseModel, Discriminator, Field, HttpUrl, Tag, field_validator, model_validator
 
+from fileglancer.giturls import _parse_github_url
+
 
 class FileSharePath(BaseModel):
     """A file share path from the database"""
@@ -677,12 +679,28 @@ class AppManifest(BaseModel):
         description="Required tools, e.g. ['pixi>=0.40', 'npm']",
         default=[],
     )
-    runnables: List[AppEntryPoint] = Field(description="Available entry points for this app")
+    runnables: List[AppEntryPoint] = Field(
+        description="Available entry points for this app", min_length=1)
 
     @field_validator("requirements")
     @classmethod
     def validate_requirements(cls, v):
         return _validate_requirements(v)
+
+    @field_validator("repo_url")
+    @classmethod
+    def validate_repo_url(cls, v):
+        # A separate code repo must be a GitHub URL the same way app URLs are —
+        # reject anything else at manifest load so authors get a clear error
+        # instead of a cryptic failure later at launch/update when
+        # ensure_repo_snapshot tries to parse it.
+        if v is None:
+            return v
+        try:
+            _parse_github_url(v)
+        except ValueError as e:
+            raise ValueError(f"repo_url must be a GitHub repository URL: {e}")
+        return v
 
 
 class UserApp(BaseModel):

@@ -441,6 +441,38 @@ class TestManifestRequirementsValidation:
             )
 
 
+class TestManifestRepoUrlValidation:
+    _RUN = [AppEntryPoint(id="t", name="T", command="echo")]
+
+    def test_valid_github_repo_url(self):
+        m = AppManifest(name="T", repo_url="https://github.com/org/code",
+                        runnables=self._RUN)
+        assert m.repo_url == "https://github.com/org/code"
+
+    def test_none_is_allowed(self):
+        assert AppManifest(name="T", runnables=self._RUN).repo_url is None
+
+    def test_rejects_non_github_url(self):
+        with pytest.raises(ValidationError, match="GitHub repository URL"):
+            AppManifest(name="T", repo_url="https://gitlab.com/org/code",
+                        runnables=self._RUN)
+
+    def test_rejects_garbage(self):
+        with pytest.raises(ValidationError, match="GitHub repository URL"):
+            AppManifest(name="T", repo_url="not a url", runnables=self._RUN)
+
+
+class TestManifestRunnablesRequired:
+    def test_rejects_empty_runnables(self):
+        with pytest.raises(ValidationError):
+            AppManifest(name="T", runnables=[])
+
+    def test_accepts_one_runnable(self):
+        m = AppManifest(name="T",
+                        runnables=[AppEntryPoint(id="t", name="T", command="echo")])
+        assert len(m.runnables) == 1
+
+
 # --- Script generation tests ---
 
 class TestCondaActivationInScript:
@@ -1482,7 +1514,10 @@ class TestFindManifestsAdapterFallback:
     empty tmp_path exercises it directly."""
 
     def test_other_adapter_handles_when_one_fails(self, tmp_path, monkeypatch):
-        manifest = AppManifest(name="From Pixi", runnables=[])
+        manifest = AppManifest(
+            name="From Pixi",
+            runnables=[AppEntryPoint(id="run", name="Run", command="echo")],
+        )
         monkeypatch.setattr(
             adapters_module,
             "MANIFEST_ADAPTERS",
