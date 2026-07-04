@@ -567,8 +567,12 @@ export default function JobDetail() {
       params.env_parameters = envParameters;
     }
     const resources = job.resources ? omitNullValues(job.resources) : {};
-    if (Object.keys(resources).length > 0) {
-      params.resources = resources as AppResourceDefaults;
+    const { extra_args: extraArgs, ...resourceValues } = resources;
+    if (Object.keys(resourceValues).length > 0) {
+      params.resources = resourceValues as AppResourceDefaults;
+    }
+    if (typeof extraArgs === 'string' && extraArgs.trim()) {
+      params.extra_args = extraArgs;
     }
     if (job.env && Object.keys(job.env).length > 0) {
       params.env = job.env;
