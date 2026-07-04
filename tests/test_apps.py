@@ -2091,6 +2091,53 @@ class TestOptionalFlagEmptyValue:
         assert cmd.endswith("''")
 
 
+class TestBuildCommandValueSeparator:
+    def test_flagged_params_default_to_space_separator(self):
+        ep = AppEntryPoint(
+            id="run",
+            name="run",
+            command="tool",
+            parameters=[AppParameter(flag="--opt", name="Opt", type="string")],
+        )
+        cmd = build_command(ep, {"opt": "value"})
+        assert "--opt value" in cmd
+
+    def test_equals_separator_attaches_leading_dash_value(self):
+        ep = AppEntryPoint(
+            id="run",
+            name="run",
+            command="tool",
+            parameters=[
+                AppParameter(
+                    flag="--runtime_opts",
+                    name="Runtime opts",
+                    type="string",
+                    value_separator="equals",
+                ),
+            ],
+        )
+        cmd = build_command(ep, {"runtime_opts": "--nv"})
+        assert "--runtime_opts=--nv" in cmd
+        assert "--runtime_opts --nv" not in cmd
+
+    def test_equals_separator_still_shell_quotes_spaces(self):
+        ep = AppEntryPoint(
+            id="run",
+            name="run",
+            command="tool",
+            parameters=[
+                AppParameter(
+                    flag="--runtime_opts",
+                    name="Runtime opts",
+                    type="string",
+                    value_separator="equals",
+                ),
+            ],
+        )
+        cmd = build_command(ep, {"runtime_opts": "--bind /data in"})
+        assert "--runtime_opts='--bind /data in'" in cmd
+
+
 class TestParameterKeyGeneration:
     """AppEntryPoint auto-generates parameter keys from the flag or a positional
     index, but honors an explicitly-authored key."""
@@ -2204,6 +2251,24 @@ class TestNextflowRunsFromWorkDir:
         )
         assert cmd.startswith("nextflow run repo -ansi-log false")
         assert cmd.index("-profile") < cmd.index("--input_dir")
+        assert "-profile janeliaLSF" in cmd
+
+    def test_pipeline_params_use_equals_separator_for_leading_dash_values(self, tmp_path):
+        (tmp_path / "nextflow_schema.json").write_text(json.dumps({
+            "$defs": {
+                "opts": {
+                    "title": "Options",
+                    "properties": {
+                        "runtime_opts": {"type": "string"},
+                    },
+                }
+            },
+            "allOf": [{"$ref": "#/$defs/opts"}],
+        }))
+        ep = NextflowAdapter().convert(tmp_path).runnables[0]
+        cmd = build_command(ep, {"runtime_opts": "--nv"})
+        assert "--runtime_opts=--nv" in cmd
+        assert "--runtime_opts --nv" not in cmd
 
     def test_projectdir_default_rewritten_to_repo(self, tmp_path):
         # Running from the work dir, projectDir assets live under ./repo/, so a

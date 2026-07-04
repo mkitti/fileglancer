@@ -484,7 +484,11 @@ def build_command(entry_point: AppEntryPoint, parameters: dict,
             if value is True:
                 parts.append(p.flag)
         else:
-            parts.append(f"{p.flag} {shlex.quote(validated)}")
+            quoted = shlex.quote(validated)
+            if p.value_separator == "equals":
+                parts.append(f"{p.flag}={quoted}")
+            else:
+                parts.append(f"{p.flag} {quoted}")
 
     # Pass 2: Positional args in declaration order
     for p, value in effective:

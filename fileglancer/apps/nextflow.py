@@ -44,6 +44,12 @@ def _convert_property(name: str, prop: dict, is_required: bool) -> AppParameter:
         "flag": f"--{name}",
         "name": name.replace("_", " ").title(),
         "type": param_type,
+        # Nextflow treats a separate value that starts with '-' as another
+        # Nextflow/pipeline option (`--runtime_opts --nv` becomes
+        # params.runtime_opts=true and params.nv=true). Join generated
+        # pipeline params with '=' so leading-dash values stay attached to the
+        # intended parameter (`--runtime_opts=--nv`).
+        "value_separator": "equals",
     }
 
     desc = prop.get("description")

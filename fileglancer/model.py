@@ -349,6 +349,14 @@ class AppParameter(BaseModel):
     pattern: Optional[str] = Field(description="Regex validation pattern for string types", default=None)
     hidden: bool = Field(description="Whether the parameter is hidden by default in the UI", default=False)
     raw: bool = Field(description="If true, value is appended to the command without shell quoting", default=False)
+    value_separator: Literal["space", "equals"] = Field(
+        description=(
+            "How non-boolean flagged parameters are joined to their value in "
+            "the generated command: 'space' emits '--flag value', while "
+            "'equals' emits '--flag=value'."
+        ),
+        default="space",
+    )
     exists: bool = Field(
         description="file/directory params only: when true (the default), the path "
                     "must exist and be readable before launch. Set false for outputs "
