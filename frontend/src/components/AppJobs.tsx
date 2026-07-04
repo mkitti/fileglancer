@@ -40,6 +40,7 @@ export default function AppJobs() {
     navigate(path, {
       state: {
         parameters: job.parameters,
+        env_parameters: job.env_parameters,
         resources: job.resources,
         env: job.env,
         pre_run: job.pre_run,
