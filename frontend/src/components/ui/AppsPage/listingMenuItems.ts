@@ -32,7 +32,7 @@ export function buildListingMenuItems(
     },
     {
       name: 'Unshare',
-      action: l => void actions.unshare(l),
+      action: l => actions.requestUnshare(l),
       color: 'text-error',
       shouldShow: canManage
     }

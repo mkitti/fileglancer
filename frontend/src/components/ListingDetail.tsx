@@ -145,7 +145,7 @@ export default function ListingDetail() {
                     icon={FaUsersSlash}
                     loading={unsharing}
                     loadingText="Unsharing..."
-                    onClick={() => void actions.unshare(listing)}
+                    onClick={() => actions.requestUnshare(listing)}
                     size="sm"
                     variant="outline"
                   >

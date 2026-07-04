@@ -1,4 +1,5 @@
 import EditListingDialog from '@/components/ui/AppsPage/EditListingDialog';
+import UnshareDialog from '@/components/ui/AppsPage/UnshareDialog';
 import type { ListingActions } from '@/hooks/useListingActions';
 
 /**
@@ -11,12 +12,21 @@ export default function ListingActionDialogs({
   readonly actions: ListingActions;
 }) {
   return (
-    <EditListingDialog
-      listing={actions.editTarget}
-      onClose={actions.closeEdit}
-      onSave={actions.saveEdit}
-      open={actions.editTarget !== null}
-      saving={actions.saving}
-    />
+    <>
+      <EditListingDialog
+        listing={actions.editTarget}
+        onClose={actions.closeEdit}
+        onSave={actions.saveEdit}
+        open={actions.editTarget !== null}
+        saving={actions.saving}
+      />
+      <UnshareDialog
+        name={actions.unshareTarget?.name}
+        onClose={actions.closeUnshare}
+        onConfirm={actions.confirmUnshare}
+        open={actions.unshareTarget !== null}
+        unsharing={actions.unsharingId !== null}
+      />
+    </>
   );
 }

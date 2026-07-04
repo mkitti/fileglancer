@@ -16,7 +16,10 @@ export interface AppActions {
   launch: (app: UserApp, entryPointId?: string) => void;
   view: (app: UserApp) => void;
   update: (app: UserApp) => Promise<void>;
-  unshare: (app: UserApp) => Promise<void>;
+  requestUnshare: (app: UserApp) => void;
+  confirmUnshare: () => Promise<void>;
+  unshareTarget: UserApp | null;
+  closeUnshare: () => void;
   share: (params: {
     url: string;
     manifest_path: string;
@@ -47,6 +50,7 @@ export function useAppActions(opts?: { onRemoved?: () => void }): AppActions {
   const navigate = useNavigate();
   const [shareTarget, setShareTarget] = useState<UserApp | null>(null);
   const [removeTarget, setRemoveTarget] = useState<UserApp | null>(null);
+  const [unshareTarget, setUnshareTarget] = useState<UserApp | null>(null);
 
   const updateAppMutation = useUpdateAppMutation();
   const removeAppMutation = useRemoveAppMutation();
@@ -85,13 +89,16 @@ export function useAppActions(opts?: { onRemoved?: () => void }): AppActions {
     }
   };
 
-  const unshare = async (app: UserApp) => {
-    if (app.listing_id === undefined || app.listing_id === null) {
+  const confirmUnshare = async () => {
+    const app = unshareTarget;
+    if (!app || app.listing_id === undefined || app.listing_id === null) {
+      setUnshareTarget(null);
       return;
     }
     try {
       await unshareListingMutation.mutateAsync({ listing_id: app.listing_id });
       toast.success('Removed from catalog');
+      setUnshareTarget(null);
     } catch (error) {
       showErrorToast(error, 'Failed to unshare');
     }
@@ -129,7 +136,10 @@ export function useAppActions(opts?: { onRemoved?: () => void }): AppActions {
     launch,
     view,
     update,
-    unshare,
+    requestUnshare: setUnshareTarget,
+    confirmUnshare,
+    unshareTarget,
+    closeUnshare: () => setUnshareTarget(null),
     share,
     requestShare: setShareTarget,
     requestRemove: setRemoveTarget,

@@ -19,7 +19,10 @@ export interface ListingActions {
   view: (listing: AppListing) => void;
   viewInMyApps: (app: UserApp) => void;
   add: (listing: AppListing) => Promise<void>;
-  unshare: (listing: AppListing) => Promise<void>;
+  requestUnshare: (listing: AppListing) => void;
+  confirmUnshare: () => Promise<void>;
+  unshareTarget: AppListing | null;
+  closeUnshare: () => void;
   saveEdit: (params: {
     listing_id: number;
     url: string;
@@ -47,6 +50,7 @@ export function useListingActions(opts?: {
 }): ListingActions {
   const navigate = useNavigate();
   const [editTarget, setEditTarget] = useState<AppListing | null>(null);
+  const [unshareTarget, setUnshareTarget] = useState<AppListing | null>(null);
   const addFromListingMutation = useAddFromListingMutation();
   const unshareListingMutation = useUnshareListingMutation();
   const updateListingMutation = useUpdateListingMutation();
@@ -68,10 +72,15 @@ export function useListingActions(opts?: {
     }
   };
 
-  const unshare = async (listing: AppListing) => {
+  const confirmUnshare = async () => {
+    const listing = unshareTarget;
+    if (!listing) {
+      return;
+    }
     try {
       await unshareListingMutation.mutateAsync({ listing_id: listing.id });
       toast.success('Removed from catalog');
+      setUnshareTarget(null);
       opts?.onUnshared?.();
     } catch (e) {
       showErrorToast(e, 'Failed to unshare');
@@ -93,7 +102,10 @@ export function useListingActions(opts?: {
     view,
     viewInMyApps,
     add,
-    unshare,
+    requestUnshare: setUnshareTarget,
+    confirmUnshare,
+    unshareTarget,
+    closeUnshare: () => setUnshareTarget(null),
     saveEdit,
     requestEdit: setEditTarget,
     editTarget,

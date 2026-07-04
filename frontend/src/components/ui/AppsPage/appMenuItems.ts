@@ -26,7 +26,7 @@ export function buildAppMenuItems(
     },
     {
       name: 'Unshare',
-      action: a => void actions.unshare(a),
+      action: a => actions.requestUnshare(a),
       shouldShow: isShared
     },
     { name: 'Update', action: a => void actions.update(a) },

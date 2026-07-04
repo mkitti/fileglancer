@@ -111,7 +111,7 @@ export default function AppDetail() {
                   icon={FaUsersSlash}
                   loading={actions.unsharing}
                   loadingText="Unsharing..."
-                  onClick={() => void actions.unshare(app)}
+                  onClick={() => actions.requestUnshare(app)}
                   size="sm"
                   variant="outline"
                 >
