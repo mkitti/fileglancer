@@ -328,6 +328,25 @@ class TestReadJobFile:
         )
         assert read_job_file(job, "script") is None
 
+    def test_small_log_returned_in_full(self, tmp_path):
+        (tmp_path / "stdout.log").write_text("line 1\nline 2\n")
+        job = _fake_job(work_dir=str(tmp_path))
+        assert read_job_file(job, "stdout") == "line 1\nline 2\n"
+
+    def test_oversized_log_is_tail_truncated(self, tmp_path):
+        from fileglancer.apps.jobfiles import _MAX_JOB_FILE_BYTES
+        # One byte per line so line boundaries are easy to reason about.
+        big = ("A\n" * (_MAX_JOB_FILE_BYTES // 2)) + ("TAIL_MARKER\n" * 5)
+        (tmp_path / "stderr.log").write_text(big)
+        job = _fake_job(work_dir=str(tmp_path))
+        content = read_job_file(job, "stderr")
+        # Truncation marker present, size bounded, and the trailing content kept.
+        assert "earlier bytes omitted" in content
+        assert "TAIL_MARKER" in content
+        # Marker header plus at most the cap of tail bytes — nowhere near the
+        # full file, and safely under the 64 MB IPC limit.
+        assert len(content.encode()) <= _MAX_JOB_FILE_BYTES + 1024
+
 
 # --- merge_requirements tests ---
 

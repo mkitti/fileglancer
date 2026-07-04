@@ -195,6 +195,42 @@ def get_job_file_paths(db_job: db.JobDB) -> dict[str, dict]:
     return files
 
 
+# Cap for inline job-file reads. HPC stdout/stderr logs can grow to gigabytes;
+# reading one whole would exhaust worker/server memory and blow the 64 MB IPC
+# message limit. We return the tail of anything larger (the most useful part of
+# a log), with a marker; the file's work-dir browse link gives full access.
+_MAX_JOB_FILE_BYTES = 5 * 1024 * 1024
+
+
+def _read_text_capped(path: Path) -> str:
+    """Read a text file, capping oversized files to their trailing bytes.
+
+    Files up to _MAX_JOB_FILE_BYTES are returned in full. Larger files return
+    only their last _MAX_JOB_FILE_BYTES bytes, prefixed with a marker noting how
+    much was omitted, so a runaway log can't OOM the process or exceed the IPC
+    limit. Decoding uses errors='replace' so non-UTF-8 log bytes never raise.
+    """
+    size = path.stat().st_size
+    if size <= _MAX_JOB_FILE_BYTES:
+        return path.read_text(errors="replace")
+    with path.open("rb") as f:
+        f.seek(size - _MAX_JOB_FILE_BYTES)
+        tail = f.read()
+    text = tail.decode("utf-8", errors="replace")
+    # Drop a leading partial line so the tail starts on a clean boundary.
+    newline = text.find("\n")
+    if newline != -1:
+        text = text[newline + 1:]
+    omitted = size - _MAX_JOB_FILE_BYTES
+    shown_mb = _MAX_JOB_FILE_BYTES // (1024 * 1024)
+    header = (
+        f"[Fileglancer: this file is {size} bytes; showing only the last "
+        f"{shown_mb} MB ({omitted} earlier bytes omitted). Open it from the "
+        f"job's work directory to view the full contents.]\n\n"
+    )
+    return header + text
+
+
 def read_job_file(db_job, file_type: str) -> Optional[str]:
     """Read the content of a job file given a loaded job record.
 
@@ -203,6 +239,7 @@ def read_job_file(db_job, file_type: str) -> Optional[str]:
       - stdout.log  — captured standard output
       - stderr.log  — captured standard error
 
+    Oversized files are truncated to their tail (see _read_text_capped).
     Returns the file content as a string, or None if the file doesn't exist.
     """
     work_dir = _resolve_work_dir(db_job)
@@ -213,10 +250,10 @@ def read_job_file(db_job, file_type: str) -> Optional[str]:
         script_path = getattr(db_job, 'script_path', None)
         if script_path:
             path = Path(script_path)
-            return path.read_text() if path.is_file() else None
+            return _read_text_capped(path) if path.is_file() else None
         scripts = sorted(work_dir.glob("*.sh"))
         if scripts:
-            return scripts[0].read_text()
+            return _read_text_capped(scripts[0])
         return None
     elif file_type == "stdout":
         path = work_dir / "stdout.log"
@@ -226,7 +263,7 @@ def read_job_file(db_job, file_type: str) -> Optional[str]:
         raise ValueError(f"Unknown file type: {file_type}")
 
     if path.is_file():
-        return path.read_text()
+        return _read_text_capped(path)
     return None
 
 
