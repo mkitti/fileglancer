@@ -179,6 +179,11 @@ export default function ListingDetail() {
           <Typography className="text-foreground" type="small">
             Loading entry points...
           </Typography>
+        ) : manifestMutation.isError && !manifest ? (
+          <div className="p-3 bg-error/10 rounded text-error text-sm">
+            Failed to load entry points:{' '}
+            {manifestMutation.error?.message || 'Unknown error'}
+          </div>
         ) : (
           <EntryPointsList
             onLaunch={ep =>

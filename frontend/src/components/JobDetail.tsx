@@ -74,13 +74,23 @@ function omitNullValues(
 
 function FilePreview({
   content,
+  error,
   language,
   isDarkMode
 }: {
   readonly content: string | null | undefined;
+  readonly error?: Error | null;
   readonly language: string;
   readonly isDarkMode: boolean;
 }) {
+  if (error) {
+    return (
+      <div className="p-3 bg-error/10 rounded text-error text-sm">
+        Failed to load file: {error.message || 'Unknown error'}
+      </div>
+    );
+  }
+
   if (content === undefined) {
     return <Typography className="text-foreground p-4">Loading...</Typography>;
   }
@@ -926,6 +936,7 @@ export default function JobDetail() {
                 content={
                   scriptQuery.isPending ? undefined : (scriptQuery.data ?? null)
                 }
+                error={scriptQuery.isError ? scriptQuery.error : null}
                 isDarkMode={isDarkMode}
                 language="bash"
               />
@@ -952,6 +963,7 @@ export default function JobDetail() {
                 content={
                   stdoutQuery.isPending ? undefined : (stdoutQuery.data ?? null)
                 }
+                error={stdoutQuery.isError ? stdoutQuery.error : null}
                 isDarkMode={isDarkMode}
                 language="text"
               />
@@ -978,6 +990,7 @@ export default function JobDetail() {
                 content={
                   stderrQuery.isPending ? undefined : (stderrQuery.data ?? null)
                 }
+                error={stderrQuery.isError ? stderrQuery.error : null}
                 isDarkMode={isDarkMode}
                 language="text"
               />
