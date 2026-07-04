@@ -9,6 +9,7 @@ import {
 import { FaUsersSlash } from 'react-icons/fa6';
 
 import AppPageHeader from '@/components/ui/AppsPage/AppPageHeader';
+import AppTrustNotice from '@/components/ui/AppsPage/AppTrustNotice';
 import EntryPointsList from '@/components/ui/AppsPage/EntryPointsList';
 import ListingActionDialogs from '@/components/ui/AppsPage/ListingActionDialogs';
 import ListingInfoTable from '@/components/ui/AppsPage/ListingInfoTable';
@@ -174,6 +175,8 @@ export default function ListingDetail() {
 
       <div className="max-w-2xl">
         <ListingInfoTable installedApp={installedApp} listing={listing} />
+
+        {!alreadyAdded ? <AppTrustNotice className="mt-4" /> : null}
 
         {manifestMutation.isPending && !manifest ? (
           <Typography className="text-foreground" type="small">

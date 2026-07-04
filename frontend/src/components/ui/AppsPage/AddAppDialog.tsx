@@ -6,6 +6,7 @@ import FgButton from '@/components/designSystem/atoms/FgButton';
 import FgFormField from '@/components/designSystem/molecules/FgFormField';
 import FgInput from '@/components/designSystem/atoms/formElements/FgInput';
 import FgCheckbox from '@/components/designSystem/atoms/formElements/FgCheckbox';
+import AppTrustNotice from '@/components/ui/AppsPage/AppTrustNotice';
 import { buildAppUrl, isGithubRepoUrl } from '@/utils';
 import type { DiscoveredApp } from '@/shared.types';
 
@@ -140,6 +141,8 @@ export default function AddAppDialog({
             <code>runnables.yaml</code> manifests. Private repositories are
             accessed over SSH using your configured SSH key.
           </Typography>
+
+          <AppTrustNotice className="mb-4" />
 
           <FgFormField
             error={urlError || undefined}
