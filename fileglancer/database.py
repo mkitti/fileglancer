@@ -1187,6 +1187,28 @@ def upsert_user_app(session: Session, username: str, url: str,
     return row
 
 
+def update_user_app_manifest_cache(session: Session, username: str, url: str,
+                                   manifest_path: str = "", *,
+                                   manifest: Dict,
+                                   bump_updated_at: bool = False
+                                   ) -> Optional[UserAppDB]:
+    """Sync only the cached manifest column on an existing row.
+
+    Cache refreshes must not touch user-facing metadata: a catalog app added
+    under a custom name would otherwise revert to the raw manifest name
+    whenever its cache is refilled (e.g. after schema drift invalidates the
+    stored copy). No-op returning None when the row doesn't exist.
+    """
+    row = get_user_app(session, username, url, manifest_path)
+    if row is None:
+        return None
+    row.manifest = manifest
+    if bump_updated_at:
+        row.updated_at = datetime.now(UTC)
+    session.commit()
+    return row
+
+
 def set_user_app_pins(session: Session, username: str, url: str,
                       manifest_path: str = "", *,
                       commit_sha: Optional[str] = None,

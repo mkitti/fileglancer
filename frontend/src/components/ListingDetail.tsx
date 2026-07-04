@@ -23,7 +23,11 @@ import {
 } from '@/queries/appsQueries';
 import { useListingActions } from '@/hooks/useListingActions';
 import { useProfileContext } from '@/contexts/ProfileContext';
-import { buildLaunchPathFromApp, getAppIconType } from '@/utils';
+import {
+  buildLaunchPathFromApp,
+  canonicalGithubUrl,
+  getAppIconType
+} from '@/utils';
 import type { AppListing } from '@/shared.types';
 
 const BACK_PROPS = {
@@ -88,8 +92,12 @@ export default function ListingDetail() {
     );
   }
 
+  // Canonicalize both URLs so a match can't be missed over formatting
+  // differences (same convention as AppDetail/AppLaunch).
   const installedApp = appsQuery.data?.find(
-    a => a.url === listing.url && a.manifest_path === listing.manifest_path
+    a =>
+      canonicalGithubUrl(a.url) === canonicalGithubUrl(listing.url) &&
+      a.manifest_path === listing.manifest_path
   );
   const alreadyAdded = installedApp !== undefined;
   const manifest = installedApp?.manifest ?? manifestMutation.data;

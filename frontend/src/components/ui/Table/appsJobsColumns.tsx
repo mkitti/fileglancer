@@ -5,35 +5,10 @@ import CardActionsMenu from '@/components/ui/Menus/CardActionsMenu';
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
 import JobStatusBadge from '@/components/ui/AppsPage/JobStatusBadge';
 import { formatDateString } from '@/utils';
+import { formatDuration } from '@/utils/jobDisplay';
 import type { MenuItem } from '@/components/ui/Menus/FgMenuItems';
 import { isActiveJobStatus } from '@/shared.types';
 import type { Job } from '@/shared.types';
-
-function formatDuration(job: Job): string {
-  if (!job.started_at) {
-    return '-';
-  }
-  const startMs = new Date(job.started_at).getTime();
-  const endMs = job.finished_at
-    ? new Date(job.finished_at).getTime()
-    : new Date().getTime();
-  const diffMs = endMs - startMs;
-
-  if (diffMs < 0) {
-    return '-';
-  }
-
-  const seconds = Math.floor(diffMs / 1000);
-  if (seconds < 60) {
-    return `${seconds}s`;
-  }
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) {
-    return `${minutes}m ${seconds % 60}s`;
-  }
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h ${minutes % 60}m`;
-}
 
 type JobActionCallbacks = {
   onViewDetail: (jobId: number) => void;
@@ -133,7 +108,9 @@ export function createAppsJobsColumns(
       id: 'duration',
       header: 'Duration',
       cell: ({ row }) => {
-        const duration = formatDuration(row.original);
+        const duration =
+          formatDuration(row.original.started_at, row.original.finished_at) ??
+          '-';
         return (
           <div className="flex items-center h-full">
             <span className="text-sm">{duration}</span>

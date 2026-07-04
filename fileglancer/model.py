@@ -320,6 +320,12 @@ class NeuroglancerShortLinkResponse(BaseModel):
 
 # --- App Manifest Models ---
 
+# Conservative CLI-flag shape: one or two leading dashes, then an alphanumeric
+# followed by word characters, dots, or dashes. Flags are emitted into the
+# generated job script unquoted, so anything shell-significant is rejected.
+_FLAG_PATTERN = re.compile(r'^-{1,2}[A-Za-z0-9][A-Za-z0-9_.-]*$')
+
+
 class AppParameter(BaseModel):
     """A parameter definition for an app entry point"""
     flag: Optional[str] = Field(
@@ -363,6 +369,15 @@ class AppParameter(BaseModel):
             stripped = v.lstrip("-")
             if not stripped:
                 raise ValueError("Flag must have content after dashes")
+            # Flags are appended to the generated shell command unquoted, and
+            # the Nextflow adapter derives them from schema property names, so
+            # constrain them to a conservative CLI-flag shape rather than
+            # allowing shell-significant characters through.
+            if not _FLAG_PATTERN.fullmatch(v):
+                raise ValueError(
+                    f"Flag must look like '-n' or '--long-name' "
+                    f"(letters, digits, '_', '.', '-'), got '{v}'"
+                )
         return v
 
     @field_validator("options", mode="before")

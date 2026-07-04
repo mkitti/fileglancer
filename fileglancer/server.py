@@ -1732,10 +1732,9 @@ def create_app(settings):
                 logger.warning(f"Failed to fetch manifest for {snap['url']}: {e}")
                 continue
 
-            user_app = result[idx]
-            user_app.manifest = manifest
-            user_app.name = manifest.name
-            user_app.description = manifest.description
+            # Only the manifest is refreshed; name/description keep the row's
+            # values, which may be user-chosen (e.g. a custom catalog name).
+            result[idx].manifest = manifest
         return result
 
     # How long a finished job keeps its snapshot alive. Work dirs carry a

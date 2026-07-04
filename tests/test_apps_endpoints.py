@@ -211,7 +211,7 @@ def test_get_apps_uses_db_cache(test_client, db_session):
 
 def test_get_apps_backfills_null_manifest(test_client, db_session):
     _seed_app(db_session, url="https://github.com/owner/repo/tree/dev",
-              manifest=None, branch="dev", name="Stale Name")
+              manifest=None, branch="dev", name="Custom Name")
     manifest = _make_manifest(name="Fresh Name", description="Fresh")
 
     # refresh_cached_manifest calls fetch_app_manifest directly inside
@@ -224,8 +224,9 @@ def test_get_apps_backfills_null_manifest(test_client, db_session):
     assert mock_fetch.await_count == 1
 
     body = response.json()
-    assert body[0]["name"] == "Fresh Name"
-    # The backfill only fills the manifest; the requested revision is preserved.
+    # The backfill only fills the manifest; the (possibly user-chosen) name
+    # and the requested revision are preserved.
+    assert body[0]["name"] == "Custom Name"
     assert body[0]["branch"] == "dev"
     assert body[0]["manifest"]["name"] == "Fresh Name"
 
@@ -234,6 +235,7 @@ def test_get_apps_backfills_null_manifest(test_client, db_session):
     assert len(rows) == 1
     assert rows[0].manifest is not None
     assert rows[0].manifest["name"] == "Fresh Name"
+    assert rows[0].name == "Custom Name"
     assert rows[0].branch == "dev"
     # Backfill should NOT bump updated_at (invisible refresh).
     assert rows[0].updated_at is None
@@ -254,7 +256,8 @@ def test_get_apps_handles_schema_drift(test_client, db_session):
     assert mock_fetch.await_count == 1
 
     body = response.json()
-    assert body[0]["name"] == "Recovered"
+    # The saved name survives the cache repair; only the manifest is replaced.
+    assert body[0]["name"] == "Demo App"
     assert body[0]["manifest"]["name"] == "Recovered"
 
 
@@ -1248,7 +1251,7 @@ async def test_refresh_cached_manifest_syncs_existing_row(test_app, db_session):
     from fileglancer.apps import refresh_cached_manifest
 
     _seed_app(db_session, url="https://github.com/owner/repo/tree/dev",
-              manifest=None, name="Stale", branch="dev")
+              manifest=None, name="Custom Name", branch="dev")
     fresh = _make_manifest(name="Synced")
 
     with patch("fileglancer.apps.manifest.fetch_app_manifest",
@@ -1267,7 +1270,9 @@ async def test_refresh_cached_manifest_syncs_existing_row(test_app, db_session):
 
     rows = list_user_apps(db_session, TEST_USERNAME)
     assert rows[0].manifest["name"] == "Synced"
-    # A cache refresh leaves the requested revision (branch) untouched.
+    # A cache refresh leaves the (possibly user-chosen) name and the requested
+    # revision (branch) untouched.
+    assert rows[0].name == "Custom Name"
     assert rows[0].branch == "dev"
     # Silent refresh by default — updated_at stays NULL.
     assert rows[0].updated_at is None

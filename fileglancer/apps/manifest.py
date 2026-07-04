@@ -912,15 +912,14 @@ async def get_or_load_manifest(username: str, url: str,
         fetch_url, manifest_path, username, row_sha)
 
     if row_exists:
-        # branch=None: this is a cache refresh, so leave the requested revision
-        # (the branch column) untouched.
+        # Cache refresh: sync only the manifest column. Name/description stay
+        # untouched — they may be user-chosen (e.g. a custom catalog name) —
+        # as do the requested revision and pins.
         with db.get_db_session(settings.db_url) as session:
-            db.upsert_user_app(
+            db.update_user_app_manifest_cache(
                 session, username,
                 url=row_url, manifest_path=manifest_path,
-                name=manifest.name, description=manifest.description,
                 manifest=manifest.model_dump(mode="json"),
-                bump_updated_at=False,
             )
 
     return manifest
@@ -955,10 +954,12 @@ async def refresh_cached_manifest(username: str, url: str,
 
     with db.get_db_session(settings.db_url) as session:
         if row_exists:
-            db.upsert_user_app(
+            # Sync only the manifest column: name/description may be
+            # user-chosen (e.g. a custom catalog name) and must survive
+            # cache refreshes.
+            db.update_user_app_manifest_cache(
                 session, username,
                 url=row_url, manifest_path=manifest_path,
-                name=manifest.name, description=manifest.description,
                 manifest=manifest.model_dump(mode="json"),
                 bump_updated_at=bump_updated_at,
             )

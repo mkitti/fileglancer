@@ -474,6 +474,28 @@ class TestManifestRunnablesRequired:
         assert len(m.runnables) == 1
 
 
+class TestParameterFlagValidation:
+    """Flags are emitted into the job script unquoted (and the Nextflow
+    adapter derives them from schema property names), so they must be
+    constrained to a conservative CLI-flag shape."""
+
+    @pytest.mark.parametrize("flag", [
+        "-n", "-1", "--outdir", "-profile", "--long-name",
+        "--dotted.name", "--under_score",
+    ])
+    def test_accepts_conventional_flags(self, flag):
+        p = AppParameter(flag=flag, name="P", type="string")
+        assert p.flag == flag
+
+    @pytest.mark.parametrize("flag", [
+        "--out;rm -rf /", "--a b", "--$(whoami)", "--x'y", '--x"y',
+        "---triple", "--", "-", "notaflag", "--=x", "--a|b",
+    ])
+    def test_rejects_shell_significant_or_malformed_flags(self, flag):
+        with pytest.raises(ValidationError):
+            AppParameter(flag=flag, name="P", type="string")
+
+
 # --- Script generation tests ---
 
 class TestCondaActivationInScript:

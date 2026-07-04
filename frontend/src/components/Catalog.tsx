@@ -11,7 +11,13 @@ import { useAppsQuery, useCatalogQuery } from '@/queries/appsQueries';
 import { useListingActions } from '@/hooks/useListingActions';
 import { useViewMode } from '@/hooks/useViewMode';
 import { useProfileContext } from '@/contexts/ProfileContext';
+import { canonicalGithubUrl } from '@/utils';
 import type { AppListing, UserApp } from '@/shared.types';
+
+// Installed-app lookup key. Canonicalize the URL so a match can't be missed
+// over URL formatting differences (same convention as AppDetail/AppLaunch).
+const listingKey = (url: string, manifestPath: string) =>
+  `${canonicalGithubUrl(url)}::${manifestPath}`;
 
 export default function Catalog() {
   const [search, setSearch] = useState('');
@@ -26,7 +32,7 @@ export default function Catalog() {
   const myAppsByKey = useMemo(() => {
     const map = new Map<string, UserApp>();
     (appsQuery.data ?? []).forEach(a =>
-      map.set(`${a.url}::${a.manifest_path}`, a)
+      map.set(listingKey(a.url, a.manifest_path), a)
     );
     return map;
   }, [appsQuery.data]);
@@ -36,7 +42,7 @@ export default function Catalog() {
       createCatalogColumns(
         actions,
         (listing: AppListing) =>
-          myAppsByKey.get(`${listing.url}::${listing.manifest_path}`),
+          myAppsByKey.get(listingKey(listing.url, listing.manifest_path)),
         profile?.username
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -47,7 +53,10 @@ export default function Catalog() {
     const term = search.trim().toLowerCase();
     const listings = catalogQuery.data ?? [];
     return listings.filter(l => {
-      if (hideInstalled && myAppsByKey.has(`${l.url}::${l.manifest_path}`)) {
+      if (
+        hideInstalled &&
+        myAppsByKey.has(listingKey(l.url, l.manifest_path))
+      ) {
         return false;
       }
       if (!term) {
@@ -128,7 +137,7 @@ export default function Catalog() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           {filteredListings.map(listing => {
             const installedApp = myAppsByKey.get(
-              `${listing.url}::${listing.manifest_path}`
+              listingKey(listing.url, listing.manifest_path)
             );
             const isOwner =
               profile?.username !== undefined &&
