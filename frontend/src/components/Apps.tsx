@@ -44,7 +44,10 @@ export default function Apps() {
       manifest_paths: manifestPaths
     });
     const count = apps.length;
-    toast.success(`${count} app${count !== 1 ? 's' : ''} added`);
+    // Guard against a misleading "0 apps added" success (nothing new to add).
+    if (count > 0) {
+      toast.success(`${count} app${count !== 1 ? 's' : ''} added`);
+    }
     setShowAddDialog(false);
   };
 

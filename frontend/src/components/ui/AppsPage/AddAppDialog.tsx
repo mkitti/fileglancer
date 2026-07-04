@@ -157,7 +157,12 @@ export default function AddAppDialog({
                 validateUrl(value);
               }}
               onKeyDown={e => {
-                if (e.key === 'Enter') {
+                if (
+                  e.key === 'Enter' &&
+                  urlIsValid &&
+                  !discovering &&
+                  !adding
+                ) {
                   handleContinue();
                 }
               }}
@@ -178,7 +183,12 @@ export default function AddAppDialog({
                 setBranch(e.target.value);
               }}
               onKeyDown={e => {
-                if (e.key === 'Enter') {
+                if (
+                  e.key === 'Enter' &&
+                  urlIsValid &&
+                  !discovering &&
+                  !adding
+                ) {
                   handleContinue();
                 }
               }}

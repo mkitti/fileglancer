@@ -218,8 +218,10 @@ export default function AppLaunch() {
         {isShared ? <SharedBadge /> : null}
       </AppPageHeader>
 
-      {/* Not-installed banner */}
-      {!appsQuery.isPending && !isInstalled ? (
+      {/* Not-installed banner — only once the apps list has actually loaded, so
+          a failed /api/apps query doesn't wrongly flag every app (including
+          installed ones) as missing. */}
+      {appsQuery.isSuccess && !isInstalled ? (
         <div className="mb-4 p-3 flex items-center gap-3 border border-primary-light rounded-lg bg-surface/30">
           <Typography className="text-foreground flex-1" type="small">
             This app is not in your library. Install it for quick access from
