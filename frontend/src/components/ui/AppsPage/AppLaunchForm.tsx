@@ -70,11 +70,13 @@ type EnvVar = { key: string; value: string };
 
 function ParameterField({
   param,
+  inputId,
   value,
   onChange,
   onError
 }: {
   readonly param: AppParameter;
+  readonly inputId: string;
   readonly value: unknown;
   readonly onChange: (value: unknown) => void;
   readonly onError?: (message: string) => void;
@@ -110,7 +112,7 @@ function ParameterField({
       return (
         <input
           className={baseInputClass}
-          id={`param-${param.key}`}
+          id={inputId}
           max={param.max}
           min={param.min}
           onChange={e => {
@@ -134,7 +136,7 @@ function ParameterField({
       return (
         <select
           className={baseInputClass}
-          id={`param-${param.key}`}
+          id={inputId}
           onChange={e => onChange(e.target.value)}
           value={value !== undefined && value !== null ? String(value) : ''}
         >
@@ -153,7 +155,7 @@ function ParameterField({
         <div className="flex gap-2">
           <input
             className={`flex-1 ${baseInputClass}`}
-            id={`param-${param.key}`}
+            id={inputId}
             onChange={e => {
               setFileDisplayPath(null);
               onChange(e.target.value);
@@ -201,7 +203,7 @@ function ParameterField({
       return (
         <input
           className={baseInputClass}
-          id={`param-${param.key}`}
+          id={inputId}
           onChange={e => onChange(e.target.value)}
           placeholder={param.name}
           type="text"
@@ -213,23 +215,30 @@ function ParameterField({
 
 function ParameterFieldRow({
   param,
+  idPrefix,
   value,
   error,
   onChange,
   onError
 }: {
   readonly param: AppParameter;
+  // Namespace-specific id prefix ('param-main' / 'param-env'). The same param
+  // key can legitimately appear in both the pipeline and env-tab namespaces
+  // (e.g. a pipeline --profile alongside Nextflow's -profile), so the DOM id
+  // must be namespaced to avoid duplicate ids / labels focusing the wrong input.
+  readonly idPrefix: string;
   readonly value: unknown;
   readonly error?: string;
   readonly onChange: (value: unknown) => void;
   readonly onError?: (message: string) => void;
 }) {
+  const inputId = `${idPrefix}-${param.key}`;
   return (
     <div>
       {param.type !== 'boolean' ? (
         <label
           className="block text-foreground text-sm font-semibold mb-1"
-          htmlFor={`param-${param.key}`}
+          htmlFor={inputId}
         >
           {param.name}
           {param.required ? <span className="text-error ml-1">*</span> : null}
@@ -241,6 +250,7 @@ function ParameterFieldRow({
         </Typography>
       ) : null}
       <ParameterField
+        inputId={inputId}
         onChange={onChange}
         onError={onError}
         param={param}
@@ -296,12 +306,14 @@ function SectionTrigger({
 
 function SectionContent({
   section,
+  idPrefix,
   values,
   errors,
   onParamChange,
   onParamError
 }: {
   readonly section: AppParameterSection;
+  readonly idPrefix: string;
   readonly values: Record<string, unknown>;
   readonly errors: Record<string, string>;
   readonly onParamChange: (paramId: string, value: unknown) => void;
@@ -312,6 +324,7 @@ function SectionContent({
       {section.parameters.map(param => (
         <ParameterFieldRow
           error={errors[param.key]}
+          idPrefix={idPrefix}
           key={param.key}
           onChange={val => onParamChange(param.key, val)}
           onError={message => onParamError?.(param.key, message)}
@@ -1346,6 +1359,7 @@ export default function AppLaunchForm({
                         <Accordion.Content className="pt-2 pb-4 pl-4">
                           <SectionContent
                             errors={errors}
+                            idPrefix="param-main"
                             onParamChange={handleChange}
                             onParamError={handleParamError}
                             section={item}
@@ -1356,6 +1370,7 @@ export default function AppLaunchForm({
                     ) : (
                       <ParameterFieldRow
                         error={errors[item.key]}
+                        idPrefix="param-main"
                         key={item.key}
                         onChange={val => handleChange(item.key, val)}
                         onError={message => handleParamError(item.key, message)}
@@ -1370,6 +1385,7 @@ export default function AppLaunchForm({
                   isParameterSection(item) ? null : (
                     <ParameterFieldRow
                       error={errors[item.key]}
+                      idPrefix="param-main"
                       key={item.key}
                       onChange={val => handleChange(item.key, val)}
                       onError={message => handleParamError(item.key, message)}
@@ -1435,6 +1451,7 @@ export default function AppLaunchForm({
                         <Accordion.Content className="pt-2 pb-4 pl-4">
                           <SectionContent
                             errors={{}}
+                            idPrefix="param-env"
                             onParamChange={handleEnvChange}
                             section={item}
                             values={envValues}
@@ -1444,6 +1461,7 @@ export default function AppLaunchForm({
                     ) : (
                       <ParameterFieldRow
                         error={undefined}
+                        idPrefix="param-env"
                         key={item.key}
                         onChange={val => handleEnvChange(item.key, val)}
                         param={item}
