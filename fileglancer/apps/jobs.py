@@ -1004,8 +1004,14 @@ async def cancel_job(job_id: int, username: str) -> db.JobDB:
         if db_job.status not in ("PENDING", "RUNNING"):
             raise ValueError(f"Job {job_id} is not cancellable (status: {db_job.status})")
 
-        # Cancel on cluster as the target user
-        if db_job.cluster_job_id:
+        # Actually stop the running job as the target user. The local executor
+        # spawns a bash subprocess whose PID a fresh executor can't reach, so
+        # cancel it by the PID persisted in its work dir; other executors
+        # (LSF, ...) cancel by cluster job id via py-cluster-api.
+        if settings.cluster.executor == "local":
+            if db_job.work_dir:
+                await _dispatch(username, "cancel_local", work_dir=db_job.work_dir)
+        elif db_job.cluster_job_id:
             cluster_config = settings.cluster.model_dump(exclude_none=True)
             await _dispatch(
                 username, "cancel",

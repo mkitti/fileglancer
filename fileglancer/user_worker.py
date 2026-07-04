@@ -783,6 +783,40 @@ def _action_get_job_file(request: dict, ctx: WorkerContext) -> dict:
     return {"content": content}
 
 
+@action("cancel_local")
+def _action_cancel_local(request: dict, ctx: WorkerContext) -> dict:
+    """Terminate a local-executor job by its recorded PID, as the user.
+
+    The local executor spawns `bash <script>` in the worker's own process
+    group (no new session), and a fresh executor in a later `cancel` dispatch
+    has no handle to it, so cancellation must target the PID persisted at
+    submit time ({work_dir}/job.pid). We signal that single PID — never the
+    process group, which would also hit the worker/server — with SIGTERM so
+    the job's EXIT trap still runs and writes its exit code for the poller.
+    Returns {"killed": bool}; a missing/stale pid file or an already-exited
+    process is a no-op (killed=False), not an error.
+    """
+    import signal
+
+    work_dir = request.get("work_dir")
+    if not work_dir:
+        return {"killed": False}
+    pid_file = Path(work_dir) / "job.pid"
+    if not pid_file.is_file():
+        return {"killed": False}
+    try:
+        pid = int(pid_file.read_text().strip())
+    except (ValueError, OSError):
+        return {"killed": False}
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except ProcessLookupError:
+        return {"killed": False}  # already gone
+    except OSError as e:
+        return {"error": str(e), "status_code": 500}
+    return {"killed": True}
+
+
 @action("get_service_url")
 def _action_get_service_url(request: dict, ctx: WorkerContext) -> dict:
     """Read the service URL and startup phase from a job's work directory."""

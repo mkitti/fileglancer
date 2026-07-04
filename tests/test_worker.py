@@ -30,6 +30,7 @@ from fileglancer.user_worker import (
     _action_validate_proxied_path,
     _action_create_dirs,
     _action_validate_paths,
+    _action_cancel_local,
     WorkerContext,
     _HEADER_FMT,
     _HEADER_SIZE,
@@ -113,6 +114,44 @@ class TestActionTimeout:
         # ceiling must sit above that so a valid snapshot isn't read as a
         # dead worker.
         assert _GIT_ACTION_TIMEOUT >= 600
+
+
+@pytest.mark.skipif(sys.platform == "win32",
+                    reason="POSIX signals / sleep command required")
+class TestCancelLocalAction:
+    """cancel_local terminates a local-executor job by its recorded PID."""
+
+    def _ctx(self):
+        return WorkerContext(username="test", db=None)
+
+    def test_kills_recorded_pid(self, tmp_path):
+        import subprocess as sp
+        proc = sp.Popen(["sleep", "60"])
+        try:
+            (tmp_path / "job.pid").write_text(str(proc.pid))
+            result = _action_cancel_local({"work_dir": str(tmp_path)}, self._ctx())
+            assert result == {"killed": True}
+            proc.wait(timeout=5)
+            assert proc.returncode != 0  # terminated by SIGTERM, not a clean exit
+        finally:
+            if proc.poll() is None:
+                proc.kill()
+                proc.wait(timeout=5)
+
+    def test_missing_pid_file_is_noop(self, tmp_path):
+        assert _action_cancel_local(
+            {"work_dir": str(tmp_path)}, self._ctx()) == {"killed": False}
+
+    def test_missing_work_dir_is_noop(self):
+        assert _action_cancel_local({}, self._ctx()) == {"killed": False}
+
+    def test_already_dead_pid_is_noop(self, tmp_path):
+        import subprocess as sp
+        proc = sp.Popen(["sleep", "0.01"])
+        proc.wait()  # reap so the PID is no longer a live process
+        (tmp_path / "job.pid").write_text(str(proc.pid))
+        assert _action_cancel_local(
+            {"work_dir": str(tmp_path)}, self._ctx()) == {"killed": False}
 
 
 class TestIPCProtocol:
