@@ -9,7 +9,7 @@ import os
 import re
 import shlex
 import tempfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from datetime import datetime, UTC
 from typing import Optional
 
@@ -34,6 +34,7 @@ from fileglancer.apps.command import (
     merge_requirements,
     _ENV_VAR_NAME_PATTERN,
     _URI_PREFIXES,
+    _WINDOWS_DRIVE_PATTERN,
 )
 from fileglancer.apps.jobfiles import _build_work_dir
 from fileglancer.giturls import canonical_github_url
@@ -459,7 +460,9 @@ def _quote_container_cache_dir(cache_dir: Optional[str],
         )
         if home.startswith("~"):
             return "$HOME" if not suffix else f"$HOME/{shlex.quote(suffix)}"
-        expanded = str(Path(home) / suffix) if suffix else home
+        # Join with '/' rather than pathlib: the value lands in a bash script,
+        # so Windows-style separators must never be introduced here.
+        expanded = f"{home}/{suffix}" if suffix else home
         return shlex.quote(expanded)
 
     return shlex.quote(os.path.expanduser(raw))
@@ -601,12 +604,19 @@ def _container_bind_paths(entry_point, parameters: dict,
     for param, raw_value in collect_path_parameters(
             entry_point, parameters, env_parameters):
         expanded = expand_user_path(str(raw_value), username)
-        if expanded.startswith(_URI_PREFIXES) or not expanded.startswith("/"):
+        # Windows drive paths count as absolute so a dev/test server on Windows
+        # composes the same script; path validation accepts them the same way.
+        is_absolute = (expanded.startswith("/")
+                       or _WINDOWS_DRIVE_PATTERN.match(expanded))
+        if expanded.startswith(_URI_PREFIXES) or not is_absolute:
             continue
         if param.type == "directory":
             bind_paths.append(expanded)
         else:
-            bind_paths.append(str(Path(expanded).parent))
+            # PurePosixPath: the bind flag lands in a bash script, and the value
+            # is already '/'-normalized, so the parent must stay POSIX-style
+            # even when the server process runs on Windows (dev/test).
+            bind_paths.append(str(PurePosixPath(expanded).parent))
     if entry_point.bind_paths:
         bind_paths.extend(entry_point.bind_paths)
     if entry_point.effective_working_dir == "repo":

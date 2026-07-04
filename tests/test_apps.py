@@ -38,6 +38,13 @@ requires_pwd = pytest.mark.skipif(
     sys.platform == "win32", reason="pwd module is not available on Windows"
 )
 
+# The generated script snippets are POSIX bash and only ever run on Linux
+# compute nodes; on Windows CI runners `bash` resolves to the WSL stub, which
+# can't execute them.
+requires_bash = pytest.mark.skipif(
+    sys.platform == "win32", reason="requires a working bash; snippets only run on Linux compute nodes"
+)
+
 
 # --- Model tests ---
 
@@ -905,6 +912,7 @@ class TestServicePortHelper:
         assert "export FG_HOSTNAME=" in _SERVICE_PORT_HELPER
         assert "export FG_SERVICE_TOKEN=" in _SERVICE_PORT_HELPER
 
+    @requires_bash
     def test_helper_mints_a_urlsafe_token(self):
         import re
         script = _SERVICE_PORT_HELPER + '\necho "$FG_SERVICE_TOKEN"'
@@ -914,6 +922,7 @@ class TestServicePortHelper:
         # Non-empty and URL-safe (hex), so no encoding is needed in the URL.
         assert re.fullmatch(r"[0-9a-f]{16,}", token), token
 
+    @requires_bash
     def test_helper_is_valid_bash(self):
         # The generated snippet must at least parse as bash.
         result = subprocess.run(
@@ -922,6 +931,7 @@ class TestServicePortHelper:
         )
         assert result.returncode == 0, result.stderr
 
+    @requires_bash
     def test_helper_picks_a_free_port_at_runtime(self):
         # Run the helper and confirm FG_SERVICE_PORT is a plausible TCP port.
         script = _SERVICE_PORT_HELPER + '\necho "$FG_SERVICE_PORT"'
@@ -932,6 +942,7 @@ class TestServicePortHelper:
         port = int(result.stdout.strip().splitlines()[-1])
         assert 1 <= port <= 65535
 
+    @requires_bash
     def test_helper_robust_under_set_euo_pipefail(self):
         # A deployment may prepend `set -euo pipefail` via script_prologue; the
         # helper must still allocate a port and not abort the job.
@@ -1001,6 +1012,7 @@ class TestServiceUrlSuffix:
 class TestServiceUrlPublisher:
     """The backgrounded readiness probe that publishes SERVICE_URL_PATH."""
 
+    @requires_bash
     def test_publisher_is_valid_bash(self):
         snippet = _build_service_url_publisher("/?access_token=${FG_SERVICE_TOKEN}")
         result = subprocess.run(["bash", "-n", "-c", snippet],
@@ -1008,6 +1020,7 @@ class TestServiceUrlPublisher:
         assert result.returncode == 0, result.stderr
         assert "SERVICE_URL_PATH" in snippet and "3600" in snippet
 
+    @requires_bash
     def test_publishes_tokenized_url_only_once_port_is_up(self, tmp_path):
         import socket
         # Bind a real port so the probe's TCP connect succeeds.
@@ -1033,6 +1046,7 @@ class TestServiceUrlPublisher:
         finally:
             srv.close()
 
+    @requires_bash
     def test_does_not_publish_when_port_never_opens(self, tmp_path):
         import socket
         # Grab a free port number, then close it so nothing is listening.
@@ -2400,6 +2414,10 @@ class TestPixiAdapterName:
         assert manifest.name == tmp_path.name
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="the poll loop uses fcntl file locking; the server only runs on POSIX",
+)
 class TestPollLoopStopRace:
     """The poll loop must not orphan a job submitted while it is stopping.
 
@@ -2598,8 +2616,9 @@ class TestSubmitJobAssembly:
         submitted = self._submitted(calls)
         assert submitted["work_dir"] == job.work_dir
         assert submitted["job_name"] == "demo-run"
-        assert submitted["resources"]["stdout_path"] == f"{job.work_dir}/stdout.log"
-        assert submitted["resources"]["stderr_path"] == f"{job.work_dir}/stderr.log"
+        # work_dir is an OS-native path, so join the same way submit_job does.
+        assert submitted["resources"]["stdout_path"] == os.path.join(job.work_dir, "stdout.log")
+        assert submitted["resources"]["stderr_path"] == os.path.join(job.work_dir, "stderr.log")
 
     def test_script_layout_and_parameter_quoting(self, tmp_path, monkeypatch):
         job, calls = self._submit(
@@ -2663,8 +2682,9 @@ class TestSubmitJobAssembly:
 
         assert "apptainer" in script
         # The file param came from its manifest default (not the submitted
-        # parameters), and its parent dir must still be bind-mounted.
-        assert f"--bind {shlex.quote(str(tmp_path))}" in script
+        # parameters), and its parent dir must still be bind-mounted. Bind
+        # paths are '/'-normalized for the bash script, hence as_posix().
+        assert f"--bind {shlex.quote(tmp_path.as_posix())}" in script
         # Container runnables default to running from the work dir.
         assert 'cd "$FG_WORK_DIR"\n' in script or script.endswith('cd "$FG_WORK_DIR"')
         assert 'cd "$FG_WORK_DIR"/repo' not in script
