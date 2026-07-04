@@ -1,6 +1,7 @@
 """Tests for apps module: miniforge/apptainer requirements, conda_env, and container support."""
 
 import os
+import shlex
 import subprocess
 import sys
 import time
@@ -750,6 +751,36 @@ class TestContainerScriptGeneration:
             container_args="--nv --bind 'my dir'",
         )
         assert "--nv --bind 'my dir' \"$SIF_PATH\"" in script
+
+    def test_cache_dir_expands_tilde_before_quoting(self):
+        cache_dir = "~/apptainer cache"
+        script = _build_container_script(
+            container_url="ghcr.io/org/image:1.0",
+            command="python run.py",
+            work_dir="/work",
+            bind_paths=[],
+            cache_dir=cache_dir,
+        )
+
+        expected = shlex.quote(os.path.expanduser(cache_dir))
+        assert f"APPTAINER_CACHE_DIR={expected}" in script
+        assert "APPTAINER_CACHE_DIR='~/" not in script
+
+    def test_cache_dir_uses_target_user_home(self, monkeypatch):
+        def fake_expanduser(path):
+            return "/home/alice" if path == "~alice" else path
+
+        monkeypatch.setattr(os.path, "expanduser", fake_expanduser)
+        script = _build_container_script(
+            container_url="ghcr.io/org/image:1.0",
+            command="python run.py",
+            work_dir="/work",
+            bind_paths=[],
+            cache_dir="~/apptainer cache",
+            username="alice",
+        )
+
+        assert "APPTAINER_CACHE_DIR='/home/alice/apptainer cache'" in script
 
     def test_pull_conditional(self):
         script = _build_container_script(

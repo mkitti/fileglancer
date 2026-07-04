@@ -437,6 +437,34 @@ def _container_sif_name(container_url: str) -> str:
 _DEFAULT_CONTAINER_CACHE_DIR = "$HOME/.fileglancer/apptainer_cache"
 
 
+def _quote_container_cache_dir(cache_dir: Optional[str],
+                               username: Optional[str] = None) -> str:
+    """Return a shell-safe APPTAINER_CACHE_DIR assignment value.
+
+    Preferences may use the familiar ``~/...`` spelling shown in the UI.
+    ``shlex.quote("~/...")`` would make that a literal directory named ``~``,
+    so expand current-user tildes to the target user's home before quoting.
+    If the home cannot be resolved (e.g. in a test/dev environment), fall back
+    to a shell ``$HOME`` prefix so expansion still happens in the user worker.
+    """
+    raw = (cache_dir or "").strip()
+    if not raw:
+        return _DEFAULT_CONTAINER_CACHE_DIR
+
+    if raw == "~" or raw.startswith("~/"):
+        suffix = raw[2:] if raw.startswith("~/") else ""
+        home = (
+            os.path.expanduser(f"~{username}")
+            if username else os.path.expanduser("~")
+        )
+        if home.startswith("~"):
+            return "$HOME" if not suffix else f"$HOME/{shlex.quote(suffix)}"
+        expanded = str(Path(home) / suffix) if suffix else home
+        return shlex.quote(expanded)
+
+    return shlex.quote(os.path.expanduser(raw))
+
+
 # Runtime helper emitted for service jobs. It allocates a free TCP port on the
 # compute node (a port chosen on the submit host would be meaningless there) and
 # exports it as FG_SERVICE_PORT along with FG_HOSTNAME, so a service command can
@@ -501,10 +529,14 @@ def _build_container_script(
     bind_paths: list[str],
     container_args: Optional[str] = None,
     cache_dir: Optional[str] = None,
+    username: Optional[str] = None,
 ) -> str:
     """Build shell script for running a command inside an Apptainer container."""
     sif_name = _container_sif_name(container_url)
-    docker_url = container_url if container_url.startswith("docker://") else f"docker://{container_url}"
+    docker_url = (
+        container_url
+        if container_url.startswith("docker://") else f"docker://{container_url}"
+    )
 
     # Deduplicate and sort bind paths
     all_binds = sorted(set([work_dir] + bind_paths))
@@ -516,7 +548,7 @@ def _build_container_script(
         split_args = shlex.split(container_args)
         extra = " " + " ".join(shlex.quote(arg) for arg in split_args)
 
-    resolved_dir = shlex.quote(cache_dir) if cache_dir else _DEFAULT_CONTAINER_CACHE_DIR
+    resolved_dir = _quote_container_cache_dir(cache_dir, username=username)
 
     lines = [
         "# Apptainer container setup",
@@ -887,6 +919,7 @@ async def submit_job(
             bind_paths=bind_paths,
             container_args=effective_container_args,
             cache_dir=container_cache_dir,
+            username=username,
         )
 
     if env_lines:
