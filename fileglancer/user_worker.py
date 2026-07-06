@@ -147,19 +147,16 @@ def action(name: str):
 
 
 # ---------------------------------------------------------------------------
-# DB proxy
+# Parent-prepared DB data
 # ---------------------------------------------------------------------------
 #
 # Worker subprocesses run as the (untrusted) target user, so we don't give
-# them the database URL. Instead, action handlers go through a DbProxy that
-# reverse-RPCs back to the parent over the same socket. The parent runs the
-# query with full credentials and returns the result.
+# them the database URL.  The parent process reads the small amount of DB data
+# an action needs before sending the request to the worker and includes it in
+# the request payload.  Workers never send reverse DB RPCs.
 #
 # In dev/test mode (no subprocess), the same handlers use LocalDbProxy which
-# calls the database functions directly.
-#
-# DB_METHODS is the whitelist of methods both proxies expose; the parent's
-# inbound dispatch only accepts these names.
+# calls the database functions directly to prepare the same request payload.
 
 from types import SimpleNamespace
 
@@ -183,10 +180,11 @@ def _job_db_to_dict(j) -> dict:
 
 
 class LocalDbProxy:
-    """DbProxy backed by a real database connection.
+    """Small parent-side DB facade used to prepare worker requests.
 
-    Used in dev/test mode (in-process) and on the parent side as the
-    backend for inbound db_request messages from worker subprocesses.
+    Used by WorkerPool before dispatching to a subprocess and by CLI/dev mode
+    before calling action handlers in-process.  It is never constructed inside
+    the user worker subprocess.
     """
 
     def __init__(self, db_url: str):
@@ -206,52 +204,93 @@ class LocalDbProxy:
             return SimpleNamespace(**_job_db_to_dict(j))
 
 
-class RpcDbProxy:
-    """DbProxy that reverse-RPCs each call back to the parent over the socket."""
+# Actions that need the file-share-path list to resolve fsp_name, validate
+# containment, or build redirect/browse-link metadata.
+ACTIONS_REQUIRING_FILE_SHARE_PATHS = frozenset({
+    "list_dir",
+    "list_dir_paged",
+    "get_file_info",
+    "check_binary",
+    "open_file",
+    "head_file",
+    "create_dir",
+    "create_file",
+    "rename",
+    "delete",
+    "chmod",
+    "update_file",
+    "validate_proxied_path",
+    "validate_paths",
+    "create_dirs",
+    "get_profile",
+    "submit",
+})
 
-    def __init__(self, sock: socket.socket):
-        self.sock = sock
-
-    def _call(self, method: str, **kwargs):
-        _send(self.sock, {"_kind": "db_request", "method": method, "kwargs": kwargs})
-        resp = _recv(self.sock)
-        if resp.get("_kind") != "db_response":
-            raise RuntimeError(f"Expected db_response, got: {resp!r}")
-        if not resp.get("ok"):
-            raise RuntimeError(resp.get("error", "DB request failed"))
-        return resp.get("result")
-
-    def get_file_share_paths(self):
-        from fileglancer.model import FileSharePath
-        rows = self._call("get_file_share_paths") or []
-        return [FileSharePath(**r) for r in rows]
-
-    def get_job(self, job_id: int, username: str):
-        result = self._call("get_job", job_id=job_id, username=username)
-        return SimpleNamespace(**result) if result else None
+# Actions that need a minimal job row.  get_service_urls already receives a
+# caller-built list of job dicts to batch many jobs into one worker round-trip.
+ACTIONS_REQUIRING_JOB = frozenset({
+    "get_job_file",
+    "delete_job_work_dir",
+    "get_service_url",
+})
 
 
-# Whitelist of method names the parent will dispatch; used by worker_pool
-# when handling inbound db_request messages.
-DB_METHODS = frozenset({"get_file_share_paths", "get_job"})
+def _serialize_file_share_paths(paths) -> list[dict]:
+    return [fsp.model_dump(mode="json") for fsp in paths]
 
 
-def serialize_db_result(method: str, value):
-    """Convert a LocalDbProxy result into a JSON-serializable form.
+def _serialize_job_for_worker(job) -> Optional[dict]:
+    return None if job is None else vars(job)
 
-    Called by the parent before sending a db_response back to the worker.
-    Keeps the wire format consistent regardless of which backend produced
-    the value.
+
+def prepare_worker_request(request: dict, username: str, db_proxy: LocalDbProxy) -> dict:
+    """Return a request enriched with all DB-derived data the worker needs.
+
+    The worker protocol is one request / one response.  Any DB lookups required
+    by an action happen here, in the parent process, before the request is sent
+    to the untrusted user-context subprocess.
     """
-    if value is None:
-        return None
-    if method == "get_file_share_paths":
-        # value is a list of FileSharePath models
-        return [fsp.model_dump(mode="json") for fsp in value]
-    if method == "get_job":
-        # value is a SimpleNamespace; vars() gives the underlying dict
-        return vars(value)
-    raise ValueError(f"Unknown db method: {method}")
+    action_name = request.get("action")
+    enriched = dict(request)
+
+    if action_name in ACTIONS_REQUIRING_FILE_SHARE_PATHS:
+        enriched["file_share_paths"] = _serialize_file_share_paths(
+            db_proxy.get_file_share_paths()
+        )
+
+    if action_name in ACTIONS_REQUIRING_JOB:
+        job_id = enriched["job_id"]
+        enriched["job"] = _serialize_job_for_worker(
+            db_proxy.get_job(job_id, username)
+        )
+
+    return enriched
+
+
+def _file_share_paths_from_request(request: dict) -> list:
+    """Deserialize parent-provided file-share-path payload."""
+    from fileglancer.model import FileSharePath
+
+    try:
+        rows = request["file_share_paths"]
+    except KeyError as e:
+        raise RuntimeError(
+            f"Worker request for {request.get('action')} is missing "
+            "parent-provided file_share_paths"
+        ) from e
+    return [FileSharePath(**row) for row in (rows or [])]
+
+
+def _job_from_request(request: dict):
+    """Deserialize parent-provided minimal job payload."""
+    try:
+        row = request["job"]
+    except KeyError as e:
+        raise RuntimeError(
+            f"Worker request for {request.get('action')} is missing "
+            "parent-provided job"
+        ) from e
+    return SimpleNamespace(**row) if row else None
 
 
 # ---------------------------------------------------------------------------
@@ -338,7 +377,7 @@ def with_filestore(fn):
     """
     @functools.wraps(fn)
     def wrapper(request: dict, ctx: WorkerContext) -> dict:
-        fsps = ctx.db.get_file_share_paths()
+        fsps = _file_share_paths_from_request(request)
         filestore, error_response = _get_filestore(request["fsp_name"], fsps)
         if filestore is None:
             return error_response
@@ -655,7 +694,7 @@ def _action_validate_paths(request: dict, ctx: WorkerContext) -> dict:
     # Expected type per key ('file' or 'directory'): when the path exists, its
     # type must match.
     types = request.get("types") or {}
-    fsps = ctx.db.get_file_share_paths()
+    fsps = _file_share_paths_from_request(request)
     errors = {}
     for param_key, path_value in paths.items():
         error = validate_path_in_filestore(
@@ -681,7 +720,7 @@ def _action_create_dirs(request: dict, ctx: WorkerContext) -> dict:
     from fileglancer.apps.command import validate_path_in_filestore
 
     paths = request["paths"]
-    fsps = ctx.db.get_file_share_paths()
+    fsps = _file_share_paths_from_request(request)
     errors = {}
     for key, path_value in paths.items():
         # Containment check without the exists/readable check — the directory is
@@ -702,7 +741,7 @@ def _action_create_dirs(request: dict, ctx: WorkerContext) -> dict:
 def _action_get_profile(request: dict, ctx: WorkerContext) -> dict:
     """Get user profile information."""
     username = ctx.username
-    paths = ctx.db.get_file_share_paths()
+    paths = _file_share_paths_from_request(request)
 
     home_fsp = next((fsp for fsp in paths if fsp.mount_path in ('~', '~/')), None)
     if home_fsp:
@@ -774,7 +813,7 @@ def _action_get_job_file(request: dict, ctx: WorkerContext) -> dict:
     job_id = request["job_id"]
     file_type = request["file_type"]
 
-    db_job = ctx.db.get_job(job_id, ctx.username)
+    db_job = _job_from_request(request)
     if db_job is None:
         return {"error": f"Job {job_id} not found", "status_code": 404}
 
@@ -791,7 +830,7 @@ def _action_delete_job_work_dir(request: dict, ctx: WorkerContext) -> dict:
     from fileglancer.apps.jobfiles import delete_job_work_dir
 
     job_id = request["job_id"]
-    db_job = ctx.db.get_job(job_id, ctx.username)
+    db_job = _job_from_request(request)
     if db_job is None:
         return {"error": f"Job {job_id} not found", "status_code": 404}
     if not db.is_terminal_job_status(db_job.status):
@@ -936,7 +975,7 @@ def _action_get_service_url(request: dict, ctx: WorkerContext) -> dict:
     from fileglancer.apps.jobfiles import get_service_url, get_service_phase
 
     job_id = request["job_id"]
-    db_job = ctx.db.get_job(job_id, ctx.username)
+    db_job = _job_from_request(request)
     if db_job is None:
         return {"error": f"Job {job_id} not found", "status_code": 404}
     return {"service_url": get_service_url(db_job), "phase": get_service_phase(db_job)}
@@ -1166,7 +1205,7 @@ def _action_submit(request: dict, ctx: WorkerContext) -> dict:
     work_dir_subpath = None
     try:
         from fileglancer.database import find_fsp_in_paths
-        match = find_fsp_in_paths(ctx.db.get_file_share_paths(), str(work_dir))
+        match = find_fsp_in_paths(_file_share_paths_from_request(request), str(work_dir))
         if match:
             work_dir_fsp_name = match[0].name
             work_dir_subpath = match[1]
@@ -1356,7 +1395,7 @@ def _action_remote_heads(request: dict, ctx: WorkerContext) -> dict:
 class WorkerContext:
     """Holds per-worker state."""
 
-    def __init__(self, username: str, db):
+    def __init__(self, username: str, db=None):
         self.username = username
         self.db = db
 
@@ -1405,9 +1444,9 @@ def main():
     except KeyError:
         username = str(uid)
 
-    # Worker subprocess never gets DB credentials; all DB access goes back
-    # through the parent over the same socket via RpcDbProxy.
-    ctx = WorkerContext(username=username, db=RpcDbProxy(sock))
+    # Worker subprocess never gets DB credentials.  Any DB-derived data needed
+    # by an action arrives already serialized in that action's request.
+    ctx = WorkerContext(username=username)
 
     logger.info(
         f"Worker started for {username} "

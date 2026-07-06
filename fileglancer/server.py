@@ -365,12 +365,19 @@ def create_app(settings):
                 raise HTTPException(status_code=e.status_code, detail=str(e))
         else:
             # CLI mode: run action directly in-process (single-user, no setuid)
-            from fileglancer.user_worker import _ACTIONS, WorkerContext, LocalDbProxy
+            from fileglancer.user_worker import (
+                _ACTIONS,
+                WorkerContext,
+                LocalDbProxy,
+                prepare_worker_request,
+            )
             handler = _ACTIONS.get(action)
             if handler is None:
                 raise HTTPException(status_code=500, detail=f"Unknown action: {action}")
-            ctx = WorkerContext(username=username, db=LocalDbProxy(settings.db_url))
-            request = {"action": action, **kwargs}
+            db_proxy = LocalDbProxy(settings.db_url)
+            ctx = WorkerContext(username=username)
+            request = prepare_worker_request(
+                {"action": action, **kwargs}, username, db_proxy)
             try:
                 result = handler(request, ctx)
             except Exception as e:

@@ -52,6 +52,25 @@ from fileglancer.worker_pool import (
 )
 
 
+def _fsp_rows(*fsps):
+    """Serialize FileSharePath models the same way the parent does."""
+    return [fsp.model_dump(mode="json") for fsp in fsps]
+
+
+def _with_fsps(request, *fsps):
+    return {**request, "file_share_paths": _fsp_rows(*fsps)}
+
+
+class _EmptyDbProxy:
+    """Parent-side DB proxy stub for IPC tests."""
+
+    def get_file_share_paths(self):
+        return []
+
+    def get_job(self, job_id: int, username: str):
+        return None
+
+
 # ---------------------------------------------------------------------------
 # IPC protocol tests (user_worker.py _send/_recv/_send_with_fd)
 # ---------------------------------------------------------------------------
@@ -413,7 +432,8 @@ class TestUserWorkerIPC:
             def wait(self): pass
             def kill(self): pass
 
-        worker = UserWorker("testuser", FakeProcess(), parent, db_proxy=None)
+        worker = UserWorker("testuser", FakeProcess(), parent,
+                            db_proxy=_EmptyDbProxy())
         return worker, child
 
     def test_send_and_recv_basic(self):
@@ -432,6 +452,45 @@ class TestUserWorkerIPC:
 
             result = worker._send_and_recv({"action": "ping"})
             assert result == {"status": "pong"}
+            t.join()
+        finally:
+            worker.sock.close()
+            child.close()
+
+    def test_send_and_recv_preloads_db_data(self):
+        """Parent attaches needed DB data before sending to the worker."""
+        parent, child = socket.socketpair()
+        parent.setblocking(True)
+
+        class FakeProcess:
+            returncode = None
+            pid = 12345
+            def poll(self): return None
+            def wait(self): pass
+            def kill(self): pass
+
+        class FakeDbProxy:
+            def get_file_share_paths(self):
+                return [FileSharePath(
+                    zone="z", name="home", group="g", storage="local",
+                    mount_path="/home/test",
+                )]
+
+        worker = UserWorker("testuser", FakeProcess(), parent,
+                            db_proxy=FakeDbProxy())
+        try:
+            def mock_worker():
+                req = _recv(child)
+                assert req["action"] == "get_profile"
+                assert req["file_share_paths"][0]["name"] == "home"
+                _send(child, {"ok": True})
+
+            import threading
+            t = threading.Thread(target=mock_worker)
+            t.start()
+
+            result = worker._send_and_recv({"action": "get_profile"})
+            assert result == {"ok": True}
             t.join()
         finally:
             worker.sock.close()
@@ -509,7 +568,8 @@ class TestUserWorkerExecute:
             def wait(self): pass
             def kill(self): pass
 
-        worker = UserWorker("testuser", FakeProcess(), parent, db_proxy=None)
+        worker = UserWorker("testuser", FakeProcess(), parent,
+                            db_proxy=_EmptyDbProxy())
         return worker, child
 
     @pytest.mark.asyncio
@@ -664,16 +724,12 @@ class TestActionHandlers:
 
     @pytest.fixture
     def ctx(self, temp_dir):
-        """Create a WorkerContext with a LocalDbProxy backed by the test database."""
-        from fileglancer.settings import get_settings
-        from fileglancer.user_worker import LocalDbProxy
-        settings = get_settings()
-        return WorkerContext(username=os.environ.get("USER", "test"),
-                              db=LocalDbProxy(settings.db_url))
+        """Create a WorkerContext matching the subprocess worker."""
+        return WorkerContext(username=os.environ.get("USER", "test"))
 
     def test_get_profile(self, ctx):
         handler = _ACTIONS["get_profile"]
-        result = handler({"action": "get_profile"}, ctx)
+        result = handler({"action": "get_profile", "file_share_paths": []}, ctx)
         assert "username" in result
         assert "groups" in result
         assert isinstance(result["groups"], list)
@@ -684,7 +740,11 @@ class TestActionHandlers:
 
     def test_validate_paths_empty(self, ctx):
         handler = _ACTIONS["validate_paths"]
-        result = handler({"action": "validate_paths", "paths": {}}, ctx)
+        result = handler({
+            "action": "validate_paths",
+            "paths": {},
+            "file_share_paths": [],
+        }, ctx)
         assert result == {"errors": {}}
 
 
@@ -708,10 +768,7 @@ class TestWorkerMainLoop:
             except KeyError:
                 username = str(uid)
 
-            from fileglancer.settings import get_settings
-            from fileglancer.user_worker import LocalDbProxy
-            settings = get_settings()
-            ctx = WorkerContext(username=username, db=LocalDbProxy(settings.db_url))
+            ctx = WorkerContext(username=username)
 
             while True:
                 try:
@@ -776,7 +833,7 @@ class TestWorkerMainLoop:
         parent, child = socket.socketpair()
         t = self._run_worker_loop(child)
 
-        _send(parent, {"action": "get_profile"})
+        _send(parent, {"action": "get_profile", "file_share_paths": []})
         result = _recv(parent)
         assert "username" in result
         assert "groups" in result
@@ -791,11 +848,15 @@ class TestWorkerMainLoop:
         t = self._run_worker_loop(child)
 
         # Send several requests
-        _send(parent, {"action": "get_profile"})
+        _send(parent, {"action": "get_profile", "file_share_paths": []})
         r1 = _recv(parent)
         assert "username" in r1
 
-        _send(parent, {"action": "validate_paths", "paths": {}})
+        _send(parent, {
+            "action": "validate_paths",
+            "paths": {},
+            "file_share_paths": [],
+        })
         r2 = _recv(parent)
         assert r2 == {"errors": {}}
 
@@ -814,39 +875,32 @@ class TestWorkerMainLoop:
         assert not t.is_alive()
 
 
-class _StubDb:
-    """Minimal db proxy exposing the file share paths the worker resolves."""
-
-    def __init__(self, fsps):
-        self._fsps = fsps
-
-    def get_file_share_paths(self):
-        return self._fsps
-
-
 class TestValidateProxiedPathAction:
     """Tests for the validate_proxied_path action.
 
     The action is wrapped with @with_filestore, which resolves the filestore
-    from ctx.db.get_file_share_paths() using request["fsp_name"]. Each test uses
-    a distinct fsp_name to avoid the module-level _filestore_cache.
+    from parent-provided request["file_share_paths"] using request["fsp_name"].
+    Each test uses a distinct fsp_name to avoid the module-level
+    _filestore_cache.
     """
 
     def _ctx(self, fsp_name, mount_path):
         fsp = FileSharePath(zone="test", name=fsp_name, mount_path=str(mount_path))
-        return WorkerContext(username="test", db=_StubDb([fsp]))
+        return WorkerContext(username="test"), fsp
 
     def test_accepts_regular_file(self, tmp_path):
         (tmp_path / "file.txt").write_text("data")
-        ctx = self._ctx("vpp_file", tmp_path)
+        ctx, fsp = self._ctx("vpp_file", tmp_path)
         result = _action_validate_proxied_path(
-            {"fsp_name": "vpp_file", "path": "file.txt"}, ctx)
+            _with_fsps({"fsp_name": "vpp_file", "path": "file.txt"}, fsp), ctx)
         assert result == {"ok": True}
 
     def test_missing_path_returns_error(self, tmp_path):
-        ctx = self._ctx("vpp_missing", tmp_path)
+        ctx, fsp = self._ctx("vpp_missing", tmp_path)
         result = _action_validate_proxied_path(
-            {"fsp_name": "vpp_missing", "path": "nope.txt"}, ctx)
+            _with_fsps({"fsp_name": "vpp_missing", "path": "nope.txt"}, fsp),
+            ctx,
+        )
         assert result["status_code"] == 400
 
     @requires_symlinks
@@ -854,9 +908,11 @@ class TestValidateProxiedPathAction:
         target = tmp_path / "target.txt"
         target.write_text("data")
         os.symlink(target, tmp_path / "link.txt")
-        ctx = self._ctx("vpp_symlink", tmp_path)
+        ctx, fsp = self._ctx("vpp_symlink", tmp_path)
         result = _action_validate_proxied_path(
-            {"fsp_name": "vpp_symlink", "path": "link.txt"}, ctx)
+            _with_fsps({"fsp_name": "vpp_symlink", "path": "link.txt"}, fsp),
+            ctx,
+        )
         assert result == {"ok": True}
 
 
@@ -865,37 +921,41 @@ class TestCreateDirsAction:
 
     def _ctx(self, mount_path):
         fsp = FileSharePath(zone="test", name="cd", mount_path=str(mount_path))
-        return WorkerContext(username="test", db=_StubDb([fsp]))
+        return WorkerContext(username="test"), fsp
 
     def test_creates_missing_directory(self, tmp_path):
-        ctx = self._ctx(tmp_path)
+        ctx, fsp = self._ctx(tmp_path)
         target = tmp_path / "logs" / "run1"
-        result = _action_create_dirs({"paths": {"0": str(target)}}, ctx)
+        result = _action_create_dirs(
+            _with_fsps({"paths": {"0": str(target)}}, fsp), ctx)
         assert result == {"errors": {}}
         assert target.is_dir()
 
     def test_existing_directory_is_noop(self, tmp_path):
-        ctx = self._ctx(tmp_path)
+        ctx, fsp = self._ctx(tmp_path)
         target = tmp_path / "logs"
         target.mkdir()
-        result = _action_create_dirs({"paths": {"0": str(target)}}, ctx)
+        result = _action_create_dirs(
+            _with_fsps({"paths": {"0": str(target)}}, fsp), ctx)
         assert result == {"errors": {}}
         assert target.is_dir()
 
     def test_refuses_path_outside_any_share(self, tmp_path):
         share = tmp_path / "share"
         share.mkdir()
-        ctx = self._ctx(share)
+        ctx, fsp = self._ctx(share)
         outside = tmp_path / "outside" / "dir"
-        result = _action_create_dirs({"paths": {"0": str(outside)}}, ctx)
+        result = _action_create_dirs(
+            _with_fsps({"paths": {"0": str(outside)}}, fsp), ctx)
         assert "0" in result["errors"]
         assert not outside.exists()
 
     def test_expands_tilde_as_the_user(self, tmp_path, monkeypatch):
         # Point HOME at a share so '~' resolves inside it.
         monkeypatch.setenv("HOME", str(tmp_path))
-        ctx = self._ctx(tmp_path)
-        result = _action_create_dirs({"paths": {"0": "~/.fileglancer/logs"}}, ctx)
+        ctx, fsp = self._ctx(tmp_path)
+        result = _action_create_dirs(
+            _with_fsps({"paths": {"0": "~/.fileglancer/logs"}}, fsp), ctx)
         assert result == {"errors": {}}
         assert (tmp_path / ".fileglancer" / "logs").is_dir()
 
@@ -905,19 +965,23 @@ class TestValidatePathsAction:
 
     def _ctx(self, mount_path):
         fsp = FileSharePath(zone="test", name="vp", mount_path=str(mount_path))
-        return WorkerContext(username="test", db=_StubDb([fsp]))
+        return WorkerContext(username="test"), fsp
 
     def test_missing_dir_fails_by_default(self, tmp_path):
-        ctx = self._ctx(tmp_path)
+        ctx, fsp = self._ctx(tmp_path)
         missing = tmp_path / "logs"
-        result = _action_validate_paths({"paths": {"logdir": str(missing)}}, ctx)
+        result = _action_validate_paths(
+            _with_fsps({"paths": {"logdir": str(missing)}}, fsp), ctx)
         assert "logdir" in result["errors"]
 
     def test_missing_dir_ok_when_may_be_missing(self, tmp_path):
-        ctx = self._ctx(tmp_path)
+        ctx, fsp = self._ctx(tmp_path)
         missing = tmp_path / "logs"
         result = _action_validate_paths(
-            {"paths": {"logdir": str(missing)}, "may_be_missing": ["logdir"]},
+            _with_fsps({
+                "paths": {"logdir": str(missing)},
+                "may_be_missing": ["logdir"],
+            }, fsp),
             ctx,
         )
         assert result == {"errors": {}}
@@ -925,30 +989,39 @@ class TestValidatePathsAction:
     def test_may_be_missing_still_enforces_containment(self, tmp_path):
         share = tmp_path / "share"
         share.mkdir()
-        ctx = self._ctx(share)
+        ctx, fsp = self._ctx(share)
         outside = tmp_path / "outside" / "logs"
         result = _action_validate_paths(
-            {"paths": {"logdir": str(outside)}, "may_be_missing": ["logdir"]},
+            _with_fsps({
+                "paths": {"logdir": str(outside)},
+                "may_be_missing": ["logdir"],
+            }, fsp),
             ctx,
         )
         assert "logdir" in result["errors"]
 
     def test_folder_rejected_when_file_expected(self, tmp_path):
-        ctx = self._ctx(tmp_path)
+        ctx, fsp = self._ctx(tmp_path)
         subdir = tmp_path / "results"
         subdir.mkdir()
         result = _action_validate_paths(
-            {"paths": {"input": str(subdir)}, "types": {"input": "file"}},
+            _with_fsps({
+                "paths": {"input": str(subdir)},
+                "types": {"input": "file"},
+            }, fsp),
             ctx,
         )
         assert result["errors"]["input"] == "Path is a folder, but a file is required"
 
     def test_file_rejected_when_directory_expected(self, tmp_path):
-        ctx = self._ctx(tmp_path)
+        ctx, fsp = self._ctx(tmp_path)
         csv = tmp_path / "samples.csv"
         csv.write_text("sample\n")
         result = _action_validate_paths(
-            {"paths": {"outdir": str(csv)}, "types": {"outdir": "directory"}},
+            _with_fsps({
+                "paths": {"outdir": str(csv)},
+                "types": {"outdir": "directory"},
+            }, fsp),
             ctx,
         )
         assert result["errors"]["outdir"] == "Path is a file, but a folder is required"
@@ -956,23 +1029,28 @@ class TestValidatePathsAction:
     def test_existing_wrong_type_rejected_even_when_may_be_missing(self, tmp_path):
         # An exists=false param skips the existence check, but a path that DOES
         # exist with the wrong type is still an error.
-        ctx = self._ctx(tmp_path)
+        ctx, fsp = self._ctx(tmp_path)
         csv = tmp_path / "samples.csv"
         csv.write_text("sample\n")
         result = _action_validate_paths(
-            {"paths": {"outdir": str(csv)}, "may_be_missing": ["outdir"],
-             "types": {"outdir": "directory"}},
+            _with_fsps({
+                "paths": {"outdir": str(csv)},
+                "may_be_missing": ["outdir"],
+                "types": {"outdir": "directory"},
+            }, fsp),
             ctx,
         )
         assert result["errors"]["outdir"] == "Path is a file, but a folder is required"
 
     def test_matching_type_passes(self, tmp_path):
-        ctx = self._ctx(tmp_path)
+        ctx, fsp = self._ctx(tmp_path)
         csv = tmp_path / "samples.csv"
         csv.write_text("sample\n")
         result = _action_validate_paths(
-            {"paths": {"input": str(csv), "outdir": str(tmp_path)},
-             "types": {"input": "file", "outdir": "directory"}},
+            _with_fsps({
+                "paths": {"input": str(csv), "outdir": str(tmp_path)},
+                "types": {"input": "file", "outdir": "directory"},
+            }, fsp),
             ctx,
         )
         assert result == {"errors": {}}

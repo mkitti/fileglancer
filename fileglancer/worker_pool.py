@@ -114,7 +114,7 @@ def _build_worker_env(base_env: dict, home_dir: str, log_level: str,
     unconditionally — even if an operator lists it in passthrough — so
     Fileglancer secrets (session key, Okta/Atlassian secrets, DB URL) can never
     reach the user. The worker gets its config over the IPC socket instead (DB
-    access via RpcDbProxy).
+    data is attached to the request by the parent).
 
     A passthrough entry ending in ``_`` is treated as a prefix; otherwise it is
     an exact variable name.
@@ -162,7 +162,7 @@ class UserWorker:
         self.username = username
         self.process = process
         self.sock = sock
-        self.db_proxy = db_proxy  # LocalDbProxy used to satisfy worker db_requests
+        self.db_proxy = db_proxy  # LocalDbProxy used to prepare worker requests
         self.last_activity = time.monotonic()
         self._busy = False
         self._lock = asyncio.Lock()  # serialize requests to the worker
@@ -227,20 +227,23 @@ class UserWorker:
         request (requests are serialized under the per-worker lock, so this is
         safe) so that a long git clone/snapshot isn't misread as a dead worker.
 
-        Loops on receive: any inbound ``_kind == "db_request"`` message is a
-        reverse-RPC from the worker (which has no DB credentials) asking the
-        parent to run a DB query on its behalf. We dispatch it, send back a
-        ``db_response``, and keep reading. Anything else is the action result.
+        Any DB data the worker needs is attached to the request before it is
+        sent.  The worker never gets DB credentials and never sends reverse DB
+        RPCs; this remains a simple one request / one response exchange.
         """
-        self.sock.settimeout(timeout)
-        self._send_msg(request)
+        from fileglancer.user_worker import prepare_worker_request
 
-        while True:
-            response = self._recv_msg()
-            if response.get("_kind") == "db_request":
-                self._handle_db_request(response)
-                continue
-            return response
+        self.sock.settimeout(timeout)
+        try:
+            request = prepare_worker_request(request, self.username, self.db_proxy)
+        except Exception as e:
+            logger.exception(
+                f"Failed to prepare {request.get('action')} request for "
+                f"{self.username}"
+            )
+            raise WorkerError(f"Failed to prepare worker request: {e}") from e
+        self._send_msg(request)
+        return self._recv_msg()
 
     def _send_msg(self, msg: dict):
         """Send a length-prefixed JSON message."""
@@ -307,32 +310,6 @@ class UserWorker:
                     pass
 
         return response
-
-    def _handle_db_request(self, request: dict):
-        """Run a DB query on behalf of the worker and send the result back."""
-        from fileglancer.user_worker import DB_METHODS, serialize_db_result
-
-        method = request.get("method")
-        kwargs = request.get("kwargs", {}) or {}
-        if method not in DB_METHODS:
-            self._send_msg({
-                "_kind": "db_response",
-                "ok": False,
-                "error": f"Unknown db method: {method}",
-            })
-            return
-
-        try:
-            value = getattr(self.db_proxy, method)(**kwargs)
-            result = serialize_db_result(method, value)
-            self._send_msg({"_kind": "db_response", "ok": True, "result": result})
-        except Exception as e:
-            logger.exception(f"db_request {method} for {self.username} failed")
-            self._send_msg({
-                "_kind": "db_response",
-                "ok": False,
-                "error": f"{type(e).__name__}: {e}",
-            })
 
     async def shutdown(self, timeout: float = 5.0):
         """Ask the worker to shut down gracefully, then force-kill if needed."""
