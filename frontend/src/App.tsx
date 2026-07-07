@@ -119,38 +119,6 @@ const AppComponent = () => {
               }
               path="nglinks"
             />
-            <Route
-              element={
-                <RequireAuth>
-                  <AppsLayout />
-                </RequireAuth>
-              }
-              path="apps"
-            >
-              <Route element={<Apps />} index />
-              <Route element={<Catalog />} path="catalog" />
-              <Route element={<ListingDetail />} path="catalog/:listingId" />
-              <Route element={<AppJobs />} path="jobs" />
-              {/* Render job/app detail and launch inside the layout so the
-                  My Apps / App Catalog / Jobs tabs stay visible when drilling
-                  into a job or an app. */}
-              <Route element={<JobDetail />} path="jobs/:jobId" />
-              <Route element={<AppDetail />} path="detail/:owner/:repo" />
-              <Route
-                element={<AppLaunch />}
-                path="launch/:owner/:repo/:branch/:entryPointId"
-              />
-              <Route
-                element={<AppLaunch />}
-                path="launch/:owner/:repo/:branch"
-              />
-              <Route element={<AppLaunch />} path="launch/:owner/:repo" />
-              <Route
-                element={<AppLaunch />}
-                path="relaunch/:owner/:repo/:branch/:entryPointId"
-              />
-              <Route element={<AppLaunch />} path="relaunch/:owner/:repo" />
-            </Route>
             {tasksEnabled ? (
               <Route
                 element={
@@ -199,6 +167,37 @@ const AppComponent = () => {
             <Route element={<Browse />} path="browse" />
             <Route element={<Browse />} path="browse/:fspName" />
             <Route element={<Browse />} path="browse/:fspName/*" />
+          </Route>
+          {/* Apps lives outside OtherPagesLayout so its resizable tab rail
+              and content can use the full viewport width. */}
+          <Route
+            element={
+              <RequireAuth>
+                <AppsLayout />
+              </RequireAuth>
+            }
+            path="apps"
+          >
+            <Route element={<Apps />} index />
+            <Route element={<Catalog />} path="catalog" />
+            <Route element={<ListingDetail />} path="catalog/:listingId" />
+            <Route element={<AppJobs />} path="jobs" />
+            {/* Render job/app detail and launch inside the layout so the
+                My Apps / App Catalog / Jobs tabs stay visible when drilling
+                into a job or an app. */}
+            <Route element={<JobDetail />} path="jobs/:jobId" />
+            <Route element={<AppDetail />} path="detail/:owner/:repo" />
+            <Route
+              element={<AppLaunch />}
+              path="launch/:owner/:repo/:branch/:entryPointId"
+            />
+            <Route element={<AppLaunch />} path="launch/:owner/:repo/:branch" />
+            <Route element={<AppLaunch />} path="launch/:owner/:repo" />
+            <Route
+              element={<AppLaunch />}
+              path="relaunch/:owner/:repo/:branch/:entryPointId"
+            />
+            <Route element={<AppLaunch />} path="relaunch/:owner/:repo" />
           </Route>
         </Route>
       </Routes>
