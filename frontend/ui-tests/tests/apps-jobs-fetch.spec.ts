@@ -22,6 +22,8 @@ test('jobs list is only fetched on the jobs page', async ({ page }) => {
 
   // The full listing is fetched once the jobs page is opened.
   await page.goto('/apps/jobs', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByText('You have not created any jobs yet')).toBeVisible();
+  await expect(
+    page.getByText('You have not created any jobs yet')
+  ).toBeVisible();
   expect(jobRequests).toContain('/api/jobs');
 });
