@@ -10,7 +10,9 @@ import { OtherPagesLayout } from './layouts/OtherPagesLayout';
 import AppsLayout from './layouts/AppsLayout';
 import Login from '@/components/Login';
 import Apps from '@/components/Apps';
+import AppDetail from '@/components/AppDetail';
 import Catalog from '@/components/Catalog';
+import ListingDetail from '@/components/ListingDetail';
 import AppJobs from '@/components/AppJobs';
 import AppLaunch from '@/components/AppLaunch';
 import JobDetail from '@/components/JobDetail';
@@ -117,66 +119,6 @@ const AppComponent = () => {
               }
               path="nglinks"
             />
-            <Route
-              element={
-                <RequireAuth>
-                  <AppsLayout />
-                </RequireAuth>
-              }
-              path="apps"
-            >
-              <Route element={<Apps />} index />
-              <Route element={<Catalog />} path="catalog" />
-              <Route element={<AppJobs />} path="jobs" />
-            </Route>
-            <Route
-              element={
-                <RequireAuth>
-                  <AppLaunch />
-                </RequireAuth>
-              }
-              path="apps/launch/:owner/:repo/:branch/:entryPointId"
-            />
-            <Route
-              element={
-                <RequireAuth>
-                  <AppLaunch />
-                </RequireAuth>
-              }
-              path="apps/launch/:owner/:repo/:branch"
-            />
-            <Route
-              element={
-                <RequireAuth>
-                  <AppLaunch />
-                </RequireAuth>
-              }
-              path="apps/launch/:owner/:repo"
-            />
-            <Route
-              element={
-                <RequireAuth>
-                  <AppLaunch />
-                </RequireAuth>
-              }
-              path="apps/relaunch/:owner/:repo/:branch/:entryPointId"
-            />
-            <Route
-              element={
-                <RequireAuth>
-                  <AppLaunch />
-                </RequireAuth>
-              }
-              path="apps/relaunch/:owner/:repo"
-            />
-            <Route
-              element={
-                <RequireAuth>
-                  <JobDetail />
-                </RequireAuth>
-              }
-              path="apps/jobs/:jobId"
-            />
             {tasksEnabled ? (
               <Route
                 element={
@@ -225,6 +167,37 @@ const AppComponent = () => {
             <Route element={<Browse />} path="browse" />
             <Route element={<Browse />} path="browse/:fspName" />
             <Route element={<Browse />} path="browse/:fspName/*" />
+          </Route>
+          {/* Apps lives outside OtherPagesLayout so its resizable tab rail
+              and content can use the full viewport width. */}
+          <Route
+            element={
+              <RequireAuth>
+                <AppsLayout />
+              </RequireAuth>
+            }
+            path="apps"
+          >
+            <Route element={<Apps />} index />
+            <Route element={<Catalog />} path="catalog" />
+            <Route element={<ListingDetail />} path="catalog/:listingId" />
+            <Route element={<AppJobs />} path="jobs" />
+            {/* Render job/app detail and launch inside the layout so the
+                My Apps / App Catalog / Jobs tabs stay visible when drilling
+                into a job or an app. */}
+            <Route element={<JobDetail />} path="jobs/:jobId" />
+            <Route element={<AppDetail />} path="detail/:owner/:repo" />
+            <Route
+              element={<AppLaunch />}
+              path="launch/:owner/:repo/:branch/:entryPointId"
+            />
+            <Route element={<AppLaunch />} path="launch/:owner/:repo/:branch" />
+            <Route element={<AppLaunch />} path="launch/:owner/:repo" />
+            <Route
+              element={<AppLaunch />}
+              path="relaunch/:owner/:repo/:branch/:entryPointId"
+            />
+            <Route element={<AppLaunch />} path="relaunch/:owner/:repo" />
           </Route>
         </Route>
       </Routes>

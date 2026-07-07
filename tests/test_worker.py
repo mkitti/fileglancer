@@ -28,6 +28,11 @@ from fileglancer.user_worker import (
     _recv,
     _ACTIONS,
     _action_validate_proxied_path,
+    _action_create_dirs,
+    _action_validate_paths,
+    _action_cancel_local,
+    _descendant_pids,
+    _proc_alive,
     WorkerContext,
     _HEADER_FMT,
     _HEADER_SIZE,
@@ -39,12 +44,192 @@ from fileglancer.worker_pool import (
     WorkerPool,
     WorkerError,
     WorkerDead,
+    _build_worker_env,
+    _timeout_for_action,
+    _DEFAULT_REQUEST_TIMEOUT,
+    _GIT_ACTION_TIMEOUT,
 )
 
 
 # ---------------------------------------------------------------------------
 # IPC protocol tests (user_worker.py _send/_recv/_send_with_fd)
 # ---------------------------------------------------------------------------
+
+class TestBuildWorkerEnv:
+    """Worker environment is an allowlist: no server secret reaches the user."""
+
+    def test_strips_all_fgc_variables(self):
+        base = {
+            "PATH": "/usr/bin",
+            "FGC_DB_URL": "postgresql://admin:pw@db/fg",
+            "FGC_SESSION_SECRET_KEY": "super-secret",
+            "FGC_OKTA_CLIENT_SECRET": "okta-secret",
+            "FGC_ATLASSIAN_TOKEN": "atlassian-secret",
+            "fgc_test_api_key": "lowercase-secret",
+        }
+        env = _build_worker_env(base, "/home/user", "INFO", 7)
+        for key in list(env):
+            assert not key.upper().startswith("FGC_") or key in (
+                "FGC_LOG_LEVEL",
+                "FGC_WORKER_FD",
+            ), f"secret leaked: {key}"
+        # The specific secrets are gone regardless of case.
+        assert "FGC_DB_URL" not in env
+        assert "FGC_SESSION_SECRET_KEY" not in env
+        assert "FGC_OKTA_CLIENT_SECRET" not in env
+        assert "FGC_ATLASSIAN_TOKEN" not in env
+        assert "fgc_test_api_key" not in env
+
+    def test_drops_generic_deployment_secrets(self):
+        # Non-FGC secrets that may sit in a server's environment must not reach
+        # the user's worker either.
+        base = {
+            "PATH": "/usr/bin:/bin",
+            "AWS_SECRET_ACCESS_KEY": "aws-secret",
+            "AWS_SESSION_TOKEN": "aws-token",
+            "GITHUB_TOKEN": "gh-secret",
+            "DATABASE_URL": "postgres://u:pw@h/db",
+            "MY_APP_CREDENTIALS": "creds",
+        }
+        env = _build_worker_env(base, "/home/user", "INFO", 7)
+        assert env["PATH"] == "/usr/bin:/bin"  # allowlisted, kept
+        assert "AWS_SECRET_ACCESS_KEY" not in env
+        assert "AWS_SESSION_TOKEN" not in env
+        assert "GITHUB_TOKEN" not in env
+        assert "DATABASE_URL" not in env
+        assert "MY_APP_CREDENTIALS" not in env
+
+    def test_preserves_allowlisted_and_sets_operational_vars(self):
+        base = {
+            "PATH": "/usr/bin:/bin",
+            "LSF_ENVDIR": "/opt/lsf/conf",       # LSF_ prefix
+            "LSB_JOBID": "42",                    # LSB_ prefix
+            "SLURM_CONF": "/etc/slurm.conf",      # SLURM_ prefix
+            "MODULEPATH": "/opt/modules",         # MODULE prefix
+            "CONDA_EXE": "/opt/conda/bin/conda",  # CONDA_ prefix
+            "APPTAINER_CACHEDIR": "/scratch/ac",  # APPTAINER_ prefix
+            "LANG": "en_US.UTF-8",
+            "LC_ALL": "en_US.UTF-8",              # LC_ prefix
+            "SSH_AUTH_SOCK": "/tmp/ssh-agent.sock",
+            "HTTPS_PROXY": "http://proxy:8080",
+        }
+        env = _build_worker_env(base, "/home/alice", "DEBUG", 9)
+        for key in base:
+            assert key in env, f"{key} should be allowlisted"
+        # Operational vars the worker needs are set explicitly.
+        assert env["HOME"] == "/home/alice"
+        assert env["FGC_LOG_LEVEL"] == "DEBUG"
+        assert env["FGC_WORKER_FD"] == "9"
+
+    def test_passthrough_allows_site_specific_names_and_prefixes(self):
+        base = {
+            "PATH": "/usr/bin",
+            "SITE_LICENSE_SERVER": "27000@lic",  # exact name
+            "ACME_FOO": "a",                       # ACME_ prefix
+            "ACME_BAR": "b",
+            "OTHER_VAR": "dropped",
+        }
+        env = _build_worker_env(
+            base, "/home/user", "INFO", 7,
+            passthrough=["SITE_LICENSE_SERVER", "ACME_"],
+        )
+        assert env["SITE_LICENSE_SERVER"] == "27000@lic"
+        assert env["ACME_FOO"] == "a"
+        assert env["ACME_BAR"] == "b"
+        assert "OTHER_VAR" not in env  # not allowlisted, not in passthrough
+
+    def test_passthrough_cannot_reintroduce_fgc_secrets(self):
+        base = {"FGC_SESSION_SECRET_KEY": "super-secret"}
+        env = _build_worker_env(
+            base, "/home/user", "INFO", 7,
+            passthrough=["FGC_SESSION_SECRET_KEY", "FGC_"],
+        )
+        assert "FGC_SESSION_SECRET_KEY" not in env
+
+
+class TestActionTimeout:
+    """Git-heavy actions get a longer receive timeout than the default."""
+
+    def test_default_for_ordinary_action(self):
+        assert _timeout_for_action("validate_paths") == _DEFAULT_REQUEST_TIMEOUT
+
+    def test_git_actions_get_longer_ceiling(self):
+        assert _GIT_ACTION_TIMEOUT > _DEFAULT_REQUEST_TIMEOUT
+        for action in ("ensure_repo", "discover_manifests", "read_manifest",
+                       "ensure_snapshot", "gc_snapshots", "submit"):
+            assert _timeout_for_action(action) == _GIT_ACTION_TIMEOUT
+
+    def test_ceiling_exceeds_snapshot_operation_timeout(self):
+        # snapshot creation runs a 300s clone then a 300s checkout; the IPC
+        # ceiling must sit above that so a valid snapshot isn't read as a
+        # dead worker.
+        assert _GIT_ACTION_TIMEOUT >= 600
+
+
+@pytest.mark.skipif(not os.path.isdir("/proc"),
+                    reason="/proc-based process-tree kill requires Linux")
+class TestCancelLocalAction:
+    """cancel_local terminates a local-executor job's whole process tree."""
+
+    def _ctx(self):
+        return WorkerContext(username="test", db=None)
+
+    def _wait_gone(self, pid, timeout=5.0):
+        deadline = time.monotonic() + timeout
+        while _proc_alive(pid) and time.monotonic() < deadline:
+            time.sleep(0.05)
+        return not _proc_alive(pid)
+
+    def test_kills_launcher_and_child_workload(self, tmp_path):
+        """Signalling only the launcher bash would leave its child workload
+        running. The whole tree must be terminated."""
+        import subprocess as sp
+        # `; :` prevents bash from exec-optimizing into sleep, so bash stays the
+        # parent of a real child `sleep` — mirroring a job script's workload.
+        proc = sp.Popen(["bash", "-c", "sleep 300; :"])
+        try:
+            # Wait for bash to fork its child.
+            deadline = time.monotonic() + 5
+            children = []
+            while time.monotonic() < deadline:
+                children = _descendant_pids(proc.pid)
+                if children:
+                    break
+                time.sleep(0.05)
+            assert children, "expected bash to spawn a child workload"
+
+            (tmp_path / "job.pid").write_text(str(proc.pid))
+            result = _action_cancel_local({"work_dir": str(tmp_path)}, self._ctx())
+
+            assert result == {"terminated": True}
+            proc.wait(timeout=5)  # reap the launcher
+            assert self._wait_gone(proc.pid), "launcher bash survived"
+            for child in children:
+                assert self._wait_gone(child), f"child {child} survived cancel"
+        finally:
+            for p in [*_descendant_pids(proc.pid), proc.pid]:
+                try:
+                    os.kill(p, 9)
+                except OSError:
+                    pass
+            if proc.poll() is None:
+                proc.wait(timeout=5)
+
+    def test_missing_pid_file_is_terminated(self, tmp_path):
+        assert _action_cancel_local(
+            {"work_dir": str(tmp_path)}, self._ctx()) == {"terminated": True}
+
+    def test_missing_work_dir_is_terminated(self):
+        assert _action_cancel_local({}, self._ctx()) == {"terminated": True}
+
+    def test_already_dead_pid_is_terminated(self, tmp_path):
+        import subprocess as sp
+        proc = sp.Popen(["sleep", "0.01"])
+        proc.wait()  # reap so the PID is no longer a live process
+        (tmp_path / "job.pid").write_text(str(proc.pid))
+        assert _action_cancel_local(
+            {"work_dir": str(tmp_path)}, self._ctx()) == {"terminated": True}
+
 
 class TestIPCProtocol:
     """Test the length-prefixed JSON wire protocol."""
@@ -637,3 +822,121 @@ class TestValidateProxiedPathAction:
         result = _action_validate_proxied_path(
             {"fsp_name": "vpp_symlink", "path": "link.txt"}, ctx)
         assert result == {"ok": True}
+
+
+class TestCreateDirsAction:
+    """create_dirs makes directories within a share, refusing anything outside."""
+
+    def _ctx(self, mount_path):
+        fsp = FileSharePath(zone="test", name="cd", mount_path=str(mount_path))
+        return WorkerContext(username="test", db=_StubDb([fsp]))
+
+    def test_creates_missing_directory(self, tmp_path):
+        ctx = self._ctx(tmp_path)
+        target = tmp_path / "logs" / "run1"
+        result = _action_create_dirs({"paths": {"0": str(target)}}, ctx)
+        assert result == {"errors": {}}
+        assert target.is_dir()
+
+    def test_existing_directory_is_noop(self, tmp_path):
+        ctx = self._ctx(tmp_path)
+        target = tmp_path / "logs"
+        target.mkdir()
+        result = _action_create_dirs({"paths": {"0": str(target)}}, ctx)
+        assert result == {"errors": {}}
+        assert target.is_dir()
+
+    def test_refuses_path_outside_any_share(self, tmp_path):
+        share = tmp_path / "share"
+        share.mkdir()
+        ctx = self._ctx(share)
+        outside = tmp_path / "outside" / "dir"
+        result = _action_create_dirs({"paths": {"0": str(outside)}}, ctx)
+        assert "0" in result["errors"]
+        assert not outside.exists()
+
+    def test_expands_tilde_as_the_user(self, tmp_path, monkeypatch):
+        # Point HOME at a share so '~' resolves inside it.
+        monkeypatch.setenv("HOME", str(tmp_path))
+        ctx = self._ctx(tmp_path)
+        result = _action_create_dirs({"paths": {"0": "~/.fileglancer/logs"}}, ctx)
+        assert result == {"errors": {}}
+        assert (tmp_path / ".fileglancer" / "logs").is_dir()
+
+
+class TestValidatePathsAction:
+    """validate_paths checks existence, except for may_be_missing keys."""
+
+    def _ctx(self, mount_path):
+        fsp = FileSharePath(zone="test", name="vp", mount_path=str(mount_path))
+        return WorkerContext(username="test", db=_StubDb([fsp]))
+
+    def test_missing_dir_fails_by_default(self, tmp_path):
+        ctx = self._ctx(tmp_path)
+        missing = tmp_path / "logs"
+        result = _action_validate_paths({"paths": {"logdir": str(missing)}}, ctx)
+        assert "logdir" in result["errors"]
+
+    def test_missing_dir_ok_when_may_be_missing(self, tmp_path):
+        ctx = self._ctx(tmp_path)
+        missing = tmp_path / "logs"
+        result = _action_validate_paths(
+            {"paths": {"logdir": str(missing)}, "may_be_missing": ["logdir"]},
+            ctx,
+        )
+        assert result == {"errors": {}}
+
+    def test_may_be_missing_still_enforces_containment(self, tmp_path):
+        share = tmp_path / "share"
+        share.mkdir()
+        ctx = self._ctx(share)
+        outside = tmp_path / "outside" / "logs"
+        result = _action_validate_paths(
+            {"paths": {"logdir": str(outside)}, "may_be_missing": ["logdir"]},
+            ctx,
+        )
+        assert "logdir" in result["errors"]
+
+    def test_folder_rejected_when_file_expected(self, tmp_path):
+        ctx = self._ctx(tmp_path)
+        subdir = tmp_path / "results"
+        subdir.mkdir()
+        result = _action_validate_paths(
+            {"paths": {"input": str(subdir)}, "types": {"input": "file"}},
+            ctx,
+        )
+        assert result["errors"]["input"] == "Path is a folder, but a file is required"
+
+    def test_file_rejected_when_directory_expected(self, tmp_path):
+        ctx = self._ctx(tmp_path)
+        csv = tmp_path / "samples.csv"
+        csv.write_text("sample\n")
+        result = _action_validate_paths(
+            {"paths": {"outdir": str(csv)}, "types": {"outdir": "directory"}},
+            ctx,
+        )
+        assert result["errors"]["outdir"] == "Path is a file, but a folder is required"
+
+    def test_existing_wrong_type_rejected_even_when_may_be_missing(self, tmp_path):
+        # An exists=false param skips the existence check, but a path that DOES
+        # exist with the wrong type is still an error.
+        ctx = self._ctx(tmp_path)
+        csv = tmp_path / "samples.csv"
+        csv.write_text("sample\n")
+        result = _action_validate_paths(
+            {"paths": {"outdir": str(csv)}, "may_be_missing": ["outdir"],
+             "types": {"outdir": "directory"}},
+            ctx,
+        )
+        assert result["errors"]["outdir"] == "Path is a file, but a folder is required"
+
+    def test_matching_type_passes(self, tmp_path):
+        ctx = self._ctx(tmp_path)
+        csv = tmp_path / "samples.csv"
+        csv.write_text("sample\n")
+        result = _action_validate_paths(
+            {"paths": {"input": str(csv), "outdir": str(tmp_path)},
+             "types": {"input": "file", "outdir": "directory"}},
+            ctx,
+        )
+        assert result == {"errors": {}}

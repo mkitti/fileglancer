@@ -105,6 +105,20 @@ const formatDateString = (dateStr: string) => {
   });
 };
 
+/** Like formatDateString, but date only — no time component. */
+const formatDateOnly = (dateStr: string) => {
+  let normalized = dateStr;
+  if (!/Z$|[+-]\d{2}:\d{2}$/.test(dateStr)) {
+    normalized = dateStr + 'Z';
+  }
+  const date = new Date(normalized);
+  return date.toLocaleDateString('en-US', {
+    month: 'numeric',
+    day: 'numeric',
+    year: 'numeric'
+  });
+};
+
 class HTTPError extends Error {
   responseCode: number;
 
@@ -366,6 +380,7 @@ export {
   checkSessionValidity,
   downloadTextFile,
   escapePathForUrl,
+  formatDateOnly,
   formatDateString,
   formatUnixTimestamp,
   formatFileSize,
@@ -392,15 +407,28 @@ export type {
 
 // Re-export app URL utilities
 export {
+  appRevision,
   parseGithubUrl,
+  repoLabel,
   isGithubRepoUrl,
   canonicalGithubUrl,
   buildAppUrl,
+  buildGithubCommitUrl,
+  buildGithubFileUrl,
   buildGithubUrl,
   buildLaunchPath,
   buildLaunchPathFromApp,
-  buildRelaunchPath
+  buildAppDetailPath,
+  buildRelaunchPath,
+  manifestPathInfo
 } from './appUrls';
+
+// Re-export app icon utilities
+export {
+  getAppIconType,
+  getEntryPointIconType,
+  getEntryPointTypeIconType
+} from './appIcons';
 
 // Re-export Neuroglancer URL utilities
 export {

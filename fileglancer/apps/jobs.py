@@ -9,7 +9,7 @@ import os
 import re
 import shlex
 import tempfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from datetime import datetime, UTC
 from typing import Optional
 
@@ -21,18 +21,20 @@ from fileglancer import database as db
 from fileglancer.apps.manifest import (
     clone_url_for_stored_app,
     _dispatch,
-    _ensure_repo_cache,
+    ensure_repo_snapshot,
     get_or_load_manifest,
     validate_manifest_path,
 )
 from fileglancer.apps.command import (
     build_command,
     build_requirements_check,
+    collect_creatable_dirs,
     collect_path_parameters,
     expand_user_path,
     merge_requirements,
     _ENV_VAR_NAME_PATTERN,
     _URI_PREFIXES,
+    _WINDOWS_DRIVE_PATTERN,
 )
 from fileglancer.apps.jobfiles import _build_work_dir
 from fileglancer.giturls import canonical_github_url
@@ -116,7 +118,7 @@ async def stop_job_monitor():
 
 
 def _get_any_active_username(settings) -> str | None:
-    """Return any username that has active (PENDING/RUNNING) jobs, or None."""
+    """Return any username that has non-terminal jobs, or None."""
     with db.get_db_session(settings.db_url) as session:
         active_jobs = db.get_active_jobs(session)
         for job in active_jobs:
@@ -157,7 +159,7 @@ async def _reconnect_as_any_user(settings):
                 continue
             new_status = info["status"].upper()
             if new_status != db_job.status:
-                is_terminal = new_status in ("DONE", "FAILED", "KILLED")
+                is_terminal = db.is_terminal_job_status(new_status)
                 finished_at = _parse_iso_dt(info.get("finish_time")) if is_terminal else None
                 db.update_job_status(
                     session, db_job.id, new_status,
@@ -185,24 +187,49 @@ async def _poll_loop(settings):
         lock_fd = None
         try:
             lock_fd = open(_POLL_LOCK_PATH, "w")
-            fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             try:
-                has_jobs = await _poll_jobs(settings)
-            except Exception:
-                logger.exception("Error in job poll loop")
-                has_jobs = True  # keep polling on error
-            # Hold lock through the sleep so no other worker polls
-            # until this interval is over
-            await asyncio.sleep(settings.cluster.poll_interval)
-            fcntl.flock(lock_fd, fcntl.LOCK_UN)
-            lock_fd.close()
+                fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError:
+                # Another worker holds the lock this cycle — skip and retry.
+                lock_fd.close()
+                lock_fd = None
+                await asyncio.sleep(settings.cluster.poll_interval)
+                continue
 
-            if not has_jobs:
-                logger.info("No active jobs — poll loop stopping")
-                _poll_task = None
-                return
+            # try/finally so the lock is always released, even if the task is
+            # cancelled (e.g. on shutdown) while we hold it.
+            try:
+                try:
+                    has_jobs = await _poll_jobs(settings)
+                except Exception:
+                    logger.exception("Error in job poll loop")
+                    has_jobs = True  # keep polling on error
+
+                if not has_jobs:
+                    # No active jobs: stop the loop. Clear _poll_task and return
+                    # with no await in between, so a concurrent submit_job()
+                    # either sees this task still alive or starts a fresh loop —
+                    # there is no gap where _poll_task is set while the loop is
+                    # exiting. Re-check for active jobs immediately before
+                    # returning (again, no await in between) so a job submitted
+                    # during this cycle keeps the loop running rather than being
+                    # left unpolled.
+                    if _get_any_active_username(settings) is None:
+                        logger.info("No active jobs — poll loop stopping")
+                        _poll_task = None
+                        return
+                    # A job appeared mid-cycle; keep polling.
+                    continue
+
+                # Hold the lock through the sleep so a co-worker doesn't
+                # double-poll within the same interval.
+                await asyncio.sleep(settings.cluster.poll_interval)
+            finally:
+                fcntl.flock(lock_fd, fcntl.LOCK_UN)
+                lock_fd.close()
+                lock_fd = None
         except OSError:
-            # Another worker is polling this cycle — skip and retry
+            # Opening the lock file failed — retry next cycle.
             if lock_fd:
                 lock_fd.close()
             await asyncio.sleep(settings.cluster.poll_interval)
@@ -220,12 +247,15 @@ async def _poll_jobs(settings):
         if not active_jobs:
             return False
 
+        now_naive = datetime.now(UTC).replace(tzinfo=None)
+        unknown_timeout_hours = settings.apps.unknown_timeout_hours
+
         # Handle zombie jobs (no cluster_job_id after timeout)
         jobs_to_poll = []
         for db_job in active_jobs:
             if not db_job.cluster_job_id:
                 created = db_job.created_at.replace(tzinfo=None) if db_job.created_at.tzinfo else db_job.created_at
-                age_minutes = (datetime.now(UTC).replace(tzinfo=None) - created).total_seconds() / 60
+                age_minutes = (now_naive - created).total_seconds() / 60
                 if age_minutes > settings.cluster.zombie_timeout_minutes:
                     db.update_job_status(session, db_job.id, "FAILED", finished_at=datetime.now(UTC))
                     logger.warning(
@@ -233,6 +263,24 @@ async def _poll_jobs(settings):
                         f"{age_minutes:.0f} minutes, marked FAILED"
                     )
                 continue
+            # Give up on jobs stuck in UNKNOWN past the cutoff: the scheduler can
+            # no longer report them (aged out of the queue/history), so continued
+            # polling would never resolve them. Measure from status_updated_at
+            # (when it entered UNKNOWN), falling back to created_at for rows
+            # predating that column.
+            if unknown_timeout_hours and db_job.status == "UNKNOWN":
+                ref = db_job.status_updated_at or db_job.created_at
+                if ref is not None:
+                    ref_naive = ref.replace(tzinfo=None) if ref.tzinfo else ref
+                    age_hours = (now_naive - ref_naive).total_seconds() / 3600
+                    if age_hours > unknown_timeout_hours:
+                        db.update_job_status(session, db_job.id, "FAILED",
+                                             finished_at=datetime.now(UTC))
+                        logger.warning(
+                            f"Job {db_job.id} stuck in UNKNOWN for {age_hours:.0f}h "
+                            f"(cutoff {unknown_timeout_hours}h), marked FAILED"
+                        )
+                        continue
             jobs_to_poll.append(db_job)
 
         if not jobs_to_poll:
@@ -278,7 +326,7 @@ async def _poll_jobs(settings):
             old_status = db_job.status
             if new_status == old_status:
                 continue
-            is_terminal = new_status in ("DONE", "FAILED", "KILLED")
+            is_terminal = db.is_terminal_job_status(new_status)
             finished_at = _parse_iso_dt(info.get("finish_time")) if is_terminal else None
             db.update_job_status(
                 session, db_job.id, new_status,
@@ -390,6 +438,93 @@ def _container_sif_name(container_url: str) -> str:
 _DEFAULT_CONTAINER_CACHE_DIR = "$HOME/.fileglancer/apptainer_cache"
 
 
+def _quote_container_cache_dir(cache_dir: Optional[str],
+                               username: Optional[str] = None) -> str:
+    """Return a shell-safe APPTAINER_CACHE_DIR assignment value.
+
+    Preferences may use the familiar ``~/...`` spelling shown in the UI.
+    ``shlex.quote("~/...")`` would make that a literal directory named ``~``,
+    so expand current-user tildes to the target user's home before quoting.
+    If the home cannot be resolved (e.g. in a test/dev environment), fall back
+    to a shell ``$HOME`` prefix so expansion still happens in the user worker.
+    """
+    raw = (cache_dir or "").strip()
+    if not raw:
+        return _DEFAULT_CONTAINER_CACHE_DIR
+
+    if raw == "~" or raw.startswith("~/"):
+        suffix = raw[2:] if raw.startswith("~/") else ""
+        home = (
+            os.path.expanduser(f"~{username}")
+            if username else os.path.expanduser("~")
+        )
+        if home.startswith("~"):
+            return "$HOME" if not suffix else f"$HOME/{shlex.quote(suffix)}"
+        # Join with '/' rather than pathlib: the value lands in a bash script,
+        # so Windows-style separators must never be introduced here.
+        expanded = f"{home}/{suffix}" if suffix else home
+        return shlex.quote(expanded)
+
+    return shlex.quote(os.path.expanduser(raw))
+
+
+# Runtime helper emitted for service jobs. It allocates a free TCP port on the
+# compute node (a port chosen on the submit host would be meaningless there) and
+# exports it as FG_SERVICE_PORT along with FG_HOSTNAME, so a service command can
+# bind to a known address without reimplementing port discovery. Prefers python
+# (authoritative bind-to-0), then falls back to a bash probe of ephemeral ports.
+# It also mints FG_SERVICE_TOKEN, a URL-safe random secret the service can use
+# for auth (e.g. --token-password="$FG_SERVICE_TOKEN") and that auto_url can
+# splice into the published URL via the ${FG_SERVICE_TOKEN} placeholder.
+_SERVICE_PORT_HELPER = r"""# Fileglancer service setup: pick a free port, expose the hostname, mint a token
+__fg_free_port() {
+  local p py i
+  for py in python3 python; do
+    if command -v "$py" >/dev/null 2>&1; then
+      p="$("$py" -c 'import socket; s=socket.socket(); s.bind(("",0)); print(s.getsockname()[1]); s.close()' 2>/dev/null)" || true
+      [ -n "$p" ] && { printf '%s' "$p"; return 0; }
+    fi
+  done
+  for i in $(seq 1 50); do
+    p=$(( (RANDOM % 16384) + 49152 ))
+    if ! (exec 3<>"/dev/tcp/127.0.0.1/$p") 2>/dev/null; then
+      printf '%s' "$p"; return 0
+    fi
+  done
+  printf '%s' 8080
+}
+export FG_HOSTNAME="$(hostname)"
+export FG_SERVICE_PORT="$(__fg_free_port)"
+export FG_SERVICE_TOKEN="$(openssl rand -hex 24 2>/dev/null || python3 -c 'import secrets; print(secrets.token_hex(24))' 2>/dev/null || date +%s%N | sha256sum | cut -c1-48)"
+"""
+
+
+def _build_service_url_publisher(suffix: str = "") -> str:
+    """Bash that publishes the service URL once $FG_SERVICE_PORT is live.
+
+    Runs in the background so it tolerates a slow start (the container image may
+    still be pulling); it writes SERVICE_URL_PATH only when the port accepts a
+    connection, and gives up after a bounded wait, logging to stderr. `suffix` is
+    appended to http://$FG_HOSTNAME:$FG_SERVICE_PORT and may reference the
+    ${FG_SERVICE_TOKEN}/${FG_SERVICE_PORT}/${FG_HOSTNAME} shell variables; it is
+    validated for shell-safety at manifest load (AppEntryPoint), so it is safe to
+    embed inside the double-quoted printf argument here.
+    """
+    return "\n".join([
+        "# Publish the service URL once the port is accepting connections.",
+        "(",
+        "  for _ in $(seq 1 3600); do",
+        '    if (exec 3<>"/dev/tcp/127.0.0.1/$FG_SERVICE_PORT") 2>/dev/null; then',
+        f'      printf \'http://%s:%s%s\' "$FG_HOSTNAME" "$FG_SERVICE_PORT" "{suffix}" > "$SERVICE_URL_PATH"',
+        "      exit 0",
+        "    fi",
+        "    sleep 1",
+        "  done",
+        '  echo "Fileglancer: port $FG_SERVICE_PORT never opened; service URL not published." >&2',
+        ") &",
+    ])
+
+
 def _build_container_script(
     container_url: str,
     command: str,
@@ -397,10 +532,14 @@ def _build_container_script(
     bind_paths: list[str],
     container_args: Optional[str] = None,
     cache_dir: Optional[str] = None,
+    username: Optional[str] = None,
 ) -> str:
     """Build shell script for running a command inside an Apptainer container."""
     sif_name = _container_sif_name(container_url)
-    docker_url = container_url if container_url.startswith("docker://") else f"docker://{container_url}"
+    docker_url = (
+        container_url
+        if container_url.startswith("docker://") else f"docker://{container_url}"
+    )
 
     # Deduplicate and sort bind paths
     all_binds = sorted(set([work_dir] + bind_paths))
@@ -412,7 +551,7 @@ def _build_container_script(
         split_args = shlex.split(container_args)
         extra = " " + " ".join(shlex.quote(arg) for arg in split_args)
 
-    resolved_dir = shlex.quote(cache_dir) if cache_dir else _DEFAULT_CONTAINER_CACHE_DIR
+    resolved_dir = _quote_container_cache_dir(cache_dir, username=username)
 
     lines = [
         "# Apptainer container setup",
@@ -420,12 +559,69 @@ def _build_container_script(
         'mkdir -p "$APPTAINER_CACHE_DIR"',
         f'SIF_PATH="$APPTAINER_CACHE_DIR/{sif_name}"',
         'if [ ! -f "$SIF_PATH" ]; then',
-        f'  apptainer pull "$SIF_PATH" {shlex.quote(docker_url)}',
+        # Report the (often multi-minute) image download so the UI can say so.
+        # FG_PHASE_PATH is set in the preamble; guard in case it is not.
+        '  [ -n "$FG_PHASE_PATH" ] && printf pulling_image > "$FG_PHASE_PATH" 2>/dev/null || true',
+        # --disable-cache: the built SIF here is the only copy we keep. We pull
+        # only when it's missing, so Apptainer's own layer/SIF cache would just
+        # duplicate gigabytes to speed up a re-pull that rarely happens. Skipping
+        # it means a re-pull (if this SIF is deleted) re-downloads from the
+        # registry, which is the right trade for not double-storing every image.
+        f'  apptainer pull --disable-cache "$SIF_PATH" {shlex.quote(docker_url)}',
         'fi',
+        '[ -n "$FG_PHASE_PATH" ] && printf starting > "$FG_PHASE_PATH" 2>/dev/null || true',
         f'apptainer exec {bind_flags}{extra} "$SIF_PATH" \\',
         f'  {command}',
     ]
     return "\n".join(lines)
+
+
+def _container_bind_paths(entry_point, parameters: dict,
+                          env_parameters: Optional[dict], username: Optional[str],
+                          cached_repo_dir) -> list[str]:
+    """Compute the host paths to bind-mount into a container runnable.
+
+    Binds are drawn from three sources, in order:
+
+    1. Each effective file/directory parameter's value (a file binds its parent
+       dir). "Effective" means the same set the command is built from — user
+       values merged with manifest defaults, across BOTH the pipeline
+       (`parameters`) and env-tab (`env_parameters`) namespaces — so a file
+       default or an env-tab file parameter is mounted rather than left
+       dangling. Cloud-storage URIs and non-absolute values are skipped — they
+       are not bind-mountable and would otherwise produce garbage binds.
+    2. The runnable's explicit `bind_paths`.
+    3. The cached repo clone, but only when the command runs from `repo`. The
+       `repo` symlink lives inside the (already-bound) work dir yet points at
+       the clone outside it, so without this bind the symlink dangles in the
+       container and the `cd` into it fails. Container runnables default to
+       `work`, so this is only added when the author opts into `repo`.
+
+    The work dir itself is always bound by `_build_container_script`, so it is
+    not included here.
+    """
+    bind_paths: list[str] = []
+    for param, raw_value in collect_path_parameters(
+            entry_point, parameters, env_parameters):
+        expanded = expand_user_path(str(raw_value), username)
+        # Windows drive paths count as absolute so a dev/test server on Windows
+        # composes the same script; path validation accepts them the same way.
+        is_absolute = (expanded.startswith("/")
+                       or _WINDOWS_DRIVE_PATTERN.match(expanded))
+        if expanded.startswith(_URI_PREFIXES) or not is_absolute:
+            continue
+        if param.type == "directory":
+            bind_paths.append(expanded)
+        else:
+            # PurePosixPath: the bind flag lands in a bash script, and the value
+            # is already '/'-normalized, so the parent must stay POSIX-style
+            # even when the server process runs on Windows (dev/test).
+            bind_paths.append(str(PurePosixPath(expanded).parent))
+    if entry_point.bind_paths:
+        bind_paths.extend(entry_point.bind_paths)
+    if entry_point.effective_working_dir == "repo":
+        bind_paths.append(str(cached_repo_dir))
+    return bind_paths
 
 
 async def submit_job(
@@ -491,21 +687,43 @@ async def submit_job(
                                 session=session, username=username, check_access=False)
 
     # Authoritative per-user path validation: check that file/directory params
-    # exist and are readable, run in the setuid worker as the target user. This
-    # is the same fix applied to data links in commit f9858f48 — the server runs
-    # as a service account that isn't in the user's groups, so a redundant
+    # exist and are readable, run in the setuid worker as the target user. The
+    # server runs as a service account that isn't in the user's groups, so a
     # server-side check would wrongly reject (or, on local FS, wrongly accept)
     # paths the user can actually access.
+    # Create any directory params with exists=false first, as the user, so a
+    # home default like '~/.fileglancer/logs' exists by the time the job runs.
+    # Containment (within a file share) is enforced in the worker before
+    # makedirs, so this never writes outside a share.
+    creatable_dirs = collect_creatable_dirs(entry_point, parameters, env_parameters)
+    if creatable_dirs:
+        paths_to_create = {str(i): value for i, (_, value) in enumerate(creatable_dirs)}
+        creation = await _dispatch(username, "create_dirs", paths=paths_to_create)
+        errors = (creation or {}).get("errors") or {}
+        if errors:
+            idx = min(int(i) for i in errors)
+            param_name, _ = creatable_dirs[idx]
+            raise ValueError(f"Parameter '{param_name}': {errors[str(idx)]}")
+
     path_params = collect_path_parameters(entry_point, parameters, env_parameters)
     if path_params:
-        paths_to_check = {str(i): value for i, (_, _, value) in enumerate(path_params)}
-        validation = await _dispatch(username, "validate_paths", paths=paths_to_check)
+        paths_to_check = {str(i): value for i, (_, value) in enumerate(path_params)}
+        # exists=false params are outputs the job may create: containment check
+        # only. Directory params among them were just created above, but file
+        # params (e.g. a Nextflow output file) never exist pre-launch.
+        may_be_missing = [str(i) for i, (param, _) in enumerate(path_params)
+                          if not param.exists]
+        # Expected type per key, so a folder pasted into a file param (or vice
+        # versa) is rejected here rather than failing at job runtime.
+        types = {str(i): param.type for i, (param, _) in enumerate(path_params)}
+        validation = await _dispatch(username, "validate_paths", paths=paths_to_check,
+                                     may_be_missing=may_be_missing, types=types)
         errors = (validation or {}).get("errors") or {}
         if errors:
             # Report the first failure, keyed back to its parameter name, to
             # match the single-message format build_command would have raised.
             idx = min(int(i) for i in errors)
-            _, param_name, _ = path_params[idx]
+            param_name = path_params[idx][0].name
             raise ValueError(f"Parameter '{param_name}': {errors[str(idx)]}")
 
     # Build resource spec (extra_args passed separately, not from manifest)
@@ -535,7 +753,7 @@ async def submit_job(
                 "memory": resource_spec.memory,
                 "walltime": resource_spec.walltime,
                 "queue": resource_spec.queue,
-                "extra_args": " ".join(resource_spec.extra_args) if resource_spec.extra_args else None,
+                "extra_args": shlex.join(resource_spec.extra_args) if resource_spec.extra_args else None,
             }.items()
             if v is not None
         }
@@ -544,6 +762,9 @@ async def submit_job(
     # Not in the user's library: clone the URL as given (a bare URL resolves the
     # current default). Overridden below with the pinned URL when installed.
     app_clone_url = app_url
+    app_installed = False
+    pinned_sha = None
+    pinned_code_sha = None
 
     with db.get_db_session(settings.db_url) as session:
         # Read user's container cache dir preference
@@ -556,9 +777,50 @@ async def submit_job(
         user_app = db.get_user_app(session, username, app_url, manifest_path)
         app_name = user_app.name if user_app is not None else manifest.name
         if user_app is not None:
+            app_installed = True
             stored_app_url = user_app.url
             app_clone_url = clone_url_for_stored_app(stored_app_url, user_app.branch)
+            pinned_sha = user_app.commit_sha
+            pinned_code_sha = user_app.code_commit_sha
 
+    # Resolve the immutable snapshot the job will run from. A pinned app finds
+    # its snapshot already on disk (no git work, no network); a legacy unpinned
+    # row resolves the branch clone's current HEAD and is pinned to it below,
+    # so it never drifts again. Pulling is never done here; updates are an
+    # explicit user action via the "Update" app endpoint.
+    executed_repo_url = None
+    if manifest.repo_url and canonical_github_url(manifest.repo_url) != stored_app_url:
+        # Manifest and tool code live in separate repos: the job runs from the
+        # code repo's snapshot root.
+        cached_repo_dir, executed_sha = await ensure_repo_snapshot(
+            manifest.repo_url, sha=pinned_code_sha, username=username)
+        cd_suffix = "repo"
+        executed_repo_url = canonical_github_url(manifest.repo_url)
+        if app_installed and (pinned_sha is None or pinned_code_sha is None):
+            app_sha = pinned_sha
+            if app_sha is None:
+                # Pin the manifest repo as well — left unpinned, this app's
+                # manifest would keep drifting with the shared branch clone
+                # and update checks would skip it forever.
+                _, app_sha = await ensure_repo_snapshot(
+                    app_clone_url, username=username)
+            with db.get_db_session(settings.db_url) as session:
+                db.set_user_app_pins(session, username, stored_app_url,
+                                     manifest_path,
+                                     commit_sha=app_sha,
+                                     code_commit_sha=executed_sha)
+    else:
+        # Manifest and tool code share one repo: run from the subdirectory
+        # that contains the manifest.
+        cached_repo_dir, executed_sha = await ensure_repo_snapshot(
+            app_clone_url, sha=pinned_sha, username=username)
+        cd_suffix = f"repo/{manifest_path}" if manifest_path else "repo"
+        if app_installed and pinned_sha is None:
+            with db.get_db_session(settings.db_url) as session:
+                db.set_user_app_pins(session, username, stored_app_url,
+                                     manifest_path, commit_sha=executed_sha)
+
+    with db.get_db_session(settings.db_url) as session:
         db_job = db.create_job(
             session=session,
             username=username,
@@ -579,6 +841,8 @@ async def submit_job(
             command=entry_point.command,
             conda_env=entry_point.conda_env,
             requirements=effective_requirements,
+            commit_sha=executed_sha,
+            code_repo_url=executed_repo_url,
         )
         job_id = db_job.id
 
@@ -589,124 +853,114 @@ async def submit_job(
         db_job.work_dir = str(work_dir)
         session.commit()
 
-    # Ensure the repo is cached in the user's cache (~username/.fileglancer/apps).
-    # Pulling is never done here; updates are an explicit user action via the
-    # "Update" app endpoint. The manifest read above already reflects the cache.
-    if manifest.repo_url and canonical_github_url(manifest.repo_url) != stored_app_url:
-        # Manifest and tool code live in separate repos: cache the code repo
-        # and run from its root.
-        cached_repo_dir = await _ensure_repo_cache(manifest.repo_url, username=username)
-        cd_suffix = "repo"
-    else:
-        # Manifest and tool code share one repo: cache it and run from the
-        # subdirectory that contains the manifest.
-        cached_repo_dir = await _ensure_repo_cache(app_clone_url, username=username)
-        cd_suffix = f"repo/{manifest_path}" if manifest_path else "repo"
-
-    # Build environment variable export lines
-    env_lines = ""
-    if merged_env:
-        parts = []
-        for var_name, var_value in merged_env.items():
-            if not _ENV_VAR_NAME_PATTERN.match(var_name):
-                raise ValueError(f"Invalid environment variable name: '{var_name}'")
-            parts.append(f"export {var_name}={shlex.quote(var_value)}")
-        env_lines = "\n".join(parts) + "\n"
-
-    # Set up the script preamble:
-    # - FG_WORK_DIR: the job's working directory (used by subsequent variables)
-    # - Unset PIXI_PROJECT_MANIFEST so pixi uses the repo's own manifest
-    # - SERVICE_URL_PATH: for service-type jobs, where to write the service URL
-    # - cd into the repo so commands can find project files (pixi.toml, scripts, etc.)
-    preamble_lines = [
-        "unset PIXI_PROJECT_MANIFEST",
-        f"export FG_WORK_DIR={shlex.quote(str(work_dir))}",
-    ]
-    # For local executor, trap EXIT to write the exit code to a file so
-    # PID-based polling can determine the final status after the process exits.
-    if settings.cluster.executor == "local":
-        preamble_lines.append(
-            'trap \'echo $? > "$FG_WORK_DIR/exit_code"\' EXIT'
-        )
-    if settings.apps.extra_paths:
-        path_suffix = os.pathsep.join(shlex.quote(p) for p in settings.apps.extra_paths)
-        preamble_lines.append(f"export PATH=$PATH:{path_suffix}")
-    if entry_point.type == "service":
-        preamble_lines.append('export SERVICE_URL_PATH="$FG_WORK_DIR/service_url"')
-    # Choose the working directory. 'work' runs from the job's work dir (the
-    # repo is still reachable via the `repo` symlink); 'repo' runs from the
-    # cloned project (optionally the manifest's subdirectory). cd_suffix may
-    # include a Git-derived directory name, so shell-escape it — FG_WORK_DIR
-    # stays in its own double-quoted segment so it still expands.
-    if entry_point.effective_working_dir == "work":
-        preamble_lines.append('cd "$FG_WORK_DIR"')
-    else:
-        preamble_lines.append(f'cd "$FG_WORK_DIR"/{shlex.quote(cd_suffix)}')
-    script_parts = ["\n".join(preamble_lines)]
-
-    # Conda environment activation
-    if entry_point.conda_env:
-        conda_activation = (
-            'eval "$(conda shell.bash hook)"\n'
-            f'conda activate {shlex.quote(entry_point.conda_env)}'
-        )
-        script_parts.append(conda_activation)
-
-    # If container is defined, wrap command in apptainer exec
-    if effective_container:
-        bind_paths = []
-        for param in entry_point.flat_parameters():
-            if param.type in ("file", "directory") and param.key in parameters:
-                path_val = str(parameters[param.key])
-                # Expand ~ against the user's home (same normalization as the
-                # command). Skip cloud-storage URIs and anything that isn't an
-                # absolute local path — those are not bind-mountable and would
-                # otherwise produce garbage binds (e.g. s3://bucket/k -> s3:/bucket).
-                expanded = expand_user_path(path_val, username)
-                if expanded.startswith(_URI_PREFIXES) or not expanded.startswith("/"):
-                    continue
-                if param.type == "directory":
-                    bind_paths.append(expanded)
-                else:
-                    bind_paths.append(str(Path(expanded).parent))
-        if entry_point.bind_paths:
-            bind_paths.extend(entry_point.bind_paths)
-
-        command = _build_container_script(
-            container_url=effective_container,
-            command=command,
-            work_dir=str(work_dir),
-            bind_paths=bind_paths,
-            container_args=effective_container_args,
-            cache_dir=container_cache_dir,
-        )
-
-    if env_lines:
-        script_parts.append(env_lines.rstrip())
-    # Verify required tools now that PATH, conda, and env vars are set up, but
-    # before pre_run/command do any real work. Fails the job with a readable
-    # message in stderr if a requirement is unmet.
-    req_check = build_requirements_check(effective_requirements)
-    if req_check:
-        script_parts.append(req_check)
-    if effective_pre_run:
-        script_parts.append(effective_pre_run.rstrip())
-    script_parts.append(command)
-    if effective_post_run:
-        script_parts.append(effective_post_run.rstrip())
-    full_command = "\n\n".join(script_parts)
-
-    # Set work_dir and log paths on resource spec
-    resource_spec.work_dir = str(work_dir)
-    resource_spec.stdout_path = str(work_dir / "stdout.log")
-    resource_spec.stderr_path = str(work_dir / "stderr.log")
-
-    # Submit to the cluster as the target user via the persistent worker:
-    # it creates the work directory, symlinks the repo, and calls
-    # executor.submit() — all with the user's identity.
-    job_name = f"{manifest.name}-{entry_point.id}"
-    cluster_config = settings.cluster.model_dump(exclude_none=True)
+    # The job row exists but the cluster knows nothing about it yet: any
+    # failure between here and a successful worker submit (env-var
+    # validation, script assembly, the submit dispatch) must remove the
+    # row, or it lingers as a phantom PENDING job that never runs.
     try:
+        # Build environment variable export lines
+        env_lines = ""
+        if merged_env:
+            parts = []
+            for var_name, var_value in merged_env.items():
+                if not _ENV_VAR_NAME_PATTERN.match(var_name):
+                    raise ValueError(f"Invalid environment variable name: '{var_name}'")
+                parts.append(f"export {var_name}={shlex.quote(var_value)}")
+            env_lines = "\n".join(parts) + "\n"
+
+        # Set up the script preamble:
+        # - FG_WORK_DIR: the job's working directory (used by subsequent variables)
+        # - Unset PIXI_PROJECT_MANIFEST so pixi uses the repo's own manifest
+        # - SERVICE_URL_PATH: for service-type jobs, where to write the service URL
+        # - cd into the repo so commands can find project files (pixi.toml, scripts, etc.)
+        preamble_lines = [
+            "unset PIXI_PROJECT_MANIFEST",
+            f"export FG_WORK_DIR={shlex.quote(str(work_dir))}",
+            # Where the script reports its startup phase (e.g. pulling a container
+            # image). The UI reads this to explain a wait before a service is ready.
+            'export FG_PHASE_PATH="$FG_WORK_DIR/phase"',
+        ]
+        # For local executor, trap EXIT to write the exit code to a file so
+        # PID-based polling can determine the final status after the process exits.
+        if settings.cluster.executor == "local":
+            preamble_lines.append(
+                'trap \'echo $? > "$FG_WORK_DIR/exit_code"\' EXIT'
+            )
+        if settings.apps.extra_paths:
+            path_suffix = os.pathsep.join(shlex.quote(p) for p in settings.apps.extra_paths)
+            preamble_lines.append(f"export PATH=$PATH:{path_suffix}")
+        if entry_point.type == "service":
+            preamble_lines.append('export SERVICE_URL_PATH="$FG_WORK_DIR/service_url"')
+            preamble_lines.append(_SERVICE_PORT_HELPER)
+            # With auto_url, Fileglancer publishes the URL for the author: a
+            # background probe waits for $FG_SERVICE_PORT to accept connections and
+            # then writes http://$FG_HOSTNAME:$FG_SERVICE_PORT plus the optional
+            # (validated) service_url_suffix. A service that manages its own URL
+            # leaves auto_url unset and writes SERVICE_URL_PATH itself.
+            if entry_point.auto_url:
+                preamble_lines.append(
+                    _build_service_url_publisher(entry_point.service_url_suffix or "")
+                )
+        # Choose the working directory. 'work' runs from the job's work dir (the
+        # repo is still reachable via the `repo` symlink); 'repo' runs from the
+        # cloned project (optionally the manifest's subdirectory). cd_suffix may
+        # include a Git-derived directory name, so shell-escape it — FG_WORK_DIR
+        # stays in its own double-quoted segment so it still expands.
+        if entry_point.effective_working_dir == "work":
+            preamble_lines.append('cd "$FG_WORK_DIR"')
+        else:
+            preamble_lines.append(f'cd "$FG_WORK_DIR"/{shlex.quote(cd_suffix)}')
+        script_parts = ["\n".join(preamble_lines)]
+
+        # Conda environment activation
+        if entry_point.conda_env:
+            conda_activation = (
+                'eval "$(conda shell.bash hook)"\n'
+                f'conda activate {shlex.quote(entry_point.conda_env)}'
+            )
+            script_parts.append(conda_activation)
+
+        # If container is defined, wrap command in apptainer exec
+        if effective_container:
+            bind_paths = _container_bind_paths(
+                entry_point, parameters, env_parameters, username, cached_repo_dir
+            )
+
+            command = _build_container_script(
+                container_url=effective_container,
+                command=command,
+                work_dir=str(work_dir),
+                bind_paths=bind_paths,
+                container_args=effective_container_args,
+                cache_dir=container_cache_dir,
+                username=username,
+            )
+
+        if env_lines:
+            script_parts.append(env_lines.rstrip())
+        # Verify required tools now that PATH, conda, and env vars are set up, but
+        # before pre_run/command do any real work. Fails the job with a readable
+        # message in stderr if a requirement is unmet.
+        req_check = build_requirements_check(effective_requirements)
+        if req_check:
+            script_parts.append(req_check)
+        if effective_pre_run:
+            script_parts.append(effective_pre_run.rstrip())
+        script_parts.append(command)
+        if effective_post_run:
+            script_parts.append(effective_post_run.rstrip())
+        full_command = "\n\n".join(script_parts)
+
+        # Set work_dir and log paths on resource spec
+        resource_spec.work_dir = str(work_dir)
+        resource_spec.stdout_path = str(work_dir / "stdout.log")
+        resource_spec.stderr_path = str(work_dir / "stderr.log")
+
+        # Submit to the cluster as the target user via the persistent worker:
+        # it creates the work directory, symlinks the repo, and calls
+        # executor.submit() — all with the user's identity.
+        job_name = f"{manifest.name}-{entry_point.id}"
+        cluster_config = settings.cluster.model_dump(exclude_none=True)
         worker_result = await _dispatch(
             username, "submit",
             cluster_config=cluster_config,
@@ -728,8 +982,6 @@ async def submit_job(
             cached_repo_dir=str(cached_repo_dir),
         )
     except Exception:
-        # Cluster submission failed — remove the PENDING DB record so
-        # the job does not appear in the user's jobs list.
         with db.get_db_session(settings.db_url) as session:
             db.delete_job(session, job_id, username)
         raise
@@ -790,7 +1042,12 @@ def _build_resource_spec(entry_point: AppEntryPoint, overrides: Optional[dict], 
         if overrides.get("queue") is not None:
             queue = overrides["queue"]
         if overrides.get("extra_args") is not None:
-            extra_args = [overrides["extra_args"]]
+            # The UI/preferences deliver extra_args as one string (e.g.
+            # '-P proj -R "select[mem>8000]"'); split into individual argv
+            # tokens so the scheduler receives distinct options rather than a
+            # single malformed argument. Quotes group tokens that contain
+            # spaces.
+            extra_args = shlex.split(overrides["extra_args"])
 
     return ResourceSpec(
         cpus=cpus,
@@ -802,18 +1059,33 @@ def _build_resource_spec(entry_point: AppEntryPoint, overrides: Optional[dict], 
 
 
 async def cancel_job(job_id: int, username: str) -> db.JobDB:
-    """Cancel a running or pending job."""
+    """Cancel a non-terminal job."""
     settings = get_settings()
 
     with db.get_db_session(settings.db_url) as session:
         db_job = db.get_job(session, job_id, username)
         if db_job is None:
             raise ValueError(f"Job {job_id} not found")
-        if db_job.status not in ("PENDING", "RUNNING"):
+        if db.is_terminal_job_status(db_job.status):
             raise ValueError(f"Job {job_id} is not cancellable (status: {db_job.status})")
 
-        # Cancel on cluster as the target user
-        if db_job.cluster_job_id:
+        # Actually stop the running job as the target user. The local executor
+        # spawns a bash subprocess (plus its child workload) whose PID a fresh
+        # executor can't reach, so kill it and its whole process tree by the
+        # PID persisted in its work dir; other executors (LSF, ...) cancel by
+        # cluster job id via py-cluster-api.
+        if settings.cluster.executor == "local":
+            if db_job.work_dir:
+                result = await _dispatch(
+                    username, "cancel_local", work_dir=db_job.work_dir)
+                # Only record KILLED once the workload is confirmed gone —
+                # otherwise we'd report success while the job keeps running.
+                if not (result or {}).get("terminated", False):
+                    raise ValueError(
+                        f"Could not confirm job {job_id} was stopped; it may "
+                        f"still be running. Try again."
+                    )
+        elif db_job.cluster_job_id:
             cluster_config = settings.cluster.model_dump(exclude_none=True)
             await _dispatch(
                 username, "cancel",

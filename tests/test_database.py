@@ -123,6 +123,61 @@ def test_user_preferences(db_session):
     assert pref is None
 
 
+def test_get_active_jobs_treats_non_terminal_statuses_as_active(db_session):
+    job_ids_by_status = {}
+    for status in [
+        "PENDING",
+        "RUNNING",
+        "UNKNOWN",
+        "SUSPENDED",
+        "DONE",
+        "FAILED",
+        "KILLED",
+    ]:
+        job = create_job(
+            db_session,
+            "testuser",
+            "https://github.com/owner/repo",
+            "App",
+            "run",
+            "Run",
+            {},
+        )
+        update_job_status(db_session, job.id, status)
+        job_ids_by_status[status] = job.id
+
+    active = get_active_jobs(db_session)
+
+    assert {job.id for job in active} == {
+        job_ids_by_status["PENDING"],
+        job_ids_by_status["RUNNING"],
+        job_ids_by_status["UNKNOWN"],
+        job_ids_by_status["SUSPENDED"],
+    }
+
+
+def test_status_updated_at_tracks_status_changes(db_session):
+    job = create_job(
+        db_session, "testuser", "https://github.com/owner/repo",
+        "App", "run", "Run", {},
+    )
+    # Set on create.
+    assert job.status_updated_at is not None
+    created_stamp = job.status_updated_at
+
+    # A real status change advances the timestamp.
+    update_job_status(db_session, job.id, "RUNNING")
+    db_session.refresh(job)
+    running_stamp = job.status_updated_at
+    assert running_stamp >= created_stamp
+
+    # A no-op update (same status) leaves it untouched, so it marks entry into
+    # the current state rather than the most recent poll.
+    update_job_status(db_session, job.id, "RUNNING")
+    db_session.refresh(job)
+    assert job.status_updated_at == running_stamp
+
+
 def test_create_proxied_path(db_session, fsp):
     # Test creating a new proxied path
     username = "testuser"
@@ -585,5 +640,4 @@ class TestFindBestFspMatch:
             lambda f: [f.mount_path],
         )
         assert result is None
-
 

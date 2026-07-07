@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { Typography } from '@material-tailwind/react';
 import { HiOutlineLink } from 'react-icons/hi2';
@@ -6,101 +6,49 @@ import toast from 'react-hot-toast';
 
 import AppCard from '@/components/ui/AppsPage/AppCard';
 import AddAppDialog from '@/components/ui/AppsPage/AddAppDialog';
-import DeleteAppDialog from '@/components/ui/AppsPage/DeleteAppDialog';
+import AppActionDialogs from '@/components/ui/AppsPage/AppActionDialogs';
+import { TableCard } from '@/components/ui/Table/TableCard';
+import { createMyAppsColumns } from '@/components/ui/Table/myAppsColumns';
+import ViewModeToggle from '@/components/ui/widgets/ViewModeToggle';
 import {
   useAppsQuery,
   useAddAppMutation,
-  useUpdateAppMutation,
-  useRemoveAppMutation,
-  useShareAppMutation,
-  useUnshareListingMutation
+  useDiscoverAppsMutation
 } from '@/queries/appsQueries';
+import { useAppActions } from '@/hooks/useAppActions';
+import { useViewMode } from '@/hooks/useViewMode';
 import FgButton from './designSystem/atoms/FgButton';
 import FgExternalLink from '@/components/designSystem/atoms/FgExternalLink';
 import { DOCS_BASE_URL } from '@/constants/docs';
-import type { UserApp } from '@/shared.types';
 
 export default function Apps() {
-  const [deleteApp, setDeleteApp] = useState<UserApp | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [viewMode, changeViewMode] = useViewMode('appsViewMode');
 
   const appsQuery = useAppsQuery();
   const addAppMutation = useAddAppMutation();
-  const updateAppMutation = useUpdateAppMutation();
-  const removeAppMutation = useRemoveAppMutation();
-  const shareAppMutation = useShareAppMutation();
-  const unshareListingMutation = useUnshareListingMutation();
+  const discoverAppsMutation = useDiscoverAppsMutation();
+  const actions = useAppActions();
 
-  const handleRequestRemove = (app: UserApp) => {
-    setDeleteApp(app);
-  };
+  const appsColumns = useMemo(
+    () => createMyAppsColumns(actions),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
 
-  const handleConfirmDelete = async () => {
-    if (!deleteApp) {
-      return;
-    }
-    try {
-      await removeAppMutation.mutateAsync({
-        url: deleteApp.url,
-        manifest_path: deleteApp.manifest_path
-      });
-      toast.success('App removed');
-      setDeleteApp(null);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to remove app';
-      toast.error(message);
-    }
-  };
+  const handleDiscover = (url: string) => discoverAppsMutation.mutateAsync(url);
 
-  const handleUpdateApp = async ({
-    url,
-    manifest_path
-  }: {
-    url: string;
-    manifest_path: string;
-  }) => {
-    try {
-      await updateAppMutation.mutateAsync({ url, manifest_path });
-      toast.success('App updated');
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to update app';
-      toast.error(message);
-    }
-  };
-
-  const handleShare = async (params: {
-    url: string;
-    manifest_path: string;
-    name: string;
-    description: string;
-  }) => {
-    await shareAppMutation.mutateAsync({
-      url: params.url,
-      manifest_path: params.manifest_path,
-      name: params.name,
-      description: params.description
+  const handleAddFromUrl = async (url: string, manifestPaths?: string[]) => {
+    const apps = await addAppMutation.mutateAsync({
+      url,
+      manifest_paths: manifestPaths
     });
-    toast.success('Shared to catalog');
-  };
-
-  const handleAddFromUrl = async (url: string) => {
-    const apps = await addAppMutation.mutateAsync(url);
     const count = apps.length;
-    toast.success(`${count} app${count !== 1 ? 's' : ''} added`);
-    setShowAddDialog(false);
-  };
-
-  const handleUnshare = async (listingId: number) => {
-    try {
-      await unshareListingMutation.mutateAsync({ listing_id: listingId });
-      toast.success('Removed from catalog');
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to unshare';
-      toast.error(message);
+    // Guard against a misleading "0 apps added" success (nothing new to add).
+    if (count > 0) {
+      toast.success(`${count} app${count !== 1 ? 's' : ''} added`);
     }
+    setShowAddDialog(false);
   };
 
   return (
@@ -115,7 +63,7 @@ export default function Apps() {
         .
       </Typography>
 
-      <div className="mb-6">
+      <div className="mb-6 flex items-center justify-between gap-2">
         <FgButton
           icon={HiOutlineLink}
           onClick={() => setShowAddDialog(true)}
@@ -123,9 +71,22 @@ export default function Apps() {
         >
           Add from URL
         </FgButton>
+        <ViewModeToggle onChange={changeViewMode} viewMode={viewMode} />
       </div>
 
-      {appsQuery.isPending ? (
+      {viewMode === 'table' ? (
+        <div className="mb-8">
+          <TableCard
+            columns={appsColumns}
+            data={appsQuery.data || []}
+            dataType="apps"
+            errorState={appsQuery.error}
+            gridColsClass="grid-cols-[2fr_2fr_3fr_1fr_1fr]"
+            initialPageSize={50}
+            loadingState={appsQuery.isPending}
+          />
+        </div>
+      ) : appsQuery.isPending ? (
         <Typography className="text-foreground mb-6" type="small">
           Loading apps...
         </Typography>
@@ -137,20 +98,9 @@ export default function Apps() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           {appsQuery.data.map(app => (
             <AppCard
+              actions={actions}
               app={app}
               key={`${app.url}::${app.manifest_path}`}
-              onRemove={() => handleRequestRemove(app)}
-              onShare={handleShare}
-              onUnshare={() =>
-                app.listing_id !== undefined
-                  ? handleUnshare(app.listing_id)
-                  : undefined
-              }
-              onUpdate={handleUpdateApp}
-              removing={removeAppMutation.isPending}
-              sharing={shareAppMutation.isPending}
-              unsharing={unshareListingMutation.isPending}
-              updating={updateAppMutation.isPending}
             />
           ))}
         </div>
@@ -165,17 +115,13 @@ export default function Apps() {
 
       <AddAppDialog
         adding={addAppMutation.isPending}
+        discovering={discoverAppsMutation.isPending}
         onAdd={handleAddFromUrl}
         onClose={() => setShowAddDialog(false)}
+        onDiscover={handleDiscover}
         open={showAddDialog}
       />
-      <DeleteAppDialog
-        app={deleteApp}
-        onClose={() => setDeleteApp(null)}
-        onConfirm={handleConfirmDelete}
-        open={deleteApp !== null}
-        removing={removeAppMutation.isPending}
-      />
+      <AppActionDialogs actions={actions} />
     </div>
   );
 }

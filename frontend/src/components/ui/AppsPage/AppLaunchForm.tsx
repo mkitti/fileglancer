@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
+import { createPortal } from 'react-dom';
 
 import { Accordion, Tabs, Typography } from '@material-tailwind/react';
 import toast from 'react-hot-toast';
@@ -33,15 +34,14 @@ import {
 import type {
   AppEntryPoint,
   AppLaunchParamsFile,
-  AppManifest,
   AppParameter,
   AppParameterSection,
   AppResourceDefaults
 } from '@/shared.types';
 
 interface AppLaunchFormProps {
-  readonly manifest: AppManifest;
   readonly entryPoint: AppEntryPoint;
+  readonly headerActionsTarget?: HTMLElement | null;
   readonly onSubmit: (
     parameters: Record<string, unknown>,
     envParameters: Record<string, unknown>,
@@ -64,22 +64,22 @@ interface AppLaunchFormProps {
   readonly initialPostRun?: string;
   readonly initialContainer?: string;
   readonly initialContainerArgs?: string;
-  // Display name for the app; defaults to the manifest name when omitted. Lets
-  // callers show a user's custom app name (e.g. chosen when adding from the
-  // catalog) instead of the raw manifest name.
-  readonly appName?: string;
 }
 
 type EnvVar = { key: string; value: string };
 
 function ParameterField({
   param,
+  inputId,
   value,
-  onChange
+  onChange,
+  onError
 }: {
   readonly param: AppParameter;
+  readonly inputId: string;
   readonly value: unknown;
   readonly onChange: (value: unknown) => void;
+  readonly onError?: (message: string) => void;
 }) {
   // For file/directory fields, track a display-formatted path separately from
   // the server-formatted value used for submission. When the user selects a
@@ -112,6 +112,7 @@ function ParameterField({
       return (
         <input
           className={baseInputClass}
+          id={inputId}
           max={param.max}
           min={param.min}
           onChange={e => {
@@ -135,6 +136,7 @@ function ParameterField({
       return (
         <select
           className={baseInputClass}
+          id={inputId}
           onChange={e => onChange(e.target.value)}
           value={value !== undefined && value !== null ? String(value) : ''}
         >
@@ -153,6 +155,7 @@ function ParameterField({
         <div className="flex gap-2">
           <input
             className={`flex-1 ${baseInputClass}`}
+            id={inputId}
             onChange={e => {
               setFileDisplayPath(null);
               onChange(e.target.value);
@@ -165,6 +168,7 @@ function ParameterField({
             }
           />
           <FileSelectorButton
+            defaultToHome
             initialPath={
               typeof value === 'string' &&
               !value.startsWith('s3://') &&
@@ -175,9 +179,20 @@ function ParameterField({
             }
             label="Browse..."
             mode={param.type === 'file' ? 'file' : 'directory'}
-            onSelect={(serverPath, displayPath) => {
+            onSelect={(serverPath, displayPath, isDir) => {
+              // onChange clears any previous error for this param; flag a
+              // type mismatch right away rather than at submit time.
               onChange(serverPath);
               setFileDisplayPath(displayPath);
+              if (param.type === 'file' && isDir) {
+                onError?.(
+                  `${param.name} must be a file, but a folder was selected`
+                );
+              } else if (param.type === 'directory' && !isDir) {
+                onError?.(
+                  `${param.name} must be a folder, but a file was selected`
+                );
+              }
             }}
             useServerPath
           />
@@ -188,6 +203,7 @@ function ParameterField({
       return (
         <input
           className={baseInputClass}
+          id={inputId}
           onChange={e => onChange(e.target.value)}
           placeholder={param.name}
           type="text"
@@ -199,21 +215,30 @@ function ParameterField({
 
 function ParameterFieldRow({
   param,
+  idPrefix,
   value,
   error,
-  onChange
+  onChange,
+  onError
 }: {
   readonly param: AppParameter;
+  // Namespace-specific id prefix ('param-main' / 'param-env'). The same param
+  // key can legitimately appear in both the pipeline and env-tab namespaces
+  // (e.g. a pipeline --profile alongside Nextflow's -profile), so the DOM id
+  // must be namespaced to avoid duplicate ids / labels focusing the wrong input.
+  readonly idPrefix: string;
   readonly value: unknown;
   readonly error?: string;
   readonly onChange: (value: unknown) => void;
+  readonly onError?: (message: string) => void;
 }) {
+  const inputId = `${idPrefix}-${param.key}`;
   return (
     <div>
       {param.type !== 'boolean' ? (
         <label
           className="block text-foreground text-sm font-semibold mb-1"
-          htmlFor={`param-${param.key}`}
+          htmlFor={inputId}
         >
           {param.name}
           {param.required ? <span className="text-error ml-1">*</span> : null}
@@ -224,7 +249,13 @@ function ParameterFieldRow({
           {param.description}
         </Typography>
       ) : null}
-      <ParameterField onChange={onChange} param={param} value={value} />
+      <ParameterField
+        inputId={inputId}
+        onChange={onChange}
+        onError={onError}
+        param={param}
+        value={value}
+      />
       {param.description && param.type === 'boolean' ? (
         <Typography className="text-foreground mt-1" type="small">
           {param.description}
@@ -275,22 +306,28 @@ function SectionTrigger({
 
 function SectionContent({
   section,
+  idPrefix,
   values,
   errors,
-  onParamChange
+  onParamChange,
+  onParamError
 }: {
   readonly section: AppParameterSection;
+  readonly idPrefix: string;
   readonly values: Record<string, unknown>;
   readonly errors: Record<string, string>;
   readonly onParamChange: (paramId: string, value: unknown) => void;
+  readonly onParamError?: (paramId: string, message: string) => void;
 }) {
   return (
     <div className="space-y-4">
       {section.parameters.map(param => (
         <ParameterFieldRow
           error={errors[param.key]}
+          idPrefix={idPrefix}
           key={param.key}
           onChange={val => onParamChange(param.key, val)}
+          onError={message => onParamError?.(param.key, message)}
           param={param}
           value={values[param.key]}
         />
@@ -713,8 +750,8 @@ function ClusterTabContent({
 }
 
 export default function AppLaunchForm({
-  manifest,
   entryPoint,
+  headerActionsTarget,
   onSubmit,
   submitting,
   submitError,
@@ -726,8 +763,7 @@ export default function AppLaunchForm({
   initialPreRun,
   initialPostRun,
   initialContainer,
-  initialContainerArgs,
-  appName
+  initialContainerArgs
 }: AppLaunchFormProps) {
   const { defaultExtraArgs } = usePreferencesContext();
   const { zonesAndFspQuery } = useZoneAndFspMapContext();
@@ -774,6 +810,9 @@ export default function AppLaunchForm({
   const [envValues, setEnvValues] =
     useState<Record<string, unknown>>(startingEnvValues);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // Env-tab params are a separate namespace whose keys may collide with
+  // pipeline param keys, so their errors live in their own dict.
+  const [envErrors, setEnvErrors] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState('parameters');
   const [openSections, setOpenSections] =
     useState<string[]>(initialOpenSections);
@@ -786,12 +825,23 @@ export default function AppLaunchForm({
     }
   );
   const [extraArgs, setExtraArgs] = useState<string>(resolvedExtraArgs);
+  // Whether the user has touched the Extra Arguments field (typing or a
+  // params-file import). An empty string alone can't distinguish "not loaded
+  // yet" from "deliberately cleared", so late-arriving defaults key off this.
+  const extraArgsEditedRef = useRef(false);
+  const setExtraArgsEdited: Dispatch<SetStateAction<string>> = action => {
+    extraArgsEditedRef.current = true;
+    setExtraArgs(action);
+  };
 
   // Update extraArgs when async data (preferences or cluster defaults) arrives,
   // but only if not a relaunch and the user hasn't modified the field yet
   useEffect(() => {
     if (externalExtraArgs !== undefined) {
       return; // relaunch value takes priority, don't overwrite
+    }
+    if (extraArgsEditedRef.current) {
+      return; // user edits (including clearing the field) always win
     }
     const resolved = defaultExtraArgs || configExtraArgs;
     if (resolved) {
@@ -862,76 +912,99 @@ export default function AppLaunchForm({
     }
   };
 
+  // Immediate per-field validation errors (e.g. a folder picked from the
+  // Browse dialog where a file is required), raised without waiting for
+  // submit. handleChange clears them on the next value change.
+  const handleParamError = (paramId: string, message: string) => {
+    setErrors(prev => ({ ...prev, [paramId]: message }));
+  };
+
   // Env-tab params have their own value dict so their keys can't collide with
   // pipeline param keys.
   const handleEnvChange = (paramId: string, value: unknown) => {
     setEnvValues(prev => ({ ...prev, [paramId]: value }));
+    if (envErrors[paramId]) {
+      setEnvErrors(prev => {
+        const next = { ...prev };
+        delete next[paramId];
+        return next;
+      });
+    }
+  };
+
+  const handleEnvParamError = (paramId: string, message: string) => {
+    setEnvErrors(prev => ({ ...prev, [paramId]: message }));
+  };
+
+  // Shared per-param rules, applied to both the pipeline and env-tab
+  // namespaces. Returns the first violation, or undefined when valid.
+  const validateParamValue = (
+    param: AppParameter,
+    val: unknown
+  ): string | undefined => {
+    if (param.required && (val === undefined || val === null || val === '')) {
+      return `${param.name} is required`;
+    }
+    if (val === undefined || val === null || val === '') {
+      return undefined;
+    }
+    if (param.type === 'integer' || param.type === 'number') {
+      const numVal = Number(val);
+      if (isNaN(numVal)) {
+        return `${param.name} must be a valid number`;
+      }
+      if (param.min !== null && param.min !== undefined && numVal < param.min) {
+        return `${param.name} must be at least ${param.min}`;
+      }
+      if (param.max !== null && param.max !== undefined && numVal > param.max) {
+        return `${param.name} must be at most ${param.max}`;
+      }
+    }
+    // Validate file/directory paths (skip URI schemes like s3://)
+    if (
+      (param.type === 'file' || param.type === 'directory') &&
+      typeof val === 'string'
+    ) {
+      // Resolve Mac/Windows/alternate-Linux paths to server mount_path
+      const resolved = resolveToServerPath(val);
+      const normalized = convertBackToForwardSlash(resolved);
+      if (
+        !normalized.startsWith('s3://') &&
+        !normalized.startsWith('gs://') &&
+        !normalized.startsWith('https://')
+      ) {
+        if (normalized.includes('..')) {
+          return `${param.name} must not contain '..'`;
+        }
+        if (
+          !normalized.startsWith('/') &&
+          !normalized.startsWith('~') &&
+          !normalized.startsWith('./')
+        ) {
+          return `${param.name} must be an absolute or relative path (starting with /, ~, or ./)`;
+        }
+      }
+    }
+    return undefined;
   };
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
     for (const param of allParams) {
-      const val = values[param.key];
-      if (param.required && (val === undefined || val === null || val === '')) {
-        newErrors[param.key] = `${param.name} is required`;
+      const error = validateParamValue(param, values[param.key]);
+      if (error) {
+        newErrors[param.key] = error;
       }
-      if (
-        val !== undefined &&
-        val !== null &&
-        val !== '' &&
-        (param.type === 'integer' || param.type === 'number')
-      ) {
-        const numVal = Number(val);
-        if (isNaN(numVal)) {
-          newErrors[param.key] = `${param.name} must be a valid number`;
-        } else {
-          if (
-            param.min !== null &&
-            param.min !== undefined &&
-            numVal < param.min
-          ) {
-            newErrors[param.key] =
-              `${param.name} must be at least ${param.min}`;
-          }
-          if (
-            param.max !== null &&
-            param.max !== undefined &&
-            numVal > param.max
-          ) {
-            newErrors[param.key] = `${param.name} must be at most ${param.max}`;
-          }
-        }
-      }
-      // Validate file/directory paths (skip URI schemes like s3://)
-      if (
-        val !== undefined &&
-        val !== null &&
-        val !== '' &&
-        (param.type === 'file' || param.type === 'directory') &&
-        typeof val === 'string'
-      ) {
-        // Resolve Mac/Windows/alternate-Linux paths to server mount_path
-        const resolved = resolveToServerPath(val);
-        const normalized = convertBackToForwardSlash(resolved);
-        if (
-          !normalized.startsWith('s3://') &&
-          !normalized.startsWith('gs://') &&
-          !normalized.startsWith('https://')
-        ) {
-          if (normalized.includes('..')) {
-            newErrors[param.key] = `${param.name} must not contain '..'`;
-          } else if (
-            !normalized.startsWith('/') &&
-            !normalized.startsWith('~') &&
-            !normalized.startsWith('./')
-          ) {
-            newErrors[param.key] =
-              `${param.name} must be an absolute or relative path (starting with /, ~, or ./)`;
-          }
-        }
+    }
+    const newEnvErrors: Record<string, string> = {};
+    for (const param of envParamsFlat) {
+      const error = validateParamValue(param, envValues[param.key]);
+      if (error) {
+        newEnvErrors[param.key] = error;
       }
     }
     setErrors(newErrors);
+    setEnvErrors(newEnvErrors);
 
     // Auto-expand sections that contain errors and reveal hidden params if needed
     if (Object.keys(newErrors).length > 0) {
@@ -954,8 +1027,29 @@ export default function AppLaunchForm({
         setShowHidden(true);
       }
     }
+    if (Object.keys(newEnvErrors).length > 0) {
+      const envSectionsToOpen = new Set(openEnvParamSections);
+      for (const item of entryPoint.env_parameters ?? []) {
+        if (
+          isParameterSection(item) &&
+          item.parameters.some(p => newEnvErrors[p.key])
+        ) {
+          envSectionsToOpen.add(item.section);
+        }
+      }
+      setOpenEnvParamSections([...envSectionsToOpen]);
+    }
+    // Put the user on the tab that contains the (first) errors.
+    if (Object.keys(newErrors).length > 0) {
+      setActiveTab('parameters');
+    } else if (Object.keys(newEnvErrors).length > 0) {
+      setActiveTab('environment');
+    }
 
-    return Object.keys(newErrors).length === 0;
+    return (
+      Object.keys(newErrors).length === 0 &&
+      Object.keys(newEnvErrors).length === 0
+    );
   };
 
   const [validating, setValidating] = useState(false);
@@ -965,15 +1059,37 @@ export default function AppLaunchForm({
       return;
     }
 
-    // Build a lookup of parameter definitions
+    // Build lookups of parameter definitions per namespace
     const paramDefs = new Map(allParams.map(p => [p.key, p]));
+    const envParamDefs = new Map(envParamsFlat.map(p => [p.key, p]));
+    // Env-tab keys may collide with pipeline keys, so they are prefixed in
+    // the shared validate-paths request and their errors routed back to the
+    // env error dict.
+    const ENV_KEY_PREFIX = 'env::';
 
     // Filter out undefined/empty values and normalize paths to Linux format
     const params: Record<string, unknown> = {};
+    const envParams: Record<string, unknown> = {};
     const pathParams: Record<string, string> = {};
-    for (const [key, val] of Object.entries(values)) {
-      if (val !== undefined && val !== null && val !== '') {
-        const paramDef = paramDefs.get(key);
+    // Path params with exists=false are outputs the job may create, so they
+    // are validated for file-share containment only — their absence must not
+    // fail pre-submit validation. (Directory params among them are created by
+    // Fileglancer at submit time.)
+    const mayBeMissingKeys: string[] = [];
+    // Expected type per key, so a folder pasted into a file param (or vice
+    // versa) is rejected by server-side validation.
+    const pathParamTypes: Record<string, string> = {};
+    const collectGroup = (
+      source: Record<string, unknown>,
+      defs: Map<string, AppParameter>,
+      target: Record<string, unknown>,
+      validationKey: (key: string) => string
+    ) => {
+      for (const [key, val] of Object.entries(source)) {
+        if (val === undefined || val === null || val === '') {
+          continue;
+        }
+        const paramDef = defs.get(key);
         if (
           paramDef &&
           (paramDef.type === 'file' || paramDef.type === 'directory') &&
@@ -982,28 +1098,59 @@ export default function AppLaunchForm({
           // Resolve Mac/Windows/alternate-Linux paths to server mount_path
           const resolved = resolveToServerPath(val);
           const normalized = convertBackToForwardSlash(resolved);
-          params[key] = normalized;
+          target[key] = normalized;
           // Skip server-side path validation for URI schemes (e.g. s3://)
           if (
             !normalized.startsWith('s3://') &&
             !normalized.startsWith('gs://') &&
             !normalized.startsWith('https://')
           ) {
-            pathParams[key] = normalized;
+            const vKey = validationKey(key);
+            pathParams[vKey] = normalized;
+            pathParamTypes[vKey] = paramDef.type;
+            if (paramDef.exists === false) {
+              mayBeMissingKeys.push(vKey);
+            }
           }
         } else {
-          params[key] = val;
+          target[key] = val;
         }
       }
-    }
+    };
+    collectGroup(values, paramDefs, params, key => key);
+    collectGroup(
+      envValues,
+      envParamDefs,
+      envParams,
+      key => `${ENV_KEY_PREFIX}${key}`
+    );
 
     // Validate paths on the server before submitting
     if (Object.keys(pathParams).length > 0) {
       setValidating(true);
       try {
-        const pathErrors = await validatePaths(pathParams);
+        const pathErrors = await validatePaths(
+          pathParams,
+          mayBeMissingKeys,
+          pathParamTypes
+        );
         if (Object.keys(pathErrors).length > 0) {
-          setErrors(prev => ({ ...prev, ...pathErrors }));
+          const mainPathErrors: Record<string, string> = {};
+          const envPathErrors: Record<string, string> = {};
+          for (const [key, message] of Object.entries(pathErrors)) {
+            if (key.startsWith(ENV_KEY_PREFIX)) {
+              envPathErrors[key.slice(ENV_KEY_PREFIX.length)] = message;
+            } else {
+              mainPathErrors[key] = message;
+            }
+          }
+          setErrors(prev => ({ ...prev, ...mainPathErrors }));
+          setEnvErrors(prev => ({ ...prev, ...envPathErrors }));
+          if (Object.keys(mainPathErrors).length > 0) {
+            setActiveTab('parameters');
+          } else {
+            setActiveTab('environment');
+          }
           setValidating(false);
           return;
         }
@@ -1033,14 +1180,6 @@ export default function AppLaunchForm({
       }
     }
     const hasEnv = Object.keys(envRecord).length > 0;
-
-    // Env-tab parameter values (separate namespace), dropping empties.
-    const envParams: Record<string, unknown> = {};
-    for (const [key, val] of Object.entries(envValues)) {
-      if (val !== undefined && val !== null && val !== '') {
-        envParams[key] = val;
-      }
-    }
 
     onSubmit(
       params,
@@ -1159,7 +1298,7 @@ export default function AppLaunchForm({
       setResources(prev => ({ ...prev, ...parsed.resources }));
     }
     if (parsed.extra_args !== undefined) {
-      setExtraArgs(parsed.extra_args);
+      setExtraArgsEdited(parsed.extra_args);
     }
     if (parsed.env) {
       setEnvVars(
@@ -1180,15 +1319,21 @@ export default function AppLaunchForm({
     }
 
     setErrors({});
+    setEnvErrors({});
     toast.success('Parameters loaded');
   };
 
+  // Rendered in TWO places: portaled into the page header (top) and repeated
+  // at the bottom of the form. Pipelines often have many parameters, so after
+  // filling out a long form the user must not have to scroll back up to
+  // submit. Do not remove the bottom copy when refactoring the header.
   const actionButtons = (
     <div className="flex flex-wrap items-center justify-end gap-2">
       <FgButton
         className="!rounded-md whitespace-nowrap"
         icon={HiOutlineDownload}
         onClick={handleExport}
+        size="sm"
         variant="outline"
       >
         Export params
@@ -1197,6 +1342,7 @@ export default function AppLaunchForm({
         className="!rounded-md whitespace-nowrap"
         icon={HiOutlineUpload}
         onClick={() => fileInputRef.current?.click()}
+        size="sm"
         variant="outline"
       >
         Upload params file
@@ -1208,6 +1354,7 @@ export default function AppLaunchForm({
         loading={validating || submitting}
         loadingText={validating ? 'Validating...' : 'Submitting...'}
         onClick={handleSubmit}
+        size="sm"
       >
         {entryPoint.type === 'service' ? 'Start Service' : 'Submit Job'}
       </FgButton>
@@ -1222,15 +1369,33 @@ export default function AppLaunchForm({
       {submitError}
     </div>
   ) : null;
+  // Errors keyed by a parameter render inline next to their field; any other
+  // key (e.g. `_general`, set when server-side path validation cannot run) has
+  // no field to highlight, so its message must appear in the banner itself.
+  const fieldErrorKeys = new Set(allParams.map(p => p.key));
+  const nonFieldErrors = Object.entries(errors).filter(
+    ([key]) => !fieldErrorKeys.has(key)
+  );
+  const hasFieldErrors =
+    Object.keys(errors).length > nonFieldErrors.length ||
+    Object.keys(envErrors).length > 0;
   const validationErrorBanner =
-    Object.keys(errors).length > 0 ? (
+    Object.keys(errors).length > 0 || Object.keys(envErrors).length > 0 ? (
       <div className="mt-2 mb-4 p-3 bg-error/10 rounded text-error text-sm">
-        Please fix the highlighted errors before submitting.
+        {hasFieldErrors ? (
+          <p>Please fix the highlighted errors before submitting.</p>
+        ) : null}
+        {nonFieldErrors.map(([key, message]) => (
+          <p key={key}>{message}</p>
+        ))}
       </div>
     ) : null;
 
   return (
     <div>
+      {headerActionsTarget
+        ? createPortal(actionButtons, headerActionsTarget)
+        : null}
       <input
         accept="application/json,.json"
         className="hidden"
@@ -1245,21 +1410,9 @@ export default function AppLaunchForm({
         ref={fileInputRef}
         type="file"
       />
-      <div className="flex items-start justify-between gap-4 mb-1">
-        <div>
-          <Typography className="font-bold mb-1" type="h5">
-            {entryPoint.name}
-          </Typography>
-          <Typography className="block">{appName ?? manifest.name}</Typography>
-        </div>
-        {actionButtons}
-      </div>
       {/* Errors (top) */}
       {validationErrorBanner}
       {submitErrorBanner}
-      {entryPoint.description ? (
-        <Typography className="block mb-6">{entryPoint.description}</Typography>
-      ) : null}
 
       {/* Tabs */}
       <Tabs onValueChange={setActiveTab} value={activeTab}>
@@ -1307,7 +1460,9 @@ export default function AppLaunchForm({
                         <Accordion.Content className="pt-2 pb-4 pl-4">
                           <SectionContent
                             errors={errors}
+                            idPrefix="param-main"
                             onParamChange={handleChange}
+                            onParamError={handleParamError}
                             section={item}
                             values={values}
                           />
@@ -1316,8 +1471,10 @@ export default function AppLaunchForm({
                     ) : (
                       <ParameterFieldRow
                         error={errors[item.key]}
+                        idPrefix="param-main"
                         key={item.key}
                         onChange={val => handleChange(item.key, val)}
+                        onError={message => handleParamError(item.key, message)}
                         param={item}
                         value={values[item.key]}
                       />
@@ -1329,8 +1486,10 @@ export default function AppLaunchForm({
                   isParameterSection(item) ? null : (
                     <ParameterFieldRow
                       error={errors[item.key]}
+                      idPrefix="param-main"
                       key={item.key}
                       onChange={val => handleChange(item.key, val)}
+                      onError={message => handleParamError(item.key, message)}
                       param={item}
                       value={values[item.key]}
                     />
@@ -1392,8 +1551,10 @@ export default function AppLaunchForm({
                         />
                         <Accordion.Content className="pt-2 pb-4 pl-4">
                           <SectionContent
-                            errors={{}}
+                            errors={envErrors}
+                            idPrefix="param-env"
                             onParamChange={handleEnvChange}
+                            onParamError={handleEnvParamError}
                             section={item}
                             values={envValues}
                           />
@@ -1401,9 +1562,13 @@ export default function AppLaunchForm({
                       </Accordion.Item>
                     ) : (
                       <ParameterFieldRow
-                        error={undefined}
+                        error={envErrors[item.key]}
+                        idPrefix="param-env"
                         key={item.key}
                         onChange={val => handleEnvChange(item.key, val)}
+                        onError={message =>
+                          handleEnvParamError(item.key, message)
+                        }
                         param={item}
                         value={envValues[item.key]}
                       />
@@ -1438,7 +1603,7 @@ export default function AppLaunchForm({
                 extraArgs={extraArgs}
                 openClusterSections={openClusterSections}
                 resources={resources}
-                setExtraArgs={setExtraArgs}
+                setExtraArgs={setExtraArgsEdited}
                 setOpenClusterSections={setOpenClusterSections}
                 setResources={setResources}
               />
@@ -1451,7 +1616,9 @@ export default function AppLaunchForm({
       {validationErrorBanner}
       {submitErrorBanner}
 
-      {/* Submit (bottom) */}
+      {/* Actions (bottom) — duplicates the header actions on purpose; long
+          parameter lists mean users finish the form far from the header and
+          should not have to scroll back up to submit. */}
       <div className="flex justify-end mt-6">{actionButtons}</div>
     </div>
   );

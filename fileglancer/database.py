@@ -180,7 +180,18 @@ class JobDB(Base):
     # detail endpoint build browse links without realpath'ing mounts per read.
     work_dir_fsp_name = Column(String, nullable=True)
     work_dir_subpath = Column(String, nullable=True)
+    # Commit whose code this job executed (the code repo's SHA when the
+    # manifest declares a separate repo_url, else the app repo's SHA). NULL for
+    # jobs submitted before commit pinning existed.
+    commit_sha = Column(String, nullable=True)
+    # Repo the executed commit belongs to, when it differs from app_url
+    # (manifests with a separate repo_url). NULL means commit_sha is app_url's.
+    code_repo_url = Column(String, nullable=True)
     created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(UTC))
+    # When the status column last changed value. Lets the poll loop measure how
+    # long a job has sat in a non-progressing state (e.g. UNKNOWN) without
+    # conflating it with created_at. NULL for rows created before this column.
+    status_updated_at = Column(DateTime, nullable=True)
     started_at = Column(DateTime, nullable=True)
     finished_at = Column(DateTime, nullable=True)
 
@@ -196,6 +207,12 @@ class UserAppDB(Base):
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     branch = Column(String, nullable=True)
+    # Commit the app is pinned to: jobs run from an immutable snapshot of this
+    # SHA, and only an explicit Update moves it. NULL for legacy rows, which
+    # get pinned on their next launch or update.
+    commit_sha = Column(String, nullable=True)
+    # Pin for the manifest's separate code repo (repo_url), when declared.
+    code_commit_sha = Column(String, nullable=True)
     manifest = Column(JSON, nullable=True)
     added_at = Column(DateTime, nullable=False, default=lambda: datetime.now(UTC))
     updated_at = Column(DateTime, nullable=True)
@@ -945,6 +962,19 @@ def delete_expired_sessions(session: Session):
 
 # --- Job database functions ---
 
+TERMINAL_JOB_STATUSES = ("DONE", "FAILED", "KILLED")
+
+
+def is_terminal_job_status(status: str | None) -> bool:
+    """Return True when a job status means no scheduler work should remain.
+
+    Any status outside this explicit terminal set (including UNKNOWN or a
+    scheduler-specific transient state) is treated as active so polling,
+    cancellation, and delete guards do not drop a potentially live job.
+    """
+    return status in TERMINAL_JOB_STATUSES
+
+
 def create_job(session: Session, username: str, app_url: str, app_name: str,
                entry_point_id: str, entry_point_name: str, parameters: Dict,
                env_parameters: Optional[Dict] = None,
@@ -956,7 +986,9 @@ def create_job(session: Session, username: str, app_url: str, app_name: str,
                container_args: Optional[str] = None,
                command: Optional[str] = None,
                conda_env: Optional[str] = None,
-               requirements: Optional[List[str]] = None) -> JobDB:
+               requirements: Optional[List[str]] = None,
+               commit_sha: Optional[str] = None,
+               code_repo_url: Optional[str] = None) -> JobDB:
     """Create a new job record"""
     now = datetime.now(UTC)
     job = JobDB(
@@ -978,8 +1010,11 @@ def create_job(session: Session, username: str, app_url: str, app_name: str,
         command=command,
         conda_env=conda_env,
         requirements=requirements,
+        commit_sha=commit_sha,
+        code_repo_url=code_repo_url,
         status="PENDING",
-        created_at=now
+        created_at=now,
+        status_updated_at=now,
     )
     session.add(job)
     session.commit()
@@ -999,10 +1034,22 @@ def get_job(session: Session, job_id: int, username: str) -> Optional[JobDB]:
     return session.query(JobDB).filter_by(id=job_id, username=username).first()
 
 
+def count_active_jobs_by_username(session: Session, username: str) -> int:
+    """Count a user's jobs that are not known-terminal (see get_active_jobs)."""
+    return session.query(JobDB).filter_by(username=username).filter(
+        ~JobDB.status.in_(TERMINAL_JOB_STATUSES)
+    ).count()
+
+
 def get_active_jobs(session: Session) -> List[JobDB]:
-    """Get all jobs with PENDING or RUNNING status"""
+    """Get all jobs that are not known-terminal.
+
+    UNKNOWN and future scheduler-specific statuses are considered active:
+    until a job reaches DONE/FAILED/KILLED, Fileglancer should keep polling and
+    must not allow the record to be deleted as if the cluster job were gone.
+    """
     return session.query(JobDB).filter(
-        JobDB.status.in_(["PENDING", "RUNNING"])
+        ~JobDB.status.in_(TERMINAL_JOB_STATUSES)
     ).all()
 
 
@@ -1023,6 +1070,11 @@ def update_job_status(session: Session, job_id: int, status: str,
     job = session.query(JobDB).filter_by(id=job_id).first()
     if not job:
         return None
+    # Record when the status actually changes so the poll loop can tell how long
+    # a job has been in a stuck state (e.g. UNKNOWN). A no-op update (same
+    # status) leaves the timestamp untouched, so it marks entry into the state.
+    if job.status != status:
+        job.status_updated_at = datetime.now(UTC)
     job.status = status
     if exit_code is not None:
         job.exit_code = exit_code
@@ -1053,7 +1105,7 @@ def delete_old_jobs(session: Session, days: int = 30) -> int:
     """Delete completed/failed jobs older than the specified number of days"""
     cutoff = datetime.now(UTC) - timedelta(days=days)
     deleted = session.query(JobDB).filter(
-        JobDB.status.in_(["DONE", "FAILED", "KILLED"]),
+        JobDB.status.in_(TERMINAL_JOB_STATUSES),
         JobDB.created_at < cutoff
     ).delete(synchronize_session='fetch')
     session.commit()
@@ -1087,6 +1139,8 @@ def upsert_user_app(session: Session, username: str, url: str,
                     name: str,
                     description: Optional[str] = None,
                     branch: Optional[str] = None,
+                    commit_sha: Optional[str] = None,
+                    code_commit_sha: Optional[str] = None,
                     manifest: Optional[Dict] = None,
                     bump_updated_at: bool = True) -> UserAppDB:
     """Insert or update a user app row.
@@ -1102,6 +1156,10 @@ def upsert_user_app(session: Session, username: str, url: str,
     Pass branch=None to leave an existing row's branch untouched —
     manifest-cache refreshes use this so they don't clobber the requested
     revision with a resolved one.
+
+    commit_sha / code_commit_sha are the app's pins (see UserAppDB). Like
+    branch, None means "leave the existing value untouched" — only add, update
+    and launch-time backfill move a pin.
     """
     now = datetime.now(UTC)
     url = canonical_github_url(url)
@@ -1114,6 +1172,8 @@ def upsert_user_app(session: Session, username: str, url: str,
             name=name,
             description=description,
             branch=branch,
+            commit_sha=commit_sha,
+            code_commit_sha=code_commit_sha,
             manifest=manifest,
             added_at=now,
         )
@@ -1123,9 +1183,55 @@ def upsert_user_app(session: Session, username: str, url: str,
         row.description = description
         if branch is not None:
             row.branch = branch
+        if commit_sha is not None:
+            row.commit_sha = commit_sha
+        if code_commit_sha is not None:
+            row.code_commit_sha = code_commit_sha
         row.manifest = manifest
         if bump_updated_at:
             row.updated_at = now
+    session.commit()
+    return row
+
+
+def update_user_app_manifest_cache(session: Session, username: str, url: str,
+                                   manifest_path: str = "", *,
+                                   manifest: Dict,
+                                   bump_updated_at: bool = False
+                                   ) -> Optional[UserAppDB]:
+    """Sync only the cached manifest column on an existing row.
+
+    Cache refreshes must not touch user-facing metadata: a catalog app added
+    under a custom name would otherwise revert to the raw manifest name
+    whenever its cache is refilled (e.g. after schema drift invalidates the
+    stored copy). No-op returning None when the row doesn't exist.
+    """
+    row = get_user_app(session, username, url, manifest_path)
+    if row is None:
+        return None
+    row.manifest = manifest
+    if bump_updated_at:
+        row.updated_at = datetime.now(UTC)
+    session.commit()
+    return row
+
+
+def set_user_app_pins(session: Session, username: str, url: str,
+                      manifest_path: str = "", *,
+                      commit_sha: Optional[str] = None,
+                      code_commit_sha: Optional[str] = None) -> Optional[UserAppDB]:
+    """Set an app row's commit pins without touching any other field.
+
+    Used by launch-time backfill of legacy unpinned rows. None leaves a pin
+    unchanged. Returns the row, or None if it doesn't exist.
+    """
+    row = get_user_app(session, username, url, manifest_path)
+    if row is None:
+        return None
+    if commit_sha is not None:
+        row.commit_sha = commit_sha
+    if code_commit_sha is not None:
+        row.code_commit_sha = code_commit_sha
     session.commit()
     return row
 
@@ -1198,15 +1304,35 @@ def create_app_listing(session: Session, owner_username: str, url: str,
 
 def update_app_listing(session: Session, listing_id: int, owner_username: str, *,
                        name: Optional[str] = None,
-                       description: Optional[str] = None) -> Optional[AppListingDB]:
+                       description: Optional[str] = None,
+                       url: Optional[str] = None,
+                       branch: Optional[str] = None) -> Optional[AppListingDB]:
     """Update an existing listing's editable metadata. Returns the listing, or
-    None if it doesn't exist or isn't owned by owner_username."""
+    None if it doesn't exist or isn't owned by owner_username.
+
+    url repoints the listing (the caller has already validated that the new
+    repo/revision still contains the listing's manifest path); branch is the
+    requested revision that goes with it and is only applied alongside url.
+    Raises ValueError if the new url collides with another listing by the
+    same owner (unique on owner/url/manifest_path)."""
     listing = session.query(AppListingDB).filter_by(
         id=listing_id,
         owner_username=owner_username,
     ).first()
     if listing is None:
         return None
+    if url is not None:
+        url = canonical_github_url(url)
+        duplicate = session.query(AppListingDB).filter(
+            AppListingDB.owner_username == owner_username,
+            AppListingDB.url == url,
+            AppListingDB.manifest_path == listing.manifest_path,
+            AppListingDB.id != listing_id,
+        ).first()
+        if duplicate is not None:
+            raise ValueError("You already have another listing for this app")
+        listing.url = url
+        listing.branch = branch
     if name is not None:
         listing.name = name
     if description is not None:

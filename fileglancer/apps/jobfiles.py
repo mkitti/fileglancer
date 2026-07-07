@@ -4,6 +4,7 @@ import ntpath
 import os
 import posixpath
 import re
+import shutil
 from pathlib import Path
 from typing import Optional
 
@@ -38,6 +39,68 @@ def _resolve_work_dir(db_job: db.JobDB) -> Path:
     if db_job.work_dir:
         return Path(db_job.work_dir)
     return _build_work_dir(db_job.id, db_job.app_name, db_job.entry_point_id)
+
+
+def _safe_work_dir_delete_target(db_job: db.JobDB) -> Path:
+    """Return the normalized work-dir path if it is safe to delete.
+
+    Job work directories are created under ``.fileglancer/jobs`` and include
+    the job id in their leaf name. Keep deletion constrained to that shape so a
+    stale or corrupted DB row cannot turn "delete this job" into arbitrary
+    filesystem removal.
+    """
+    raw_target = Path(os.path.expanduser(os.fspath(db_job.work_dir)))
+    if not raw_target.is_absolute():
+        raise PermissionError(
+            f"Refusing to delete relative job work directory: {raw_target}"
+        )
+    target = Path(os.path.abspath(os.fspath(raw_target)))
+    parts = target.parts
+    under_jobs_root = any(
+        part == ".fileglancer"
+        and idx + 2 < len(parts)
+        and parts[idx + 1] == "jobs"
+        for idx, part in enumerate(parts)
+    )
+    if not under_jobs_root:
+        raise PermissionError(
+            f"Refusing to delete unexpected job work directory: {target}"
+        )
+
+    job_id = re.escape(str(db_job.id))
+    if not re.search(rf"(^|-){job_id}-", target.name):
+        raise PermissionError(
+            f"Refusing to delete job work directory without job id {db_job.id}: {target}"
+        )
+
+    return target
+
+
+def delete_job_work_dir(db_job: db.JobDB) -> bool:
+    """Delete a job's work directory, returning True when something was removed.
+
+    Missing stored paths or already-removed work directories are treated as
+    already deleted so the DB record can still be cleaned up. Directory symlinks
+    are unlinked rather than followed.
+    """
+    if not getattr(db_job, "work_dir", None):
+        return False
+
+    target = _safe_work_dir_delete_target(db_job)
+    try:
+        if target.is_symlink():
+            target.unlink()
+            return True
+        if not target.exists():
+            return False
+        if not target.is_dir():
+            raise NotADirectoryError(
+                f"Job work directory is not a directory: {target}"
+            )
+        shutil.rmtree(target)
+        return True
+    except FileNotFoundError:
+        return False
 
 
 def _stored_work_dir_path(db_job: db.JobDB) -> str:
@@ -86,19 +149,8 @@ def _make_file_info(file_path: str, exists: bool,
     }
 
 
-def get_service_url(db_job: db.JobDB) -> Optional[str]:
-    """Read the service URL from a job's work directory.
-
-    Only returns a URL when the job is a service type and is currently RUNNING.
-    The service writes its URL to a plain text file named 'service_url' in the
-    job's work directory.
-    """
-    if getattr(db_job, 'entry_point_type', 'job') != 'service':
-        return None
-    if db_job.status != 'RUNNING':
-        return None
-
-    work_dir = _resolve_work_dir(db_job)
+def read_service_url_file(work_dir: Path) -> Optional[str]:
+    """Read and validate the 'service_url' file in a job work directory."""
     url_file = work_dir / "service_url"
 
     if not url_file.is_file():
@@ -113,6 +165,57 @@ def get_service_url(db_job: db.JobDB) -> Optional[str]:
         return None
 
     return url
+
+
+def get_service_url(db_job: db.JobDB) -> Optional[str]:
+    """Read the service URL from a job's work directory.
+
+    Only returns a URL when the job is a service type and is currently RUNNING.
+    The service writes its URL to a plain text file named 'service_url' in the
+    job's work directory.
+    """
+    if getattr(db_job, 'entry_point_type', 'job') != 'service':
+        return None
+    if db_job.status != 'RUNNING':
+        return None
+
+    return read_service_url_file(_resolve_work_dir(db_job))
+
+
+# Startup phases a service job writes to its 'phase' file so the UI can explain
+# a wait before the URL appears (chiefly a container image still downloading).
+_SERVICE_PHASES = ("pulling_image", "starting")
+
+
+def read_service_phase_file(work_dir: Path) -> Optional[str]:
+    """Read and validate the 'phase' file in a job work directory."""
+    phase_file = work_dir / "phase"
+    if not phase_file.is_file():
+        return None
+
+    try:
+        phase = phase_file.read_text().strip()
+    except OSError:
+        return None
+
+    return phase if phase in _SERVICE_PHASES else None
+
+
+def get_service_phase(db_job: db.JobDB) -> Optional[str]:
+    """Read the current startup phase from a service job's work directory.
+
+    The generated job script writes a short marker (see _SERVICE_PHASES) to a
+    'phase' file — e.g. 'pulling_image' while Apptainer downloads the container
+    image, then 'starting'. This lets the UI show why a service is taking a
+    while before its URL is published. Returns None unless the job is a RUNNING
+    service with a recognized phase written.
+    """
+    if getattr(db_job, 'entry_point_type', 'job') != 'service':
+        return None
+    if db_job.status != 'RUNNING':
+        return None
+
+    return read_service_phase_file(_resolve_work_dir(db_job))
 
 
 def get_job_file_paths(db_job: db.JobDB) -> dict[str, dict]:
@@ -164,6 +267,42 @@ def get_job_file_paths(db_job: db.JobDB) -> dict[str, dict]:
     return files
 
 
+# Cap for inline job-file reads. HPC stdout/stderr logs can grow to gigabytes;
+# reading one whole would exhaust worker/server memory and blow the 64 MB IPC
+# message limit. We return the tail of anything larger (the most useful part of
+# a log), with a marker; the file's work-dir browse link gives full access.
+_MAX_JOB_FILE_BYTES = 5 * 1024 * 1024
+
+
+def _read_text_capped(path: Path) -> str:
+    """Read a text file, capping oversized files to their trailing bytes.
+
+    Files up to _MAX_JOB_FILE_BYTES are returned in full. Larger files return
+    only their last _MAX_JOB_FILE_BYTES bytes, prefixed with a marker noting how
+    much was omitted, so a runaway log can't OOM the process or exceed the IPC
+    limit. Decoding uses errors='replace' so non-UTF-8 log bytes never raise.
+    """
+    size = path.stat().st_size
+    if size <= _MAX_JOB_FILE_BYTES:
+        return path.read_text(errors="replace")
+    with path.open("rb") as f:
+        f.seek(size - _MAX_JOB_FILE_BYTES)
+        tail = f.read()
+    text = tail.decode("utf-8", errors="replace")
+    # Drop a leading partial line so the tail starts on a clean boundary.
+    newline = text.find("\n")
+    if newline != -1:
+        text = text[newline + 1:]
+    omitted = size - _MAX_JOB_FILE_BYTES
+    shown_mb = _MAX_JOB_FILE_BYTES // (1024 * 1024)
+    header = (
+        f"[Fileglancer: this file is {size} bytes; showing only the last "
+        f"{shown_mb} MB ({omitted} earlier bytes omitted). Open it from the "
+        f"job's work directory to view the full contents.]\n\n"
+    )
+    return header + text
+
+
 def read_job_file(db_job, file_type: str) -> Optional[str]:
     """Read the content of a job file given a loaded job record.
 
@@ -172,6 +311,7 @@ def read_job_file(db_job, file_type: str) -> Optional[str]:
       - stdout.log  — captured standard output
       - stderr.log  — captured standard error
 
+    Oversized files are truncated to their tail (see _read_text_capped).
     Returns the file content as a string, or None if the file doesn't exist.
     """
     work_dir = _resolve_work_dir(db_job)
@@ -182,10 +322,10 @@ def read_job_file(db_job, file_type: str) -> Optional[str]:
         script_path = getattr(db_job, 'script_path', None)
         if script_path:
             path = Path(script_path)
-            return path.read_text() if path.is_file() else None
+            return _read_text_capped(path) if path.is_file() else None
         scripts = sorted(work_dir.glob("*.sh"))
         if scripts:
-            return scripts[0].read_text()
+            return _read_text_capped(scripts[0])
         return None
     elif file_type == "stdout":
         path = work_dir / "stdout.log"
@@ -195,7 +335,7 @@ def read_job_file(db_job, file_type: str) -> Optional[str]:
         raise ValueError(f"Unknown file type: {file_type}")
 
     if path.is_file():
-        return path.read_text()
+        return _read_text_capped(path)
     return None
 
 

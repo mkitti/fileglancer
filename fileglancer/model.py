@@ -1,8 +1,11 @@
 import re
+import shlex
 from datetime import datetime
 from typing import Annotated, Any, List, Literal, Optional, Dict, Union
 
 from pydantic import BaseModel, Discriminator, Field, HttpUrl, Tag, field_validator, model_validator
+
+from fileglancer.giturls import _parse_github_url
 
 
 class FileSharePath(BaseModel):
@@ -317,6 +320,12 @@ class NeuroglancerShortLinkResponse(BaseModel):
 
 # --- App Manifest Models ---
 
+# Conservative CLI-flag shape: one or two leading dashes, then an alphanumeric
+# followed by word characters, dots, or dashes. Flags are emitted into the
+# generated job script unquoted, so anything shell-significant is rejected.
+_FLAG_PATTERN = re.compile(r'^-{1,2}[A-Za-z0-9][A-Za-z0-9_.-]*$')
+
+
 class AppParameter(BaseModel):
     """A parameter definition for an app entry point"""
     flag: Optional[str] = Field(
@@ -340,6 +349,33 @@ class AppParameter(BaseModel):
     pattern: Optional[str] = Field(description="Regex validation pattern for string types", default=None)
     hidden: bool = Field(description="Whether the parameter is hidden by default in the UI", default=False)
     raw: bool = Field(description="If true, value is appended to the command without shell quoting", default=False)
+    value_separator: Literal["space", "equals"] = Field(
+        description=(
+            "How flagged parameters are joined to their value in the generated "
+            "command: 'space' emits '--flag value', while 'equals' emits "
+            "'--flag=value'."
+        ),
+        default="space",
+    )
+    boolean_style: Literal["flag", "value"] = Field(
+        description=(
+            "How flagged boolean parameters are emitted: 'flag' emits '--flag' "
+            "for true and omits false, while 'value' emits '--flag true' or "
+            "'--flag false' (or '--flag=true/false' when value_separator is "
+            "'equals')."
+        ),
+        default="flag",
+    )
+    exists: bool = Field(
+        description="file/directory params only: when true (the default), the path "
+                    "must exist and be readable before launch. Set false for outputs "
+                    "the job creates — the pre-launch existence check is skipped "
+                    "(file-share containment is still enforced), and directory params "
+                    "are created (as the user, within an allowed file share) before "
+                    "launch, so a home default like '~/.fileglancer/logs' works on "
+                    "first launch",
+        default=True,
+    )
 
     @field_validator("flag")
     @classmethod
@@ -350,6 +386,15 @@ class AppParameter(BaseModel):
             stripped = v.lstrip("-")
             if not stripped:
                 raise ValueError("Flag must have content after dashes")
+            # Flags are appended to the generated shell command unquoted, and
+            # the Nextflow adapter derives them from schema property names, so
+            # constrain them to a conservative CLI-flag shape rather than
+            # allowing shell-significant characters through.
+            if not _FLAG_PATTERN.fullmatch(v):
+                raise ValueError(
+                    f"Flag must look like '-n' or '--long-name' "
+                    f"(letters, digits, '_', '.', '-'), got '{v}'"
+                )
         return v
 
     @field_validator("options", mode="before")
@@ -362,6 +407,23 @@ class AppParameter(BaseModel):
         if v is None:
             return v
         return [str(item) for item in v]
+
+    @model_validator(mode='after')
+    def validate_exists(self):
+        # Check the value, not model_fields_set: manifests round-trip through
+        # model_dump (worker -> server, DB cache), which serializes the True
+        # default onto every param, so presence of the field is meaningless.
+        if not self.exists and self.type not in ("file", "directory"):
+            raise ValueError(
+                f"exists is only valid on file and directory parameters, "
+                f"but '{self.name}' has type '{self.type}'"
+            )
+        if self.boolean_style != "flag" and self.type != "boolean":
+            raise ValueError(
+                f"boolean_style is only valid on boolean parameters, "
+                f"but '{self.name}' has type '{self.type}'"
+            )
+        return self
 
 
 class AppParameterSection(BaseModel):
@@ -436,6 +498,27 @@ class AppEntryPoint(BaseModel):
         ),
         default=None,
     )
+    auto_url: bool = Field(
+        description=(
+            "For service entry points only: have Fileglancer publish the service "
+            "URL for you. Once the service's port ($FG_SERVICE_PORT) is accepting "
+            "connections, Fileglancer writes http://$FG_HOSTNAME:$FG_SERVICE_PORT "
+            "(plus service_url_suffix, if set) to SERVICE_URL_PATH. Set this when "
+            "your service binds to the Fileglancer-provided $FG_SERVICE_PORT."
+        ),
+        default=False,
+    )
+    service_url_suffix: Optional[str] = Field(
+        description=(
+            "For auto_url service entry points: text appended to "
+            "http://$FG_HOSTNAME:$FG_SERVICE_PORT when publishing the URL, e.g. a "
+            "path and/or query for one-click auth. May contain the placeholders "
+            "${FG_SERVICE_TOKEN}, ${FG_SERVICE_PORT}, ${FG_HOSTNAME} (braces "
+            "required) and literal URL text; nothing else. Example: "
+            "'/?access_token=${FG_SERVICE_TOKEN}'."
+        ),
+        default=None,
+    )
     requirements: List[str] = Field(
         description="Required tools for this entry point, e.g. ['apptainer']. Merged with manifest-level requirements.",
         default=[],
@@ -472,6 +555,23 @@ class AppEntryPoint(BaseModel):
             return v
         if _SHELL_METACHAR_PATTERN.search(v):
             raise ValueError(f"container URL contains forbidden characters: {v!r}")
+        return v
+
+    @field_validator("service_url_suffix")
+    @classmethod
+    def validate_service_url_suffix(cls, v):
+        if v is None:
+            return v
+        # Strip the recognized ${FG_*} placeholders, then reject anything that
+        # would be unsafe or unexpanded inside the double-quoted shell string the
+        # suffix is emitted into (a stray $, quote, backtick, backslash, newline).
+        residual = _SERVICE_URL_PLACEHOLDER.sub("", v)
+        if _SERVICE_URL_UNSAFE.search(residual):
+            raise ValueError(
+                "service_url_suffix may contain only literal URL text and the "
+                "placeholders ${FG_SERVICE_TOKEN}, ${FG_SERVICE_PORT}, "
+                f"${{FG_HOSTNAME}} (braces required); got: {v!r}"
+            )
         return v
 
     @field_validator("bind_paths")
@@ -550,6 +650,10 @@ class AppEntryPoint(BaseModel):
             raise ValueError("conda_env and container are mutually exclusive — use one or the other")
         if self.bind_paths and not self.container:
             raise ValueError("bind_paths requires container to be set")
+        if self.auto_url and self.type != "service":
+            raise ValueError("auto_url is only valid for service entry points (type: service)")
+        if self.service_url_suffix is not None and not self.auto_url:
+            raise ValueError("service_url_suffix requires auto_url to be set")
         return self
 
 
@@ -563,6 +667,13 @@ _REQUIREMENT_PATTERN = re.compile(
 )
 
 _SHELL_METACHAR_PATTERN = re.compile(r'[;&|`$(){}!<>\n\r]')
+# Placeholders Fileglancer substitutes into service_url_suffix at runtime.
+_SERVICE_URL_PLACEHOLDER = re.compile(r'\$\{(?:FG_SERVICE_TOKEN|FG_SERVICE_PORT|FG_HOSTNAME)\}')
+# The suffix is emitted inside a double-quoted shell string, so only these are
+# dangerous once the recognized placeholders are removed: a stray $, a double
+# quote, a backtick, a backslash, or a newline. Everything else (?, &, =, /, %,
+# ...) is literal inside double quotes and valid in a URL.
+_SERVICE_URL_UNSAFE = re.compile(r'[$"`\\\n\r]')
 _CONDA_ENV_NAME_PATTERN = re.compile(r'^[a-zA-Z0-9_.-]+$')
 _CONDA_ENV_PATH_FORBIDDEN = re.compile(r'[;&|`$(){}!<>\n\r]')
 
@@ -597,6 +708,11 @@ class AppManifest(BaseModel):
     """Top-level app manifest (runnables.yaml)"""
     name: str = Field(description="Display name of the app")
     description: Optional[str] = Field(description="Description of the app", default=None)
+    source_filename: str = Field(
+        description="Name of the file this manifest was read or generated from, "
+                    "e.g. runnables.yaml, nextflow_schema.json, or pixi.toml",
+        default="runnables.yaml",
+    )
     repo_url: Optional[str] = Field(
         description="GitHub repo URL where the tool code lives. If absent, uses the repo containing this manifest.",
         default=None,
@@ -605,12 +721,28 @@ class AppManifest(BaseModel):
         description="Required tools, e.g. ['pixi>=0.40', 'npm']",
         default=[],
     )
-    runnables: List[AppEntryPoint] = Field(description="Available entry points for this app")
+    runnables: List[AppEntryPoint] = Field(
+        description="Available entry points for this app", min_length=1)
 
     @field_validator("requirements")
     @classmethod
     def validate_requirements(cls, v):
         return _validate_requirements(v)
+
+    @field_validator("repo_url")
+    @classmethod
+    def validate_repo_url(cls, v):
+        # A separate code repo must be a GitHub URL the same way app URLs are —
+        # reject anything else at manifest load so authors get a clear error
+        # instead of a cryptic failure later at launch/update when
+        # ensure_repo_snapshot tries to parse it.
+        if v is None:
+            return v
+        try:
+            _parse_github_url(v)
+        except ValueError as e:
+            raise ValueError(f"repo_url must be a GitHub repository URL: {e}")
+        return v
 
 
 class UserApp(BaseModel):
@@ -618,6 +750,14 @@ class UserApp(BaseModel):
     url: str = Field(description="URL to the app manifest")
     manifest_path: str = Field(description="Relative directory path to the manifest within the repo", default="")
     branch: Optional[str] = Field(description="Revision the user requested; empty means no explicit revision was requested. The fixed actually-cloned revision is baked into url; a bare stored URL means main.", default=None)
+    commit_sha: Optional[str] = Field(
+        description="Commit the app is pinned to; jobs run an immutable snapshot of this SHA. None for legacy rows not yet pinned.",
+        default=None,
+    )
+    code_commit_sha: Optional[str] = Field(
+        description="Pin for the manifest's separate code repo (repo_url), when declared.",
+        default=None,
+    )
     name: str = Field(description="App name from manifest")
     description: Optional[str] = Field(description="App description from manifest", default=None)
     added_at: datetime = Field(description="When the app was added")
@@ -683,6 +823,15 @@ class ShareAppRequest(BaseModel):
 
 class UpdateAppListingRequest(BaseModel):
     """Request to update a listing's editable metadata"""
+    url: Optional[str] = Field(
+        description=(
+            "New GitHub URL for the listing, optionally carrying a revision "
+            "as /tree/<rev> (same form the add flow uses). When it differs "
+            "from the stored URL, the repo is cloned and the listing's "
+            "manifest path must still exist there."
+        ),
+        default=None,
+    )
     name: Optional[str] = Field(description="New display name", default=None)
     description: Optional[str] = Field(description="New description", default=None)
 
@@ -701,6 +850,40 @@ class ManifestFetchRequest(BaseModel):
 class AppAddRequest(BaseModel):
     """Request to add an app"""
     url: str = Field(description="URL to the app manifest or GitHub repo")
+    manifest_paths: Optional[List[str]] = Field(
+        description=(
+            "Manifest paths (relative dirs within the repo) to add. When omitted "
+            "or null, every discovered manifest in the repo is added. Use this to "
+            "add a subset of a multi-app repository."
+        ),
+        default=None,
+    )
+
+
+class DiscoveredApp(BaseModel):
+    """A manifest discovered in a repo, for previewing before adding"""
+    manifest_path: str = Field(description="Relative directory path to the manifest within the repo", default="")
+    name: str = Field(description="App name from the manifest")
+    description: Optional[str] = Field(description="App description from the manifest", default=None)
+    already_added: bool = Field(
+        description="True if the user has already added this manifest from this repo",
+        default=False,
+    )
+
+
+class AppUpdateCheck(BaseModel):
+    """Whether a newer commit exists on an app's pinned revision"""
+    url: str = Field(description="Canonical URL of the app")
+    manifest_path: str = Field(description="Manifest path within the repo", default="")
+    commit_sha: Optional[str] = Field(description="Commit the app is currently pinned to", default=None)
+    latest_sha: Optional[str] = Field(
+        description="Tip of the pinned revision on the remote; None if it could not be resolved",
+        default=None,
+    )
+    update_available: bool = Field(
+        description="True when the remote tip differs from the pinned commit",
+        default=False,
+    )
 
 
 class AppRemoveRequest(BaseModel):
@@ -730,7 +913,7 @@ class Job(BaseModel):
         description="Environment-tab parameter values (separate namespace from parameters)",
         default=None,
     )
-    status: str = Field(description="Job status (PENDING, RUNNING, DONE, FAILED, KILLED)")
+    status: str = Field(description="Job status (PENDING, RUNNING, UNKNOWN, DONE, FAILED, KILLED)")
     exit_code: Optional[int] = Field(description="Exit code of the job", default=None)
     resources: Optional[Dict] = Field(description="Requested resources", default=None)
     env: Optional[Dict[str, str]] = Field(description="Environment variables used for the job", default=None)
@@ -742,8 +925,14 @@ class Job(BaseModel):
     conda_env: Optional[str] = Field(description="Conda environment activated for the job", default=None)
     requirements: Optional[List[str]] = Field(description="Declared runtime requirements (e.g. ['nextflow', 'apptainer'])", default=None)
     work_dir: Optional[str] = Field(description="Working directory the job ran in", default=None)
+    commit_sha: Optional[str] = Field(description="Commit whose code the job executed", default=None)
+    code_repo_url: Optional[str] = Field(
+        description="Repo the executed commit belongs to, when it differs from app_url",
+        default=None,
+    )
     cluster_job_id: Optional[str] = Field(description="Cluster-assigned job ID", default=None)
     service_url: Optional[str] = Field(description="URL of the running service (for service-type jobs)", default=None)
+    phase: Optional[str] = Field(description="Startup phase of a running service before its URL is ready, e.g. 'pulling_image' or 'starting'", default=None)
     created_at: datetime = Field(description="When the job was created")
     started_at: Optional[datetime] = Field(description="When the job started running", default=None)
     finished_at: Optional[datetime] = Field(description="When the job finished", default=None)
@@ -777,8 +966,19 @@ class JobSubmitRequest(BaseModel):
     @field_validator("extra_args")
     @classmethod
     def validate_extra_args(cls, v):
-        if v is not None and _SHELL_METACHAR_PATTERN.search(v):
-            raise ValueError(f"extra_args contains forbidden characters: {v!r}")
+        # extra_args are shlex-split into argv tokens and passed to the
+        # scheduler via exec (no shell — see cluster_api's bsub), so shell
+        # metacharacters are safe and in fact required: LSF resource strings
+        # like -R "select[mem>8000]" contain '>', '[' and ']'. Only require
+        # that the string parses into balanced tokens and carries no NUL.
+        if v is None:
+            return v
+        if "\x00" in v:
+            raise ValueError("extra_args must not contain NUL bytes")
+        try:
+            shlex.split(v)
+        except ValueError as e:
+            raise ValueError(f"extra_args could not be parsed into arguments: {e}")
         return v
 
     @field_validator("container")
@@ -799,6 +999,16 @@ class JobSubmitRequest(BaseModel):
 class PathValidationRequest(BaseModel):
     """Request to validate file/directory paths"""
     paths: Dict[str, str] = Field(description="Map of parameter key to path value")
+    may_be_missing: List[str] = Field(
+        default=[],
+        description="Keys whose path may not exist yet (exists=false params): "
+                    "validated for file-share containment only, not existence",
+    )
+    types: Dict[str, str] = Field(
+        default={},
+        description="Expected type per key ('file' or 'directory'): when the "
+                    "path exists, its type must match",
+    )
 
 
 class PathValidationResponse(BaseModel):
@@ -809,3 +1019,8 @@ class PathValidationResponse(BaseModel):
 class JobResponse(BaseModel):
     """Response containing a list of jobs"""
     jobs: List[Job] = Field(description="A list of jobs")
+
+
+class JobActiveCountResponse(BaseModel):
+    """Response containing the number of active (non-terminal) jobs"""
+    count: int = Field(description="Number of active jobs")

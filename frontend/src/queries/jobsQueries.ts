@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryResult, UseMutationResult } from '@tanstack/react-query';
 
@@ -6,6 +7,7 @@ import {
   getResponseJsonOrError,
   throwResponseNotOkError
 } from '@/queries/queryUtils';
+import { isActiveJobStatus } from '@/shared.types';
 import type { Job, JobSubmitRequest } from '@/shared.types';
 
 // --- Types ---
@@ -23,6 +25,7 @@ export const clusterDefaultsQueryKeys = {
 export const jobsQueryKeys = {
   all: ['cluster-jobs'] as const,
   list: () => ['cluster-jobs', 'list'] as const,
+  activeCount: () => ['cluster-jobs', 'active-count'] as const,
   detail: (id: number) => ['cluster-jobs', 'detail', id] as const
 };
 
@@ -53,6 +56,20 @@ async function fetchJobs(signal?: AbortSignal): Promise<Job[]> {
     throwResponseNotOkError(response, data);
   }
   return (data as { jobs: Job[] }).jobs;
+}
+
+async function fetchActiveJobCount(signal?: AbortSignal): Promise<number> {
+  const response = await sendFetchRequest(
+    '/api/jobs/active-count',
+    'GET',
+    undefined,
+    { signal }
+  );
+  const data = await getResponseJsonOrError(response);
+  if (!response.ok) {
+    throwResponseNotOkError(response, data);
+  }
+  return (data as { count: number }).count;
 }
 
 async function fetchJob(jobId: number, signal?: AbortSignal): Promise<Job> {
@@ -114,10 +131,22 @@ export function useJobsQuery(): UseQueryResult<Job[], Error> {
       if (!jobs) {
         return false;
       }
-      const hasActive = jobs.some(
-        j => j.status === 'PENDING' || j.status === 'RUNNING'
-      );
+      const hasActive = jobs.some(j => isActiveJobStatus(j.status));
       return hasActive ? 5000 : false;
+    }
+  });
+}
+
+export function useActiveJobCountQuery(): UseQueryResult<number, Error> {
+  return useQuery({
+    queryKey: jobsQueryKeys.activeCount(),
+    queryFn: ({ signal }) => fetchActiveJobCount(signal),
+    // Auto-refresh every 5 seconds while any job is active, like the full
+    // listing. Submit/cancel/delete mutations invalidate this via the shared
+    // 'cluster-jobs' key prefix, so an idle badge still picks up new jobs.
+    refetchInterval: query => {
+      const count = query.state.data;
+      return count && count > 0 ? 5000 : false;
     }
   });
 }
@@ -131,9 +160,7 @@ export function useJobQuery(jobId: number): UseQueryResult<Job, Error> {
       if (!job) {
         return false;
       }
-      return job.status === 'PENDING' || job.status === 'RUNNING'
-        ? 5000
-        : false;
+      return isActiveJobStatus(job.status) ? 5000 : false;
     }
   });
 }
@@ -144,18 +171,32 @@ export function useJobFileQuery(
   jobStatus?: string,
   enabled: boolean = true
 ): UseQueryResult<string | null, Error> {
-  const isActive = jobStatus === 'PENDING' || jobStatus === 'RUNNING';
-  return useQuery({
+  const isActive = isActiveJobStatus(jobStatus);
+  const query = useQuery({
     queryKey: [...jobsQueryKeys.detail(jobId), 'file', fileType],
     queryFn: ({ signal }) => fetchJobFile(jobId, fileType, signal),
     // Defer fetching the file content until its tab is viewed, so opening a
     // job doesn't load all three log files up front.
     enabled,
     refetchInterval: () => {
-      // Auto-refresh while job is active, or if file doesn't exist yet
+      // Auto-refresh while the job is active; polling stops once it's terminal.
       return isActive ? 5000 : false;
     }
   });
+
+  // Polling stops the moment the job goes terminal, but the last ~5s of output
+  // (and the scheduler epilogue) is written right around then. Do one final
+  // refetch on the active -> terminal edge so the viewed log isn't left stale.
+  const { refetch } = query;
+  const wasActive = useRef(isActive);
+  useEffect(() => {
+    if (wasActive.current && !isActive && enabled) {
+      void refetch();
+    }
+    wasActive.current = isActive;
+  }, [isActive, enabled, refetch]);
+
+  return query;
 }
 
 // --- Mutation Hooks ---

@@ -5,7 +5,6 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { Card, Tabs, Typography } from '@material-tailwind/react';
 import {
   HiExternalLink,
-  HiOutlineArrowLeft,
   HiOutlineDownload,
   HiOutlineRefresh,
   HiOutlineStop
@@ -15,26 +14,34 @@ import {
   materialDark,
   coy
 } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import toast from 'react-hot-toast';
 
 import AnsiText from '@/components/ui/AppsPage/AnsiText';
+import AppPageHeader from '@/components/ui/AppsPage/AppPageHeader';
 import FgButton from '@/components/designSystem/atoms/FgButton';
 import FgIcon from '@/components/designSystem/atoms/FgIcon';
+import FgLink from '@/components/designSystem/atoms/FgLink';
 import CancelJobDialog from '@/components/ui/Dialogs/CancelJob';
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
+import { showErrorToast } from '@/utils/errorToast';
 import type {
   JobFileInfo,
   FileSharePath,
   AppLaunchParamsFile,
   AppResourceDefaults
 } from '@/shared.types';
+import { isActiveJobStatus } from '@/shared.types';
 import JobStatusBadge from '@/components/ui/AppsPage/JobStatusBadge';
 import {
   formatDateString,
+  buildAppDetailPath,
+  buildGithubCommitUrl,
   buildRelaunchPath,
   parseGithubUrl,
   buildGithubUrl,
   downloadTextFile,
   formatDuration,
+  getEntryPointTypeIconType,
   stripLsfFooter,
   tailLines,
   exitCodeMeaning
@@ -51,6 +58,7 @@ import {
   useJobFileQuery,
   useCancelJobMutation
 } from '@/queries/jobsQueries';
+import { useManifestPreviewMutation } from '@/queries/appsQueries';
 import FgExternalLink from './designSystem/atoms/FgExternalLink';
 
 /** Drop null/undefined values so they aren't shown or persisted as parameters. */
@@ -66,13 +74,23 @@ function omitNullValues(
 
 function FilePreview({
   content,
+  error,
   language,
   isDarkMode
 }: {
   readonly content: string | null | undefined;
+  readonly error?: Error | null;
   readonly language: string;
   readonly isDarkMode: boolean;
 }) {
+  if (error) {
+    return (
+      <div className="p-3 bg-error/10 rounded text-error text-sm">
+        Failed to load file: {error.message || 'Unknown error'}
+      </div>
+    );
+  }
+
   if (content === undefined) {
     return <Typography className="text-foreground p-4">Loading...</Typography>;
   }
@@ -223,10 +241,14 @@ function InfoCard({
 /** A label/value row; renders nothing when the value is empty. */
 function InfoRow({
   label,
-  value
+  value,
+  truncate = false
 }: {
   readonly label: string;
   readonly value: ReactNode;
+  // When true, render the value as a single line clipped with an ellipsis
+  // (full text shown on hover) instead of wrapping across multiple lines.
+  readonly truncate?: boolean;
 }) {
   if (value === null || value === undefined || value === '') {
     return null;
@@ -236,7 +258,10 @@ function InfoRow({
       <Typography className="text-foreground text-sm font-semibold shrink-0">
         {label}:
       </Typography>
-      <Typography className="text-foreground whitespace-pre-wrap break-all">
+      <Typography
+        className={`text-foreground ${truncate ? 'truncate min-w-0 flex-1' : 'whitespace-pre-wrap break-all'}`}
+        title={truncate && typeof value === 'string' ? value : undefined}
+      >
         {value}
       </Typography>
     </div>
@@ -261,6 +286,15 @@ function appRepoLink(appUrl: string): { href: string; label: string } | null {
   }
 }
 
+/** Best-effort link to the app's detail page; null if the URL isn't parseable. */
+function appDetailLink(job: Job): string | null {
+  try {
+    return buildAppDetailPath(job.app_url, job.manifest_path);
+  } catch {
+    return null;
+  }
+}
+
 const RECENT_OUTPUT_LINES = 20;
 
 /** The job Overview tab: status, execution details, recent output. */
@@ -268,7 +302,6 @@ function JobOverview({
   job,
   stdoutContent,
   stderrContent,
-  stdoutPending,
   isDarkMode,
   onViewStdout,
   onViewStderr
@@ -276,18 +309,23 @@ function JobOverview({
   readonly job: Job;
   readonly stdoutContent: string | null | undefined;
   readonly stderrContent: string | null | undefined;
-  readonly stdoutPending: boolean;
   readonly isDarkMode: boolean;
   readonly onViewStdout: () => void;
   readonly onViewStderr: () => void;
 }) {
-  const isActive = job.status === 'PENDING' || job.status === 'RUNNING';
+  const isActive = isActiveJobStatus(job.status);
   const runtime = formatDuration(job.started_at, job.finished_at);
   const queueWait = job.started_at
     ? formatDuration(job.created_at, job.started_at)
     : null;
   const exitMeaning = exitCodeMeaning(job.exit_code);
   const repoLink = appRepoLink(job.app_url);
+  // The executed commit may belong to a separate code repo (manifests with
+  // repo_url); link the commit against whichever repo it came from.
+  const commitLink = job.commit_sha
+    ? buildGithubCommitUrl(job.code_repo_url || job.app_url, job.commit_sha)
+    : null;
+  const detailPath = appDetailLink(job);
 
   const stdoutTail =
     stdoutContent !== null && stdoutContent !== undefined
@@ -297,6 +335,7 @@ function JobOverview({
     stderrContent !== null && stderrContent !== undefined
       ? tailLines(stripLsfFooter(stderrContent), RECENT_OUTPUT_LINES)
       : null;
+  const hasStdout = Boolean(stdoutTail && stdoutTail.trim());
   const hasStderr = Boolean(stderrTail && stderrTail.trim());
 
   return (
@@ -327,7 +366,15 @@ function JobOverview({
         <InfoCard className="md:col-span-3" title="Execution">
           <InfoRow
             label="App"
-            value={`${job.app_name} — ${job.entry_point_name}`}
+            value={
+              detailPath ? (
+                <FgLink to={detailPath}>
+                  {`${job.app_name} — ${job.entry_point_name}`}
+                </FgLink>
+              ) : (
+                `${job.app_name} — ${job.entry_point_name}`
+              )
+            }
           />
           <InfoRow
             label="Repository"
@@ -336,6 +383,25 @@ function JobOverview({
                 <FgExternalLink href={repoLink.href}>
                   {repoLink.label}
                 </FgExternalLink>
+              ) : null
+            }
+          />
+          <InfoRow
+            label="Version"
+            value={
+              job.commit_sha ? (
+                commitLink ? (
+                  <FgExternalLink
+                    className="text-xs font-mono"
+                    href={commitLink}
+                  >
+                    {job.commit_sha.slice(0, 7)}
+                  </FgExternalLink>
+                ) : (
+                  <span className="text-xs font-mono">
+                    {job.commit_sha.slice(0, 7)}
+                  </span>
+                )
               ) : null
             }
           />
@@ -358,7 +424,7 @@ function JobOverview({
               ))}
             </div>
           ) : null}
-          <InfoRow label="Command" value={job.command} />
+          <InfoRow label="Command" truncate value={job.command} />
           <InfoRow label="Container" value={job.container} />
           <InfoRow label="Container args" value={job.container_args} />
           <InfoRow label="Conda env" value={job.conda_env} />
@@ -366,7 +432,7 @@ function JobOverview({
         </InfoCard>
       </div>
 
-      {job.started_at ? (
+      {hasStdout ? (
         <div>
           <div className="flex items-center justify-between mb-1">
             <Typography className="text-foreground font-bold">
@@ -381,7 +447,7 @@ function JobOverview({
             </button>
           </div>
           <FilePreview
-            content={stdoutPending ? undefined : (stdoutTail ?? null)}
+            content={stdoutTail}
             isDarkMode={isDarkMode}
             language="text"
           />
@@ -449,9 +515,10 @@ export default function JobDetail() {
     activeTab === 'stderr' || activeTab === 'overview'
   );
   const cancelMutation = useCancelJobMutation();
+  const jobManifestMutation = useManifestPreviewMutation();
 
   const isService = jobQuery.data?.entry_point_type === 'service';
-  const isActive = jobStatus === 'PENDING' || jobStatus === 'RUNNING';
+  const isActive = isActiveJobStatus(jobStatus);
 
   useEffect(() => {
     const checkDarkMode = () => {
@@ -467,6 +534,20 @@ export default function JobDetail() {
   }, []);
 
   const job = jobQuery.data;
+  const jobEntryPoint = jobManifestMutation.data?.runnables.find(
+    ep => ep.id === job?.entry_point_id
+  );
+
+  useEffect(() => {
+    if (job?.app_url) {
+      jobManifestMutation.mutate({
+        url: job.app_url,
+        manifest_path: job.manifest_path || ''
+      });
+    }
+    // Re-fetch when the job's app identity changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job?.app_url, job?.manifest_path]);
 
   // Download the full set of parameters used for this job (all three tabs of
   // the launch form) as a JSON file that can be re-uploaded to relaunch.
@@ -486,8 +567,12 @@ export default function JobDetail() {
       params.env_parameters = envParameters;
     }
     const resources = job.resources ? omitNullValues(job.resources) : {};
-    if (Object.keys(resources).length > 0) {
-      params.resources = resources as AppResourceDefaults;
+    const { extra_args: extraArgs, ...resourceValues } = resources;
+    if (Object.keys(resourceValues).length > 0) {
+      params.resources = resourceValues as AppResourceDefaults;
+    }
+    if (typeof extraArgs === 'string' && extraArgs.trim()) {
+      params.extra_args = extraArgs;
     }
     if (job.env && Object.keys(job.env).length > 0) {
       params.env = job.env;
@@ -533,17 +618,28 @@ export default function JobDetail() {
     });
   };
 
+  // Cancel/stop the job, reporting success and — critically — failure, so a
+  // failed stop of a running service isn't silently swallowed (the service
+  // would keep consuming cluster resources). Keep the dialog open on error so
+  // the user can retry.
+  const handleStopConfirm = async () => {
+    if (!job) {
+      return;
+    }
+    try {
+      await cancelMutation.mutateAsync(job.id);
+      toast.success(isService ? 'Service stopped' : 'Job cancelled');
+      setShowStopConfirm(false);
+    } catch (error) {
+      showErrorToast(
+        error,
+        isService ? 'Failed to stop service' : 'Failed to cancel job'
+      );
+    }
+  };
+
   return (
     <div>
-      <FgButton
-        className="mb-6"
-        icon={HiOutlineArrowLeft}
-        onClick={() => navigate('/apps/jobs')}
-        variant="outline"
-      >
-        Back to Jobs
-      </FgButton>
-
       {jobQuery.isPending ? (
         <div className="animate-pulse">
           {/* Title skeleton */}
@@ -576,19 +672,14 @@ export default function JobDetail() {
       ) : job ? (
         <div>
           {/* Job Info Header */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-0">
-                <Typography className="font-bold truncate" type="h5">
-                  {job.app_name} &mdash; {job.entry_point_name}
-                </Typography>
-                <JobStatusBadge status={job.status} />
-              </div>
-              <div className="flex items-center gap-2">
+          <AppPageHeader
+            actions={
+              <>
                 <FgButton
                   className="!rounded-md whitespace-nowrap"
                   icon={HiOutlineDownload}
                   onClick={handleDownloadParams}
+                  size="sm"
                   variant="outline"
                 >
                   Export params
@@ -601,6 +692,7 @@ export default function JobDetail() {
                     loading={cancelMutation.isPending}
                     loadingText="Cancelling"
                     onClick={() => setShowStopConfirm(true)}
+                    size="sm"
                     variant="outline"
                   >
                     Cancel
@@ -609,14 +701,23 @@ export default function JobDetail() {
                   <FgButton
                     icon={HiOutlineRefresh}
                     onClick={handleRelaunch}
+                    size="sm"
                     variant="outline"
                   >
                     Relaunch
                   </FgButton>
                 )}
-              </div>
-            </div>
-          </div>
+              </>
+            }
+            backLabel="Back to Jobs"
+            backTo="/apps/jobs"
+            description={jobEntryPoint?.description ?? null}
+            githubUrl={job.app_url}
+            icon={getEntryPointTypeIconType(job.entry_point_type)}
+            title={`${job.app_name} - ${job.entry_point_name}`}
+          >
+            <JobStatusBadge status={job.status} />
+          </AppPageHeader>
 
           {/* Service URL banner */}
           {isService && job.status === 'RUNNING' ? (
@@ -669,7 +770,9 @@ export default function JobDetail() {
                   <span className="relative inline-flex rounded-full h-3 w-3 bg-warning" />
                 </span>
                 <Typography className="text-foreground flex-1">
-                  Service is starting up...
+                  {job.phase === 'pulling_image'
+                    ? 'Downloading container image… first launch can take a few minutes.'
+                    : 'Service is starting up…'}
                 </Typography>
                 <FgButton
                   color="error"
@@ -690,10 +793,7 @@ export default function JobDetail() {
             isPending={cancelMutation.isPending}
             isService={isService}
             onClose={() => setShowStopConfirm(false)}
-            onConfirm={() => {
-              cancelMutation.mutate(job.id);
-              setShowStopConfirm(false);
-            }}
+            onConfirm={handleStopConfirm}
             open={showStopConfirm}
           />
 
@@ -732,7 +832,6 @@ export default function JobDetail() {
                 onViewStdout={() => setActiveTab('stdout')}
                 stderrContent={stderrQuery.data}
                 stdoutContent={stdoutQuery.data}
-                stdoutPending={stdoutQuery.isPending}
               />
             </Tabs.Panel>
 
@@ -841,6 +940,7 @@ export default function JobDetail() {
                 content={
                   scriptQuery.isPending ? undefined : (scriptQuery.data ?? null)
                 }
+                error={scriptQuery.isError ? scriptQuery.error : null}
                 isDarkMode={isDarkMode}
                 language="bash"
               />
@@ -867,6 +967,7 @@ export default function JobDetail() {
                 content={
                   stdoutQuery.isPending ? undefined : (stdoutQuery.data ?? null)
                 }
+                error={stdoutQuery.isError ? stdoutQuery.error : null}
                 isDarkMode={isDarkMode}
                 language="text"
               />
@@ -893,6 +994,7 @@ export default function JobDetail() {
                 content={
                   stderrQuery.isPending ? undefined : (stderrQuery.data ?? null)
                 }
+                error={stderrQuery.isError ? stderrQuery.error : null}
                 isDarkMode={isDarkMode}
                 language="text"
               />

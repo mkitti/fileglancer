@@ -36,6 +36,7 @@ except ImportError:
 import socket
 import struct
 import sys
+import time
 from pathlib import Path
 from typing import Any, Optional
 
@@ -167,8 +168,8 @@ def _job_db_to_dict(j) -> dict:
     """Serialize a JobDB row to a JSON-safe dict for transport to the worker.
 
     Only includes fields used by worker-side handlers (read_job_file,
-    get_service_url) — keep this list minimal so the worker sees as little of
-    the DB row as possible.
+    get_service_url, delete_job_work_dir) — keep this list minimal so the
+    worker sees as little of the DB row as possible.
     """
     return {
         "id": j.id,
@@ -646,12 +647,54 @@ def _action_validate_paths(request: dict, ctx: WorkerContext) -> dict:
     from fileglancer.apps.command import validate_path_in_filestore
 
     paths = request["paths"]
+    # Keys whose path may not exist yet (exists=false params) are checked for
+    # file-share containment only — these are outputs the job creates
+    # (directories are created by Fileglancer at submit time), so a
+    # missing-but-in-share path is valid here.
+    may_be_missing = set(request.get("may_be_missing") or [])
+    # Expected type per key ('file' or 'directory'): when the path exists, its
+    # type must match.
+    types = request.get("types") or {}
     fsps = ctx.db.get_file_share_paths()
     errors = {}
     for param_key, path_value in paths.items():
-        error = validate_path_in_filestore(path_value, fsps)
+        error = validate_path_in_filestore(
+            path_value, fsps, check_access=param_key not in may_be_missing,
+            expected_type=types.get(param_key)
+        )
         if error:
             errors[param_key] = error
+    return {"errors": errors}
+
+
+@action("create_dirs")
+def _action_create_dirs(request: dict, ctx: WorkerContext) -> dict:
+    """Create directories for app params with exists=false.
+
+    Runs as the target user in the setuid worker. Each path is expanded ('~'
+    resolves to this user's home), confirmed to be within an allowed file share
+    (containment only — the directory need not exist yet), and only then created
+    with exist_ok=True. Never creates anything outside a file share. Best-effort:
+    per-path failures are returned in {"errors": {index: message}} rather than
+    aborting the batch.
+    """
+    from fileglancer.apps.command import validate_path_in_filestore
+
+    paths = request["paths"]
+    fsps = ctx.db.get_file_share_paths()
+    errors = {}
+    for key, path_value in paths.items():
+        # Containment check without the exists/readable check — the directory is
+        # about to be created, so it legitimately may not exist yet.
+        error = validate_path_in_filestore(path_value, fsps, check_access=False)
+        if error:
+            errors[key] = error
+            continue
+        expanded = os.path.expanduser(path_value.replace("\\", "/"))
+        try:
+            os.makedirs(expanded, exist_ok=True)
+        except OSError as e:
+            errors[key] = str(e)
     return {"errors": errors}
 
 
@@ -741,17 +784,162 @@ def _action_get_job_file(request: dict, ctx: WorkerContext) -> dict:
     return {"content": content}
 
 
-@action("get_service_url")
-def _action_get_service_url(request: dict, ctx: WorkerContext) -> dict:
-    """Read service URL from job work directory."""
-    from fileglancer.apps.jobfiles import get_service_url
+@action("delete_job_work_dir")
+def _action_delete_job_work_dir(request: dict, ctx: WorkerContext) -> dict:
+    """Delete a terminal job's work directory as the target user."""
+    from fileglancer import database as db
+    from fileglancer.apps.jobfiles import delete_job_work_dir
 
     job_id = request["job_id"]
     db_job = ctx.db.get_job(job_id, ctx.username)
     if db_job is None:
         return {"error": f"Job {job_id} not found", "status_code": 404}
-    url = get_service_url(db_job)
-    return {"service_url": url}
+    if not db.is_terminal_job_status(db_job.status):
+        return {
+            "error": "Job is active; cancel or stop it before deleting.",
+            "status_code": 409,
+        }
+
+    try:
+        deleted = delete_job_work_dir(db_job)
+        return {"ok": True, "work_dir_deleted": deleted}
+    except PermissionError as e:
+        return {"error": str(e), "status_code": 403}
+    except OSError as e:
+        return {"error": str(e), "status_code": 500}
+
+
+def _proc_alive(pid: int) -> bool:
+    """True if pid is a live (non-zombie) process.
+
+    Uses /proc so a killed-but-not-yet-reaped process (state 'Z') counts as
+    dead — os.kill(pid, 0) alone would report a zombie as alive.
+    """
+    try:
+        with open(f"/proc/{pid}/stat", "rb") as f:
+            data = f.read()
+        # "pid (comm) state ...": comm may contain spaces/parens, so read the
+        # state character from just after the final ')'.
+        state = data[data.rindex(b")") + 2:data.rindex(b")") + 3]
+        return state not in (b"Z", b"X", b"x")
+    except (FileNotFoundError, ProcessLookupError):
+        return False
+    except OSError:
+        # /proc unavailable — fall back to a signal-0 probe.
+        try:
+            os.kill(pid, 0)
+            return True
+        except ProcessLookupError:
+            return False
+        except PermissionError:
+            return True
+
+
+def _descendant_pids(root_pid: int) -> list[int]:
+    """Return all descendant PIDs of root_pid (children, grandchildren, ...).
+
+    Reads PPID from /proc/<pid>/stat. Must be called before the root is killed:
+    once a parent dies its children reparent to init and can no longer be
+    traced back to root_pid.
+    """
+    children: dict[int, list[int]] = {}
+    for entry in os.listdir("/proc"):
+        if not entry.isdigit():
+            continue
+        try:
+            with open(f"/proc/{entry}/stat", "rb") as f:
+                data = f.read()
+            fields = data[data.rindex(b")") + 2:].split()
+            ppid = int(fields[1])  # state, ppid, ...
+        except (OSError, ValueError, IndexError):
+            continue
+        children.setdefault(ppid, []).append(int(entry))
+
+    result: list[int] = []
+    stack = [root_pid]
+    while stack:
+        for child in children.get(stack.pop(), []):
+            result.append(child)
+            stack.append(child)
+    return result
+
+
+def _terminate_process_tree(pid: int, grace_seconds: float = 3.0) -> bool:
+    """Terminate pid and all its descendants; return True once none survive.
+
+    The launcher bash does not forward SIGTERM to its foreground child, so
+    signalling the launcher alone leaves the real workload running (orphaned).
+    Snapshot the whole tree first (before anything dies and children reparent),
+    SIGTERM it, then SIGKILL any that outlast the grace period.
+    """
+    import signal
+
+    # Snapshot children before signalling; include the launcher itself.
+    targets = _descendant_pids(pid) + [pid]
+
+    def _signal_all(sig: int) -> None:
+        for target in targets:
+            try:
+                os.kill(target, sig)
+            except (ProcessLookupError, PermissionError):
+                pass
+
+    def _any_alive() -> bool:
+        return any(_proc_alive(target) for target in targets)
+
+    _signal_all(signal.SIGTERM)
+    deadline = time.monotonic() + grace_seconds
+    while _any_alive() and time.monotonic() < deadline:
+        time.sleep(0.1)
+
+    if _any_alive():
+        _signal_all(signal.SIGKILL)
+        # SIGKILL is immediate but reaping isn't; give the kernel a moment.
+        time.sleep(0.2)
+
+    return not _any_alive()
+
+
+@action("cancel_local")
+def _action_cancel_local(request: dict, ctx: WorkerContext) -> dict:
+    """Terminate a local-executor job and its whole process tree, as the user.
+
+    The local executor spawns `bash <script>` (in the worker's process group,
+    so we can't safely kill the group), and a fresh executor in a later
+    `cancel` dispatch has no handle to it — so cancellation targets the PID
+    persisted at submit time ({work_dir}/job.pid). Killing only that bash would
+    leave the actual workload (its child) running, so terminate the entire
+    descendant tree and confirm it is gone.
+
+    Returns {"terminated": bool}: True when nothing from the job is left
+    running (already-exited or successfully killed), False when a process
+    survived even SIGKILL — the caller must not then report the job as killed.
+    """
+    work_dir = request.get("work_dir")
+    if not work_dir:
+        return {"terminated": True}
+    pid_file = Path(work_dir) / "job.pid"
+    if not pid_file.is_file():
+        return {"terminated": True}
+    try:
+        pid = int(pid_file.read_text().strip())
+    except (ValueError, OSError):
+        return {"terminated": True}
+    if not _proc_alive(pid):
+        return {"terminated": True}  # already gone
+    return {"terminated": _terminate_process_tree(pid)}
+
+
+@action("get_service_url")
+def _action_get_service_url(request: dict, ctx: WorkerContext) -> dict:
+    """Read the service URL and startup phase from a job's work directory."""
+    from fileglancer.apps.jobfiles import get_service_url, get_service_phase
+
+    job_id = request["job_id"]
+    db_job = ctx.db.get_job(job_id, ctx.username)
+    if db_job is None:
+        return {"error": f"Job {job_id} not found", "status_code": 404}
+    return {"service_url": get_service_url(db_job), "phase": get_service_phase(db_job)}
 
 
 # ---------------------------------------------------------------------------
@@ -881,7 +1069,7 @@ def _action_validate_proxied_path(request: dict, ctx: WorkerContext, filestore, 
 
 
 # ---------------------------------------------------------------------------
-# Action handlers — cluster operations (absorbed from apps/worker.py)
+# Action handlers — cluster operations
 # ---------------------------------------------------------------------------
 
 def _get_executor(request: dict):
@@ -1019,7 +1207,7 @@ def _action_reconnect(request: dict, ctx: WorkerContext) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Action handlers — git/manifest operations (absorbed from apps/worker.py)
+# Action handlers — git/manifest operations
 # ---------------------------------------------------------------------------
 
 @action("ensure_repo")
@@ -1039,11 +1227,13 @@ def _action_discover_manifests(request: dict, ctx: WorkerContext) -> dict:
 
     Resolves the default branch here, in the user's worker, so a private repo's
     real default (reachable via the user's SSH key) is used rather than the
-    server process's "main" fallback.
+    server process's "main" fallback. Also reports the tip commit so apps added
+    from this discovery can be pinned to it.
     """
     from fileglancer.apps.manifest import (
         _ensure_repo_cache,
         _find_manifests_in_repo,
+        _git_head_sha,
         _parse_github_url,
         _repo_cache_base,
     )
@@ -1055,9 +1245,11 @@ def _action_discover_manifests(request: dict, ctx: WorkerContext) -> dict:
     branch = repo_dir.relative_to(
         (_repo_cache_base() / owner / repo).resolve()
     ).as_posix()
+    head_sha = _run_async(_git_head_sha(repo_dir))
     results = _find_manifests_in_repo(repo_dir)
     return {
         "branch": branch,
+        "head_sha": head_sha,
         "manifests": [
             {"path": path, "manifest": manifest.model_dump(mode="json")}
             for path, manifest in results
@@ -1067,20 +1259,60 @@ def _action_discover_manifests(request: dict, ctx: WorkerContext) -> dict:
 
 @action("read_manifest")
 def _action_read_manifest(request: dict, ctx: WorkerContext) -> dict:
-    """Fetch and read a single manifest from a cached repo."""
+    """Fetch and read a single manifest from a cached repo.
+
+    With "sha", reads from the immutable snapshot of that commit (materializing
+    it if needed) instead of the mutable branch clone.
+    """
     from fileglancer.apps.manifest import (
         _ensure_repo_cache,
         _read_manifest_file,
         _safe_repo_subdir,
+        ensure_repo_snapshot,
     )
-    repo_dir = _run_async(_ensure_repo_cache(
-        url=request["url"],
-        pull=request.get("pull", False),
-    ))
+    sha = request.get("sha")
+    if sha:
+        repo_dir, _ = _run_async(ensure_repo_snapshot(url=request["url"], sha=sha))
+    else:
+        repo_dir = _run_async(_ensure_repo_cache(
+            url=request["url"],
+            pull=request.get("pull", False),
+        ))
     manifest_path = request.get("manifest_path", "")
     target_dir = _safe_repo_subdir(repo_dir, manifest_path)
     manifest = _read_manifest_file(target_dir)
     return {"manifest": manifest.model_dump(mode="json")}
+
+
+@action("ensure_snapshot")
+def _action_ensure_snapshot(request: dict, ctx: WorkerContext) -> dict:
+    """Materialize (or find) the immutable snapshot of a repo at a commit."""
+    from fileglancer.apps.manifest import ensure_repo_snapshot
+    snapshot_dir, sha = _run_async(ensure_repo_snapshot(
+        url=request["url"],
+        sha=request.get("sha"),
+        pull=request.get("pull", False),
+    ))
+    return {"snapshot_dir": str(snapshot_dir), "sha": sha}
+
+
+@action("gc_snapshots")
+def _action_gc_snapshots(request: dict, ctx: WorkerContext) -> dict:
+    """Remove snapshots of a repo that no app or active job references."""
+    from fileglancer.apps.manifest import gc_repo_snapshots
+    removed = _run_async(gc_repo_snapshots(
+        url=request["url"],
+        keep_shas=request.get("keep_shas") or [],
+    ))
+    return {"removed": removed}
+
+
+@action("remote_heads")
+def _action_remote_heads(request: dict, ctx: WorkerContext) -> dict:
+    """Resolve remote tip commits for stored app URLs (batched: the lookups
+    run concurrently so one slow remote doesn't multiply worker occupancy)."""
+    from fileglancer.apps.manifest import get_remote_heads
+    return {"shas": _run_async(get_remote_heads(request.get("urls") or []))}
 
 
 # ---------------------------------------------------------------------------

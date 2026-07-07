@@ -44,6 +44,12 @@ def _convert_property(name: str, prop: dict, is_required: bool) -> AppParameter:
         "flag": f"--{name}",
         "name": name.replace("_", " ").title(),
         "type": param_type,
+        # Nextflow treats a separate value that starts with '-' as another
+        # Nextflow/pipeline option (`--runtime_opts --nv` becomes
+        # params.runtime_opts=true and params.nv=true). Join generated
+        # pipeline params with '=' so leading-dash values stay attached to the
+        # intended parameter (`--runtime_opts=--nv`).
+        "value_separator": "equals",
     }
 
     desc = prop.get("description")
@@ -52,6 +58,18 @@ def _convert_property(name: str, prop: dict, is_required: bool) -> AppParameter:
 
     if is_required:
         kwargs["required"] = True
+
+    # Nextflow boolean params are not generic CLI switches: omitting a false
+    # value leaves any pipeline default in effect (e.g. a default true stays
+    # true). Emit explicit true/false values for schema-derived booleans.
+    if param_type == "boolean":
+        kwargs["boolean_style"] = "value"
+
+    # Nextflow schemas only require a path to exist when "exists": true is set;
+    # anything else (outdir, report paths, ...) is an output the pipeline
+    # creates, so don't demand it exists before launch.
+    if param_type in ("file", "directory"):
+        kwargs["exists"] = prop.get("exists") is True
 
     if "default" in prop:
         default = prop["default"]
@@ -99,15 +117,16 @@ class NextflowAdapter:
         schema_path = directory / _NEXTFLOW_SCHEMA_FILENAME
         schema = json.loads(schema_path.read_text())
 
-        # Determine app metadata — use owner/repo from the cache path
-        # (directory is {cache_base}/{owner}/{repo}/{branch})
+        # Determine app metadata — use the repo name from the cache path
+        # (directory is {cache_base}/{owner}/{repo}/{branch}, where branch may
+        # span multiple path segments)
         try:
             from fileglancer.apps.manifest import _repo_cache_base
             cache_base = _repo_cache_base().resolve()
             relative = directory.resolve().relative_to(cache_base)
-            name = f"{relative.parts[0]}/{relative.parts[1]}"
+            name = relative.parts[1]
         except Exception:
-            name = f"{directory.parent.parent.name}/{directory.parent.name}"
+            name = directory.parent.name
         description = schema.get("description")
 
         # Build parameters from definitions, ordered by allOf
@@ -200,6 +219,7 @@ class NextflowAdapter:
         return AppManifest(
             name=name,
             description=description,
+            source_filename=_NEXTFLOW_SCHEMA_FILENAME,
             requirements=["nextflow"],
             runnables=[entry_point],
         )

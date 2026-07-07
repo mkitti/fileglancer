@@ -1,30 +1,43 @@
-import { NavLink, Outlet } from 'react-router';
+import { NavLink, Outlet, useLocation } from 'react-router';
 import type { ReactNode } from 'react';
+import type { IconType } from 'react-icons';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { PiDotsSixVerticalBold } from 'react-icons/pi';
+import {
+  HiOutlineQueueList,
+  HiOutlineRocketLaunch,
+  HiOutlineSquares2X2
+} from 'react-icons/hi2';
 
 import FgBadge from '@/components/designSystem/atoms/FgBadge';
+import FgIcon from '@/components/designSystem/atoms/FgIcon';
 import { useActiveJobCount } from '@/hooks/useActiveJobCount';
 
 interface TabItem {
   to: string;
   label: string;
+  icon: IconType;
   end?: boolean;
   badge?: ReactNode;
+  /** Overrides NavLink's own active-state matching when set. */
+  isActive?: boolean;
 }
 
 function tabClass({ isActive }: { isActive: boolean }) {
   const base =
-    'relative inline-flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary';
+    'relative flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-base font-medium transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary';
   const state = isActive
-    ? 'text-primary'
-    : 'text-foreground/70 hover:text-foreground';
+    ? 'bg-primary/10 text-primary'
+    : 'text-foreground/70 hover:bg-surface/60 hover:text-foreground dark:hover:bg-surface';
   return `${base} ${state}`;
 }
 
-function TabUnderline({ active }: { readonly active: boolean }) {
+/** Vertical accent bar marking the selected tab. */
+function TabAccent({ active }: { readonly active: boolean }) {
   return (
     <span
       aria-hidden
-      className={`absolute inset-x-0 bottom-0 h-0.5 transition-colors duration-150 ${
+      className={`absolute inset-y-2 left-0 w-[3px] rounded-full transition-colors duration-150 ${
         active ? 'bg-primary' : 'bg-transparent'
       }`}
     />
@@ -33,13 +46,29 @@ function TabUnderline({ active }: { readonly active: boolean }) {
 
 export default function AppsLayout() {
   const activeJobCount = useActiveJobCount();
+  const { pathname } = useLocation();
+
+  // App detail and launch pages are drill-downs from My Apps, so keep that tab
+  // highlighted there (NavLink's own matching would mark it inactive).
+  const myAppsActive =
+    pathname === '/apps' ||
+    pathname.startsWith('/apps/detail/') ||
+    pathname.startsWith('/apps/launch/') ||
+    pathname.startsWith('/apps/relaunch/');
 
   const tabs: TabItem[] = [
-    { to: '/apps', label: 'My Apps', end: true },
-    { to: '/apps/catalog', label: 'App Catalog' },
+    {
+      to: '/apps',
+      label: 'My Apps',
+      icon: HiOutlineRocketLaunch,
+      end: true,
+      isActive: myAppsActive
+    },
+    { to: '/apps/catalog', label: 'App Catalog', icon: HiOutlineSquares2X2 },
     {
       to: '/apps/jobs',
       label: 'Jobs',
+      icon: HiOutlineQueueList,
       badge:
         activeJobCount > 0 ? (
           <FgBadge color="secondary" size="sm" variant="pill">
@@ -50,28 +79,55 @@ export default function AppsLayout() {
   ];
 
   return (
-    <div>
-      <nav
-        aria-label="Apps sections"
-        className="mb-6 border-b border-surface-light dark:border-surface"
-      >
-        <ul className="flex gap-1 -mb-px">
-          {tabs.map(tab => (
-            <li key={tab.to}>
-              <NavLink className={tabClass} end={tab.end} to={tab.to}>
-                {({ isActive }) => (
-                  <>
-                    <span>{tab.label}</span>
-                    {tab.badge}
-                    <TabUnderline active={isActive} />
-                  </>
-                )}
-              </NavLink>
-            </li>
-          ))}
-        </ul>
-      </nav>
-      <Outlet />
+    <div className="flex h-full w-full overflow-y-hidden">
+      <PanelGroup autoSaveId="apps-layout" direction="horizontal">
+        <Panel
+          defaultSize={15}
+          id="apps-nav"
+          maxSize={30}
+          minSize={10}
+          order={1}
+        >
+          <nav
+            aria-label="Apps sections"
+            className="h-full overflow-y-auto p-4"
+          >
+            <ul className="flex flex-col gap-2">
+              {tabs.map(tab => (
+                <li key={tab.to}>
+                  <NavLink
+                    className={({ isActive }) =>
+                      tabClass({ isActive: tab.isActive ?? isActive })
+                    }
+                    end={tab.end}
+                    to={tab.to}
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <TabAccent active={tab.isActive ?? isActive} />
+                        <FgIcon className="shrink-0" icon={tab.icon} />
+                        <span className="flex-1 truncate">{tab.label}</span>
+                        {tab.badge}
+                      </>
+                    )}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </Panel>
+        <PanelResizeHandle className="group relative w-3 bg-surface border-r border-surface hover:border-secondary/60">
+          <FgIcon
+            className="stroke-2 absolute -right-1 top-1/2 stroke-surface-foreground pointer-events-none"
+            icon={PiDotsSixVerticalBold}
+          />
+        </PanelResizeHandle>
+        <Panel id="apps-main" order={2}>
+          <div className="h-full overflow-y-auto px-8 py-6">
+            <Outlet />
+          </div>
+        </Panel>
+      </PanelGroup>
     </div>
   );
 }

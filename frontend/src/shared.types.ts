@@ -79,6 +79,11 @@ type AppParameter = {
   pattern?: string;
   hidden?: boolean;
   raw?: boolean;
+  value_separator?: 'space' | 'equals';
+  boolean_style?: 'flag' | 'value';
+  /** file/directory params: when false, the path is an output the job may
+   * create, so it need not exist before launch. Defaults to true. */
+  exists?: boolean;
 };
 
 type AppParameterSection = {
@@ -126,12 +131,15 @@ type AppEntryPoint = {
   bind_paths?: string[];
   container_args?: string;
   working_dir?: 'work' | 'repo';
+  auto_url?: boolean;
+  service_url_suffix?: string;
   requirements?: string[];
 };
 
 type AppManifest = {
   name: string;
   description?: string;
+  source_filename?: string;
   repo_url?: string;
   requirements?: string[];
   runnables: AppEntryPoint[];
@@ -141,12 +149,29 @@ type UserApp = {
   url: string;
   manifest_path: string;
   branch?: string;
+  commit_sha?: string;
+  code_commit_sha?: string;
   name: string;
   description?: string;
   added_at: string;
   updated_at?: string;
   manifest?: AppManifest;
   listing_id?: number;
+};
+
+type AppUpdateCheck = {
+  url: string;
+  manifest_path: string;
+  commit_sha?: string;
+  latest_sha?: string;
+  update_available: boolean;
+};
+
+type DiscoveredApp = {
+  manifest_path: string;
+  name: string;
+  description?: string;
+  already_added: boolean;
 };
 
 type AppListing = {
@@ -168,6 +193,26 @@ type JobFileInfo = {
   subpath?: string;
 };
 
+type KnownJobStatus =
+  | 'PENDING'
+  | 'RUNNING'
+  | 'DONE'
+  | 'FAILED'
+  | 'KILLED'
+  | 'UNKNOWN';
+
+type JobStatus = KnownJobStatus | (string & {});
+
+const TERMINAL_JOB_STATUSES = new Set<string>(['DONE', 'FAILED', 'KILLED']);
+
+function isTerminalJobStatus(status?: string | null): boolean {
+  return typeof status === 'string' && TERMINAL_JOB_STATUSES.has(status);
+}
+
+function isActiveJobStatus(status?: string | null): boolean {
+  return typeof status === 'string' && !isTerminalJobStatus(status);
+}
+
 type Job = {
   id: number;
   app_url: string;
@@ -176,9 +221,11 @@ type Job = {
   entry_point_id: string;
   entry_point_name: string;
   entry_point_type?: 'job' | 'service';
+  commit_sha?: string;
+  code_repo_url?: string;
   parameters: Record<string, unknown>;
   env_parameters?: Record<string, unknown>;
-  status: 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED' | 'KILLED';
+  status: JobStatus;
   exit_code?: number;
   resources?: Record<string, unknown>;
   env?: Record<string, string>;
@@ -192,6 +239,7 @@ type Job = {
   work_dir?: string;
   cluster_job_id?: string;
   service_url?: string;
+  phase?: string;
   created_at: string;
   started_at?: string;
   finished_at?: string;
@@ -257,12 +305,15 @@ export type {
   AppParameterItem,
   AppParameterSection,
   AppResourceDefaults,
+  AppUpdateCheck,
+  DiscoveredApp,
   FetchRequestOptions,
   FileOrFolder,
   FileSharePath,
   Failure,
   Job,
   JobFileInfo,
+  JobStatus,
   JobSubmitRequest,
   Profile,
   Result,
@@ -272,4 +323,10 @@ export type {
   ZonesAndFileSharePathsMap
 };
 
-export { flattenParameters, isParameterSection, parseAppLaunchParamsFile };
+export {
+  flattenParameters,
+  isActiveJobStatus,
+  isParameterSection,
+  isTerminalJobStatus,
+  parseAppLaunchParamsFile
+};

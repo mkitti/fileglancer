@@ -38,8 +38,13 @@ export type FileSelectorMode = 'file' | 'directory' | 'any';
 type FileSelectorOptions = {
   initialLocation?: FileSelectorInitialLocation;
   initialPath?: string;
-  mode?: FileSelectorMode;
+  // When true, initialPath points at a file, so the browser opens its parent
+  // folder. Leave unset when initialPath is already a folder to open as-is.
+  initialPathIsFile?: boolean;
   pathPreferenceOverride?: ['linux_path'];
+  // When neither initialLocation nor initialPath resolves to a folder, open in
+  // the user's home directory instead of the top-level zones list.
+  defaultToHome?: boolean;
 };
 
 export default function useFileSelector(options?: FileSelectorOptions) {
@@ -48,24 +53,73 @@ export default function useFileSelector(options?: FileSelectorOptions) {
   const { profile } = useProfileContext();
 
   const initialLocation = options?.initialLocation;
-  const mode = options?.mode ?? 'any';
+  const defaultToHome = options?.defaultToHome ?? false;
   const overrideKey = options?.pathPreferenceOverride?.[0];
   const effectivePathPreference = useMemo(
     () => (overrideKey ? ([overrideKey] as ['linux_path']) : pathPreference),
     [overrideKey, pathPreference]
   );
 
-  // Initialize location based on initialLocation prop
+  // The user's home directory as a filesystem location, when known.
+  const homeLocation = useMemo<FileSelectorLocation | undefined>(() => {
+    if (!profile?.homeFileSharePathName) {
+      return undefined;
+    }
+    return {
+      type: 'filesystem',
+      fspName: profile.homeFileSharePathName,
+      path: profile.homeDirectoryName || '.'
+    };
+  }, [profile]);
+
+  // Where the selector starts (and returns to on reset): an explicit
+  // initialLocation, else the home directory when defaultToHome is set, else
+  // the top-level zones list.
+  const defaultLocation = useMemo<FileSelectorLocation>(() => {
+    if (initialLocation) {
+      return {
+        type: 'filesystem',
+        fspName: initialLocation.fspName,
+        path: initialLocation.path
+      };
+    }
+    if (defaultToHome && homeLocation) {
+      return homeLocation;
+    }
+    return { type: 'zones' };
+  }, [initialLocation, defaultToHome, homeLocation]);
+
+  // Initialize location based on the resolved default location
   const [state, setState] = useState<FileSelectorState>({
-    currentLocation: initialLocation
-      ? {
-          type: 'filesystem',
-          fspName: initialLocation.fspName,
-          path: initialLocation.path
-        }
-      : { type: 'zones' },
+    currentLocation: defaultLocation,
     selectedItem: null
   });
+
+  // Local-only dot-file visibility for the dialog. Always starts hidden,
+  // ignoring the global preference; the user can toggle it within the dialog
+  // without ever writing the global preference.
+  const [hideDotFilesLocal, setHideDotFilesLocal] = useState<boolean>(true);
+  const toggleHideDotFiles = useCallback(() => {
+    setHideDotFilesLocal(prev => !prev);
+  }, []);
+
+  // If the profile (and thus home) resolves only after mount, apply the home
+  // default once, as long as the user hasn't already navigated away.
+  const appliedHomeRef = useRef(false);
+  useEffect(() => {
+    if (!defaultToHome || initialLocation || options?.initialPath) {
+      return;
+    }
+    if (appliedHomeRef.current || !homeLocation) {
+      return;
+    }
+    appliedHomeRef.current = true;
+    setState(prev =>
+      prev.currentLocation.type === 'zones'
+        ? { currentLocation: homeLocation, selectedItem: null }
+        : prev
+    );
+  }, [defaultToHome, initialLocation, options?.initialPath, homeLocation]);
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -100,14 +154,27 @@ export default function useFileSelector(options?: FileSelectorOptions) {
 
     if (resolved) {
       let subPath = resolved.subpath;
-      // For file mode, navigate to the parent directory
-      if (subPath && mode !== 'directory') {
+      let selectedItem: FileSelectorState['selectedItem'] = null;
+      // When initialPath is a file, navigate to its parent directory and keep
+      // the file itself selected, so reopening the dialog shows the current
+      // value ready to be confirmed or replaced.
+      if (subPath && options?.initialPathIsFile) {
         const lastSlash = subPath.lastIndexOf('/');
-        if (lastSlash >= 0) {
-          subPath = subPath.slice(0, lastSlash);
-        } else {
-          subPath = '';
-        }
+        selectedItem = {
+          name: subPath.slice(lastSlash + 1),
+          isDir: false,
+          fullPath: getPreferredPathForDisplay(
+            effectivePathPreference,
+            resolved.fsp,
+            subPath
+          ),
+          displayPath: getPreferredPathForDisplay(
+            pathPreference,
+            resolved.fsp,
+            subPath
+          )
+        };
+        subPath = lastSlash >= 0 ? subPath.slice(0, lastSlash) : '';
       }
 
       setState({
@@ -116,10 +183,16 @@ export default function useFileSelector(options?: FileSelectorOptions) {
           fspName: resolved.fsp.name,
           path: subPath || '.'
         },
-        selectedItem: null
+        selectedItem
       });
     }
-  }, [options?.initialPath, zonesAndFspQuery.data, mode]);
+  }, [
+    options?.initialPath,
+    options?.initialPathIsFile,
+    zonesAndFspQuery.data,
+    effectivePathPreference,
+    pathPreference
+  ]);
 
   // Fetch file data only when in filesystem mode
   const fileQuery = useFileQuery(
@@ -139,6 +212,20 @@ export default function useFileSelector(options?: FileSelectorOptions) {
     const fspKey = makeMapKey('fsp', state.currentLocation.fspName);
     return (zonesAndFspQuery.data?.[fspKey] as FileSharePath) || null;
   }, [state.currentLocation, zonesAndFspQuery.data]);
+
+  // Path to show in the editable path field, in the user's preferred format:
+  // the selected item when there is one, otherwise the current folder.
+  const currentPathDisplay = useMemo(() => {
+    if (state.selectedItem) {
+      return state.selectedItem.displayPath;
+    }
+    if (state.currentLocation.type === 'filesystem' && currentFsp) {
+      const subPath =
+        state.currentLocation.path === '.' ? '' : state.currentLocation.path;
+      return getPreferredPathForDisplay(pathPreference, currentFsp, subPath);
+    }
+    return '';
+  }, [state.selectedItem, state.currentLocation, currentFsp, pathPreference]);
 
   // Build the items to display based on current location
   const displayItems = useMemo((): FileOrFolder[] => {
@@ -234,7 +321,10 @@ export default function useFileSelector(options?: FileSelectorOptions) {
       return items;
     } else {
       // In filesystem mode, return files from query
-      const files = fileQuery.data?.files || [];
+      let files = fileQuery.data?.files || [];
+      if (hideDotFilesLocal) {
+        files = files.filter(item => !item.name.startsWith('.'));
+      }
       if (normalizedQuery) {
         return files.filter(item =>
           item.name.toLowerCase().includes(normalizedQuery)
@@ -249,7 +339,8 @@ export default function useFileSelector(options?: FileSelectorOptions) {
     fileQuery.data,
     isFilteredByGroups,
     profile,
-    normalizedQuery
+    normalizedQuery,
+    hideDotFilesLocal
   ]);
 
   // Navigation methods
@@ -261,93 +352,135 @@ export default function useFileSelector(options?: FileSelectorOptions) {
     });
   }, []);
 
+  // Resolve a raw path (in any OS format, e.g. pasted by the user) to an FSP
+  // and navigate the browser into it. Returns false if no FSP matches.
+  const navigateToRawPath = useCallback(
+    (rawPath: string): boolean => {
+      if (!rawPath.trim() || !zonesAndFspQuery.data) {
+        return false;
+      }
+      const resolved = resolvePathToFsp(rawPath, zonesAndFspQuery.data);
+      if (!resolved) {
+        return false;
+      }
+      navigateToLocation({
+        type: 'filesystem',
+        fspName: resolved.fsp.name,
+        path: resolved.subpath || '.'
+      });
+      return true;
+    },
+    [zonesAndFspQuery.data, navigateToLocation]
+  );
+
+  // Jump to the user's home directory (no-op until the profile resolves).
+  const navigateHome = useCallback(() => {
+    if (homeLocation) {
+      navigateToLocation(homeLocation);
+    }
+  }, [homeLocation, navigateToLocation]);
+
   // Reset to initial state (for when dialog is closed/cancelled)
   const reset = useCallback(() => {
     lastResolvedPath.current = undefined;
     setSearchQuery('');
+    setHideDotFilesLocal(true);
     setState({
-      currentLocation: initialLocation
-        ? {
-            type: 'filesystem',
-            fspName: initialLocation.fspName,
-            path: initialLocation.path
-          }
-        : { type: 'zones' },
+      currentLocation: defaultLocation,
       selectedItem: null
     });
-  }, [initialLocation]);
+  }, [defaultLocation]);
 
   // Select an item and generate its full filesystem path
   // If no item provided, selects the current folder/location
   const selectItem = useCallback(
     (item?: FileOrFolder) => {
+      // Case 1: No item provided - select the current folder. Runs as a
+      // functional update so it composes with a navigation landing in the
+      // same commit (e.g. the initialPath resolution on dialog open), and it
+      // keeps an existing selection (e.g. the file preselected from
+      // initialPath) rather than replacing it with the folder.
+      if (!item) {
+        setState(prev => {
+          if (prev.selectedItem || prev.currentLocation.type !== 'filesystem') {
+            return prev;
+          }
+          const fspKey = makeMapKey('fsp', prev.currentLocation.fspName);
+          const fsp = zonesAndFspQuery.data?.[fspKey] as
+            | FileSharePath
+            | undefined;
+          if (!fsp) {
+            return prev;
+          }
+
+          const subPath =
+            prev.currentLocation.path === '.' ? '' : prev.currentLocation.path;
+          const fullPath = getPreferredPathForDisplay(
+            effectivePathPreference,
+            fsp,
+            subPath
+          );
+          if (!fullPath) {
+            return prev;
+          }
+
+          // Get the folder name from the path
+          const pathParts = prev.currentLocation.path
+            .split('/')
+            .filter(Boolean);
+          return {
+            ...prev,
+            selectedItem: {
+              name:
+                pathParts.length > 0
+                  ? pathParts[pathParts.length - 1]
+                  : fsp.name,
+              isDir: true,
+              fullPath,
+              displayPath: getPreferredPathForDisplay(
+                pathPreference,
+                fsp,
+                subPath
+              )
+            }
+          };
+        });
+        return;
+      }
+
+      // Case 2: Item provided - select that item. Files are selectable even
+      // in directory mode (and vice versa) — the consumer surfaces a
+      // validation error for type mismatches instead of the dialog silently
+      // ignoring the click.
+
+      // Don't allow selecting zones - user must select an FSP or folder within FSP
+      if (state.currentLocation.type === 'zones') {
+        return;
+      }
+
       let fullPath = '';
       let displayPath = '';
-      let name = '';
-      let isDir = true;
 
-      // Case 1: No item provided - select current folder
-      if (!item) {
-        if (state.currentLocation.type !== 'filesystem' || !currentFsp) {
-          // Can't select current location at zones or zone level
-          return;
+      if (state.currentLocation.type === 'zone') {
+        // Selecting an FSP
+        const fspKey = makeMapKey('fsp', item.name);
+        const fsp = zonesAndFspQuery.data?.[fspKey] as FileSharePath;
+        if (fsp) {
+          fullPath = getPreferredPathForDisplay(effectivePathPreference, fsp);
+          displayPath = getPreferredPathForDisplay(pathPreference, fsp);
         }
-
-        const subPath =
-          state.currentLocation.path === '.' ? '' : state.currentLocation.path;
+      } else if (currentFsp) {
+        // In filesystem mode, generate path from current FSP + item path
         fullPath = getPreferredPathForDisplay(
           effectivePathPreference,
           currentFsp,
-          subPath
+          item.path
         );
         displayPath = getPreferredPathForDisplay(
           pathPreference,
           currentFsp,
-          subPath
+          item.path
         );
-
-        // Get the folder name from the path
-        const pathParts = state.currentLocation.path.split('/').filter(Boolean);
-        name =
-          pathParts.length > 0
-            ? pathParts[pathParts.length - 1]
-            : currentFsp.name;
-      } else {
-        // Case 2: Item provided - select that item
-        // Only reject files in directory mode
-        if (!item.is_dir && mode === 'directory') {
-          return;
-        }
-
-        // Don't allow selecting zones - user must select an FSP or folder within FSP
-        if (state.currentLocation.type === 'zones') {
-          return;
-        }
-
-        if (state.currentLocation.type === 'zone') {
-          // Selecting an FSP
-          const fspKey = makeMapKey('fsp', item.name);
-          const fsp = zonesAndFspQuery.data?.[fspKey] as FileSharePath;
-          if (fsp) {
-            fullPath = getPreferredPathForDisplay(effectivePathPreference, fsp);
-            displayPath = getPreferredPathForDisplay(pathPreference, fsp);
-          }
-        } else if (currentFsp) {
-          // In filesystem mode, generate path from current FSP + item path
-          fullPath = getPreferredPathForDisplay(
-            effectivePathPreference,
-            currentFsp,
-            item.path
-          );
-          displayPath = getPreferredPathForDisplay(
-            pathPreference,
-            currentFsp,
-            item.path
-          );
-        }
-
-        name = item.name;
-        isDir = item.is_dir;
       }
 
       // Only set state if we have a valid path
@@ -355,8 +488,8 @@ export default function useFileSelector(options?: FileSelectorOptions) {
         setState(prev => ({
           ...prev,
           selectedItem: {
-            name,
-            isDir,
+            name: item.name,
+            isDir: item.is_dir,
             fullPath,
             displayPath
           }
@@ -368,7 +501,6 @@ export default function useFileSelector(options?: FileSelectorOptions) {
       currentFsp,
       effectivePathPreference,
       pathPreference,
-      mode,
       zonesAndFspQuery.data
     ]
   );
@@ -405,6 +537,10 @@ export default function useFileSelector(options?: FileSelectorOptions) {
     fileQuery,
     zonesQuery: zonesAndFspQuery,
     navigateToLocation,
+    navigateToRawPath,
+    navigateHome,
+    currentPathDisplay,
+    canGoHome: homeLocation !== undefined,
     selectItem,
     handleItemDoubleClick,
     reset,
@@ -412,6 +548,8 @@ export default function useFileSelector(options?: FileSelectorOptions) {
     handleSearchChange,
     clearSearch,
     isFilteredByGroups,
-    userHasGroups
+    userHasGroups,
+    hideDotFiles: hideDotFilesLocal,
+    toggleHideDotFiles
   };
 }

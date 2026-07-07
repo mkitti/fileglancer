@@ -2,7 +2,10 @@
 
 import asyncio
 import os
+import re
 import shutil
+import threading
+import time
 from contextlib import suppress
 from pathlib import Path, PurePosixPath
 
@@ -45,6 +48,21 @@ async def _dispatch(username: str, action: str, **kwargs) -> dict:
 
 
 _MANIFEST_FILENAME = "runnables.yaml"
+
+# Immutable per-commit checkouts live under <owner>/<repo>/.snapshots/<sha>.
+# The dirname starts with '.' so it can never collide with a branch-named
+# clone directory (git forbids ref components that begin with a dot).
+_SNAPSHOTS_DIRNAME = ".snapshots"
+_SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
+
+
+def validate_commit_sha(sha: str) -> str:
+    """Validate a full 40-hex commit SHA. It becomes a path component and a
+    git argument, so anything else is rejected."""
+    if not sha or not _SHA_PATTERN.fullmatch(sha):
+        raise ValueError(f"Invalid commit SHA: '{sha}'")
+    return sha
+
 
 def _repo_cache_base(username: str | None = None) -> Path:
     """Return the repo cache base directory, optionally for a specific user."""
@@ -355,6 +373,331 @@ async def _ensure_repo_cache(url: str, pull: bool = False,
     return repo_dir
 
 
+# --- Immutable per-commit snapshots -----------------------------------------
+#
+# Apps are pinned to a commit (user_apps.commit_sha) and jobs run from an
+# immutable checkout of that commit, not from the mutable branch clone. The
+# branch clone remains the fetch target; snapshots are materialized from it as
+# local hardlink clones, so they are cheap in time and disk while still being
+# fully self-contained (their .git works when bind-mounted into a container).
+# Updating an app creates a new snapshot and repoints the row — sibling apps
+# in the same repo and already-running jobs keep the tree they were pinned to.
+
+
+def _snapshots_dir(owner: str, repo: str) -> Path:
+    return _repo_cache_base() / owner / repo / _SNAPSHOTS_DIRNAME
+
+
+async def _git_head_sha(repo_dir: Path) -> str:
+    stdout, _ = await _run_git(["git", "-C", str(repo_dir), "rev-parse", "HEAD"])
+    return stdout.decode().strip()
+
+
+async def _create_snapshot(owner: str, repo: str, repo_dir: Path, sha: str,
+                           snapshot_dir: Path) -> None:
+    """Materialize an immutable checkout of sha from the branch clone.
+
+    Builds the snapshot in a sibling .tmp dir and renames it into place, so a
+    half-built snapshot is never observable at the final path. Caller holds
+    the per-snapshot lock.
+    """
+    # The pinned commit may predate the branch clone's current tip (a sibling
+    # app's update pulled past it). If the object isn't present locally, fetch
+    # it explicitly — GitHub serves reachable commits by SHA.
+    try:
+        await _run_git(["git", "-C", str(repo_dir), "cat-file", "-e",
+                        f"{sha}^{{commit}}"])
+    except ValueError:
+        try:
+            await _run_git(["git", "-C", str(repo_dir), "fetch", "origin", sha],
+                           timeout=120, extra_env=_SSH_GIT_ENV)
+        except ValueError as e:
+            raise ValueError(
+                f"Commit {sha[:7]} is no longer available in {owner}/{repo} "
+                f"(its history may have been rewritten). Update the app to "
+                f"pin it to the current revision. ({e})"
+            )
+
+    snapshot_dir.parent.mkdir(parents=True, exist_ok=True)
+    tmp_dir = snapshot_dir.parent / f".tmp-{sha}"
+    shutil.rmtree(tmp_dir, ignore_errors=True)
+    try:
+        # Local clone: objects are hardlinked. --no-checkout because the
+        # branch clone's HEAD may be detached (tag-pinned apps), which some
+        # git versions refuse to check out during clone; we check out the
+        # exact commit ourselves either way.
+        await _run_git(["git", "clone", "--no-checkout", str(repo_dir),
+                        str(tmp_dir)], timeout=300)
+        await _run_git(["git", "-C", str(tmp_dir), "checkout", "--detach", sha],
+                       timeout=300)
+        # Keep the commit reachable inside the snapshot regardless of where
+        # its branches move, so nothing can ever gc it out from under a job.
+        await _run_git(["git", "-C", str(tmp_dir), "tag", "-f",
+                        "fileglancer-pin", sha])
+        # Point origin at GitHub rather than at the local branch clone.
+        https_url, _ = _github_remote_urls(owner, repo)
+        await _run_git(["git", "-C", str(tmp_dir), "remote", "set-url",
+                        "origin", https_url])
+        try:
+            os.rename(tmp_dir, snapshot_dir)
+        except OSError:
+            # Lost a creation race — the existing snapshot is equivalent.
+            if not (snapshot_dir / ".git").exists():
+                raise
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+async def ensure_repo_snapshot(url: str, sha: str | None = None,
+                               pull: bool = False,
+                               username: str | None = None) -> tuple[Path, str]:
+    """Return (snapshot_dir, sha) for an immutable checkout of the repo at sha.
+
+    sha=None means "the branch clone's current HEAD" (after pulling when
+    pull=True): used at add/update time to pin an app, and at launch time to
+    backfill legacy unpinned rows.
+
+    When username is provided, the work is delegated to a worker subprocess
+    running as the target user.
+    """
+    if sha is not None:
+        validate_commit_sha(sha)
+
+    if username:
+        result = await _dispatch(username, "ensure_snapshot", url=url, sha=sha,
+                                 pull=pull)
+        return Path(result["snapshot_dir"]), result["sha"]
+
+    owner, repo, _ = _parse_github_url(url)
+
+    # Hot path (job launch of a pinned app): the snapshot already exists, so
+    # no git work — and no network — happens at all. Touch the directory so
+    # the GC grace period protects a snapshot that is about to be launched
+    # from but isn't yet referenced by a committed job row.
+    if sha is not None and not pull:
+        snapshot_dir = _snapshots_dir(owner, repo) / sha
+        if (snapshot_dir / ".git").exists():
+            with suppress(OSError):
+                os.utime(snapshot_dir)
+            return snapshot_dir, sha
+
+    repo_dir = await _ensure_repo_cache(url, pull=pull)
+    if sha is None:
+        sha = await _git_head_sha(repo_dir)
+    snapshot_dir = _snapshots_dir(owner, repo) / sha
+
+    lock = _get_repo_lock(owner, repo, f"snapshot/{sha}")
+    async with lock:
+        if (snapshot_dir / ".git").exists():
+            with suppress(OSError):
+                os.utime(snapshot_dir)
+            return snapshot_dir, sha
+        # A directory without .git is debris from an interrupted delete.
+        if snapshot_dir.exists():
+            shutil.rmtree(snapshot_dir, ignore_errors=True)
+        await _create_snapshot(owner, repo, repo_dir, sha, snapshot_dir)
+
+    # Opportunistically resume deleting stale trash left by a gc whose
+    # background delete was cut short (e.g. worker eviction mid-rmtree).
+    _delete_dirs_in_background(_stale_trash_dirs(_snapshots_dir(owner, repo)))
+    return snapshot_dir, sha
+
+
+def _delete_dirs_in_background(paths: list[Path]) -> None:
+    """Delete directories on a daemon thread.
+
+    Snapshot trees can be large (pixi envs build inside them) and live on NFS;
+    deleting inline would stall the worker's serial request loop.
+    """
+    if not paths:
+        return
+
+    def _rm():
+        for p in paths:
+            shutil.rmtree(p, ignore_errors=True)
+
+    threading.Thread(target=_rm, daemon=True, name="fg-snapshot-gc").start()
+
+
+# How recently a snapshot (or .tmp/.trash dir) must have been touched to be
+# exempt from gc. Guards the windows the DB keep-set cannot see: a snapshot
+# resolved by a launch whose job row isn't committed yet, a .tmp dir another
+# process is mid-clone into (the per-repo locks are process-local), and a
+# .trash dir another process's delete thread is still working through.
+_GC_GRACE_SECONDS = 3600
+
+
+def _is_recent(path: Path) -> bool:
+    try:
+        return (time.time() - path.stat().st_mtime) < _GC_GRACE_SECONDS
+    except OSError:
+        # Vanished (e.g. another process's delete finished) — nothing to do.
+        return True
+
+
+def _stale_trash_dirs(snapshots_dir: Path) -> list[Path]:
+    """Trash dirs old enough that no delete thread can still be on them."""
+    if not snapshots_dir.is_dir():
+        return []
+    return [
+        entry for entry in snapshots_dir.iterdir()
+        if entry.name.startswith(".trash-") and not _is_recent(entry)
+    ]
+
+
+async def gc_repo_snapshots(url: str, keep_shas: list[str],
+                            username: str | None = None) -> list[str]:
+    """Remove snapshots of this repo that no app or retained job references.
+
+    keep_shas is computed by the caller from the database (every user_apps pin
+    for this owner/repo plus the SHAs of retained jobs). Anything created or
+    used within the grace period is skipped regardless — the DB can't see a
+    launch that hasn't committed its job row yet, nor another server process's
+    in-flight snapshot creation. Directories are renamed out of the way
+    immediately and deleted in the background. Returns the SHAs removed.
+    Never touches branch clones.
+    """
+    if username:
+        result = await _dispatch(username, "gc_snapshots", url=url,
+                                 keep_shas=list(keep_shas))
+        return result["removed"]
+
+    owner, repo, _ = _parse_github_url(url)
+    keep = {s for s in keep_shas if s and _SHA_PATTERN.fullmatch(s)}
+    snapshots_dir = _snapshots_dir(owner, repo)
+    if not snapshots_dir.is_dir():
+        return []
+
+    removed: list[str] = []
+    to_delete: list[Path] = []
+    for entry in list(snapshots_dir.iterdir()):
+        name = entry.name
+        if name.startswith(".trash-"):
+            # Leftover from a previous gc whose delete never finished. Recent
+            # trash may still have an active delete thread — leave it alone.
+            if not _is_recent(entry):
+                to_delete.append(entry)
+            continue
+        is_tmp = name.startswith(".tmp-")
+        sha = name[len(".tmp-"):] if is_tmp else name
+        if not _SHA_PATTERN.fullmatch(sha) or sha in keep:
+            continue
+        if _is_recent(entry):
+            continue
+        # The per-snapshot lock serializes against an in-flight creation in
+        # this process: if one was underway, it completes first (and a .tmp
+        # entry will have been renamed to its final path, making it vanish
+        # from under us).
+        async with _get_repo_lock(owner, repo, f"snapshot/{sha}"):
+            if not entry.exists() or _is_recent(entry):
+                continue
+            trash = snapshots_dir / f".trash-{sha}-{os.getpid()}-{len(to_delete)}"
+            try:
+                os.rename(entry, trash)
+            except OSError:
+                continue
+        to_delete.append(trash)
+        if not is_tmp:
+            removed.append(sha)
+
+    _delete_dirs_in_background(to_delete)
+    if removed:
+        logger.info(f"GC removed {len(removed)} snapshot(s) of {owner}/{repo}")
+    return removed
+
+
+# Timeout per ls-remote for update checks. These run while the user's serial
+# worker is occupied (blocking their file browsing etc.), so fail fast — a
+# missed badge beats a hung UI when GitHub is slow.
+_LS_REMOTE_TIMEOUT = 10
+
+
+async def get_remote_head(url: str, username: str | None = None) -> str | None:
+    """Resolve the remote tip commit of the revision baked into a stored URL.
+
+    Used by the update-available check: compares against the app's pinned
+    commit_sha. Returns None when the remote can't be reached or the revision
+    no longer exists (no badge rather than an error). A revision that is
+    itself a commit SHA resolves to itself — such an app can never drift.
+
+    A URL without a revision only reaches here for legacy branch=None rows
+    (clone_url_for_stored_app makes pinned revisions explicit) and for code
+    repos referenced by bare manifest repo_urls; both track the remote's
+    *current default*, so resolve HEAD rather than assuming "main".
+    """
+    if username:
+        result = await _dispatch(username, "remote_heads", urls=[url])
+        return (result.get("shas") or {}).get(url)
+
+    owner, repo, branch = _parse_github_url(url)
+    if branch and _SHA_PATTERN.fullmatch(branch):
+        return branch
+
+    if branch:
+        patterns = [f"refs/heads/{branch}", f"refs/tags/{branch}"]
+        # Branch tips win; for annotated tags prefer the peeled commit
+        # (refs/tags/x^{}) that ls-remote emits alongside the tag object.
+        preference = (f"refs/heads/{branch}",
+                      f"refs/tags/{branch}^{{}}",
+                      f"refs/tags/{branch}")
+    else:
+        patterns = ["HEAD"]
+        preference = ("HEAD",)
+
+    https_url, ssh_url = _github_remote_urls(owner, repo)
+    for remote, extra_env in ((https_url, None), (ssh_url, _SSH_GIT_ENV)):
+        try:
+            stdout, _ = await _run_git(
+                ["git", "ls-remote", remote, *patterns],
+                timeout=_LS_REMOTE_TIMEOUT, extra_env=extra_env,
+            )
+        except ValueError as e:
+            # Private repo over HTTPS: retry via SSH; anything else, give up.
+            if _is_git_auth_error(str(e)):
+                continue
+            return None
+        except Exception:
+            return None
+
+        shas_by_ref: dict[str, str] = {}
+        for line in stdout.decode().splitlines():
+            parts = line.split()
+            if len(parts) == 2:
+                shas_by_ref[parts[1]] = parts[0]
+        for ref in preference:
+            sha = shas_by_ref.get(ref)
+            if sha and _SHA_PATTERN.fullmatch(sha):
+                return sha
+        return None
+    return None
+
+
+async def get_remote_heads(urls: list[str],
+                           username: str | None = None) -> dict[str, str | None]:
+    """Resolve remote tips for several stored URLs in one worker round-trip.
+
+    The per-user worker handles one request at a time, so N sequential
+    dispatches would occupy it for N ls-remote timeouts; batching bounds the
+    occupancy to the slowest single lookup (they run concurrently in-process).
+    """
+    urls = list(dict.fromkeys(urls))
+    if not urls:
+        return {}
+
+    if username:
+        result = await _dispatch(username, "remote_heads", urls=urls)
+        shas = result.get("shas") or {}
+        return {url: shas.get(url) for url in urls}
+
+    results = await asyncio.gather(
+        *(get_remote_head(url) for url in urls), return_exceptions=True,
+    )
+    return {
+        url: (sha if isinstance(sha, str) else None)
+        for url, sha in zip(urls, results)
+    }
+
+
 _SKIP_DIRS = {'.git', 'node_modules', '__pycache__', '.pixi', '.venv', 'venv'}
 
 
@@ -449,14 +792,15 @@ MANIFEST_FILENAME = _MANIFEST_FILENAME
 async def discover_app_manifests(
     url: str,
     username: str | None = None,
-) -> tuple[str, list[tuple[str, AppManifest]]]:
+) -> tuple[str, str | None, list[tuple[str, AppManifest]]]:
     """Clone/pull a GitHub repo and discover all manifest files.
 
-    Returns (resolved_branch, [(relative_dir_path, AppManifest), ...]). The
-    resolved branch is the revision actually cloned — resolved in the same
+    Returns (resolved_branch, head_sha, [(relative_dir_path, AppManifest), ...]).
+    The resolved branch is the revision actually cloned — resolved in the same
     process that does the clone, so a private repo's real default branch is used
-    rather than a fallback. Raises ValueError if the URL is invalid or the clone
-    fails.
+    rather than a fallback. head_sha is the commit at the tip of that revision,
+    used to pin apps added from this discovery. Raises ValueError if the URL is
+    invalid or the clone fails.
 
     When username is provided, the work is delegated to a worker subprocess
     running as the target user (which holds the user's SSH credentials).
@@ -467,35 +811,67 @@ async def discover_app_manifests(
             (item["path"], AppManifest(**item["manifest"]))
             for item in result["manifests"]
         ]
-        return result["branch"], manifests
+        return result["branch"], result.get("head_sha"), manifests
 
     repo_dir = await _ensure_repo_cache(url, pull=True)
     owner, repo, _ = _parse_github_url(url)
     branch = repo_dir.relative_to(
         (_repo_cache_base() / owner / repo).resolve()
     ).as_posix()
-    return branch, _find_manifests_in_repo(repo_dir)
+    head_sha = await _git_head_sha(repo_dir)
+    return branch, head_sha, _find_manifests_in_repo(repo_dir)
 
 
 async def fetch_app_manifest(url: str, manifest_path: str = "",
-                             username: str | None = None) -> AppManifest:
+                             username: str | None = None,
+                             sha: str | None = None) -> AppManifest:
     """Fetch and validate an app manifest from a cloned repo.
 
-    Clones the repo if needed, then reads the manifest from disk.
+    With sha, the manifest is read from the immutable snapshot of that commit
+    (materializing it if needed) — a pinned app's manifest never drifts just
+    because the branch clone was pulled past its pin. Without sha, reads from
+    the mutable branch clone (preview semantics), cloning if needed.
 
     When username is provided, the work is delegated to a worker subprocess
     running as the target user.
     """
     # Reject traversal/unsafe input early, before any worker round-trip.
     validate_manifest_path(manifest_path)
+    if sha is not None:
+        validate_commit_sha(sha)
 
     if username:
-        result = await _dispatch(username, "read_manifest", url=url, manifest_path=manifest_path)
+        result = await _dispatch(username, "read_manifest", url=url,
+                                 manifest_path=manifest_path, sha=sha)
         return AppManifest(**result["manifest"])
 
-    repo_dir = await _ensure_repo_cache(url)
+    if sha is not None:
+        repo_dir, _ = await ensure_repo_snapshot(url, sha=sha)
+    else:
+        repo_dir = await _ensure_repo_cache(url)
     target_dir = _safe_repo_subdir(repo_dir, manifest_path)
     return _read_manifest_file(target_dir)
+
+
+async def _fetch_manifest_with_pin_fallback(fetch_url: str, manifest_path: str,
+                                            username: str | None,
+                                            sha: str | None) -> AppManifest:
+    """Read the manifest at the pinned commit, falling back to the branch
+    clone when the pin can't be materialized (snapshot lost and the commit
+    rewritten away upstream). A drifted manifest beats an unusable app; the
+    next successful update re-pins.
+    """
+    if sha is None:
+        return await fetch_app_manifest(fetch_url, manifest_path, username=username)
+    try:
+        return await fetch_app_manifest(fetch_url, manifest_path,
+                                        username=username, sha=sha)
+    except Exception as e:
+        logger.warning(
+            f"Pinned manifest read failed for {fetch_url}@{sha[:7]} ({e}); "
+            f"falling back to the branch clone"
+        )
+        return await fetch_app_manifest(fetch_url, manifest_path, username=username)
 
 
 async def get_or_load_manifest(username: str, url: str,
@@ -523,6 +899,7 @@ async def get_or_load_manifest(username: str, url: str,
         row_exists = row is not None
         row_url = row.url if row is not None else url
         row_branch = row.branch if row is not None else None
+        row_sha = row.commit_sha if row is not None else None
 
     if stored is not None:
         try:
@@ -531,18 +908,18 @@ async def get_or_load_manifest(username: str, url: str,
             logger.warning(f"Stored manifest schema mismatch for {url}: {e}")
 
     fetch_url = clone_url_for_stored_app(row_url, row_branch) if row_exists else url
-    manifest = await fetch_app_manifest(fetch_url, manifest_path, username=username)
+    manifest = await _fetch_manifest_with_pin_fallback(
+        fetch_url, manifest_path, username, row_sha)
 
     if row_exists:
-        # branch=None: this is a cache refresh, so leave the requested revision
-        # (the branch column) untouched.
+        # Cache refresh: sync only the manifest column. Name/description stay
+        # untouched — they may be user-chosen (e.g. a custom catalog name) —
+        # as do the requested revision and pins.
         with db.get_db_session(settings.db_url) as session:
-            db.upsert_user_app(
+            db.update_user_app_manifest_cache(
                 session, username,
                 url=row_url, manifest_path=manifest_path,
-                name=manifest.name, description=manifest.description,
                 manifest=manifest.model_dump(mode="json"),
-                bump_updated_at=False,
             )
 
     return manifest
@@ -569,16 +946,20 @@ async def refresh_cached_manifest(username: str, url: str,
         row_exists = row is not None
         row_url = row.url if row_exists else url
         row_branch = row.branch if row_exists else None
+        row_sha = row.commit_sha if row_exists else None
 
     fetch_url = clone_url_for_stored_app(row_url, row_branch) if row_exists else url
-    manifest = await fetch_app_manifest(fetch_url, manifest_path, username=username)
+    manifest = await _fetch_manifest_with_pin_fallback(
+        fetch_url, manifest_path, username, row_sha)
 
     with db.get_db_session(settings.db_url) as session:
         if row_exists:
-            db.upsert_user_app(
+            # Sync only the manifest column: name/description may be
+            # user-chosen (e.g. a custom catalog name) and must survive
+            # cache refreshes.
+            db.update_user_app_manifest_cache(
                 session, username,
                 url=row_url, manifest_path=manifest_path,
-                name=manifest.name, description=manifest.description,
                 manifest=manifest.model_dump(mode="json"),
                 bump_updated_at=bump_updated_at,
             )

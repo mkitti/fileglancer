@@ -6,9 +6,11 @@ import toast from 'react-hot-toast';
 
 import FgLink from '@/components/designSystem/atoms/FgLink';
 import CancelJobDialog from '@/components/ui/Dialogs/CancelJob';
+import DeleteJobDialog from '@/components/ui/Dialogs/DeleteJob';
 import { TableCard } from '@/components/ui/Table/TableCard';
 import { createAppsJobsColumns } from '@/components/ui/Table/appsJobsColumns';
 import { buildRelaunchPath, parseGithubUrl } from '@/utils';
+import { showErrorToast } from '@/utils/errorToast';
 import type { Job } from '@/shared.types';
 import {
   useJobsQuery,
@@ -22,6 +24,7 @@ export default function AppJobs() {
   const cancelJobMutation = useCancelJobMutation();
   const deleteJobMutation = useDeleteJobMutation();
   const [jobToCancel, setJobToCancel] = useState<Job | null>(null);
+  const [jobToDelete, setJobToDelete] = useState<number | null>(null);
 
   const handleViewJobDetail = (jobId: number) => {
     navigate(`/apps/jobs/${jobId}`);
@@ -39,6 +42,7 @@ export default function AppJobs() {
     navigate(path, {
       state: {
         parameters: job.parameters,
+        env_parameters: job.env_parameters,
         resources: job.resources,
         env: job.env,
         pre_run: job.pre_run,
@@ -61,20 +65,20 @@ export default function AppJobs() {
         job.entry_point_type === 'service' ? 'Service stopped' : 'Job cancelled'
       );
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to cancel job';
-      toast.error(message);
+      showErrorToast(error, 'Failed to cancel job');
     }
   };
 
-  const handleDeleteJob = async (jobId: number) => {
+  const handleConfirmDeleteJob = async () => {
+    if (jobToDelete === null) {
+      return;
+    }
     try {
-      await deleteJobMutation.mutateAsync(jobId);
+      await deleteJobMutation.mutateAsync(jobToDelete);
       toast.success('Job deleted');
+      setJobToDelete(null);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to delete job';
-      toast.error(message);
+      showErrorToast(error, 'Failed to delete job');
     }
   };
 
@@ -84,7 +88,7 @@ export default function AppJobs() {
         onViewDetail: handleViewJobDetail,
         onRelaunch: handleRelaunch,
         onCancel: setJobToCancel,
-        onDelete: handleDeleteJob
+        onDelete: setJobToDelete
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -103,6 +107,7 @@ export default function AppJobs() {
         dataType="jobs"
         errorState={jobsQuery.error}
         gridColsClass="grid-cols-[2fr_2fr_1fr_2fr_1fr_1fr]"
+        initialPageSize={50}
         loadingState={jobsQuery.isPending}
       />
 
@@ -112,6 +117,13 @@ export default function AppJobs() {
         onClose={() => setJobToCancel(null)}
         onConfirm={handleConfirmCancelJob}
         open={jobToCancel !== null}
+      />
+
+      <DeleteJobDialog
+        isPending={deleteJobMutation.isPending}
+        onClose={() => setJobToDelete(null)}
+        onConfirm={handleConfirmDeleteJob}
+        open={jobToDelete !== null}
       />
     </div>
   );

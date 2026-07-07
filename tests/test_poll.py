@@ -6,7 +6,7 @@ fcntl = pytest.importorskip("fcntl", reason="fcntl is not available on Windows")
 import multiprocessing
 import subprocess
 import time
-from datetime import datetime, UTC
+from datetime import datetime, timedelta, UTC
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch, MagicMock, AsyncMock, call
@@ -18,7 +18,7 @@ from fileglancer.apps.jobs import _poll_jobs, _poll_local_jobs, _POLL_LOCK_PATH
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _make_settings(executor="lsf", **overrides):
+def _make_settings(executor="lsf", unknown_timeout_hours=24.0, **overrides):
     """Return a minimal Settings-like object for poll tests."""
     cluster = SimpleNamespace(
         poll_interval=0.05,
@@ -26,15 +26,17 @@ def _make_settings(executor="lsf", **overrides):
         executor=executor,
     )
     cluster.model_dump = lambda exclude_none=False: {"executor": executor}
+    apps = SimpleNamespace(unknown_timeout_hours=unknown_timeout_hours)
     settings = SimpleNamespace(
         cluster=cluster,
+        apps=apps,
         db_url="sqlite:///unused",
     )
     return settings
 
 
 def _make_db_job(job_id, cluster_job_id, status, username="alice",
-                 created_at=None, work_dir=None):
+                 created_at=None, work_dir=None, status_updated_at=None):
     """Return a mock DB job row."""
     job = SimpleNamespace(
         id=job_id,
@@ -42,6 +44,7 @@ def _make_db_job(job_id, cluster_job_id, status, username="alice",
         status=status,
         username=username,
         created_at=created_at or datetime.now(UTC),
+        status_updated_at=status_updated_at,
         work_dir=work_dir,
     )
     return job
@@ -53,8 +56,8 @@ def _make_db_job(job_id, cluster_job_id, status, username="alice",
 
 class TestPollSkipsSameStatus:
     """When the worker returns the same status already in the DB,
-    _poll_jobs must NOT call update_job_status.  This was the bug that
-    caused 'RUNNING -> RUNNING' log spam with multiple workers."""
+    _poll_jobs must NOT call update_job_status — otherwise multiple workers
+    produce 'RUNNING -> RUNNING' log spam."""
 
     @patch("fileglancer.apps.jobs._dispatch", new_callable=AsyncMock)
     @patch("fileglancer.apps.jobs.db")
@@ -137,6 +140,81 @@ class TestPollSkipsSameStatus:
         # _dispatch is called as (username, action, **kwargs)
         kwargs = mock_dispatch.call_args.kwargs
         assert kwargs["job_statuses"] == {"1001": "RUNNING", "1002": "PENDING"}
+
+
+class TestPollUnknownCutoff:
+    """A job stuck in UNKNOWN past the cutoff is marked FAILED and dropped from
+    polling; a recently-UNKNOWN job is still polled."""
+
+    def _mock_session(self, mock_db, jobs):
+        session = MagicMock()
+        mock_db.get_db_session.return_value.__enter__ = lambda _: session
+        mock_db.get_db_session.return_value.__exit__ = MagicMock(return_value=False)
+        mock_db.get_active_jobs.return_value = jobs
+        return session
+
+    @patch("fileglancer.apps.jobs._dispatch", new_callable=AsyncMock)
+    @patch("fileglancer.apps.jobs.db")
+    def test_stale_unknown_marked_failed_and_not_polled(self, mock_db, mock_dispatch):
+        settings = _make_settings(unknown_timeout_hours=24.0)
+        stale = datetime.now(UTC) - timedelta(hours=48)
+        job = _make_db_job(1, "1001", "UNKNOWN", status_updated_at=stale)
+        session = self._mock_session(mock_db, [job])
+
+        result = asyncio.run(_poll_jobs(settings))
+
+        mock_db.update_job_status.assert_called_once()
+        args, _ = mock_db.update_job_status.call_args
+        assert args[1] == 1 and args[2] == "FAILED"
+        # Nothing left to poll → worker not dispatched, but the cycle had jobs.
+        mock_dispatch.assert_not_awaited()
+        assert result is True
+
+    @patch("fileglancer.apps.jobs._dispatch", new_callable=AsyncMock)
+    @patch("fileglancer.apps.jobs.db")
+    def test_recent_unknown_is_still_polled(self, mock_db, mock_dispatch):
+        settings = _make_settings(unknown_timeout_hours=24.0)
+        recent = datetime.now(UTC) - timedelta(hours=1)
+        job = _make_db_job(1, "1001", "UNKNOWN", status_updated_at=recent)
+        self._mock_session(mock_db, [job])
+        mock_dispatch.return_value = {"jobs": {}}
+
+        asyncio.run(_poll_jobs(settings))
+
+        # Not reaped; polled instead (worker dispatched, no status change).
+        mock_db.update_job_status.assert_not_called()
+        mock_dispatch.assert_awaited_once()
+
+    @patch("fileglancer.apps.jobs._dispatch", new_callable=AsyncMock)
+    @patch("fileglancer.apps.jobs.db")
+    def test_cutoff_zero_disables_reaping(self, mock_db, mock_dispatch):
+        settings = _make_settings(unknown_timeout_hours=0)
+        ancient = datetime.now(UTC) - timedelta(days=30)
+        job = _make_db_job(1, "1001", "UNKNOWN", status_updated_at=ancient)
+        self._mock_session(mock_db, [job])
+        mock_dispatch.return_value = {"jobs": {}}
+
+        asyncio.run(_poll_jobs(settings))
+
+        mock_db.update_job_status.assert_not_called()
+        mock_dispatch.assert_awaited_once()
+
+    @patch("fileglancer.apps.jobs._dispatch", new_callable=AsyncMock)
+    @patch("fileglancer.apps.jobs.db")
+    def test_stale_unknown_falls_back_to_created_at(self, mock_db, mock_dispatch):
+        # Legacy row with no status_updated_at: age is measured from created_at.
+        settings = _make_settings(unknown_timeout_hours=24.0)
+        old = datetime.now(UTC) - timedelta(hours=48)
+        job = _make_db_job(1, "1001", "UNKNOWN", created_at=old,
+                           status_updated_at=None)
+        self._mock_session(mock_db, [job])
+
+        asyncio.run(_poll_jobs(settings))
+
+        mock_db.update_job_status.assert_called_once()
+        args, _ = mock_db.update_job_status.call_args
+        assert args[2] == "FAILED"
+        mock_dispatch.assert_not_awaited()
 
 
 # ---------------------------------------------------------------------------

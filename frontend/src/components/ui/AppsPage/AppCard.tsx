@@ -1,174 +1,99 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import type { KeyboardEvent } from 'react';
 
-import { Card, IconButton, Typography } from '@material-tailwind/react';
-import { buildLaunchPathFromApp } from '@/utils';
-import {
-  HiOutlineInformationCircle,
-  HiOutlinePlay,
-  HiOutlineTrash
-} from 'react-icons/hi';
-import { FaUsers, FaUsersSlash } from 'react-icons/fa6';
+import { Card, Typography } from '@material-tailwind/react';
+import { HiOutlinePlay } from 'react-icons/hi';
+import { HiOutlineEllipsisVertical } from 'react-icons/hi2';
 
-import AppInfoDialog from '@/components/ui/AppsPage/AppInfoDialog';
+import CardActionsMenu from '@/components/ui/Menus/CardActionsMenu';
+import FgButton from '@/components/designSystem/atoms/FgButton';
 import FgIcon from '@/components/designSystem/atoms/FgIcon';
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
+import SharedBadge from '@/components/ui/AppsPage/SharedBadge';
+import UpdateAvailableBadge from '@/components/ui/AppsPage/UpdateAvailableBadge';
+import {
+  buildAppMenuItems,
+  isAppShared
+} from '@/components/ui/AppsPage/appMenuItems';
+import type { AppActions } from '@/hooks/useAppActions';
+import { useAppUpdateAvailable } from '@/queries/appsQueries';
+import { getAppIconType } from '@/utils';
 import type { UserApp } from '@/shared.types';
-import FgButton from '@/components/designSystem/atoms/FgButton';
 
 interface AppCardProps {
   readonly app: UserApp;
-  readonly onRemove: () => void;
-  readonly onUpdate: (params: { url: string; manifest_path: string }) => void;
-  readonly onShare: (params: {
-    url: string;
-    manifest_path: string;
-    name: string;
-    description: string;
-  }) => Promise<void>;
-  readonly onUnshare: () => void;
-  readonly removing: boolean;
-  readonly updating: boolean;
-  readonly sharing: boolean;
-  readonly unsharing: boolean;
+  readonly actions: AppActions;
 }
 
-export default function AppCard({
-  app,
-  onRemove,
-  onUpdate,
-  onShare,
-  onUnshare,
-  removing,
-  updating,
-  sharing,
-  unsharing
-}: AppCardProps) {
-  const navigate = useNavigate();
-  const [infoOpen, setInfoOpen] = useState(false);
-  const [startInShareView, setStartInShareView] = useState(false);
+export default function AppCard({ app, actions }: AppCardProps) {
+  const isShared = isAppShared(app);
+  const updateAvailable = useAppUpdateAvailable(app);
 
-  const isShared = app.listing_id !== undefined && app.listing_id !== null;
+  const menuItems = buildAppMenuItems(app, actions);
 
-  const handleLaunch = () => {
-    navigate(buildLaunchPathFromApp(app.url, app.manifest_path));
-  };
+  const handleView = () => actions.view(app);
 
-  const handleInfo = () => {
-    setStartInShareView(false);
-    setInfoOpen(true);
-  };
-
-  const handleShare = () => {
-    setStartInShareView(true);
-    setInfoOpen(true);
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (
+      (event.key === 'Enter' || event.key === ' ') &&
+      event.target === event.currentTarget
+    ) {
+      event.preventDefault();
+      handleView();
+    }
   };
 
   return (
-    <Card className="p-4 flex flex-col gap-3 text-left w-full dark:border-surface-light">
-      <div className="flex items-center justify-between">
+    <Card
+      className="p-0 flex flex-col text-left w-full dark:border-surface-light cursor-pointer transition-colors hover:bg-surface/50 dark:hover:bg-surface-light/20"
+      onClick={handleView}
+      onKeyDown={handleKeyDown}
+      role="link"
+      tabIndex={0}
+    >
+      <div className="px-3 py-2 rounded-t-lg bg-surface dark:bg-surface-light border-b border-surface-light dark:border-surface flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <FgIcon
+            className="text-foreground flex-shrink-0"
+            icon={getAppIconType()}
+          />
+          {isShared ? <SharedBadge /> : null}
+          {updateAvailable ? <UpdateAvailableBadge /> : null}
+        </div>
+        <div
+          className="flex items-center gap-1"
+          onClick={e => e.stopPropagation()}
+        >
+          <FgTooltip label="Launch this app">
+            <FgButton
+              icon={HiOutlinePlay}
+              onClick={() => actions.launch(app)}
+              size="sm"
+            >
+              Launch
+            </FgButton>
+          </FgTooltip>
+          <CardActionsMenu<UserApp>
+            actionProps={app}
+            menuItems={menuItems}
+            triggerIcon={HiOutlineEllipsisVertical}
+          />
+        </div>
+      </div>
+
+      <div className="p-4 flex flex-col gap-3 flex-1">
         <Typography
           className="text-foreground font-semibold truncate"
           type="h6"
         >
           {app.name}
         </Typography>
-        <div className="flex flex-shrink-0">
-          <FgTooltip label="App info">
-            <IconButton
-              className="text-foreground hover:text-primary"
-              onClick={handleInfo}
-              size="sm"
-              variant="ghost"
-            >
-              <FgIcon icon={HiOutlineInformationCircle} />
-            </IconButton>
-          </FgTooltip>
-          {isShared ? (
-            <FgTooltip label="Unshare from catalog">
-              <IconButton
-                className="text-foreground hover:text-error"
-                disabled={unsharing}
-                onClick={onUnshare}
-                size="sm"
-                variant="ghost"
-              >
-                <FgIcon icon={FaUsersSlash} />
-              </IconButton>
-            </FgTooltip>
-          ) : (
-            <FgTooltip label="Share to catalog">
-              <IconButton
-                className="text-foreground hover:text-primary"
-                disabled={sharing}
-                onClick={handleShare}
-                size="sm"
-                variant="ghost"
-              >
-                <FgIcon icon={FaUsers} />
-              </IconButton>
-            </FgTooltip>
-          )}
-          <FgTooltip label="Remove app">
-            <IconButton
-              className="text-foreground hover:text-error"
-              disabled={removing}
-              onClick={onRemove}
-              size="sm"
-              variant="ghost"
-            >
-              <FgIcon icon={HiOutlineTrash} />
-            </IconButton>
-          </FgTooltip>
-        </div>
+
+        {app.description ? (
+          <Typography className="text-sm md:text-base text-foreground">
+            {app.description}
+          </Typography>
+        ) : null}
       </div>
-
-      {isShared ? (
-        <div>
-          <span className="inline-block px-2 py-0.5 rounded-sm bg-success/10 text-success text-xs font-medium">
-            Shared
-          </span>
-        </div>
-      ) : null}
-
-      {app.description ? (
-        <Typography className="text-sm md:text-base text-foreground">
-          {app.description}
-        </Typography>
-      ) : null}
-
-      <FgButton
-        className="self-start mt-auto"
-        icon={HiOutlinePlay}
-        onClick={handleLaunch}
-        size="sm"
-      >
-        Launch
-      </FgButton>
-
-      <AppInfoDialog
-        app={app}
-        onClose={() => setInfoOpen(false)}
-        onLaunch={() => {
-          setInfoOpen(false);
-          handleLaunch();
-        }}
-        onRemove={() => {
-          setInfoOpen(false);
-          onRemove();
-        }}
-        onShare={onShare}
-        onUnshare={onUnshare}
-        onUpdate={() =>
-          onUpdate({ url: app.url, manifest_path: app.manifest_path })
-        }
-        open={infoOpen}
-        removing={removing}
-        sharing={sharing}
-        startInShareView={startInShareView}
-        unsharing={unsharing}
-        updating={updating}
-      />
     </Card>
   );
 }

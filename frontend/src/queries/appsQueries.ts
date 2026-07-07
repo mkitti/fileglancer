@@ -6,13 +6,20 @@ import {
   getResponseJsonOrError,
   throwResponseNotOkError
 } from '@/queries/queryUtils';
-import type { AppListing, AppManifest, UserApp } from '@/shared.types';
+import type {
+  AppListing,
+  AppManifest,
+  AppUpdateCheck,
+  DiscoveredApp,
+  UserApp
+} from '@/shared.types';
 
 // --- Query Keys ---
 
 export const appsQueryKeys = {
   all: ['apps'] as const,
-  list: () => ['apps', 'list'] as const
+  list: () => ['apps', 'list'] as const,
+  updates: () => ['apps', 'updates'] as const
 };
 
 export const catalogQueryKeys = {
@@ -43,6 +50,49 @@ export function useAppsQuery(): UseQueryResult<UserApp[], Error> {
   });
 }
 
+/**
+ * Compare each installed app's pinned commit against its remote revision tip.
+ * The backend does one git ls-remote per distinct repo, so this is kept on a
+ * long stale time and only refetched after an app update (via invalidation of
+ * the parent 'apps' key).
+ */
+export function useAppUpdatesQuery(): UseQueryResult<AppUpdateCheck[], Error> {
+  return useQuery({
+    queryKey: appsQueryKeys.updates(),
+    queryFn: async ({ signal }) => {
+      const response = await sendFetchRequest(
+        '/api/apps/check-updates',
+        'GET',
+        undefined,
+        { signal }
+      );
+      const data = await getResponseJsonOrError(response);
+      if (!response.ok) {
+        throwResponseNotOkError(response, data);
+      }
+      return data as AppUpdateCheck[];
+    },
+    staleTime: 10 * 60 * 1000,
+    retry: false
+  });
+}
+
+/** True when the remote has a newer commit than the app's pinned version. */
+export function useAppUpdateAvailable(app: UserApp | undefined): boolean {
+  const updatesQuery = useAppUpdatesQuery();
+  if (!app) {
+    return false;
+  }
+  return (
+    updatesQuery.data?.some(
+      u =>
+        u.update_available &&
+        u.url === app.url &&
+        u.manifest_path === app.manifest_path
+    ) ?? false
+  );
+}
+
 // --- Mutation Hooks ---
 
 export function useManifestPreviewMutation(): UseMutationResult<
@@ -71,15 +121,44 @@ export function useManifestPreviewMutation(): UseMutationResult<
   });
 }
 
-export function useAddAppMutation(): UseMutationResult<
-  UserApp[],
+export function useDiscoverAppsMutation(): UseMutationResult<
+  DiscoveredApp[],
   Error,
   string
 > {
-  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (url: string) => {
-      const response = await sendFetchRequest('/api/apps', 'POST', { url });
+      const response = await sendFetchRequest('/api/apps/discover', 'POST', {
+        url
+      });
+      const data = await getResponseJsonOrError(response);
+      if (!response.ok) {
+        throwResponseNotOkError(response, data);
+      }
+      return data as DiscoveredApp[];
+    }
+  });
+}
+
+export function useAddAppMutation(): UseMutationResult<
+  UserApp[],
+  Error,
+  { url: string; manifest_paths?: string[] }
+> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      url,
+      manifest_paths
+    }: {
+      url: string;
+      manifest_paths?: string[];
+    }) => {
+      const response = await sendFetchRequest('/api/apps', 'POST', {
+        url,
+        // Only include manifest_paths when provided; omitting it adds all apps.
+        ...(manifest_paths ? { manifest_paths } : {})
+      });
       const data = await getResponseJsonOrError(response);
       if (!response.ok) {
         throwResponseNotOkError(response, data);
@@ -93,10 +172,14 @@ export function useAddAppMutation(): UseMutationResult<
 }
 
 export async function validatePaths(
-  paths: Record<string, string>
+  paths: Record<string, string>,
+  mayBeMissing: string[] = [],
+  types: Record<string, string> = {}
 ): Promise<Record<string, string>> {
   const response = await sendFetchRequest('/api/apps/validate-paths', 'POST', {
-    paths
+    paths,
+    may_be_missing: mayBeMissing,
+    types
   });
   const data = await getResponseJsonOrError(response);
   if (!response.ok) {
@@ -219,15 +302,15 @@ export function useShareAppMutation(): UseMutationResult<
 export function useUpdateListingMutation(): UseMutationResult<
   AppListing,
   Error,
-  { listing_id: number; name?: string; description?: string }
+  { listing_id: number; url?: string; name?: string; description?: string }
 > {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ listing_id, name, description }) => {
+    mutationFn: async ({ listing_id, url, name, description }) => {
       const response = await sendFetchRequest(
         `/api/catalog/${listing_id}`,
         'PATCH',
-        { name, description }
+        { url, name, description }
       );
       const data = await getResponseJsonOrError(response);
       if (!response.ok) {
@@ -237,6 +320,9 @@ export function useUpdateListingMutation(): UseMutationResult<
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: catalogQueryKeys.all });
+      // A url change can (un)link the listing from the owner's installed
+      // copy, which is surfaced via listing_id on /api/apps.
+      queryClient.invalidateQueries({ queryKey: appsQueryKeys.all });
     }
   });
 }

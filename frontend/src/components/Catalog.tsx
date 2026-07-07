@@ -1,42 +1,62 @@
 import { useMemo, useState } from 'react';
 import { Typography } from '@material-tailwind/react';
-import toast from 'react-hot-toast';
 
+import ListingActionDialogs from '@/components/ui/AppsPage/ListingActionDialogs';
 import ListingCard from '@/components/ui/AppsPage/ListingCard';
 import FgCheckbox from '@/components/designSystem/atoms/formElements/FgCheckbox';
-import {
-  useAppsQuery,
-  useAddFromListingMutation,
-  useCatalogQuery,
-  useUnshareListingMutation
-} from '@/queries/appsQueries';
+import { TableCard } from '@/components/ui/Table/TableCard';
+import { createCatalogColumns } from '@/components/ui/Table/catalogColumns';
+import ViewModeToggle from '@/components/ui/widgets/ViewModeToggle';
+import { useAppsQuery, useCatalogQuery } from '@/queries/appsQueries';
+import { useListingActions } from '@/hooks/useListingActions';
+import { useViewMode } from '@/hooks/useViewMode';
 import { useProfileContext } from '@/contexts/ProfileContext';
-import type { AppListing } from '@/shared.types';
+import { canonicalGithubUrl } from '@/utils';
+import type { AppListing, UserApp } from '@/shared.types';
+
+// Installed-app lookup key. Canonicalize the URL so a match can't be missed
+// over URL formatting differences (same convention as AppDetail/AppLaunch).
+const listingKey = (url: string, manifestPath: string) =>
+  `${canonicalGithubUrl(url)}::${manifestPath}`;
 
 export default function Catalog() {
   const [search, setSearch] = useState('');
   const [hideInstalled, setHideInstalled] = useState(false);
+  const [viewMode, changeViewMode] = useViewMode('catalogViewMode');
 
   const catalogQuery = useCatalogQuery();
   const appsQuery = useAppsQuery();
   const { profile } = useProfileContext();
+  const actions = useListingActions();
 
-  const addFromListingMutation = useAddFromListingMutation();
-  const unshareListingMutation = useUnshareListingMutation();
-
-  const myAppKeys = useMemo(() => {
-    const set = new Set<string>();
+  const myAppsByKey = useMemo(() => {
+    const map = new Map<string, UserApp>();
     (appsQuery.data ?? []).forEach(a =>
-      set.add(`${a.url}::${a.manifest_path}`)
+      map.set(listingKey(a.url, a.manifest_path), a)
     );
-    return set;
+    return map;
   }, [appsQuery.data]);
+
+  const catalogColumns = useMemo(
+    () =>
+      createCatalogColumns(
+        actions,
+        (listing: AppListing) =>
+          myAppsByKey.get(listingKey(listing.url, listing.manifest_path)),
+        profile?.username
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [myAppsByKey, profile?.username]
+  );
 
   const filteredListings = useMemo(() => {
     const term = search.trim().toLowerCase();
     const listings = catalogQuery.data ?? [];
     return listings.filter(l => {
-      if (hideInstalled && myAppKeys.has(`${l.url}::${l.manifest_path}`)) {
+      if (
+        hideInstalled &&
+        myAppsByKey.has(listingKey(l.url, l.manifest_path))
+      ) {
         return false;
       }
       if (!term) {
@@ -48,25 +68,7 @@ export default function Catalog() {
         l.owner_username.toLowerCase().includes(term)
       );
     });
-  }, [catalogQuery.data, search, hideInstalled, myAppKeys]);
-
-  const handleAddFromListing = async (listing: AppListing) => {
-    try {
-      await addFromListingMutation.mutateAsync({ listing_id: listing.id });
-      toast.success(`Added "${listing.name}"`);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to add app');
-    }
-  };
-
-  const handleUnshare = async (listing: AppListing) => {
-    try {
-      await unshareListingMutation.mutateAsync({ listing_id: listing.id });
-      toast.success('Listing removed');
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to unshare');
-    }
-  };
+  }, [catalogQuery.data, search, hideInstalled, myAppsByKey]);
 
   const totalListings = catalogQuery.data?.length ?? 0;
 
@@ -78,18 +80,22 @@ export default function Catalog() {
       </Typography>
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <input
-          className="w-full sm:max-w-sm p-2 text-foreground border rounded-sm focus:outline-none bg-background border-primary-light focus:border-primary"
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search by name, description, or sharer"
-          type="text"
-          value={search}
-        />
-        <FgCheckbox
-          checked={hideInstalled}
-          label="Hide already installed apps"
-          onChange={e => setHideInstalled(e.target.checked)}
-        />
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center">
+          <input
+            aria-label="Search shared apps"
+            className="w-full sm:max-w-sm p-2 text-foreground border rounded-sm focus:outline-none bg-background border-primary-light focus:border-primary"
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by name, description, or sharer"
+            type="text"
+            value={search}
+          />
+          <FgCheckbox
+            checked={hideInstalled}
+            label="Hide already installed apps"
+            onChange={e => setHideInstalled(e.target.checked)}
+          />
+        </div>
+        <ViewModeToggle onChange={changeViewMode} viewMode={viewMode} />
       </div>
 
       {catalogQuery.isPending ? (
@@ -116,35 +122,41 @@ export default function Catalog() {
               : 'All shared apps are already in your apps.'}
           </Typography>
         </div>
+      ) : viewMode === 'table' ? (
+        <div className="mb-8">
+          <TableCard
+            columns={catalogColumns}
+            data={filteredListings}
+            dataType="shared apps"
+            errorState={catalogQuery.error}
+            gridColsClass="grid-cols-[2fr_2fr_3fr_1fr_1fr_1fr_1fr]"
+            initialPageSize={50}
+            loadingState={catalogQuery.isPending}
+          />
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           {filteredListings.map(listing => {
-            const key = `${listing.url}::${listing.manifest_path}`;
-            const alreadyAdded = myAppKeys.has(key);
+            const installedApp = myAppsByKey.get(
+              listingKey(listing.url, listing.manifest_path)
+            );
             const isOwner =
               profile?.username !== undefined &&
               profile.username === listing.owner_username;
-            const isAdding =
-              addFromListingMutation.isPending &&
-              addFromListingMutation.variables?.listing_id === listing.id;
-            const isUnsharing =
-              unshareListingMutation.isPending &&
-              unshareListingMutation.variables?.listing_id === listing.id;
             return (
               <ListingCard
-                adding={isAdding}
-                canAdd={!alreadyAdded}
+                actions={actions}
                 canManage={isOwner}
+                installedApp={installedApp}
                 key={listing.id}
                 listing={listing}
-                onAdd={handleAddFromListing}
-                onUnshare={handleUnshare}
-                unsharing={isUnsharing}
               />
             );
           })}
         </div>
       )}
+
+      <ListingActionDialogs actions={actions} />
     </div>
   );
 }

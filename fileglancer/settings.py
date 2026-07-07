@@ -38,6 +38,19 @@ class ClusterSettings(BaseModel):
 class AppsSettings(BaseModel):
     """Apps-specific configuration (not passed to py-cluster-api)."""
     extra_paths: List[str] = []
+    # Extra environment variable names (exact) or prefixes (ending in '_') to
+    # pass through to per-user workers, on top of the built-in allowlist. The
+    # worker env is an allowlist so no server secret leaks to the user via
+    # /proc/<pid>/environ; add site-specific vars your scheduler or tools need
+    # here rather than widening the allowlist in code. FGC_* is never passed
+    # through regardless of this list.
+    worker_env_passthrough: List[str] = []
+    # How long a job may sit in UNKNOWN before the poll loop gives up and marks
+    # it FAILED. UNKNOWN means the scheduler can no longer report the job (it
+    # aged out of the queue/history), so continued polling would never resolve
+    # it. This is Fileglancer poll policy, not py-cluster-api config, so it
+    # lives here rather than under `cluster`. Set to 0 to disable the cutoff.
+    unknown_timeout_hours: float = 24.0
 
 
 class Settings(BaseSettings):

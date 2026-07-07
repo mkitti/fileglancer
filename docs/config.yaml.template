@@ -137,6 +137,15 @@ session_cookie_secure: true
 #   extra_paths:                # Paths appended to $PATH in every job script
 #     - /opt/nextflow/bin       # and used when verifying tool requirements
 #     - /opt/pixi/bin
+#   worker_env_passthrough:     # Extra env var names (exact) or prefixes
+#     - MYSITE_LICENSE_SERVER   # (ending in '_') to pass to per-user workers,
+#     - MYSITE_                 # on top of the built-in allowlist. The worker
+#                               # env is an allowlist so no server secret leaks
+#                               # to the user; add only non-secret vars your
+#                               # scheduler or tools need. FGC_* is never passed.
+#   unknown_timeout_hours: 24    # Give up polling a job stuck in UNKNOWN after
+#                               # this many hours and mark it FAILED (the
+#                               # scheduler can no longer report it). 0 disables.
 
 # Cluster configuration
 # Mirrors py-cluster-api ClusterConfig - all fields are optional

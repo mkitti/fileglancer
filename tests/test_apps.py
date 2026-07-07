@@ -1,6 +1,7 @@
 """Tests for apps module: miniforge/apptainer requirements, conda_env, and container support."""
 
 import os
+import shlex
 import subprocess
 import sys
 import time
@@ -22,7 +23,11 @@ from fileglancer.apps import (
     build_requirements_check,
     _container_sif_name,
     _build_container_script,
+    _container_bind_paths,
+    _SERVICE_PORT_HELPER,
+    _build_service_url_publisher,
     build_command,
+    collect_creatable_dirs,
     collect_path_parameters,
     expand_user_path,
 )
@@ -31,6 +36,13 @@ from fileglancer.apps import (
 # that patch pwd.getpwnam/getpwuid to exercise per-user home resolution cannot run.
 requires_pwd = pytest.mark.skipif(
     sys.platform == "win32", reason="pwd module is not available on Windows"
+)
+
+# The generated script snippets are POSIX bash and only ever run on Linux
+# compute nodes; on Windows CI runners `bash` resolves to the WSL stub, which
+# can't execute them.
+requires_bash = pytest.mark.skipif(
+    sys.platform == "win32", reason="requires a working bash; snippets only run on Linux compute nodes"
 )
 
 
@@ -226,7 +238,7 @@ class TestBuildRequirementsCheck:
 
 from types import SimpleNamespace
 
-from fileglancer.apps.jobfiles import get_job_file_paths, read_job_file
+from fileglancer.apps.jobfiles import get_job_file_paths, read_job_file, get_service_phase
 
 
 def _fake_job(**overrides):
@@ -324,6 +336,25 @@ class TestReadJobFile:
         )
         assert read_job_file(job, "script") is None
 
+    def test_small_log_returned_in_full(self, tmp_path):
+        (tmp_path / "stdout.log").write_text("line 1\nline 2\n")
+        job = _fake_job(work_dir=str(tmp_path))
+        assert read_job_file(job, "stdout") == "line 1\nline 2\n"
+
+    def test_oversized_log_is_tail_truncated(self, tmp_path):
+        from fileglancer.apps.jobfiles import _MAX_JOB_FILE_BYTES
+        # One byte per line so line boundaries are easy to reason about.
+        big = ("A\n" * (_MAX_JOB_FILE_BYTES // 2)) + ("TAIL_MARKER\n" * 5)
+        (tmp_path / "stderr.log").write_text(big)
+        job = _fake_job(work_dir=str(tmp_path))
+        content = read_job_file(job, "stderr")
+        # Truncation marker present, size bounded, and the trailing content kept.
+        assert "earlier bytes omitted" in content
+        assert "TAIL_MARKER" in content
+        # Marker header plus at most the cap of tail bytes — nowhere near the
+        # full file, and safely under the 64 MB IPC limit.
+        assert len(content.encode()) <= _MAX_JOB_FILE_BYTES + 1024
+
 
 # --- merge_requirements tests ---
 
@@ -416,6 +447,60 @@ class TestManifestRequirementsValidation:
                     AppEntryPoint(id="t", name="T", command="echo"),
                 ],
             )
+
+
+class TestManifestRepoUrlValidation:
+    _RUN = [AppEntryPoint(id="t", name="T", command="echo")]
+
+    def test_valid_github_repo_url(self):
+        m = AppManifest(name="T", repo_url="https://github.com/org/code",
+                        runnables=self._RUN)
+        assert m.repo_url == "https://github.com/org/code"
+
+    def test_none_is_allowed(self):
+        assert AppManifest(name="T", runnables=self._RUN).repo_url is None
+
+    def test_rejects_non_github_url(self):
+        with pytest.raises(ValidationError, match="GitHub repository URL"):
+            AppManifest(name="T", repo_url="https://gitlab.com/org/code",
+                        runnables=self._RUN)
+
+    def test_rejects_garbage(self):
+        with pytest.raises(ValidationError, match="GitHub repository URL"):
+            AppManifest(name="T", repo_url="not a url", runnables=self._RUN)
+
+
+class TestManifestRunnablesRequired:
+    def test_rejects_empty_runnables(self):
+        with pytest.raises(ValidationError):
+            AppManifest(name="T", runnables=[])
+
+    def test_accepts_one_runnable(self):
+        m = AppManifest(name="T",
+                        runnables=[AppEntryPoint(id="t", name="T", command="echo")])
+        assert len(m.runnables) == 1
+
+
+class TestParameterFlagValidation:
+    """Flags are emitted into the job script unquoted (and the Nextflow
+    adapter derives them from schema property names), so they must be
+    constrained to a conservative CLI-flag shape."""
+
+    @pytest.mark.parametrize("flag", [
+        "-n", "-1", "--outdir", "-profile", "--long-name",
+        "--dotted.name", "--under_score",
+    ])
+    def test_accepts_conventional_flags(self, flag):
+        p = AppParameter(flag=flag, name="P", type="string")
+        assert p.flag == flag
+
+    @pytest.mark.parametrize("flag", [
+        "--out;rm -rf /", "--a b", "--$(whoami)", "--x'y", '--x"y',
+        "---triple", "--", "-", "notaflag", "--=x", "--a|b",
+    ])
+    def test_rejects_shell_significant_or_malformed_flags(self, flag):
+        with pytest.raises(ValidationError):
+            AppParameter(flag=flag, name="P", type="string")
 
 
 # --- Script generation tests ---
@@ -563,7 +648,9 @@ class TestContainerValidation:
 
 
 class TestJobSubmitExtraArgsValidation:
-    """Validate that extra_args rejects shell metacharacters."""
+    """extra_args are shlex-split into argv tokens and exec'd (no shell) by the
+    scheduler, so shell metacharacters are safe; only unparseable strings and
+    NUL bytes are rejected."""
 
     _BASE = dict(
         app_url="https://github.com/org/repo",
@@ -579,21 +666,53 @@ class TestJobSubmitExtraArgsValidation:
         req = JobSubmitRequest(**self._BASE, extra_args=None)
         assert req.extra_args is None
 
-    def test_rejects_semicolon(self):
-        with pytest.raises(ValidationError, match="forbidden characters"):
-            JobSubmitRequest(**self._BASE, extra_args="--gres=gpu:1; rm -rf /")
+    def test_lsf_resource_string_allowed(self):
+        # LSF -R strings use '>', '[' and ']' — exactly what the UI placeholder
+        # suggests — so they must be accepted.
+        req = JobSubmitRequest(
+            **self._BASE, extra_args='-P proj -R "select[mem>8000]"')
+        assert req.extra_args == '-P proj -R "select[mem>8000]"'
 
-    def test_rejects_backtick(self):
-        with pytest.raises(ValidationError, match="forbidden characters"):
-            JobSubmitRequest(**self._BASE, extra_args="--gres=`whoami`")
+    @pytest.mark.parametrize("value", [
+        "--gres=gpu:1; rm -rf /",
+        "--gres=`whoami`",
+        "--queue=$USER",
+        "--flag | cat /etc/passwd",
+    ])
+    def test_shell_metacharacters_allowed_as_literal_argv(self, value):
+        # These are safe: shlex.split turns them into literal argv tokens
+        # passed to the scheduler via exec, so no shell interprets them.
+        req = JobSubmitRequest(**self._BASE, extra_args=value)
+        assert req.extra_args == value
 
-    def test_rejects_dollar(self):
-        with pytest.raises(ValidationError, match="forbidden characters"):
-            JobSubmitRequest(**self._BASE, extra_args="--queue=$USER")
+    def test_rejects_unbalanced_quotes(self):
+        with pytest.raises(ValidationError, match="could not be parsed"):
+            JobSubmitRequest(**self._BASE, extra_args='-R "unterminated')
 
-    def test_rejects_pipe(self):
-        with pytest.raises(ValidationError, match="forbidden characters"):
-            JobSubmitRequest(**self._BASE, extra_args="--flag | cat /etc/passwd")
+    def test_rejects_nul(self):
+        with pytest.raises(ValidationError, match="NUL"):
+            JobSubmitRequest(**self._BASE, extra_args="--flag\x00")
+
+
+class TestBuildResourceSpecExtraArgs:
+    """extra_args strings are tokenized (not wrapped as one argv element)."""
+
+    def _settings(self):
+        from fileglancer.settings import Settings
+        return Settings(db_url="sqlite://", file_share_mounts=[], cli_mode=True)
+
+    def test_string_is_split_into_tokens(self):
+        from fileglancer.apps.jobs import _build_resource_spec
+        ep = AppEntryPoint(id="t", name="T", command="echo")
+        spec = _build_resource_spec(
+            ep, {"extra_args": '-P proj -R "select[mem>8000]"'}, self._settings())
+        assert spec.extra_args == ["-P", "proj", "-R", "select[mem>8000]"]
+
+    def test_empty_string_yields_no_args(self):
+        from fileglancer.apps.jobs import _build_resource_spec
+        ep = AppEntryPoint(id="t", name="T", command="echo")
+        spec = _build_resource_spec(ep, {"extra_args": ""}, self._settings())
+        assert spec.extra_args == []
 
 
 class TestContainerSifName:
@@ -621,6 +740,9 @@ class TestContainerScriptGeneration:
             bind_paths=[],
         )
         assert "apptainer pull" in script
+        # Pull without populating Apptainer's own cache, so the SIF we keep is
+        # the only copy (no multi-GB duplicate under ~/.apptainer/cache).
+        assert "apptainer pull --disable-cache" in script
         assert "apptainer exec" in script
         assert "docker://ghcr.io/org/image:1.0" in script
         assert "ghcr.io_org_image_1.0.sif" in script
@@ -658,6 +780,36 @@ class TestContainerScriptGeneration:
         )
         assert "--nv --bind 'my dir' \"$SIF_PATH\"" in script
 
+    def test_cache_dir_expands_tilde_before_quoting(self):
+        cache_dir = "~/apptainer cache"
+        script = _build_container_script(
+            container_url="ghcr.io/org/image:1.0",
+            command="python run.py",
+            work_dir="/work",
+            bind_paths=[],
+            cache_dir=cache_dir,
+        )
+
+        expected = shlex.quote(os.path.expanduser(cache_dir))
+        assert f"APPTAINER_CACHE_DIR={expected}" in script
+        assert "APPTAINER_CACHE_DIR='~/" not in script
+
+    def test_cache_dir_uses_target_user_home(self, monkeypatch):
+        def fake_expanduser(path):
+            return "/home/alice" if path == "~alice" else path
+
+        monkeypatch.setattr(os.path, "expanduser", fake_expanduser)
+        script = _build_container_script(
+            container_url="ghcr.io/org/image:1.0",
+            command="python run.py",
+            work_dir="/work",
+            bind_paths=[],
+            cache_dir="~/apptainer cache",
+            username="alice",
+        )
+
+        assert "APPTAINER_CACHE_DIR='/home/alice/apptainer cache'" in script
+
     def test_pull_conditional(self):
         script = _build_container_script(
             container_url="ghcr.io/org/image:1.0",
@@ -677,6 +829,277 @@ class TestContainerScriptGeneration:
         # Should not have docker://docker://
         assert "docker://docker://" not in script
         assert "docker://ghcr.io/org/image:1.0" in script
+
+
+class TestContainerBindPaths:
+    """_container_bind_paths decides what host paths get mounted into a container."""
+
+    def _ep(self, **kwargs):
+        defaults = dict(id="t", name="T", command="echo",
+                        container="ghcr.io/org/image:tag")
+        defaults.update(kwargs)
+        return AppEntryPoint(**defaults)
+
+    def test_directory_param_bound_directly(self):
+        ep = self._ep(parameters=[
+            AppParameter(flag="--data", name="Data", type="directory")
+        ])
+        binds = _container_bind_paths(ep, {"data": "/groups/lab/data"}, None, None, "/cache/repo")
+        assert "/groups/lab/data" in binds
+
+    def test_file_param_binds_parent_dir(self):
+        ep = self._ep(parameters=[
+            AppParameter(flag="--in", name="In", type="file")
+        ])
+        binds = _container_bind_paths(ep, {"in": "/groups/lab/x.tif"}, None, None, "/cache/repo")
+        assert "/groups/lab" in binds
+        assert "/groups/lab/x.tif" not in binds
+
+    def test_cloud_uri_and_relative_skipped(self):
+        ep = self._ep(parameters=[
+            AppParameter(flag="--a", name="A", type="directory"),
+            AppParameter(flag="--b", name="B", type="directory"),
+        ])
+        binds = _container_bind_paths(
+            ep, {"a": "s3://bucket/key", "b": "./rel"}, None, None, "/cache/repo"
+        )
+        assert binds == []  # neither is a bind-mountable absolute local path
+
+    def test_explicit_bind_paths_included(self):
+        ep = self._ep(bind_paths=["/shared/ref", "/scratch"])
+        binds = _container_bind_paths(ep, {}, None, None, "/cache/repo")
+        assert "/shared/ref" in binds and "/scratch" in binds
+
+    def test_repo_bound_only_when_working_dir_repo(self):
+        # Container default is working_dir=work → repo NOT bound.
+        work_ep = self._ep()
+        assert "work" == work_ep.effective_working_dir
+        assert "/cache/repo" not in _container_bind_paths(work_ep, {}, None, None, "/cache/repo")
+
+        # Opt into repo → the cached clone is bound so the repo symlink resolves.
+        repo_ep = self._ep(working_dir="repo")
+        assert "/cache/repo" in _container_bind_paths(repo_ep, {}, None, None, "/cache/repo")
+
+    def test_file_directory_default_is_bound(self):
+        # A file/directory param the user did not override still contributes its
+        # default path to the binds (the command references it, so it must be
+        # mounted).
+        ep = self._ep(parameters=[
+            AppParameter(flag="--ref", name="Ref", type="directory",
+                         default="/groups/lab/reference"),
+        ])
+        binds = _container_bind_paths(ep, {}, None, None, "/cache/repo")
+        assert "/groups/lab/reference" in binds
+
+    def test_env_tab_file_param_is_bound(self):
+        # A file/directory parameter declared in the env tab has its value in
+        # env_parameters, not parameters; it must still be bound.
+        ep = self._ep(env_parameters=[
+            AppParameter(flag="--cfg", name="Cfg", type="file"),
+        ])
+        binds = _container_bind_paths(
+            ep, {}, {"cfg": "/groups/lab/config/app.yaml"}, None, "/cache/repo")
+        assert "/groups/lab/config" in binds
+
+
+# --- Service port / URL tests (FG_SERVICE_PORT + auto_url) ---
+
+class TestServicePortHelper:
+    """The preamble helper Fileglancer injects for service-type jobs."""
+
+    def test_helper_exports_port_hostname_and_token(self):
+        assert "export FG_SERVICE_PORT=" in _SERVICE_PORT_HELPER
+        assert "export FG_HOSTNAME=" in _SERVICE_PORT_HELPER
+        assert "export FG_SERVICE_TOKEN=" in _SERVICE_PORT_HELPER
+
+    @requires_bash
+    def test_helper_mints_a_urlsafe_token(self):
+        import re
+        script = _SERVICE_PORT_HELPER + '\necho "$FG_SERVICE_TOKEN"'
+        result = subprocess.run(["bash", "-c", script], capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
+        token = result.stdout.strip().splitlines()[-1]
+        # Non-empty and URL-safe (hex), so no encoding is needed in the URL.
+        assert re.fullmatch(r"[0-9a-f]{16,}", token), token
+
+    @requires_bash
+    def test_helper_is_valid_bash(self):
+        # The generated snippet must at least parse as bash.
+        result = subprocess.run(
+            ["bash", "-n", "-c", _SERVICE_PORT_HELPER],
+            capture_output=True, text=True,
+        )
+        assert result.returncode == 0, result.stderr
+
+    @requires_bash
+    def test_helper_picks_a_free_port_at_runtime(self):
+        # Run the helper and confirm FG_SERVICE_PORT is a plausible TCP port.
+        script = _SERVICE_PORT_HELPER + '\necho "$FG_SERVICE_PORT"'
+        result = subprocess.run(
+            ["bash", "-c", script], capture_output=True, text=True,
+        )
+        assert result.returncode == 0, result.stderr
+        port = int(result.stdout.strip().splitlines()[-1])
+        assert 1 <= port <= 65535
+
+    @requires_bash
+    def test_helper_robust_under_set_euo_pipefail(self):
+        # A deployment may prepend `set -euo pipefail` via script_prologue; the
+        # helper must still allocate a port and not abort the job.
+        script = "set -euo pipefail\n" + _SERVICE_PORT_HELPER + '\necho "$FG_SERVICE_PORT"'
+        result = subprocess.run(
+            ["bash", "-c", script], capture_output=True, text=True,
+        )
+        assert result.returncode == 0, result.stderr
+        assert int(result.stdout.strip().splitlines()[-1]) >= 1
+
+
+class TestServiceAutoUrl:
+    """auto_url is service-only and drives Fileglancer to publish the URL file."""
+
+    def test_auto_url_defaults_false(self):
+        ep = AppEntryPoint(id="t", name="T", command="echo", type="service")
+        assert ep.auto_url is False
+
+    def test_auto_url_allowed_on_service(self):
+        ep = AppEntryPoint(id="t", name="T", command="echo",
+                           type="service", auto_url=True)
+        assert ep.auto_url is True
+
+    def test_auto_url_rejected_on_job(self):
+        with pytest.raises(ValidationError, match="auto_url is only valid for service"):
+            AppEntryPoint(id="t", name="T", command="echo",
+                          type="job", auto_url=True)
+
+
+class TestServiceUrlSuffix:
+    """service_url_suffix is a restricted template validated for shell-safety."""
+
+    def _ep(self, suffix, **kw):
+        kw.setdefault("type", "service")
+        kw.setdefault("auto_url", True)
+        return AppEntryPoint(id="t", name="T", command="echo",
+                             service_url_suffix=suffix, **kw)
+
+    def test_allows_literal_and_known_placeholders(self):
+        ep = self._ep("/?access_token=${FG_SERVICE_TOKEN}")
+        assert ep.service_url_suffix == "/?access_token=${FG_SERVICE_TOKEN}"
+
+    def test_allows_multiple_query_params_and_paths(self):
+        # ? & = / are literal inside the double-quoted emission; base paths ok.
+        ep = self._ep("/lab?token=${FG_SERVICE_TOKEN}&reset=1")
+        assert "reset=1" in ep.service_url_suffix
+
+    def test_rejects_unknown_placeholder(self):
+        with pytest.raises(ValidationError, match="service_url_suffix"):
+            self._ep("/?t=${SECRET}")
+
+    def test_rejects_bare_dollar(self):
+        with pytest.raises(ValidationError, match="service_url_suffix"):
+            self._ep("/?t=$FG_SERVICE_TOKEN")  # braces required
+
+    def test_rejects_shell_injection_chars(self):
+        for bad in ['/`whoami`', '/"x"', "/\\x"]:
+            with pytest.raises(ValidationError, match="service_url_suffix"):
+                self._ep(bad)
+
+    def test_requires_auto_url(self):
+        with pytest.raises(ValidationError, match="service_url_suffix requires auto_url"):
+            AppEntryPoint(id="t", name="T", command="echo", type="service",
+                          auto_url=False, service_url_suffix="/?t=x")
+
+
+class TestServiceUrlPublisher:
+    """The backgrounded readiness probe that publishes SERVICE_URL_PATH."""
+
+    @requires_bash
+    def test_publisher_is_valid_bash(self):
+        snippet = _build_service_url_publisher("/?access_token=${FG_SERVICE_TOKEN}")
+        result = subprocess.run(["bash", "-n", "-c", snippet],
+                                capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
+        assert "SERVICE_URL_PATH" in snippet and "3600" in snippet
+
+    @requires_bash
+    def test_publishes_tokenized_url_only_once_port_is_up(self, tmp_path):
+        import socket
+        # Bind a real port so the probe's TCP connect succeeds.
+        srv = socket.socket()
+        srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        srv.bind(("127.0.0.1", 0))
+        port = srv.getsockname()[1]
+        srv.listen()
+        try:
+            url_file = tmp_path / "service_url"
+            env = (
+                f'export FG_HOSTNAME=h1 FG_SERVICE_PORT={port} '
+                f'FG_SERVICE_TOKEN=deadbeef SERVICE_URL_PATH={url_file}\n'
+            )
+            # Run the publisher in the foreground (drop the trailing &) so the
+            # test can wait for it deterministically.
+            snippet = _build_service_url_publisher(
+                "/?access_token=${FG_SERVICE_TOKEN}").rstrip().removesuffix("&")
+            result = subprocess.run(["bash", "-c", env + snippet],
+                                    capture_output=True, text=True, timeout=30)
+            assert result.returncode == 0, result.stderr
+            assert url_file.read_text() == f"http://h1:{port}/?access_token=deadbeef"
+        finally:
+            srv.close()
+
+    @requires_bash
+    def test_does_not_publish_when_port_never_opens(self, tmp_path):
+        import socket
+        # Grab a free port number, then close it so nothing is listening.
+        s = socket.socket(); s.bind(("127.0.0.1", 0)); port = s.getsockname()[1]; s.close()
+        url_file = tmp_path / "service_url"
+        env = (
+            f'export FG_HOSTNAME=h1 FG_SERVICE_PORT={port} '
+            f'FG_SERVICE_TOKEN=x SERVICE_URL_PATH={url_file}\n'
+        )
+        # Shrink the loop to 2 iterations so the timeout path is quick.
+        snippet = _build_service_url_publisher("").replace("$(seq 1 3600)", "$(seq 1 2)")
+        snippet = snippet.rstrip().removesuffix("&")
+        result = subprocess.run(["bash", "-c", env + snippet],
+                                capture_output=True, text=True, timeout=30)
+        assert not url_file.exists()
+        assert "never opened" in result.stderr
+
+
+class TestServicePhase:
+    """The 'phase' marker the container script writes and get_service_phase reads."""
+
+    def test_container_script_reports_pull_and_start_phases(self):
+        script = _build_container_script("docker://x/y:latest", "run", "/wd", [])
+        # 'pulling_image' is written inside the "SIF missing" branch (the pull),
+        # 'starting' unconditionally before exec.
+        assert 'printf pulling_image > "$FG_PHASE_PATH"' in script
+        assert 'printf starting > "$FG_PHASE_PATH"' in script
+        pull_i = script.index("apptainer pull")
+        assert script.index("pulling_image") < pull_i < script.index("apptainer exec")
+
+    def _svc(self, tmp_path, phase=None, **kw):
+        if phase is not None:
+            (tmp_path / "phase").write_text(phase)
+        kw.setdefault("entry_point_type", "service")
+        kw.setdefault("status", "RUNNING")
+        return _fake_job(work_dir=str(tmp_path), **kw)
+
+    def test_reads_recognized_phase_for_running_service(self, tmp_path):
+        assert get_service_phase(self._svc(tmp_path, "pulling_image")) == "pulling_image"
+        (tmp_path / "phase").write_text("starting")
+        assert get_service_phase(self._svc(tmp_path)) == "starting"
+
+    def test_none_when_not_running(self, tmp_path):
+        assert get_service_phase(self._svc(tmp_path, "pulling_image", status="PENDING")) is None
+
+    def test_none_for_non_service(self, tmp_path):
+        assert get_service_phase(self._svc(tmp_path, "starting", entry_point_type="job")) is None
+
+    def test_none_when_no_phase_file(self, tmp_path):
+        assert get_service_phase(self._svc(tmp_path)) is None
+
+    def test_rejects_unknown_phase(self, tmp_path):
+        assert get_service_phase(self._svc(tmp_path, "garbage")) is None
 
 
 # --- Path validation tests ---
@@ -767,6 +1190,41 @@ class TestValidatePathInFilestore:
         error = validate_path_in_filestore("/nowhere/file.txt", [], check_access=False)
         assert error is not None
         assert "not within an allowed file share" in error
+
+    def test_folder_rejected_when_file_expected(self, tmp_path):
+        from fileglancer.model import FileSharePath
+        subdir = tmp_path / "results"
+        subdir.mkdir()
+        fsp = FileSharePath(zone="test", name="test", mount_path=str(tmp_path))
+        error = validate_path_in_filestore(str(subdir), [fsp], expected_type="file")
+        assert error == "Path is a folder, but a file is required"
+
+    def test_file_rejected_when_directory_expected(self, tmp_path):
+        from fileglancer.model import FileSharePath
+        test_file = tmp_path / "data.txt"
+        test_file.write_text("hello")
+        fsp = FileSharePath(zone="test", name="test", mount_path=str(tmp_path))
+        error = validate_path_in_filestore(str(test_file), [fsp],
+                                           expected_type="directory")
+        assert error == "Path is a file, but a folder is required"
+
+    def test_matching_type_passes(self, tmp_path):
+        from fileglancer.model import FileSharePath
+        test_file = tmp_path / "data.txt"
+        test_file.write_text("hello")
+        fsp = FileSharePath(zone="test", name="test", mount_path=str(tmp_path))
+        assert validate_path_in_filestore(str(test_file), [fsp],
+                                          expected_type="file") is None
+        assert validate_path_in_filestore(str(tmp_path), [fsp],
+                                          expected_type="directory") is None
+
+    def test_missing_path_not_type_checked(self, tmp_path):
+        """An exists=false output has no type yet, so only containment applies."""
+        from fileglancer.model import FileSharePath
+        fsp = FileSharePath(zone="test", name="test", mount_path=str(tmp_path))
+        missing = str(tmp_path / "report.html")
+        assert validate_path_in_filestore(missing, [fsp], check_access=False,
+                                          expected_type="file") is None
 
 
 
@@ -913,10 +1371,29 @@ class TestCollectPathParameters:
         )
         # Only file/directory params; non-path 'count' excluded. Env namespace
         # default included; pipeline 'outdir' falls back to its default.
-        assert result == [
-            ("envdir", "Env Dir", "/data/envdefault"),
-            ("input", "Input Path", "/data/in.txt"),
-            ("outdir", "Out Dir", "/data/outdefault"),
+        assert [(p.key, p.type, v) for p, v in result] == [
+            ("envdir", "directory", "/data/envdefault"),
+            ("input", "file", "/data/in.txt"),
+            ("outdir", "directory", "/data/outdefault"),
+        ]
+
+    def test_carries_exists_flag(self):
+        ep = AppEntryPoint(
+            id="test",
+            name="test",
+            command="test_cmd",
+            parameters=[
+                {"key": "report", "name": "Report", "type": "file",
+                 "flag": "--report", "exists": False},
+                {"key": "input", "name": "Input Path", "type": "file", "flag": "--input"},
+            ],
+        )
+        result = collect_path_parameters(
+            ep, {"report": "/data/report.html", "input": "/data/in.txt"}
+        )
+        assert [(p.key, p.exists, v) for p, v in result] == [
+            ("report", False, "/data/report.html"),
+            ("input", True, "/data/in.txt"),
         ]
 
     def test_omits_path_params_without_value_or_default(self):
@@ -927,6 +1404,111 @@ class TestCollectPathParameters:
             parameters=[{"key": "input", "name": "Input Path", "type": "file", "flag": "--input"}],
         )
         assert collect_path_parameters(ep, {}) == []
+
+
+class TestExistsValidation:
+    """exists is only valid on file and directory params."""
+
+    def test_accepted_on_directory(self):
+        p = AppParameter(key="d", name="Dir", type="directory", exists=False)
+        assert p.exists is False
+
+    def test_accepted_on_file(self):
+        p = AppParameter(key="f", name="File", type="file", exists=False)
+        assert p.exists is False
+
+    def test_defaults_true(self):
+        p = AppParameter(key="d", name="Dir", type="directory")
+        assert p.exists is True
+
+    @pytest.mark.parametrize("bad_type", ["string", "integer", "enum"])
+    def test_exists_false_rejected_on_non_path_type(self, bad_type):
+        kwargs = {"key": "p", "name": "P", "type": bad_type, "exists": False}
+        if bad_type == "enum":
+            kwargs["options"] = ["a", "b"]
+        with pytest.raises(ValidationError):
+            AppParameter(**kwargs)
+
+    def test_exists_true_tolerated_on_non_path_type(self):
+        # model_dump serializes the True default onto every param, so a
+        # round-tripped manifest carries exists=True on strings; that must
+        # revalidate cleanly.
+        p = AppParameter(key="s", name="S", type="string", exists=True)
+        assert p.exists is True
+
+    def test_round_trip_through_model_dump(self):
+        # Worker -> server and DB-cache paths reconstruct the model from its
+        # own model_dump; the validator must accept its own serialized output.
+        p = AppParameter(key="s", name="S", type="string", flag="--s")
+        assert AppParameter(**p.model_dump()) == p
+
+
+class TestCollectCreatableDirs:
+    """collect_creatable_dirs gathers directory params with exists=false."""
+
+    def test_collects_via_default_and_user_value(self):
+        ep = AppEntryPoint(
+            id="test",
+            name="test",
+            command="test_cmd",
+            env_parameters=[{
+                "key": "envdir", "name": "Env Dir", "type": "directory",
+                "default": "~/.fileglancer/env", "exists": False,
+            }],
+            parameters=[
+                {"key": "logdir", "name": "Log Dir", "type": "directory",
+                 "flag": "--logdir", "default": "~/.fileglancer/logs",
+                 "exists": False},
+                # directory without the flag -> excluded
+                {"key": "indir", "name": "In Dir", "type": "directory",
+                 "flag": "--indir", "default": "/data/in"},
+            ],
+        )
+        result = collect_creatable_dirs(
+            ep,
+            {"logdir": "/data/mylogs"},  # user override
+            env_parameters={},
+        )
+        # Env default included; pipeline 'logdir' uses the user value; 'indir'
+        # excluded (must exist, so it is never created).
+        assert result == [
+            ("Env Dir", "~/.fileglancer/env"),
+            ("Log Dir", "/data/mylogs"),
+        ]
+
+    def test_omits_file_params(self):
+        # exists=false file params skip the existence check but are never
+        # created (there is nothing sensible to create for a file output).
+        ep = AppEntryPoint(
+            id="test",
+            name="test",
+            command="test_cmd",
+            parameters=[{"key": "report", "name": "Report", "type": "file",
+                         "flag": "--report", "default": "~/report.html",
+                         "exists": False}],
+        )
+        assert collect_creatable_dirs(ep, {}) == []
+
+    def test_omits_when_no_effective_value(self):
+        ep = AppEntryPoint(
+            id="test",
+            name="test",
+            command="test_cmd",
+            parameters=[{"key": "logdir", "name": "Log Dir", "type": "directory",
+                         "flag": "--logdir", "exists": False}],
+        )
+        assert collect_creatable_dirs(ep, {}) == []
+
+    def test_omits_empty_string_value(self):
+        ep = AppEntryPoint(
+            id="test",
+            name="test",
+            command="test_cmd",
+            parameters=[{"key": "logdir", "name": "Log Dir", "type": "directory",
+                         "flag": "--logdir", "default": "~/logs",
+                         "exists": False}],
+        )
+        assert collect_creatable_dirs(ep, {"logdir": ""}) == []
 
 
 class TestExpandUserPath:
@@ -998,7 +1580,10 @@ class TestFindManifestsAdapterFallback:
     empty tmp_path exercises it directly."""
 
     def test_other_adapter_handles_when_one_fails(self, tmp_path, monkeypatch):
-        manifest = AppManifest(name="From Pixi", runnables=[])
+        manifest = AppManifest(
+            name="From Pixi",
+            runnables=[AppEntryPoint(id="run", name="Run", command="echo")],
+        )
         monkeypatch.setattr(
             adapters_module,
             "MANIFEST_ADAPTERS",
@@ -1506,6 +2091,100 @@ class TestOptionalFlagEmptyValue:
         assert cmd.endswith("''")
 
 
+class TestBuildCommandValueSeparator:
+    def test_flagged_params_default_to_space_separator(self):
+        ep = AppEntryPoint(
+            id="run",
+            name="run",
+            command="tool",
+            parameters=[AppParameter(flag="--opt", name="Opt", type="string")],
+        )
+        cmd = build_command(ep, {"opt": "value"})
+        assert "--opt value" in cmd
+
+    def test_equals_separator_attaches_leading_dash_value(self):
+        ep = AppEntryPoint(
+            id="run",
+            name="run",
+            command="tool",
+            parameters=[
+                AppParameter(
+                    flag="--runtime_opts",
+                    name="Runtime opts",
+                    type="string",
+                    value_separator="equals",
+                ),
+            ],
+        )
+        cmd = build_command(ep, {"runtime_opts": "--nv"})
+        assert "--runtime_opts=--nv" in cmd
+        assert "--runtime_opts --nv" not in cmd
+
+    def test_equals_separator_still_shell_quotes_spaces(self):
+        ep = AppEntryPoint(
+            id="run",
+            name="run",
+            command="tool",
+            parameters=[
+                AppParameter(
+                    flag="--runtime_opts",
+                    name="Runtime opts",
+                    type="string",
+                    value_separator="equals",
+                ),
+            ],
+        )
+        cmd = build_command(ep, {"runtime_opts": "--bind /data in"})
+        assert "--runtime_opts='--bind /data in'" in cmd
+
+
+class TestBuildCommandBooleanStyle:
+    def test_flag_style_preserves_generic_switch_behavior(self):
+        ep = AppEntryPoint(
+            id="run",
+            name="run",
+            command="tool",
+            parameters=[AppParameter(flag="--verbose", name="Verbose", type="boolean")],
+        )
+        assert build_command(ep, {"verbose": True}) == "tool \\\n  --verbose"
+        assert build_command(ep, {"verbose": False}) == "tool"
+
+    def test_value_style_emits_explicit_boolean_values(self):
+        ep = AppEntryPoint(
+            id="run",
+            name="run",
+            command="tool",
+            parameters=[
+                AppParameter(
+                    flag="--skip_qc",
+                    name="Skip QC",
+                    type="boolean",
+                    boolean_style="value",
+                ),
+            ],
+        )
+        assert "--skip_qc true" in build_command(ep, {"skip_qc": True})
+        assert "--skip_qc false" in build_command(ep, {"skip_qc": False})
+
+    def test_value_style_can_use_equals_separator(self):
+        ep = AppEntryPoint(
+            id="run",
+            name="run",
+            command="tool",
+            parameters=[
+                AppParameter(
+                    flag="--skip_qc",
+                    name="Skip QC",
+                    type="boolean",
+                    boolean_style="value",
+                    value_separator="equals",
+                ),
+            ],
+        )
+        assert "--skip_qc=true" in build_command(ep, {"skip_qc": True})
+        assert "--skip_qc=false" in build_command(ep, {"skip_qc": False})
+
+
 class TestParameterKeyGeneration:
     """AppEntryPoint auto-generates parameter keys from the flag or a positional
     index, but honors an explicitly-authored key."""
@@ -1619,6 +2298,84 @@ class TestNextflowRunsFromWorkDir:
         )
         assert cmd.startswith("nextflow run repo -ansi-log false")
         assert cmd.index("-profile") < cmd.index("--input_dir")
+        assert "-profile janeliaLSF" in cmd
+
+    def test_pipeline_params_use_equals_separator_for_leading_dash_values(self, tmp_path):
+        (tmp_path / "nextflow_schema.json").write_text(json.dumps({
+            "$defs": {
+                "opts": {
+                    "title": "Options",
+                    "properties": {
+                        "runtime_opts": {"type": "string"},
+                    },
+                }
+            },
+            "allOf": [{"$ref": "#/$defs/opts"}],
+        }))
+        ep = NextflowAdapter().convert(tmp_path).runnables[0]
+        cmd = build_command(ep, {"runtime_opts": "--nv"})
+        assert "--runtime_opts=--nv" in cmd
+        assert "--runtime_opts --nv" not in cmd
+
+    def test_boolean_params_are_emitted_explicitly(self, tmp_path):
+        (tmp_path / "nextflow_schema.json").write_text(json.dumps({
+            "$defs": {
+                "opts": {
+                    "title": "Options",
+                    "properties": {
+                        "skip_qc": {"type": "boolean", "default": True},
+                    },
+                }
+            },
+            "allOf": [{"$ref": "#/$defs/opts"}],
+        }))
+        ep = NextflowAdapter().convert(tmp_path).runnables[0]
+        param = next(p for p in ep.flat_parameters() if p.key == "skip_qc")
+        assert param.boolean_style == "value"
+
+        assert "--skip_qc=true" in build_command(ep, {})
+        assert "--skip_qc=false" in build_command(ep, {"skip_qc": False})
+        assert "--skip_qc false" not in build_command(ep, {"skip_qc": False})
+
+    def test_legacy_cached_nextflow_params_use_safe_forms(self):
+        # Cached manifests created before Fileglancer knew about
+        # value_separator/boolean_style still validate with those fields at
+        # their generic defaults. Command generation must recognize Nextflow
+        # pipeline params and use the safe forms anyway, otherwise existing
+        # installed apps keep the old bugs until manually updated/re-added.
+        ep = AppEntryPoint(
+            id="run",
+            name="Run pipeline",
+            command="nextflow run repo -ansi-log false",
+            working_dir="work",
+            env_parameters=[
+                AppParameter(flag="-profile", name="Profiles", type="string"),
+            ],
+            parameters=[
+                AppParameter(
+                    flag="--runtime_opts",
+                    name="Runtime opts",
+                    type="string",
+                ),
+                AppParameter(
+                    flag="--skip_qc",
+                    name="Skip QC",
+                    type="boolean",
+                    default=True,
+                ),
+            ],
+        )
+
+        cmd = build_command(
+            ep,
+            {"runtime_opts": "--nv", "skip_qc": False},
+            env_parameters={"profile": "janeliaLSF"},
+        )
+        assert "-profile janeliaLSF" in cmd
+        assert "--runtime_opts=--nv" in cmd
+        assert "--skip_qc=false" in cmd
+        assert "--runtime_opts --nv" not in cmd
+        assert "--skip_qc false" not in cmd
 
     def test_projectdir_default_rewritten_to_repo(self, tmp_path):
         # Running from the work dir, projectDir assets live under ./repo/, so a
@@ -1664,6 +2421,48 @@ class TestNextflowRunsFromWorkDir:
         assert param.default == "./repo/assets/rrna-db-defaults.txt"
 
 
+class TestNextflowPathExists:
+    """Nextflow path params only require existence when the schema sets
+    "exists": true — anything else (outdir, report paths, ...) is an output
+    the pipeline creates."""
+
+    def _convert(self, tmp_path, properties):
+        (tmp_path / "nextflow_schema.json").write_text(json.dumps({
+            "$defs": {"opts": {"title": "Options", "properties": properties}},
+            "allOf": [{"$ref": "#/$defs/opts"}],
+        }))
+        ep = NextflowAdapter().convert(tmp_path).runnables[0]
+        return {p.key: p for p in ep.flat_parameters()}
+
+    def test_exists_true_requires_existence(self, tmp_path):
+        params = self._convert(tmp_path, {
+            "input": {"type": "string", "format": "file-path", "exists": True},
+        })
+        assert params["input"].exists is True
+
+    def test_path_without_exists_may_be_missing(self, tmp_path):
+        params = self._convert(tmp_path, {
+            "outdir": {"type": "string", "format": "directory-path"},
+            "report": {"type": "string", "format": "file-path"},
+        })
+        assert params["outdir"].exists is False
+        assert params["report"].exists is False
+
+    def test_exists_false_may_be_missing(self, tmp_path):
+        # nf-schema uses "exists": false to assert non-existence; either way
+        # the path is not required to exist before launch.
+        params = self._convert(tmp_path, {
+            "outdir": {"type": "string", "format": "directory-path", "exists": False},
+        })
+        assert params["outdir"].exists is False
+
+    def test_non_path_params_unaffected(self, tmp_path):
+        params = self._convert(tmp_path, {
+            "title": {"type": "string"},
+        })
+        assert params["title"].exists is True  # model default, not path-validated
+
+
 class TestNextflowAdapterNaming:
     def _make_schema(self, tmp_path):
         (tmp_path / "nextflow_schema.json").write_text(json.dumps({
@@ -1681,7 +2480,7 @@ class TestNextflowAdapterNaming:
 
         with patch("fileglancer.apps.manifest._repo_cache_base", return_value=cache_base):
             manifest = NextflowAdapter().convert(repo_dir)
-            assert manifest.name == "nf-core/rnaseq"
+            assert manifest.name == "rnaseq"
 
     def test_slashed_branch_naming(self, tmp_path):
         from unittest.mock import patch
@@ -1692,7 +2491,7 @@ class TestNextflowAdapterNaming:
 
         with patch("fileglancer.apps.manifest._repo_cache_base", return_value=cache_base):
             manifest = NextflowAdapter().convert(repo_dir)
-            assert manifest.name == "nf-core/rnaseq"
+            assert manifest.name == "rnaseq"
 
 
 class TestEffectiveWorkingDir:
@@ -1735,7 +2534,7 @@ class TestPixiTaskEnv:
         ep = _task_to_entry_point(
             "build", {"cmd": "make", "env": {"FOO": "bar"}}
         )
-        # No parameter should carry an --env: flag anymore.
+        # No parameter should carry an --env: flag.
         assert all(
             p.flag is None or not p.flag.startswith("--env:")
             for p in ep.flat_parameters()
@@ -1748,8 +2547,9 @@ class TestPixiTaskEnv:
 
 
 class TestPixiAdapterName:
-    """The generated app name should come from the pixi project's name, not a
-    repo/branch combination (which produced ugly names like 'repo/HEAD')."""
+    """The generated app name should come from the pixi project's name, falling
+    back to the git repo name, then the directory name — never a repo/branch
+    combination like 'repo/HEAD'."""
 
     def _write_pixi(self, tmp_path, body: str):
         (tmp_path / "pixi.toml").write_text(body)
@@ -1784,3 +2584,360 @@ class TestPixiAdapterName:
         monkeypatch.setattr(pixi_mod, "_get_git_repo_name", lambda d: None)
         manifest = PixiAdapter().convert(tmp_path)
         assert manifest.name == tmp_path.name
+
+
+class TestManifestSourceFilename:
+    """The manifest records which file it was read or generated from, so the
+    UI can link to the real source instead of always naming runnables.yaml."""
+
+    def test_runnables_yaml(self, tmp_path):
+        from fileglancer.apps.manifest import _read_manifest_file
+
+        (tmp_path / "runnables.yaml").write_text(
+            "name: Test\n"
+            "runnables:\n"
+            "  - id: run\n"
+            "    name: Run\n"
+            "    command: echo\n"
+        )
+        assert _read_manifest_file(tmp_path).source_filename == "runnables.yaml"
+
+    def test_nextflow_schema(self, tmp_path):
+        (tmp_path / "nextflow_schema.json").write_text(json.dumps({
+            "$defs": {
+                "input": {
+                    "title": "Input",
+                    "properties": {"input_dir": {"type": "string"}},
+                }
+            },
+            "allOf": [{"$ref": "#/$defs/input"}],
+        }))
+        manifest = NextflowAdapter().convert(tmp_path)
+        assert manifest.source_filename == "nextflow_schema.json"
+
+    def test_pixi_toml(self, tmp_path):
+        from fileglancer.apps.pixi import PixiAdapter
+
+        (tmp_path / "pixi.toml").write_text(
+            '[project]\nname = "Foo"\n\n[tasks]\nrun = "echo hi"\n'
+        )
+        manifest = PixiAdapter().convert(tmp_path)
+        assert manifest.source_filename == "pixi.toml"
+
+    def test_pyproject_toml(self, tmp_path):
+        from fileglancer.apps.pixi import PixiAdapter
+
+        (tmp_path / "pyproject.toml").write_text(
+            '[project]\nname = "Foo"\n\n[tool.pixi.tasks]\nrun = "echo hi"\n'
+        )
+        manifest = PixiAdapter().convert(tmp_path)
+        assert manifest.source_filename == "pyproject.toml"
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="the poll loop uses fcntl file locking; the server only runs on POSIX",
+)
+class TestPollLoopStopRace:
+    """The poll loop must not orphan a job submitted while it is stopping.
+
+    When _poll_jobs reports no active jobs, the loop re-checks for active jobs
+    before exiting, with no await in between, and keeps polling if one appeared
+    during the cycle. So a job submitted just as the loop is about to stop is
+    still picked up rather than left unpolled in PENDING.
+    """
+
+    def test_keeps_polling_when_job_appears_during_stop(self, tmp_path, monkeypatch):
+        import asyncio
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock, patch
+        import fileglancer.apps.jobs as jobs_mod
+
+        monkeypatch.setattr(jobs_mod, "_POLL_LOCK_PATH", str(tmp_path / "poll.lock"))
+        monkeypatch.setattr(jobs_mod, "_poll_task", None, raising=False)
+        settings = SimpleNamespace(cluster=SimpleNamespace(poll_interval=0.01))
+
+        # _poll_jobs reports "no active jobs" every cycle. The stop re-check
+        # returns a user first (a job appeared mid-cycle -> keep going), then
+        # None (really nothing -> stop).
+        with patch.object(jobs_mod, "_poll_jobs", new=AsyncMock(return_value=False)) as poll_jobs, \
+             patch.object(jobs_mod, "_get_any_active_username",
+                          side_effect=["someuser", None]) as active_user:
+            async def run():
+                await asyncio.wait_for(jobs_mod._poll_loop(settings), timeout=5)
+            asyncio.run(run())
+
+        # Polled twice: it did NOT exit on the first no-jobs cycle because the
+        # re-check still saw an active job.
+        assert poll_jobs.await_count == 2
+        assert active_user.call_count == 2
+        assert jobs_mod._poll_task is None
+
+
+class TestSubmitJobOrphanCleanup:
+    """A submit-time failure after the job row is created must delete the row.
+
+    Env-var validation, script assembly, and the worker submit all run after
+    create_job; if any of them fails without cleanup, the user is left with a
+    phantom PENDING job that never runs and never resolves.
+    """
+
+    def _submit(self, tmp_path, monkeypatch, entry_point=None, dispatch=None,
+                **submit_kwargs):
+        import asyncio
+        from unittest.mock import AsyncMock
+        import fileglancer.apps.jobs as jobs_mod
+        from fileglancer import database as db
+        from fileglancer.model import AppEntryPoint, AppManifest
+        from fileglancer.settings import Settings
+
+        db_url = f"sqlite:///{tmp_path / 'jobs.db'}"
+        db.Base.metadata.create_all(db._get_engine(db_url))
+        settings = Settings(db_url=db_url, file_share_mounts=[], cli_mode=True)
+        monkeypatch.setattr(jobs_mod, "get_settings", lambda: settings)
+
+        manifest = AppManifest(
+            name="demo",
+            runnables=[AppEntryPoint(id="run", name="Run", command="echo hi",
+                                     **(entry_point or {}))],
+        )
+        monkeypatch.setattr(jobs_mod, "get_or_load_manifest",
+                            AsyncMock(return_value=manifest))
+        monkeypatch.setattr(jobs_mod, "ensure_repo_snapshot",
+                            AsyncMock(return_value=(tmp_path / "repo", "abc123")))
+        monkeypatch.setattr(jobs_mod, "_dispatch",
+                            dispatch or AsyncMock(return_value={}))
+
+        async def run():
+            return await jobs_mod.submit_job(
+                username="alice",
+                app_url="https://github.com/org/demo",
+                entry_point_id="run",
+                parameters={},
+                **submit_kwargs,
+            )
+        return asyncio.run(run())
+
+    def _job_count(self, tmp_path):
+        from fileglancer import database as db
+        with db.get_db_session(f"sqlite:///{tmp_path / 'jobs.db'}") as session:
+            return session.query(db.JobDB).count()
+
+    def test_invalid_env_var_name_deletes_row(self, tmp_path, monkeypatch):
+        with pytest.raises(ValueError, match="Invalid environment variable name"):
+            self._submit(tmp_path, monkeypatch, env={"BAD NAME": "x"})
+        assert self._job_count(tmp_path) == 0
+
+    def test_malformed_container_args_deletes_row(self, tmp_path, monkeypatch):
+        # shlex.split raises "No closing quotation" during script assembly
+        with pytest.raises(ValueError):
+            self._submit(tmp_path, monkeypatch,
+                         container="docker://busybox",
+                         container_args="'unterminated")
+        assert self._job_count(tmp_path) == 0
+
+    def test_worker_submit_failure_deletes_row(self, tmp_path, monkeypatch):
+        from unittest.mock import AsyncMock
+        dispatch = AsyncMock(side_effect=RuntimeError("worker down"))
+        with pytest.raises(RuntimeError, match="worker down"):
+            self._submit(tmp_path, monkeypatch, dispatch=dispatch)
+        assert self._job_count(tmp_path) == 0
+
+
+class TestSubmitJobAssembly:
+    """Happy-path coverage for submit_job's assembly.
+
+    The building blocks (build_command, _build_container_script, preamble
+    helpers) have their own unit tests; these cover how submit_job composes
+    them — the exact script text and resource spec dispatched to the worker,
+    which is what actually runs as the user — and the job row it creates.
+    """
+
+    WORKER_RESULT = {
+        "job_id": "cluster-42",
+        "script_path": "/home/alice/.fileglancer/jobs/1-demo-run/script.sh",
+        "work_dir_fsp_name": "home",
+        "work_dir_subpath": ".fileglancer/jobs/1-demo-run",
+    }
+
+    def _submit(self, tmp_path, monkeypatch, entry_point=None, cluster=None,
+                file_share_mounts=None, validate_errors=None, **submit_kwargs):
+        """Run submit_job with worker seams mocked; return (job, dispatch calls)."""
+        import asyncio
+        from unittest.mock import AsyncMock
+        import fileglancer.apps.jobs as jobs_mod
+        from fileglancer import database as db
+        from fileglancer.settings import Settings
+
+        db_url = f"sqlite:///{tmp_path / 'jobs.db'}"
+        db.Base.metadata.create_all(db._get_engine(db_url))
+        settings = Settings(db_url=db_url,
+                            file_share_mounts=file_share_mounts or [],
+                            cli_mode=True,
+                            cluster=cluster or {})
+        monkeypatch.setattr(jobs_mod, "get_settings", lambda: settings)
+        # build_command validates path params against the file shares, which
+        # get_file_share_paths reads from settings.
+        monkeypatch.setattr(db, "get_settings", lambda: settings)
+
+        manifest = AppManifest(
+            name="demo",
+            runnables=[AppEntryPoint(id="run", name="Run", command="echo hi",
+                                     **(entry_point or {}))],
+        )
+        monkeypatch.setattr(jobs_mod, "get_or_load_manifest",
+                            AsyncMock(return_value=manifest))
+        monkeypatch.setattr(jobs_mod, "ensure_repo_snapshot",
+                            AsyncMock(return_value=(tmp_path / "repo", "a" * 40)))
+        monkeypatch.setattr(jobs_mod, "ensure_poll_loop", lambda: None)
+
+        calls = []
+
+        async def fake_dispatch(username, action, **kwargs):
+            calls.append((action, kwargs))
+            if action == "validate_paths":
+                return {"errors": validate_errors or {}}
+            if action == "create_dirs":
+                return {"errors": {}}
+            if action == "submit":
+                return dict(self.WORKER_RESULT)
+            return {}
+
+        monkeypatch.setattr(jobs_mod, "_dispatch", fake_dispatch)
+
+        async def run():
+            return await jobs_mod.submit_job(
+                username="alice",
+                app_url="https://github.com/org/demo",
+                entry_point_id="run",
+                parameters=submit_kwargs.pop("parameters", {}),
+                **submit_kwargs,
+            )
+        return asyncio.run(run()), calls
+
+    def _submitted(self, calls):
+        """Return the kwargs of the single worker 'submit' dispatch."""
+        submits = [kwargs for action, kwargs in calls if action == "submit"]
+        assert len(submits) == 1
+        return submits[0]
+
+    def test_creates_pending_job_with_cluster_metadata(self, tmp_path, monkeypatch):
+        job, calls = self._submit(tmp_path, monkeypatch)
+
+        assert job.status == "PENDING"
+        assert job.cluster_job_id == "cluster-42"
+        assert job.script_path == self.WORKER_RESULT["script_path"]
+        assert job.work_dir_fsp_name == "home"
+        assert job.work_dir_subpath == ".fileglancer/jobs/1-demo-run"
+        assert job.commit_sha == "a" * 40
+        assert job.app_name == "demo"
+        assert f"{job.id}-demo-run" in job.work_dir
+
+        submitted = self._submitted(calls)
+        assert submitted["work_dir"] == job.work_dir
+        assert submitted["job_name"] == "demo-run"
+        # work_dir is an OS-native path, so join the same way submit_job does.
+        assert submitted["resources"]["stdout_path"] == os.path.join(job.work_dir, "stdout.log")
+        assert submitted["resources"]["stderr_path"] == os.path.join(job.work_dir, "stderr.log")
+
+    def test_script_layout_and_parameter_quoting(self, tmp_path, monkeypatch):
+        job, calls = self._submit(
+            tmp_path, monkeypatch,
+            # A developer config.yaml deep-merges into Settings, so pin the
+            # executor rather than relying on the 'local' default.
+            cluster={"executor": "local"},
+            entry_point={
+                "conda_env": "tools",
+                "env": {"GREETING": "hello world"},
+                "pre_run": "echo before",
+                "post_run": "echo after",
+                "parameters": [{"flag": "--name", "name": "Name", "type": "string"}],
+            },
+            parameters={"name": "Ada Lovelace"},
+        )
+        script = self._submitted(calls)["command"]
+
+        assert script.startswith("unset PIXI_PROJECT_MANIFEST")
+        assert f"export FG_WORK_DIR={shlex.quote(job.work_dir)}" in script
+        # Default working dir is the repo snapshot (no manifest subdir here).
+        assert 'cd "$FG_WORK_DIR"/repo' in script
+        assert "conda activate tools" in script
+        # User-facing values reach the script shell-quoted.
+        assert "export GREETING='hello world'" in script
+        assert "echo hi" in script
+        assert "--name 'Ada Lovelace'" in script
+        # pre_run -> command -> post_run ordering.
+        assert (script.index("echo before")
+                < script.index("echo hi")
+                < script.index("echo after"))
+        # The local executor records the exit code for PID polling.
+        assert 'trap \'echo $? > "$FG_WORK_DIR/exit_code"\' EXIT' in script
+
+    def test_non_local_executor_omits_exit_code_trap(self, tmp_path, monkeypatch):
+        _, calls = self._submit(tmp_path, monkeypatch, cluster={"executor": "lsf"})
+        assert "exit_code" not in self._submitted(calls)["command"]
+
+    def test_service_entry_point_preamble(self, tmp_path, monkeypatch):
+        _, calls = self._submit(
+            tmp_path, monkeypatch,
+            entry_point={"type": "service", "auto_url": True},
+        )
+        script = self._submitted(calls)["command"]
+        assert 'export SERVICE_URL_PATH="$FG_WORK_DIR/service_url"' in script
+        assert "FG_SERVICE_PORT" in script
+
+    def test_container_wraps_command_and_binds_default_paths(self, tmp_path, monkeypatch):
+        input_file = tmp_path / "input.txt"
+        input_file.write_text("data")
+        job, calls = self._submit(
+            tmp_path, monkeypatch,
+            entry_point={
+                "container": "docker://busybox",
+                "parameters": [{"flag": "--input", "name": "Input", "type": "file",
+                                "default": str(input_file)}],
+            },
+            file_share_mounts=[str(tmp_path)],
+        )
+        script = self._submitted(calls)["command"]
+
+        assert "apptainer" in script
+        # The file param came from its manifest default (not the submitted
+        # parameters), and its parent dir must still be bind-mounted. Bind
+        # paths are '/'-normalized for the bash script, hence as_posix().
+        assert f"--bind {shlex.quote(tmp_path.as_posix())}" in script
+        # Container runnables default to running from the work dir.
+        assert 'cd "$FG_WORK_DIR"\n' in script or script.endswith('cd "$FG_WORK_DIR"')
+        assert 'cd "$FG_WORK_DIR"/repo' not in script
+
+    def test_resource_overrides_and_extra_args_tokens(self, tmp_path, monkeypatch):
+        job, calls = self._submit(
+            tmp_path, monkeypatch,
+            resources={"cpus": 4, "memory": "8G", "queue": "gpu"},
+            extra_args='-P proj -R "select[mem>8000]"',
+        )
+        resources = self._submitted(calls)["resources"]
+        assert resources["cpus"] == 4
+        assert resources["memory"] == "8G"
+        assert resources["queue"] == "gpu"
+        # The user's string arrives at the scheduler as distinct argv tokens.
+        assert resources["extra_args"] == ["-P", "proj", "-R", "select[mem>8000]"]
+        # The job row stores the same tokens, shell-joined for lossless
+        # round-tripping into the relaunch form.
+        assert job.resources["extra_args"] == "-P proj -R 'select[mem>8000]'"
+        assert job.resources["cpus"] == 4
+
+    def test_worker_path_validation_failure_names_parameter(self, tmp_path, monkeypatch):
+        from fileglancer import database as db
+        with pytest.raises(ValueError, match="Parameter 'Input': not readable"):
+            self._submit(
+                tmp_path, monkeypatch,
+                entry_point={
+                    "parameters": [{"flag": "--input", "name": "Input", "type": "file"}],
+                },
+                parameters={"input": str(tmp_path / "missing.txt")},
+                file_share_mounts=[str(tmp_path)],
+                validate_errors={"0": "not readable"},
+            )
+        # Validation runs before the job row is created — nothing to clean up.
+        with db.get_db_session(f"sqlite:///{tmp_path / 'jobs.db'}") as session:
+            assert session.query(db.JobDB).count() == 0

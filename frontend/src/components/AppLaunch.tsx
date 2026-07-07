@@ -7,15 +7,20 @@ import {
 } from 'react-router';
 
 import { Card, Typography } from '@material-tailwind/react';
-import {
-  HiOutlineArrowLeft,
-  HiOutlineDownload,
-  HiOutlinePlay
-} from 'react-icons/hi';
+import { HiOutlineDownload, HiOutlinePlay } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 
 import AppLaunchForm from '@/components/ui/AppsPage/AppLaunchForm';
-import { buildGithubUrl, canonicalGithubUrl } from '@/utils';
+import AppPageHeader from '@/components/ui/AppsPage/AppPageHeader';
+import SharedBadge from '@/components/ui/AppsPage/SharedBadge';
+import {
+  buildAppDetailPath,
+  buildGithubUrl,
+  canonicalGithubUrl,
+  getEntryPointTypeIconType,
+  getAppIconType
+} from '@/utils';
+import { showErrorToast } from '@/utils/errorToast';
 import {
   useAppsQuery,
   useAddAppMutation,
@@ -46,6 +51,8 @@ export default function AppLaunch() {
   const addAppMutation = useAddAppMutation();
   const [selectedEntryPoint, setSelectedEntryPoint] =
     useState<AppEntryPoint | null>(null);
+  const [launchActionsTarget, setLaunchActionsTarget] =
+    useState<HTMLDivElement | null>(null);
 
   const manifestPath = searchParams.get('path') || '';
   const branch = searchParams.get('branch') || routeBranch || 'main';
@@ -106,6 +113,12 @@ export default function AppLaunch() {
   // Prefer the user's saved app name (which may be a custom name chosen when
   // adding the app from the catalog) over the raw manifest name.
   const displayName = installedApp?.name ?? manifest?.name;
+  const headerTitle =
+    displayName && selectedEntryPoint
+      ? `${displayName} - ${selectedEntryPoint.name}`
+      : displayName;
+  const isShared =
+    installedApp?.listing_id !== undefined && installedApp.listing_id !== null;
 
   // Auto-select entry point from URL param, or if there's only one
   useEffect(() => {
@@ -166,29 +179,49 @@ export default function AppLaunch() {
 
   const handleInstall = async () => {
     try {
-      const apps = await addAppMutation.mutateAsync(appUrl);
+      // Install only the app on this page, not every manifest in the repo:
+      // scope the add to this manifest_path ('' is the repo-root manifest).
+      const apps = await addAppMutation.mutateAsync({
+        url: appUrl,
+        manifest_paths: [manifestPath]
+      });
       const count = apps.length;
       toast.success(`${count} app${count !== 1 ? 's' : ''} added`);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to install app';
-      toast.error(message);
+      showErrorToast(error, 'Failed to install app');
     }
   };
 
   return (
     <div>
-      <FgButton
-        className="mb-6"
-        icon={HiOutlineArrowLeft}
-        onClick={() => navigate('/apps')}
-        variant="outline"
+      <AppPageHeader
+        actions={
+          manifest && selectedEntryPoint ? (
+            <div ref={setLaunchActionsTarget} />
+          ) : null
+        }
+        backLabel={installedApp ? 'Back to app details' : 'Back to My Apps'}
+        backTo={
+          installedApp
+            ? buildAppDetailPath(installedApp.url, installedApp.manifest_path)
+            : '/apps'
+        }
+        description={selectedEntryPoint?.description ?? null}
+        githubUrl={selectedEntryPoint ? appUrl : null}
+        icon={
+          selectedEntryPoint
+            ? getEntryPointTypeIconType(selectedEntryPoint.type)
+            : getAppIconType()
+        }
+        title={headerTitle}
       >
-        Back to Apps
-      </FgButton>
+        {isShared ? <SharedBadge /> : null}
+      </AppPageHeader>
 
-      {/* Not-installed banner */}
-      {!appsQuery.isPending && !isInstalled ? (
+      {/* Not-installed banner — only once the apps list has actually loaded, so
+          a failed /api/apps query doesn't wrongly flag every app (including
+          installed ones) as missing. */}
+      {appsQuery.isSuccess && !isInstalled ? (
         <div className="mb-4 p-3 flex items-center gap-3 border border-primary-light rounded-lg bg-surface/30">
           <Typography className="text-foreground flex-1" type="small">
             This app is not in your library. Install it for quick access from
@@ -239,8 +272,8 @@ export default function AppLaunch() {
         </div>
       ) : manifest && selectedEntryPoint ? (
         <AppLaunchForm
-          appName={displayName}
           entryPoint={selectedEntryPoint}
+          headerActionsTarget={launchActionsTarget}
           initialContainer={relaunchContainer}
           initialContainerArgs={relaunchContainerArgs}
           initialEnv={relaunchEnv}
@@ -250,16 +283,12 @@ export default function AppLaunch() {
           initialPreRun={relaunchPreRun}
           initialResources={relaunchResources}
           initialValues={relaunchParameters}
-          manifest={manifest}
           onSubmit={handleSubmit}
           submitError={submitJobMutation.error?.message}
           submitting={submitJobMutation.isPending}
         />
       ) : manifest ? (
         <div className="max-w-2xl">
-          <Typography className="font-bold mb-1" type="h5">
-            {displayName}
-          </Typography>
           {manifest.description ? (
             <Typography className="mb-6">{manifest.description}</Typography>
           ) : null}

@@ -48,6 +48,93 @@ _HEADER_FMT = "!I"
 _HEADER_SIZE = struct.calcsize(_HEADER_FMT)
 _MAX_MESSAGE_SIZE = 64 * 1024 * 1024  # 64 MB safety limit
 
+# Per-request receive timeout (seconds). The default covers ordinary IPC
+# round-trips. Git-heavy actions get a far larger ceiling because they
+# legitimately run much longer than a normal request: git clone is bounded at
+# 120s (manifest.py), snapshot creation clones and checks out with 300s ceilings
+# each, and discovery walks/converts the repo on top of a clone. A fixed 120s
+# timeout would make the parent treat the worker as dead mid-clone; keeping the
+# ceiling comfortably above the underlying operation timeouts lets a
+# slow-but-valid clone/snapshot return its result instead.
+_DEFAULT_REQUEST_TIMEOUT = 120
+_GIT_ACTION_TIMEOUT = 900
+_LONG_ACTIONS = frozenset({
+    "ensure_repo",
+    "discover_manifests",
+    "read_manifest",
+    "ensure_snapshot",
+    "gc_snapshots",
+    "submit",
+    "delete_job_work_dir",
+})
+
+
+def _timeout_for_action(action: str) -> float:
+    """Return the receive timeout (seconds) for a worker action."""
+    return _GIT_ACTION_TIMEOUT if action in _LONG_ACTIONS else _DEFAULT_REQUEST_TIMEOUT
+
+
+# Worker env is an allowlist, not a denylist: workers run as the (untrusted)
+# target user, so anything in their environment is readable by that user via
+# /proc/<pid>/environ. Only pass variables the worker legitimately needs (git,
+# ssh, locale, tmp, the scheduler, environment modules, conda/pixi, containers)
+# so no server secret leaks — not Fileglancer's own FGC_* vars, and not generic
+# deployment secrets like AWS_SECRET_ACCESS_KEY or GITHUB_TOKEN. Site-specific
+# additions go through settings.apps.worker_env_passthrough, not code.
+_WORKER_ENV_ALLOW_NAMES = frozenset({
+    "PATH", "HOME", "USER", "LOGNAME", "SHELL", "PWD",
+    "LANG", "LANGUAGE", "TZ", "TERM",
+    "TMPDIR", "TMP", "TEMP",
+    "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY",
+    "http_proxy", "https_proxy", "no_proxy",
+    "SSH_AUTH_SOCK",
+    # Needed for the worker's own imports under path-based installs (not a
+    # secret); harmless when unused (site-packages installs don't rely on it).
+    "PYTHONPATH", "VIRTUAL_ENV",
+})
+_WORKER_ENV_ALLOW_PREFIXES = (
+    "LC_",                          # locale
+    "LSF_", "LSB_", "EGO_",         # IBM Spectrum LSF
+    "SLURM_",                       # Slurm
+    "SGE_", "PBS_",                 # SGE / PBS / Torque
+    "MODULE", "MODULES_", "LMOD_",  # environment modules
+    "CONDA_", "MAMBA_", "PIXI_",    # conda / pixi
+    "APPTAINER_", "SINGULARITY_",   # containers
+    "GIT_",                         # git config via env (not secrets by convention)
+)
+
+
+def _build_worker_env(base_env: dict, home_dir: str, log_level: str,
+                      child_fd: int, passthrough: Optional[list] = None) -> dict:
+    """Build the environment for a worker subprocess (allowlist).
+
+    Keeps only allowlisted variables (see the module constants) plus any
+    operator-configured ``passthrough`` names/prefixes, then always sets the
+    two operational vars the worker itself needs. FGC_* is dropped
+    unconditionally — even if an operator lists it in passthrough — so
+    Fileglancer secrets (session key, Okta/Atlassian secrets, DB URL) can never
+    reach the user. The worker gets its config over the IPC socket instead (DB
+    access via RpcDbProxy).
+
+    A passthrough entry ending in ``_`` is treated as a prefix; otherwise it is
+    an exact variable name.
+    """
+    extra_names = {p for p in (passthrough or []) if not p.endswith("_")}
+    extra_prefixes = tuple(p for p in (passthrough or []) if p.endswith("_"))
+    allow_names = _WORKER_ENV_ALLOW_NAMES | extra_names
+    allow_prefixes = _WORKER_ENV_ALLOW_PREFIXES + extra_prefixes
+
+    def _allowed(key: str) -> bool:
+        if key.upper().startswith("FGC_"):
+            return False  # never leak Fileglancer secrets
+        return key in allow_names or key.startswith(allow_prefixes)
+
+    env = {k: v for k, v in base_env.items() if _allowed(k)}
+    env["HOME"] = home_dir
+    env["FGC_LOG_LEVEL"] = log_level
+    env["FGC_WORKER_FD"] = str(child_fd)
+    return env
+
 
 class WorkerError(Exception):
     """Raised when a worker returns an error response."""
@@ -112,8 +199,9 @@ class UserWorker:
             try:
                 request = {"action": action, **kwargs}
                 loop = asyncio.get_event_loop()
+                timeout = _timeout_for_action(action)
                 response = await loop.run_in_executor(
-                    None, self._send_and_recv, request)
+                    None, self._send_and_recv, request, timeout)
 
                 if response.get("error"):
                     # Close any fd that arrived with an error response
@@ -132,14 +220,19 @@ class UserWorker:
                 self._busy = False
                 self.last_activity = time.monotonic()
 
-    def _send_and_recv(self, request: dict) -> dict:
+    def _send_and_recv(self, request: dict, timeout: float = _DEFAULT_REQUEST_TIMEOUT) -> dict:
         """Send a request and receive the action response (blocking, runs in thread).
+
+        ``timeout`` bounds each blocking receive on the socket; it is set per
+        request (requests are serialized under the per-worker lock, so this is
+        safe) so that a long git clone/snapshot isn't misread as a dead worker.
 
         Loops on receive: any inbound ``_kind == "db_request"`` message is a
         reverse-RPC from the worker (which has no DB credentials) asking the
         parent to run a DB query on its behalf. We dispatch it, send back a
         ``db_response``, and keep reading. Anything else is the action result.
         """
+        self.sock.settimeout(timeout)
         self._send_msg(request)
 
         while True:
@@ -351,17 +444,14 @@ class WorkerPool:
         # Create Unix socketpair for IPC
         parent_sock, child_sock = socket.socketpair()
 
-        # Worker subprocess deliberately does NOT receive the DB URL — it
-        # runs as the (untrusted) target user, so credentials would be
-        # readable via /proc/<pid>/environ. All DB queries reverse-RPC back
-        # to the parent over the IPC socket instead.
-        env = {
-            **os.environ,
-            "HOME": home_dir,
-            "FGC_LOG_LEVEL": self.settings.log_level,
-            "FGC_WORKER_FD": str(child_sock.fileno()),
-        }
-        env.pop("FGC_DB_URL", None)
+        # The worker runs as the (untrusted) target user, so its environment is
+        # readable via /proc/<pid>/environ. Build it from an allowlist so no
+        # server secret leaks — neither Fileglancer's FGC_* vars nor generic
+        # deployment secrets. See _build_worker_env.
+        env = _build_worker_env(
+            os.environ, home_dir, self.settings.log_level, child_sock.fileno(),
+            passthrough=self.settings.apps.worker_env_passthrough,
+        )
 
         logger.info(
             f"Spawning persistent worker for {username} "
