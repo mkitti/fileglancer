@@ -2365,6 +2365,16 @@ def create_app(settings):
                                          phase=info.get("phase")))
             return JobResponse(jobs=jobs)
 
+    @app.get("/api/jobs/active-count", response_model=JobActiveCountResponse,
+             description="Count the user's active (non-terminal) jobs")
+    async def get_active_job_count(username: str = Depends(get_current_user)):
+        # The navbar badge polls this from every page, so it must stay a
+        # cheap DB count: no service-URL resolution or worker round-trips
+        # like the full listing above.
+        with db.get_db_session(settings.db_url) as session:
+            count = db.count_active_jobs_by_username(session, username)
+            return JobActiveCountResponse(count=count)
+
     @app.get("/api/jobs/{job_id}", response_model=Job,
              description="Get a single job by ID")
     async def get_job(job_id: int,

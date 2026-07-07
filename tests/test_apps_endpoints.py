@@ -966,6 +966,21 @@ def test_get_jobs_lists_and_filters_by_status(test_client, db_session):
     assert jobs[0]["status"] == "DONE"
 
 
+def test_get_active_job_count(test_client, db_session):
+    """The badge count endpoint counts non-terminal jobs only. UNKNOWN is
+    active (see get_active_jobs); DONE/FAILED/KILLED are terminal."""
+    _seed_job(db_session, status="DONE")
+    _seed_job(db_session, status="FAILED")
+    _seed_job(db_session, status="PENDING")
+    _seed_job(db_session, status="RUNNING")
+    _seed_job(db_session, status="UNKNOWN")
+
+    response = test_client.get("/api/jobs/active-count")
+
+    assert response.status_code == 200
+    assert response.json() == {"count": 3}
+
+
 def test_get_jobs_running_services_include_url_and_phase(test_client, db_session, temp_dir):
     """Running services' URLs and startup phases are read from their work dirs
     (through the batched worker action) and included in the listing."""

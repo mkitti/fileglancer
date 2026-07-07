@@ -1034,6 +1034,13 @@ def get_job(session: Session, job_id: int, username: str) -> Optional[JobDB]:
     return session.query(JobDB).filter_by(id=job_id, username=username).first()
 
 
+def count_active_jobs_by_username(session: Session, username: str) -> int:
+    """Count a user's jobs that are not known-terminal (see get_active_jobs)."""
+    return session.query(JobDB).filter_by(username=username).filter(
+        ~JobDB.status.in_(TERMINAL_JOB_STATUSES)
+    ).count()
+
+
 def get_active_jobs(session: Session) -> List[JobDB]:
     """Get all jobs that are not known-terminal.
 

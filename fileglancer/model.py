@@ -1019,3 +1019,8 @@ class PathValidationResponse(BaseModel):
 class JobResponse(BaseModel):
     """Response containing a list of jobs"""
     jobs: List[Job] = Field(description="A list of jobs")
+
+
+class JobActiveCountResponse(BaseModel):
+    """Response containing the number of active (non-terminal) jobs"""
+    count: int = Field(description="Number of active jobs")
