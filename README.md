@@ -7,9 +7,9 @@ Fileglancer is a web application designed to allow researchers to easily browse,
 Core features:
 
 - Browse and manage files on network file shares (NFS) using an intuitive web UI
-- Create a "data link" for any file share path, allowing web-based anonymous access to your data
+- Create shareable Data Links for any file share path, allowing web-based anonymous access to your data
 - Shareable links to Neuroglancer and other viewers
-- Integration with our help desk (JIRA) for file conversion requests
+- Run Apps (compute jobs) on any infrastructure supported by [py-cluster-api](https://github.com/JaneliaSciComp/py-cluster-api)
 - Integration with the [x2s3](https://github.com/JaneliaSciComp/x2s3) proxy service, to easily share data on the internet
 
 See the [documentation](https://janeliascicomp.github.io/fileglancer-docs/) for more information.
@@ -40,10 +40,10 @@ Fileglancer is primarily intended for shared deployments on an intranet. This al
 
 ## Software Architecture
 
-Fileglancer has a React front-end and a FastAPI backend. Uvicorn is used to manage the set of FastAPI workers. Inspired by JupyterHub's method of spinning up individual user servers using setuid, we use seteuid to change the effective user of each worker process as necessary to handling the incoming requests. This allows each logged in user to access their resources on the network file systems. The backend database access is managed by SQLAlchemy and supports many databases including Sqlite and Postgresql.
+Fileglancer has a React front-end and a FastAPI backend. Uvicorn is used to manage the set of FastAPI workers. Each FastAPI worker manages a worker pool of user-specific worker processes that run as the user, inspired by JupyterHub's method of spinning up individual user servers using setuid. This allows each logged in user to access their resources on the network file systems and submit jobs to a compute cluster. The backend database access is managed by SQLAlchemy, which supports many databases including Sqlite and Postgresql.
 
 <p align="center">
-<img alt="Fileglancer architecture diagram" width="800" align="center" src="https://github.com/user-attachments/assets/31b30b01-f313-4295-8536-bac8c3bdde73" />
+<img alt="Fileglancer architecture diagram" width="800" align="center" src="https://github.com/user-attachments/assets/8914ee86-628b-421a-aa8b-dd6b4b10ae0e" />
 </p>
 
 ## Documentation
