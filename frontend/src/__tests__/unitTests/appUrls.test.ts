@@ -8,6 +8,7 @@ import {
   buildRelaunchPath,
   canonicalGithubUrl,
   isGithubRepoUrl,
+  manifestPathInfo,
   parseGithubUrl
 } from '@/utils/appUrls';
 
@@ -87,6 +88,36 @@ describe('app URL helpers', () => {
     ).toBe(
       '/apps/launch/org/tool?branch=feature%2Fmy-tool&entryPointId=run&path=apps%2Fdemo'
     );
+  });
+
+  test('manifestPathInfo defaults to runnables.yaml at the repo root', () => {
+    expect(manifestPathInfo('')).toEqual({
+      filePath: 'runnables.yaml',
+      label: './runnables.yaml'
+    });
+    expect(manifestPathInfo('apps/demo')).toEqual({
+      filePath: 'apps/demo/runnables.yaml',
+      label: './apps/demo/runnables.yaml'
+    });
+  });
+
+  test('manifestPathInfo uses the manifest source filename when known', () => {
+    // Auto-detected projects (Nextflow, Pixi) have no runnables.yaml; the
+    // manifest records the file it was generated from and the link must point
+    // at that file instead.
+    expect(manifestPathInfo('', 'nextflow_schema.json')).toEqual({
+      filePath: 'nextflow_schema.json',
+      label: './nextflow_schema.json'
+    });
+    expect(manifestPathInfo('', 'pixi.toml')).toEqual({
+      filePath: 'pixi.toml',
+      label: './pixi.toml'
+    });
+    // Blank filename falls back to the default.
+    expect(manifestPathInfo('', ' ')).toEqual({
+      filePath: 'runnables.yaml',
+      label: './runnables.yaml'
+    });
   });
 
   test('builds GitHub file URLs using explicit or URL revisions', () => {

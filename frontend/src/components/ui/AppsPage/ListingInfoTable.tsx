@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import FgExternalLink from '@/components/designSystem/atoms/FgExternalLink';
 import FgLink from '@/components/designSystem/atoms/FgLink';
 import GithubUrlValue from '@/components/ui/AppsPage/GithubUrlValue';
-import type { AppListing, UserApp } from '@/shared.types';
+import type { AppListing, AppManifest, UserApp } from '@/shared.types';
 import { formatDateString } from '@/utils';
 import {
   buildAppDetailPath,
@@ -45,17 +45,22 @@ function listingRevision(listing: AppListing): string | null {
 
 export default function ListingInfoTable({
   installedApp,
-  listing
+  listing,
+  manifest
 }: {
   readonly installedApp?: UserApp;
   readonly listing: AppListing;
+  readonly manifest?: AppManifest;
 }) {
   const publishedAt = formatDateString(listing.published_at);
   const editedAt = listing.updated_at
     ? formatDateString(listing.updated_at)
     : 'Not edited since publish';
   const revision = listingRevision(listing);
-  const manifestPath = manifestPathInfo(listing.manifest_path);
+  const manifestPath = manifestPathInfo(
+    listing.manifest_path,
+    manifest?.source_filename
+  );
   const manifestUrl = buildGithubFileUrl(
     listing.url,
     revision,

@@ -708,6 +708,11 @@ class AppManifest(BaseModel):
     """Top-level app manifest (runnables.yaml)"""
     name: str = Field(description="Display name of the app")
     description: Optional[str] = Field(description="Description of the app", default=None)
+    source_filename: str = Field(
+        description="Name of the file this manifest was read or generated from, "
+                    "e.g. runnables.yaml, nextflow_schema.json, or pixi.toml",
+        default="runnables.yaml",
+    )
     repo_url: Optional[str] = Field(
         description="GitHub repo URL where the tool code lives. If absent, uses the repo containing this manifest.",
         default=None,

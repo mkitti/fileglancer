@@ -2586,6 +2586,54 @@ class TestPixiAdapterName:
         assert manifest.name == tmp_path.name
 
 
+class TestManifestSourceFilename:
+    """The manifest records which file it was read or generated from, so the
+    UI can link to the real source instead of always naming runnables.yaml."""
+
+    def test_runnables_yaml(self, tmp_path):
+        from fileglancer.apps.manifest import _read_manifest_file
+
+        (tmp_path / "runnables.yaml").write_text(
+            "name: Test\n"
+            "runnables:\n"
+            "  - id: run\n"
+            "    name: Run\n"
+            "    command: echo\n"
+        )
+        assert _read_manifest_file(tmp_path).source_filename == "runnables.yaml"
+
+    def test_nextflow_schema(self, tmp_path):
+        (tmp_path / "nextflow_schema.json").write_text(json.dumps({
+            "$defs": {
+                "input": {
+                    "title": "Input",
+                    "properties": {"input_dir": {"type": "string"}},
+                }
+            },
+            "allOf": [{"$ref": "#/$defs/input"}],
+        }))
+        manifest = NextflowAdapter().convert(tmp_path)
+        assert manifest.source_filename == "nextflow_schema.json"
+
+    def test_pixi_toml(self, tmp_path):
+        from fileglancer.apps.pixi import PixiAdapter
+
+        (tmp_path / "pixi.toml").write_text(
+            '[project]\nname = "Foo"\n\n[tasks]\nrun = "echo hi"\n'
+        )
+        manifest = PixiAdapter().convert(tmp_path)
+        assert manifest.source_filename == "pixi.toml"
+
+    def test_pyproject_toml(self, tmp_path):
+        from fileglancer.apps.pixi import PixiAdapter
+
+        (tmp_path / "pyproject.toml").write_text(
+            '[project]\nname = "Foo"\n\n[tool.pixi.tasks]\nrun = "echo hi"\n'
+        )
+        manifest = PixiAdapter().convert(tmp_path)
+        assert manifest.source_filename == "pyproject.toml"
+
+
 @pytest.mark.skipif(
     sys.platform == "win32",
     reason="the poll loop uses fcntl file locking; the server only runs on POSIX",

@@ -138,8 +138,9 @@ export default function AddAppDialog({
 
           <Typography className="mb-2 text-foreground text-sm">
             Enter a GitHub repository URL (HTTPS or SSH) containing one or more{' '}
-            <code>runnables.yaml</code> manifests. Private repositories are
-            accessed over SSH using your configured SSH key.
+            <code>runnables.yaml</code> manifests, or a Nextflow or Pixi
+            project. Private repositories are accessed over SSH using your
+            configured SSH key.
           </Typography>
 
           <AppTrustNotice className="mb-4" />
