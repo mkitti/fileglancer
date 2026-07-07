@@ -1323,6 +1323,10 @@ export default function AppLaunchForm({
     toast.success('Parameters loaded');
   };
 
+  // Rendered in TWO places: portaled into the page header (top) and repeated
+  // at the bottom of the form. Pipelines often have many parameters, so after
+  // filling out a long form the user must not have to scroll back up to
+  // submit. Do not remove the bottom copy when refactoring the header.
   const actionButtons = (
     <div className="flex flex-wrap items-center justify-end gap-2">
       <FgButton
@@ -1357,8 +1361,9 @@ export default function AppLaunchForm({
     </div>
   );
 
-  // Shown above the fields so errors stay near the header actions that submit
-  // the form.
+  // Shown next to both the top and bottom submit buttons, so the user sees the
+  // error regardless of which button they used. Wording is direction-neutral
+  // since the same banner appears above and below the fields.
   const submitErrorBanner = submitError ? (
     <div className="mt-2 mb-4 p-3 bg-error/10 rounded text-error text-sm">
       {submitError}
@@ -1610,6 +1615,11 @@ export default function AppLaunchForm({
       {/* Errors (bottom) */}
       {validationErrorBanner}
       {submitErrorBanner}
+
+      {/* Actions (bottom) — duplicates the header actions on purpose; long
+          parameter lists mean users finish the form far from the header and
+          should not have to scroll back up to submit. */}
+      <div className="flex justify-end mt-6">{actionButtons}</div>
     </div>
   );
 }
