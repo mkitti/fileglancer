@@ -31,7 +31,6 @@ from fileglancer.user_worker import (
     _action_create_dirs,
     _action_validate_paths,
     _action_cancel_local,
-    _action_get_service_urls,
     _descendant_pids,
     _proc_alive,
     WorkerContext,
@@ -230,41 +229,6 @@ class TestCancelLocalAction:
         (tmp_path / "job.pid").write_text(str(proc.pid))
         assert _action_cancel_local(
             {"work_dir": str(tmp_path)}, self._ctx()) == {"terminated": True}
-
-
-class TestGetServiceUrlsAction:
-    """The batched action reads url + phase for many jobs in one dispatch, so
-    the jobs listing costs one worker round-trip regardless of how many
-    services are running."""
-
-    def _ctx(self):
-        return WorkerContext(username="test", db=None)
-
-    def test_reads_urls_and_phases_for_all_jobs(self, tmp_path):
-        ready = tmp_path / "ready"
-        ready.mkdir()
-        (ready / "service_url").write_text("http://node1:8888\n")
-        (ready / "phase").write_text("starting\n")
-        empty = tmp_path / "empty"
-        empty.mkdir()
-        bad_scheme = tmp_path / "bad"
-        bad_scheme.mkdir()
-        (bad_scheme / "service_url").write_text("javascript:alert(1)")
-
-        result = _action_get_service_urls({"jobs": [
-            {"id": 1, "app_name": "a", "entry_point_id": "run",
-             "work_dir": str(ready)},
-            {"id": 2, "app_name": "a", "entry_point_id": "run",
-             "work_dir": str(empty)},
-            {"id": 3, "app_name": "a", "entry_point_id": "run",
-             "work_dir": str(bad_scheme)},
-        ]}, self._ctx())
-
-        assert result["services"]["1"] == {
-            "service_url": "http://node1:8888", "phase": "starting"}
-        assert result["services"]["2"] == {"service_url": None, "phase": None}
-        # Non-http(s) URLs are rejected, same as the single-job action.
-        assert result["services"]["3"]["service_url"] is None
 
 
 class TestIPCProtocol:

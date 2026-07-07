@@ -981,30 +981,23 @@ def test_get_active_job_count(test_client, db_session):
     assert response.json() == {"count": 3}
 
 
-def test_get_jobs_running_services_include_url_and_phase(test_client, db_session, temp_dir):
-    """Running services' URLs and startup phases are read from their work dirs
-    (through the batched worker action) and included in the listing."""
+def test_get_jobs_listing_skips_service_url_resolution(test_client, db_session, temp_dir):
+    """The listing is a pure DB read: it does not resolve service URLs from
+    work dirs (only the UI's job detail page shows them, and the single-job
+    endpoint resolves them itself)."""
     ready_dir = os.path.join(temp_dir, "svc-ready")
     os.makedirs(ready_dir)
     with open(os.path.join(ready_dir, "service_url"), "w", encoding="utf-8") as f:
         f.write("http://node1:8888\n")
-    starting_dir = os.path.join(temp_dir, "svc-starting")
-    os.makedirs(starting_dir)
-    with open(os.path.join(starting_dir, "phase"), "w", encoding="utf-8") as f:
-        f.write("starting\n")
     ready = _seed_job(db_session, status="RUNNING", entry_point_type="service",
                       work_dir=ready_dir)
-    starting = _seed_job(db_session, status="RUNNING", entry_point_type="service",
-                         work_dir=starting_dir)
 
     response = test_client.get("/api/jobs")
 
     assert response.status_code == 200
     by_id = {j["id"]: j for j in response.json()["jobs"]}
-    assert by_id[ready.id]["service_url"] == "http://node1:8888"
+    assert by_id[ready.id]["service_url"] is None
     assert by_id[ready.id]["phase"] is None
-    assert by_id[starting.id]["service_url"] is None
-    assert by_id[starting.id]["phase"] == "starting"
 
 
 def test_get_job_includes_file_paths(test_client, db_session):

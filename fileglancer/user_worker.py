@@ -942,40 +942,6 @@ def _action_get_service_url(request: dict, ctx: WorkerContext) -> dict:
     return {"service_url": get_service_url(db_job), "phase": get_service_phase(db_job)}
 
 
-@action("get_service_urls")
-def _action_get_service_urls(request: dict, ctx: WorkerContext) -> dict:
-    """Read service URLs and startup phases for several jobs in one round-trip.
-
-    The jobs listing refetches every few seconds and the worker executes one
-    action at a time, so per-job dispatches would serially occupy the worker
-    (stalling the user's file browsing) once a few services are running. The
-    caller passes each job's stored work dir along with the fields needed to
-    reconstruct it for legacy rows that predate stored work dirs — that
-    fallback must be resolved here, as this user, so '~' expands to the target
-    user's home rather than the server's.
-    """
-    from pathlib import Path
-
-    from fileglancer.apps.jobfiles import (
-        _build_work_dir,
-        read_service_phase_file,
-        read_service_url_file,
-    )
-
-    services = {}
-    for job in request["jobs"]:
-        if job.get("work_dir"):
-            work_dir = Path(job["work_dir"])
-        else:
-            work_dir = _build_work_dir(
-                job["id"], job["app_name"], job["entry_point_id"])
-        services[str(job["id"])] = {
-            "service_url": read_service_url_file(work_dir),
-            "phase": read_service_phase_file(work_dir),
-        }
-    return {"services": services}
-
-
 # ---------------------------------------------------------------------------
 # Action handlers — S3 proxy
 # ---------------------------------------------------------------------------
