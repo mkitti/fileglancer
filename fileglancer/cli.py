@@ -327,5 +327,32 @@ def start(host, port, reload, workers, ssl_keyfile, ssl_certfile,
         cleanup_session()
 
 
+@cli.command()
+@click.option('--db-url', default=None,
+              help='Database URL. Defaults to FGC_DB_URL/config.yaml, then '
+                   'the standard CLI database location.')
+@click.option('--refresh', default=1.0, show_default=True, type=float,
+              help='Database refresh interval in seconds.')
+@click.option('--poll-lock', default=None, type=click.Path(),
+              help='Path to the poll lock file, if the server runs with a '
+                   'non-default TMPDIR.')
+@click.option('--all-jobs', is_flag=True, default=False,
+              help='Start with terminal jobs shown as well as active ones.')
+@click.option('--log', 'log_file', default=None, type=click.Path(),
+              help='Also append the event feed to this file for later analysis.')
+def debug(db_url, refresh, poll_lock, all_jobs, log_file):
+    """Real-time TUI for debugging the job system.
+
+    Shows all users' jobs and their statuses, the per-user worker
+    subprocesses, which server process holds the poll lock (i.e. which one
+    is polling), live scheduler commands (bsub/bjobs/bkill), and an event
+    feed of status transitions. Read-only: it never modifies the database
+    or signals any process.
+    """
+    from fileglancer.debug import run_debug
+    run_debug(db_url=db_url, refresh=refresh, poll_lock_path=poll_lock,
+              show_all=all_jobs, log_file=log_file)
+
+
 if __name__ == '__main__':
     cli()
