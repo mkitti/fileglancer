@@ -15,7 +15,13 @@ the display:
    diffed to produce a live event feed of submissions, status transitions,
    and deletions.
 
-2. The **process tree** via /proc. This finds:
+2. The **process tree** via /proc — host-local by nature. When the watched
+   database belongs to a server running on another machine, the process
+   panes, the POLLER line, and the poll heartbeat describe *this* machine,
+   not that server; the header shows them as n/a when no fileglancer server
+   process is found locally. (Work-dir/log reads still work cross-host via
+   shared mounts, and the bjobs cross-check queries the cluster itself.)
+   On the server's own host, this finds:
    - server processes (uvicorn / ``fileglancer start``) and their children,
    - per-user worker subprocesses (``python -m fileglancer.user_worker``)
      with owner, age, CPU, and RSS,
@@ -1104,7 +1110,15 @@ def _run_ui(stdscr, state: SharedState, ui: UIContext, meta: dict):
         servers = v["servers"]
         active_jobs = [j for j in v["jobs"] if j.is_active]
         holder = v["lock_holder"]
-        if holder is not None:
+        if not servers:
+            # No fileglancer server on this host — the DB being watched must
+            # belong to a server running elsewhere. The poll lock and its
+            # mtime heartbeat are host-local, so they describe the wrong
+            # machine; present them as n/a instead of raising false alarms.
+            poller = "POLLER: n/a (no fileglancer server on this host)"
+            poller_attr = C_DIM
+            heartbeat, hb_attr = "heartbeat n/a", C_DIM
+        elif holder is not None:
             server_pids = {p.pid for p in servers}
             tag = "server" if holder in server_pids else "pid"
             poller = f"POLLER: {tag} {holder}"
@@ -1116,7 +1130,9 @@ def _run_ui(stdscr, state: SharedState, ui: UIContext, meta: dict):
             poller = "POLLER: lock free"
             poller_attr = 0
 
-        if v["lock_mtime"]:
+        if not servers:
+            pass  # heartbeat already set to n/a above
+        elif v["lock_mtime"]:
             cycle_ago = time.time() - v["lock_mtime"]
             heartbeat = f"last cycle {_fmt_dur(cycle_ago)} ago"
             stale = (active_jobs
@@ -1186,7 +1202,7 @@ def _run_ui(stdscr, state: SharedState, ui: UIContext, meta: dict):
             put(y0 + 2 + i, 0, line, attr)
 
     def draw_procs(v, y0, height, width):
-        hline_title(y0, "Processes")
+        hline_title(y0, "Processes (this host)")
         rows = []
         holder = v["lock_holder"]
         for p in v["servers"]:
@@ -1220,7 +1236,7 @@ def _run_ui(stdscr, state: SharedState, ui: UIContext, meta: dict):
     def draw_sched(v, y0, height, x0):
         _, w = stdscr.getmaxyx()
         put(y0, x0 - 1, "│")
-        title = "Scheduler activity"
+        title = "Scheduler activity (this host)"
         if v["crosscheck"]:
             title += " [bjobs check ON]"
             if v["crosscheck_error"]:
