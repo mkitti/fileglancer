@@ -993,6 +993,10 @@ class UIContext:
         self.selected_idx = 0
         self.scroll = 0
         self.detail_open = False
+        # The job pinned in the detail overlay. Held as a JobRow (not an
+        # index) so the overlay never switches jobs when the table re-sorts
+        # under it; refreshed by id each frame so its own fields stay live.
+        self.detail_job: Optional[JobRow] = None
         # Log viewer
         self.log_open = False
         self.log_job_id: Optional[int] = None
@@ -1408,6 +1412,7 @@ def _run_ui(stdscr, state: SharedState, ui: UIContext, meta: dict):
                     job_id = rows[idx].id
                 ui.log_open = True
                 ui.detail_open = False
+                ui.detail_job = None
                 ui.log_job_id = job_id
                 ui.log_follow = True
                 ui.log_scroll = 0
@@ -1454,9 +1459,17 @@ def _run_ui(stdscr, state: SharedState, ui: UIContext, meta: dict):
                     ui.log_hscroll = 0
             elif ui.detail_open:
                 if ch in (27, ord("q"), ord("\n"), _c.KEY_ENTER, 10, 13):
+                    # Re-anchor the table selection to the job we were viewing,
+                    # so "close and choose another" starts from where you were.
+                    if ui.detail_job is not None:
+                        for i, r in enumerate(rows):
+                            if r.id == ui.detail_job.id:
+                                ui.selected_idx = i
+                                break
                     ui.detail_open = False
-                elif ch in _LOG_KEYS:
-                    _open_log(_LOG_KEYS[ch])
+                    ui.detail_job = None
+                elif ch in _LOG_KEYS and ui.detail_job is not None:
+                    _open_log(_LOG_KEYS[ch], job_id=ui.detail_job.id)
             elif ch in (ord("q"), 3):
                 return
             elif ch in (ord("j"), _c.KEY_DOWN):
@@ -1485,12 +1498,30 @@ def _run_ui(stdscr, state: SharedState, ui: UIContext, meta: dict):
                 _open_log(_LOG_KEYS[ch])
             elif ch in (ord("\n"), _c.KEY_ENTER, 10, 13):
                 if rows:
+                    idx = max(0, min(ui.selected_idx, len(rows) - 1))
+                    ui.detail_job = rows[idx]
                     ui.detail_open = True
 
         ui.selected_idx = max(0, min(ui.selected_idx, max(0, len(rows) - 1)))
         selected_job = rows[ui.selected_idx] if rows else None
+
+        # Keep the pinned detail job's own data fresh without ever switching
+        # to a different job (the table may re-sort underneath the overlay).
+        if ui.detail_job is not None:
+            fresh = next((j for j in view["jobs"] if j.id == ui.detail_job.id), None)
+            if fresh is not None:
+                ui.detail_job = fresh
+
+        # Aim the work-dir prober at the job actually being viewed: the log
+        # viewer's job, else the pinned detail job, else the table selection.
+        if ui.log_open and ui.log_job_id is not None:
+            viewed_id = ui.log_job_id
+        elif ui.detail_open and ui.detail_job is not None:
+            viewed_id = ui.detail_job.id
+        else:
+            viewed_id = selected_job.id if selected_job else None
         with state.lock:
-            state.selected_job_id = selected_job.id if selected_job else None
+            state.selected_job_id = viewed_id
 
         stdscr.erase()
         h, w = stdscr.getmaxyx()
@@ -1524,8 +1555,8 @@ def _run_ui(stdscr, state: SharedState, ui: UIContext, meta: dict):
         draw_events(view, y, events_h)
         draw_footer()
 
-        if ui.detail_open and selected_job is not None:
-            draw_detail(view, selected_job)
+        if ui.detail_open and ui.detail_job is not None:
+            draw_detail(view, ui.detail_job)
 
         stdscr.refresh()
 
