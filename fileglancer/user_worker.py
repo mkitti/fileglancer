@@ -1114,6 +1114,13 @@ def _action_submit(request: dict, ctx: WorkerContext) -> dict:
         command=request["command"],
         name=request["job_name"],
         resources=resource_spec,
+        # The job's environment is constructed, never inherited from this
+        # worker process (whose env is itself allowlisted — see
+        # worker_pool._build_worker_env). The script exports everything the
+        # job needs; login_shell additionally lets the user's own profile
+        # build PATH/modules/conda, like an SSH session would.
+        inherit_env=False,
+        login_shell=request.get("login_shell", True),
     ))
 
     # For LocalExecutor, persist the subprocess PID so the parent's poll

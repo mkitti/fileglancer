@@ -229,6 +229,7 @@ type Job = {
   exit_code?: number;
   resources?: Record<string, unknown>;
   env?: Record<string, string>;
+  clean_env?: boolean;
   pre_run?: string;
   post_run?: string;
   container?: string;
@@ -255,6 +256,7 @@ type JobSubmitRequest = {
   resources?: AppResourceDefaults;
   extra_args?: string;
   env?: Record<string, string>;
+  clean_env?: boolean;
   pre_run?: string;
   post_run?: string;
   container?: string;
@@ -273,6 +275,7 @@ type AppLaunchParamsFile = {
   resources?: AppResourceDefaults;
   extra_args?: string;
   env?: Record<string, string>;
+  clean_env?: boolean;
   pre_run?: string;
   post_run?: string;
   container?: string;

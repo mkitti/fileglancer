@@ -65,6 +65,7 @@ export default function AppLaunch() {
         env_parameters?: Record<string, unknown>;
         resources?: Record<string, unknown>;
         env?: Record<string, string>;
+        clean_env?: boolean;
         pre_run?: string;
         post_run?: string;
         container?: string;
@@ -81,6 +82,7 @@ export default function AppLaunch() {
     | string
     | undefined;
   const relaunchEnv = relaunchState?.env;
+  const relaunchCleanEnv = relaunchState?.clean_env;
   const relaunchPreRun = relaunchState?.pre_run;
   const relaunchPostRun = relaunchState?.post_run;
   const relaunchContainer = relaunchState?.container;
@@ -144,6 +146,7 @@ export default function AppLaunch() {
     resources?: AppResourceDefaults,
     extraArgs?: string,
     env?: Record<string, string>,
+    cleanEnv?: boolean,
     preRun?: string,
     postRun?: string,
     container?: string,
@@ -163,6 +166,7 @@ export default function AppLaunch() {
         resources,
         extra_args: extraArgs,
         env,
+        clean_env: cleanEnv,
         pre_run: preRun,
         post_run: postRun,
         container,
@@ -274,6 +278,7 @@ export default function AppLaunch() {
         <AppLaunchForm
           entryPoint={selectedEntryPoint}
           headerActionsTarget={launchActionsTarget}
+          initialCleanEnv={relaunchCleanEnv}
           initialContainer={relaunchContainer}
           initialContainerArgs={relaunchContainerArgs}
           initialEnv={relaunchEnv}

@@ -917,6 +917,11 @@ class Job(BaseModel):
     exit_code: Optional[int] = Field(description="Exit code of the job", default=None)
     resources: Optional[Dict] = Field(description="Requested resources", default=None)
     env: Optional[Dict[str, str]] = Field(description="Environment variables used for the job", default=None)
+    clean_env: Optional[bool] = Field(
+        description="Whether the job ran in a clean shell (minimal environment) "
+                    "instead of the user's login environment",
+        default=None,
+    )
     pre_run: Optional[str] = Field(description="Script run before the main command", default=None)
     post_run: Optional[str] = Field(description="Script run after the main command", default=None)
     container: Optional[str] = Field(description="Container image URL used for this job", default=None)
@@ -952,6 +957,11 @@ class JobSubmitRequest(BaseModel):
     resources: Optional[AppResourceDefaults] = Field(description="Resource overrides", default=None)
     extra_args: Optional[str] = Field(description="Extra CLI args for the submit command (replaces config defaults)", default=None)
     env: Optional[Dict[str, str]] = Field(description="Environment variables to export", default=None)
+    clean_env: bool = Field(
+        description="Run the job in a clean shell (minimal environment) instead "
+                    "of the user's login environment",
+        default=False,
+    )
     pre_run: Optional[str] = Field(description="Script to run before the main command", default=None)
     post_run: Optional[str] = Field(description="Script to run after the main command", default=None)
     container: Optional[str] = Field(
