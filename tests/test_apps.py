@@ -2857,8 +2857,10 @@ class TestSubmitJobAssembly:
         )
         script = self._submitted(calls)["command"]
 
-        assert script.startswith("unset PIXI_PROJECT_MANIFEST")
-        assert f"export FG_WORK_DIR={shlex.quote(job.work_dir)}" in script
+        assert script.startswith(f"export FG_WORK_DIR={shlex.quote(job.work_dir)}")
+        # FG_MANIFEST_DIR always points at the manifest's directory, so
+        # pixi-style commands can pass --manifest-path explicitly.
+        assert 'export FG_MANIFEST_DIR="$FG_WORK_DIR"/repo' in script
         # Default working dir is the repo snapshot (no manifest subdir here).
         assert 'cd "$FG_WORK_DIR"/repo' in script
         assert "conda activate tools" in script

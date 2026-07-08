@@ -870,12 +870,16 @@ async def submit_job(
 
         # Set up the script preamble:
         # - FG_WORK_DIR: the job's working directory (used by subsequent variables)
-        # - Unset PIXI_PROJECT_MANIFEST so pixi uses the repo's own manifest
+        # - FG_MANIFEST_DIR: the directory containing the app's manifest (pixi.toml,
+        #   runnables.yaml, etc.), so commands can reference it explicitly instead
+        #   of relying on the cwd. Always points at the manifest directory, even
+        #   when effective_working_dir is "work" (the repo stays reachable there
+        #   via the `repo` symlink).
         # - SERVICE_URL_PATH: for service-type jobs, where to write the service URL
         # - cd into the repo so commands can find project files (pixi.toml, scripts, etc.)
         preamble_lines = [
-            "unset PIXI_PROJECT_MANIFEST",
             f"export FG_WORK_DIR={shlex.quote(str(work_dir))}",
+            f'export FG_MANIFEST_DIR="$FG_WORK_DIR"/{shlex.quote(cd_suffix)}',
             # Where the script reports its startup phase (e.g. pulling a container
             # image). The UI reads this to explain a wait before a service is ready.
             'export FG_PHASE_PATH="$FG_WORK_DIR/phase"',

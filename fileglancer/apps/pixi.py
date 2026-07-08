@@ -139,7 +139,7 @@ def _task_to_entry_point(name: str, task: dict) -> AppEntryPoint | None:
         cmd = " ".join(cmd)
 
     # Build the pixi run command
-    command = f"pixi run {name}"
+    command = f'pixi run --manifest-path "$FG_MANIFEST_DIR" {name}'
 
     description = task.get("description")
 
