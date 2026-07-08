@@ -60,6 +60,7 @@ from __future__ import annotations
 import json
 import os
 import pwd
+import re
 import shutil
 import subprocess
 import sys
@@ -151,6 +152,19 @@ def _fit(s: str, width: int) -> str:
     if width == 1:
         return "…"
     return s[: width - 1] + "…"
+
+
+_DB_URL_CREDENTIALS = re.compile(r"^([\w+]+)://[^@/]+@")
+
+
+def _redact_db_url(url: str) -> str:
+    """Strip user:password credentials from a DB URL for display.
+
+    postgresql://user:pass@host:5432/db -> postgresql://***@host:5432/db
+    URLs without credentials (sqlite:///path) pass through unchanged. The
+    host and database stay visible so it is clear where the tool connects.
+    """
+    return _DB_URL_CREDENTIALS.sub(r"\1://***@", url)
 
 
 _user_cache: dict[int, str] = {}
@@ -1631,7 +1645,10 @@ def run_debug(db_url: Optional[str] = None,
     resolved_db_url = _resolve_db_url(db_url, settings)
     lock_path = poll_lock_path or os.path.join(tempfile.gettempdir(), POLL_LOCK_FILENAME)
 
-    db_display = resolved_db_url
+    # Credentials never reach the display or the --log file; only the
+    # connection itself uses the raw URL.
+    redacted_db_url = _redact_db_url(resolved_db_url)
+    db_display = redacted_db_url
     if len(db_display) > 60:
         db_display = "…" + db_display[-59:]
     meta = {
@@ -1641,7 +1658,7 @@ def run_debug(db_url: Optional[str] = None,
     }
 
     state = SharedState(event_log_path=log_file)
-    state.add_event("INFO", f"watching db {resolved_db_url}")
+    state.add_event("INFO", f"watching db {redacted_db_url}")
     state.add_event("INFO", f"poll lock: {lock_path}")
 
     threads = [
