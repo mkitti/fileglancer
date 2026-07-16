@@ -848,6 +848,91 @@ def test_get_file_content_directory_error(test_client, temp_dir):
 
     response = test_client.get("/api/content/tempdir?subpath=test_directory")
     assert response.status_code == 400
+
+
+def test_put_file_content_creates_file(test_client, temp_dir):
+    """PUT to /api/content writes body to a new file."""
+    content = "hello from the programmatic API"
+    response = test_client.put(
+        "/api/content/tempdir?subpath=written.txt",
+        content=content.encode("utf-8"),
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["bytes_written"] == len(content.encode("utf-8"))
+
+    written_path = os.path.join(temp_dir, "written.txt")
+    assert os.path.exists(written_path)
+    with open(written_path) as f:
+        assert f.read() == content
+
+
+def test_put_file_content_overwrites_file(test_client, temp_dir):
+    """PUT replaces the contents of an existing file (truncating)."""
+    target = os.path.join(temp_dir, "overwrite.txt")
+    with open(target, "w") as f:
+        f.write("original much longer content")
+
+    new_content = "new"
+    response = test_client.put(
+        "/api/content/tempdir?subpath=overwrite.txt",
+        content=new_content.encode("utf-8"),
+    )
+    assert response.status_code == 200
+    with open(target) as f:
+        assert f.read() == new_content
+
+
+def test_put_file_content_binary(test_client, temp_dir):
+    """PUT writes binary bodies byte-for-byte."""
+    data = bytes(range(256))
+    response = test_client.put(
+        "/api/content/tempdir?subpath=blob.bin",
+        content=data,
+    )
+    assert response.status_code == 200
+    with open(os.path.join(temp_dir, "blob.bin"), "rb") as f:
+        assert f.read() == data
+
+
+def test_put_file_content_into_subdir(test_client, temp_dir):
+    """PUT writes into an existing subdirectory."""
+    os.makedirs(os.path.join(temp_dir, "sub"))
+    response = test_client.put(
+        "/api/content/tempdir?subpath=sub/nested.txt",
+        content=b"nested",
+    )
+    assert response.status_code == 200
+    assert os.path.exists(os.path.join(temp_dir, "sub", "nested.txt"))
+
+
+def test_put_file_content_missing_parent_dir(test_client, temp_dir):
+    """PUT to a path whose parent directory doesn't exist returns 404."""
+    response = test_client.put(
+        "/api/content/tempdir?subpath=does_not_exist/file.txt",
+        content=b"data",
+    )
+    assert response.status_code == 404
+
+
+def test_put_file_content_to_directory_fails(test_client, temp_dir):
+    """PUT targeting an existing directory returns 400."""
+    os.makedirs(os.path.join(temp_dir, "adir"))
+    response = test_client.put(
+        "/api/content/tempdir?subpath=adir",
+        content=b"data",
+    )
+    assert response.status_code == 400
+
+
+def test_put_file_content_path_traversal_blocked(test_client, temp_dir):
+    """PUT with a traversal subpath is rejected before touching the filesystem."""
+    response = test_client.put(
+        "/api/content/tempdir?subpath=../escape.txt",
+        content=b"data",
+    )
+    assert response.status_code == 400
+    assert not os.path.exists(os.path.join(os.path.dirname(temp_dir), "escape.txt"))
     data = response.json()
     assert "error" in data
     assert "directory" in data["error"].lower()

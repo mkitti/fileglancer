@@ -174,8 +174,14 @@ def get_current_user(request: Request):
 
     If OKTA auth is enabled, validates session from cookie
     If OKTA auth is disabled, falls back to $USER environment variable
+
+    Also enforces the cross-origin allowlist: a request carrying an Origin
+    header that is neither same-origin nor listed in api_allowed_origins is
+    rejected with 403 before the session is even consulted.
     """
-    return auth.get_current_user(request, get_settings())
+    settings = get_settings()
+    auth.enforce_request_origin(request, settings)
+    return auth.get_current_user(request, settings)
 
 
 def _convert_external_bucket(db_bucket: db.ExternalBucketDB) -> ExternalBucket:
@@ -376,8 +382,11 @@ def create_app(settings):
             except Exception as e:
                 logger.exception(f"Action handler error for {username} action={action}: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
-            # Strip the raw fd (not meaningful in-process), keep _file_handle
+            # Strip the raw fd (not meaningful in-process), keep _file_handle.
+            # _fd_mode is only a hint for the subprocess fd wrapper; in-process
+            # the handler already returns a handle opened in the right mode.
             result.pop("_fd", None)
+            result.pop("_fd_mode", None)
             return result
 
     def _resolve_proxy_info(sharing_key: str, captured_path: str) -> Tuple[dict | Response, str]:
@@ -796,6 +805,19 @@ def create_app(settings):
 
         auth_method = "okta" if settings.enable_okta_auth else "simple"
         return {"authenticated": False, "auth_method": auth_method}
+
+
+    @app.get("/api/auth/allowed-origins",
+             description="List cross-origin app origins permitted to use the API")
+    async def allowed_origins():
+        """Return the configured cross-origin allowlist.
+
+        Public (unauthenticated) so an integrating app's connect popup can
+        confirm its own origin is permitted before initiating the flow. The
+        list is not sensitive — it is the same boundary the server enforces on
+        every authenticated request.
+        """
+        return {"origins": [str(o) for o in settings.api_allowed_origins]}
 
 
     @app.get("/api/file-share-paths", response_model=FileSharePathResponse,
@@ -1530,6 +1552,66 @@ def create_app(settings):
                 headers=headers,
                 media_type=content_type
             )
+
+
+    @app.put("/api/content/{path_name:path}")
+    async def put_file_content(request: Request, path_name: str,
+                               subpath: Optional[str] = Query(''),
+                               username: str = Depends(get_current_user)):
+        """Write the request body to a file, as the authenticated user.
+
+        Creates the file if it does not exist, or replaces its contents if it
+        does. The parent directory must already exist. The body is streamed to
+        disk so large uploads do not buffer in memory.
+        """
+        if subpath:
+            filestore_name = path_name
+        else:
+            filestore_name, _, subpath = path_name.partition('/')
+
+        if not subpath:
+            raise HTTPException(status_code=400, detail="File path is required")
+
+        # Sanitize the target path the same way file creation does, to prevent
+        # path traversal outside the file share.
+        normalized_path = os.path.normpath(subpath)
+        if normalized_path.startswith('..') or os.path.isabs(normalized_path):
+            raise HTTPException(status_code=400, detail="Path cannot escape the current directory")
+        _validate_filename(os.path.basename(normalized_path))
+
+        result = await _worker_exec(username, "write_file",
+                                    fsp_name=filestore_name, subpath=normalized_path)
+
+        if result.get("redirect"):
+            redirect_url = f"/api/content/{result['fsp_name']}"
+            if result.get("subpath"):
+                redirect_url += f"?subpath={result['subpath']}"
+            # 307 preserves the PUT method and body when the client re-requests.
+            return RedirectResponse(url=redirect_url, status_code=307)
+        if "error" in result:
+            raise HTTPException(status_code=result.get("status_code", 500), detail=result["error"])
+
+        file_handle = result.get("_file_handle")
+        if file_handle is None:
+            raise HTTPException(status_code=500, detail="Failed to open file for writing")
+
+        loop = asyncio.get_event_loop()
+        bytes_written = 0
+        try:
+            async for chunk in request.stream():
+                if chunk:
+                    await loop.run_in_executor(None, file_handle.write, chunk)
+                    bytes_written += len(chunk)
+        except Exception:
+            await loop.run_in_executor(None, file_handle.close)
+            logger.exception(f"Error writing to {filestore_name}/{normalized_path}")
+            raise
+        else:
+            await loop.run_in_executor(None, file_handle.close)
+
+        logger.info(f"User {username} wrote {bytes_written} bytes to {filestore_name}/{normalized_path}")
+        return JSONResponse(status_code=200,
+                            content={"message": "File written", "bytes_written": bytes_written})
 
 
     @app.get("/api/files/{path_name}")

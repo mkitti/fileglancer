@@ -113,6 +113,16 @@ class Settings(BaseSettings):
     # Authentication toggle - if False, falls back to $USER environment variable
     enable_okta_auth: bool = False
 
+    # Cross-origin browser apps allowed to call the authenticated API using the
+    # logged-in user's session cookie. List full origins (scheme + host + optional
+    # port), e.g. "https://ai-cryoet.int.janelia.org" or
+    # "https://nextflow.int.janelia.org:8444". Same-origin requests (the
+    # Fileglancer UI itself) are always allowed and need not be listed. Requests
+    # that carry an Origin header not matching this list are rejected on
+    # cookie-authenticated endpoints — this is the CSRF / cross-site boundary for
+    # the programmatic API. Empty (default) means only same-origin calls work.
+    api_allowed_origins: List[str] = []
+
     # CLI mode - enables auto-login endpoint for standalone CLI usage
     cli_mode: bool = False
 

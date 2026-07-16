@@ -5,6 +5,7 @@ import os
 import hashlib
 from datetime import datetime, timedelta, UTC
 from typing import Optional
+from urllib.parse import urlsplit
 
 from authlib.integrations.starlette_client import OAuth
 from fastapi import HTTPException, Request, Response
@@ -103,6 +104,59 @@ def get_session_from_cookie(request: Request, settings: Settings) -> Optional[db
         _ = user_session.session_id
 
         return user_session
+
+
+def _normalize_origin(origin: str) -> str:
+    """Normalize an origin string to 'scheme://host[:port]' with no trailing slash."""
+    return origin.strip().rstrip('/')
+
+
+def is_origin_allowed(request: Request, settings: Settings) -> bool:
+    """Check whether a request's Origin is allowed to use the session cookie.
+
+    The session cookie is SameSite=Lax, so a browser will attach it to requests
+    from any same-site page — including other subdomains under the same
+    registrable domain. Combined with the wildcard CORS policy (kept wide open
+    for the anonymous /files/ data links), that means any *.janelia.org page
+    could otherwise ride a logged-in user's cookie. This is the app-layer gate:
+
+      - No Origin header (same-origin GET/HEAD, curl, server-to-server) -> allow.
+      - Origin whose host:port matches the request Host header (the Fileglancer
+        UI calling its own API) -> allow. Comparing against Host rather than a
+        configured self-origin keeps this correct behind TLS-terminating proxies.
+      - Origin listed in api_allowed_origins -> allow.
+      - Anything else -> reject.
+    """
+    origin = request.headers.get('origin')
+    if not origin:
+        return True
+
+    # Same-origin: the Origin's netloc matches the Host the client addressed.
+    host = request.headers.get('host', '')
+    try:
+        origin_netloc = urlsplit(origin).netloc
+    except ValueError:
+        return False
+    if origin_netloc and origin_netloc == host:
+        return True
+
+    allowed = {_normalize_origin(o) for o in settings.api_allowed_origins}
+    return _normalize_origin(origin) in allowed
+
+
+def enforce_request_origin(request: Request, settings: Settings) -> None:
+    """Reject cross-site requests whose Origin is not allowlisted.
+
+    Raises HTTPException(403) when the Origin is present and not permitted.
+    Call this before resolving the user on any cookie-authenticated endpoint.
+    """
+    if not is_origin_allowed(request, settings):
+        origin = request.headers.get('origin')
+        logger.warning(f"Rejected cross-origin request from disallowed origin: {origin}")
+        raise HTTPException(
+            status_code=403,
+            detail="This origin is not allowed to access the Fileglancer API.",
+        )
 
 
 def get_current_user(request: Request, settings: Settings) -> str:

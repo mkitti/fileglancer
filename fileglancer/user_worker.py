@@ -510,6 +510,51 @@ def _action_open_file(request: dict, ctx: WorkerContext, filestore, fsps) -> dic
         return {"error": f"Permission denied: {fsp_name}/{subpath}", "status_code": 403}
 
 
+@action("write_file")
+@with_filestore
+def _action_write_file(request: dict, ctx: WorkerContext, filestore, fsps) -> dict:
+    """Open a file for writing (truncating) and return a writable file descriptor.
+
+    Mirrors open_file: the worker opens the file as the user so ownership and
+    permissions are the user's, then passes the fd back via SCM_RIGHTS. The main
+    process streams the request body into the fd. The "_fd_mode" key tells the
+    parent to wrap the received fd for writing rather than reading.
+
+    The parent directory must already exist; create it first via create_dir.
+    """
+    fsp_name = request["fsp_name"]
+    subpath = request.get("subpath", "")
+
+    from fileglancer.filestore import RootCheckError
+
+    if not subpath:
+        return {"error": "A file path is required", "status_code": 400}
+
+    try:
+        full_path = filestore._check_path_in_root(subpath)
+        if os.path.isdir(full_path):
+            return {"error": "Cannot write file content to a directory", "status_code": 400}
+
+        # Open truncating for write — creates the file as the user if absent,
+        # or replaces existing contents while preserving ownership.
+        file_handle = open(full_path, 'wb')
+        fd = file_handle.fileno()
+
+        return {
+            "_fd": fd,
+            "_fd_mode": "wb",
+            "_file_handle": file_handle,  # kept alive until fd is sent
+        }
+    except RootCheckError as e:
+        return _redirect_or_error(e, fsps)
+    except IsADirectoryError:
+        return {"error": "Cannot write file content to a directory", "status_code": 400}
+    except FileNotFoundError:
+        return {"error": f"Parent directory does not exist: {fsp_name}/{subpath}", "status_code": 404}
+    except PermissionError:
+        return {"error": f"Permission denied: {fsp_name}/{subpath}", "status_code": 403}
+
+
 @action("head_file")
 @with_filestore
 def _action_head_file(request: dict, ctx: WorkerContext, filestore, fsps) -> dict:

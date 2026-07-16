@@ -17,6 +17,7 @@ import AppJobs from '@/components/AppJobs';
 import AppLaunch from '@/components/AppLaunch';
 import JobDetail from '@/components/JobDetail';
 import Browse from '@/components/Browse';
+import ConnectComplete from '@/components/ConnectComplete';
 import Help from '@/components/Help';
 import Jobs from '@/components/Jobs';
 import Preferences from '@/components/Preferences';
@@ -97,6 +98,9 @@ const AppComponent = () => {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Bare popup page for the external-app connect handshake; rendered
+            outside MainLayout so it has no header/nav chrome. */}
+        <Route element={<ConnectComplete />} path="connect-complete" />
         <Route element={<MainLayout />} path="/*">
           <Route element={<OtherPagesLayout />}>
             <Route element={<RootRedirect />} index />
