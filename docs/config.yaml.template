@@ -140,6 +140,13 @@ session_cookie_secure: true
 #   - https://nextflow.int.janelia.org:8444
 
 #
+# Maximum size in bytes accepted by a PUT /api/content upload. Guards the
+# streaming write path against an unbounded upload filling the disk. Set to 0
+# to disable the limit. Default is 50 GiB.
+#
+# max_upload_size_bytes: 53687091200
+
+#
 # Environment setup — sourced at startup before any scheduler commands.
 # Useful when running as a systemd service where login scripts don't run.
 #

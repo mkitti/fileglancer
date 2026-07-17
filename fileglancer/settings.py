@@ -98,6 +98,11 @@ class Settings(BaseSettings):
     # Prevents a full directory scan for the count in very large directories.
     max_directory_count: int = 10000
 
+    # Maximum size in bytes accepted by a PUT /api/content upload. Guards the
+    # streaming write path against an unbounded upload filling the disk. 0
+    # disables the limit. Default 50 GiB.
+    max_upload_size_bytes: int = 50 * 1024 ** 3
+
     # OKTA OAuth/OIDC settings for authentication
     okta_domain: Optional[str] = None
     okta_client_id: Optional[str] = None

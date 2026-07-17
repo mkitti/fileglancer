@@ -1598,6 +1598,16 @@ def create_app(settings):
         if ius_raw and if_unmodified_since is None:
             raise HTTPException(status_code=400, detail="Invalid If-Unmodified-Since header")
 
+        # Cap upload size. Reject up front on a declared Content-Length so we
+        # never open/truncate the file for an obviously-too-large upload; the
+        # streaming loop below re-checks for chunked or dishonest clients.
+        max_size = settings.max_upload_size_bytes
+        if max_size:
+            declared = request.headers.get('content-length')
+            if declared and declared.isdigit() and int(declared) > max_size:
+                raise HTTPException(status_code=413,
+                                    detail=f"Upload exceeds the maximum size of {max_size} bytes")
+
         result = await _worker_exec(username, "write_file",
                                     fsp_name=filestore_name, subpath=normalized_path,
                                     if_match=if_match, if_unmodified_since=if_unmodified_since)
@@ -1619,14 +1629,17 @@ def create_app(settings):
         bytes_written = 0
         try:
             async for chunk in request.stream():
-                if chunk:
-                    await loop.run_in_executor(None, file_handle.write, chunk)
-                    bytes_written += len(chunk)
-        except Exception:
-            await loop.run_in_executor(None, file_handle.close)
-            logger.exception(f"Error writing to {filestore_name}/{normalized_path}")
-            raise
-        else:
+                if not chunk:
+                    continue
+                if max_size and bytes_written + len(chunk) > max_size:
+                    # ponytail: leaves a partial file on disk (bounded by
+                    # max_size); the early Content-Length check avoids this for
+                    # honest clients. Unlink-on-abort if that ever matters.
+                    raise HTTPException(status_code=413,
+                                        detail=f"Upload exceeds the maximum size of {max_size} bytes")
+                await loop.run_in_executor(None, file_handle.write, chunk)
+                bytes_written += len(chunk)
+        finally:
             await loop.run_in_executor(None, file_handle.close)
 
         logger.info(f"User {username} wrote {bytes_written} bytes to {filestore_name}/{normalized_path}")

@@ -1020,6 +1020,59 @@ def test_put_if_unmodified_since_fresh_succeeds(test_client, temp_dir):
     assert response.status_code == 200
 
 
+def _set_max_upload(value):
+    """Set max_upload_size_bytes on the active (test-patched) settings object."""
+    from fileglancer.settings import get_settings
+    settings = get_settings()
+    prev = settings.max_upload_size_bytes
+    settings.max_upload_size_bytes = value
+    return settings, prev
+
+
+def test_put_upload_over_limit_content_length_413(test_client, temp_dir):
+    """A declared Content-Length over the limit is rejected before the file opens."""
+    settings, prev = _set_max_upload(10)
+    try:
+        response = test_client.put(
+            "/api/content/tempdir?subpath=toobig.txt",
+            content=b"x" * 100,
+        )
+        assert response.status_code == 413
+        assert not os.path.exists(os.path.join(temp_dir, "toobig.txt"))
+    finally:
+        settings.max_upload_size_bytes = prev
+
+
+def test_put_upload_over_limit_streaming_413(test_client, temp_dir):
+    """An upload exceeding the limit is rejected (413), honest or chunked."""
+    settings, prev = _set_max_upload(10)
+    try:
+        def gen():
+            for _ in range(5):
+                yield b"x" * 8  # 40 bytes total
+
+        response = test_client.put(
+            "/api/content/tempdir?subpath=toobig_stream.txt",
+            content=gen(),
+        )
+        assert response.status_code == 413
+    finally:
+        settings.max_upload_size_bytes = prev
+
+
+def test_put_upload_within_limit_succeeds(test_client, temp_dir):
+    """An upload under the limit still succeeds."""
+    settings, prev = _set_max_upload(1000)
+    try:
+        response = test_client.put(
+            "/api/content/tempdir?subpath=ok.txt",
+            content=b"small",
+        )
+        assert response.status_code == 200
+    finally:
+        settings.max_upload_size_bytes = prev
+
+
 def test_get_file_content_not_found(test_client):
     """Test GET request for non-existent file returns 404"""
     response = test_client.get("/api/content/tempdir?subpath=nonexistent.txt")
