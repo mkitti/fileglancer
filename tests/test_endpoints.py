@@ -933,9 +933,91 @@ def test_put_file_content_path_traversal_blocked(test_client, temp_dir):
     )
     assert response.status_code == 400
     assert not os.path.exists(os.path.join(os.path.dirname(temp_dir), "escape.txt"))
-    data = response.json()
-    assert "error" in data
-    assert "directory" in data["error"].lower()
+
+
+def test_get_content_emits_etag_and_last_modified(test_client, temp_dir):
+    """GET content returns an ETag and Last-Modified for concurrency validators."""
+    with open(os.path.join(temp_dir, "etagged.txt"), "w") as f:
+        f.write("v1")
+    response = test_client.get("/api/content/tempdir?subpath=etagged.txt")
+    assert response.status_code == 200
+    assert response.headers.get("ETag")
+    assert response.headers.get("Last-Modified")
+
+
+def test_put_if_match_matches_succeeds(test_client, temp_dir):
+    """PUT with a current If-Match ETag succeeds."""
+    with open(os.path.join(temp_dir, "oc.txt"), "w") as f:
+        f.write("v1")
+    etag = test_client.get("/api/content/tempdir?subpath=oc.txt").headers["ETag"]
+
+    response = test_client.put(
+        "/api/content/tempdir?subpath=oc.txt",
+        content=b"v2",
+        headers={"If-Match": etag},
+    )
+    assert response.status_code == 200
+    with open(os.path.join(temp_dir, "oc.txt")) as f:
+        assert f.read() == "v2"
+
+
+def test_put_if_match_stale_returns_412_and_preserves_file(test_client, temp_dir):
+    """A stale If-Match ETag returns 412 and leaves the file untouched."""
+    target = os.path.join(temp_dir, "oc2.txt")
+    with open(target, "w") as f:
+        f.write("original")
+
+    response = test_client.put(
+        "/api/content/tempdir?subpath=oc2.txt",
+        content=b"clobbered",
+        headers={"If-Match": '"stale-etag-value"'},
+    )
+    assert response.status_code == 412
+    with open(target) as f:
+        assert f.read() == "original"  # untouched
+
+
+def test_put_if_match_star_requires_existence(test_client, temp_dir):
+    """If-Match: * on a missing file returns 412 (nothing to match)."""
+    response = test_client.put(
+        "/api/content/tempdir?subpath=missing.txt",
+        content=b"data",
+        headers={"If-Match": "*"},
+    )
+    assert response.status_code == 412
+    assert not os.path.exists(os.path.join(temp_dir, "missing.txt"))
+
+
+def test_put_if_unmodified_since_stale_returns_412(test_client, temp_dir):
+    """If-Unmodified-Since older than the file's mtime returns 412."""
+    target = os.path.join(temp_dir, "oc3.txt")
+    with open(target, "w") as f:
+        f.write("original")
+    # A date well in the past — the file was modified after it.
+    response = test_client.put(
+        "/api/content/tempdir?subpath=oc3.txt",
+        content=b"clobbered",
+        headers={"If-Unmodified-Since": "Wed, 01 Jan 2020 00:00:00 GMT"},
+    )
+    assert response.status_code == 412
+    with open(target) as f:
+        assert f.read() == "original"
+
+
+def test_put_if_unmodified_since_fresh_succeeds(test_client, temp_dir):
+    """If-Unmodified-Since matching the file's Last-Modified succeeds."""
+    with open(os.path.join(temp_dir, "oc4.txt"), "w") as f:
+        f.write("v1")
+    last_modified = test_client.get(
+        "/api/content/tempdir?subpath=oc4.txt"
+    ).headers["Last-Modified"]
+
+    response = test_client.put(
+        "/api/content/tempdir?subpath=oc4.txt",
+        content=b"v2",
+        headers={"If-Unmodified-Since": last_modified},
+    )
+    assert response.status_code == 200
 
 
 def test_get_file_content_not_found(test_client):

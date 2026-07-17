@@ -67,7 +67,7 @@ async function onSaveClick() {
 | `readFile(fsp, subpath)` | Read contents; returns a `Response`. |
 | `readFileBlob(fsp, subpath)` | Read contents as a `Blob`. |
 | `readFileText(fsp, subpath)` | Read contents as a string. |
-| `writeFile(fsp, subpath, data)` | Create/overwrite a file. Parent dir must exist. |
+| `writeFile(fsp, subpath, data, options?)` | Create/overwrite a file. Parent dir must exist. `options.ifMatch` / `options.ifUnmodifiedSince` add optimistic-concurrency preconditions. |
 | `createDirectory(fsp, subpath)` | Create a directory. |
 | `createFile(fsp, subpath)` | Create an empty file. |
 | `rename(fsp, subpath, newPath)` | Rename/move within a share. |
@@ -81,6 +81,23 @@ All failures throw `FileglancerError` (with a numeric `status`). Two subclasses 
 
 - `AuthRequiredError` (401) — no valid session; call `connect()` from a user gesture and retry.
 - `ForbiddenError` (403) — your origin isn't allowlisted, or the user lacks permission for that path.
+- `ConflictError` (412) — an `ifMatch`/`ifUnmodifiedSince` precondition failed; the file changed since you read it. Re-read and retry.
+
+Optimistic concurrency example:
+
+```ts
+const res = await fg.readFile(fsp, path);
+const etag = res.headers.get('etag');
+const text = await res.text();
+// ...user edits...
+try {
+  await fg.writeFile(fsp, path, edited, { ifMatch: etag });
+} catch (err) {
+  if (err instanceof ConflictError) {
+    // someone else saved first — re-read and merge/prompt
+  } else throw err;
+}
+```
 
 By default (`autoConnect: true`), a `401` triggers one silent reconnect-and-retry before surfacing as `AuthRequiredError`.
 

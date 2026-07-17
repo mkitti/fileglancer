@@ -40,7 +40,7 @@ from fileglancer.giturls import canonical_github_url
 from fileglancer.model import *
 from fileglancer.settings import get_settings
 from fileglancer.issues import create_jira_ticket, get_jira_ticket_details, delete_jira_ticket
-from fileglancer.utils import format_timestamp, guess_content_type, parse_range_header
+from fileglancer.utils import format_timestamp, guess_content_type, parse_range_header, make_etag, parse_http_date_to_epoch
 from fileglancer.filestore import Filestore, RootCheckError
 from fileglancer.log import AccessLogMiddleware
 from fileglancer.worker_pool import WorkerPool, WorkerError, WorkerDead
@@ -1476,6 +1476,8 @@ def create_app(settings):
             headers['Content-Length'] = str(info["size"])
         if info.get("last_modified") is not None:
             headers['Last-Modified'] = format_timestamp(info["last_modified"])
+            if info.get("size") is not None:
+                headers['ETag'] = make_etag(info["last_modified"], info["size"])
 
         return Response(status_code=200, headers=headers, media_type=content_type)
 
@@ -1504,7 +1506,14 @@ def create_app(settings):
 
         file_size = result["file_size"]
         content_type = result["content_type"]
+        last_modified = result.get("last_modified")
         file_name = subpath.split('/')[-1] if subpath else ''
+
+        # Validators for optimistic-concurrency writes (see PUT below).
+        validator_headers = {}
+        if last_modified is not None:
+            validator_headers['Last-Modified'] = format_timestamp(last_modified)
+            validator_headers['ETag'] = make_etag(last_modified, file_size)
 
         range_header = request.headers.get('Range')
 
@@ -1524,6 +1533,7 @@ def create_app(settings):
                 'Accept-Ranges': 'bytes',
                 'Content-Length': str(content_length),
                 'Content-Range': f'bytes {start}-{end}/{file_size}',
+                **validator_headers,
             }
 
             if content_type == 'application/octet-stream' and file_name:
@@ -1541,6 +1551,7 @@ def create_app(settings):
             headers = {
                 'Accept-Ranges': 'bytes',
                 'Content-Length': str(file_size),
+                **validator_headers,
             }
 
             if content_type == 'application/octet-stream' and file_name:
@@ -1579,8 +1590,17 @@ def create_app(settings):
             raise HTTPException(status_code=400, detail="Path cannot escape the current directory")
         _validate_filename(os.path.basename(normalized_path))
 
+        # Optimistic concurrency: honor If-Match (ETag) and If-Unmodified-Since.
+        # A mismatch returns 412 from the worker without altering the file.
+        if_match = request.headers.get('if-match')
+        ius_raw = request.headers.get('if-unmodified-since')
+        if_unmodified_since = parse_http_date_to_epoch(ius_raw) if ius_raw else None
+        if ius_raw and if_unmodified_since is None:
+            raise HTTPException(status_code=400, detail="Invalid If-Unmodified-Since header")
+
         result = await _worker_exec(username, "write_file",
-                                    fsp_name=filestore_name, subpath=normalized_path)
+                                    fsp_name=filestore_name, subpath=normalized_path,
+                                    if_match=if_match, if_unmodified_since=if_unmodified_since)
 
         if result.get("redirect"):
             redirect_url = f"/api/content/{result['fsp_name']}"

@@ -21,6 +21,39 @@ def format_timestamp(timestamp):
     return dt.isoformat()
 
 
+def make_etag(last_modified: float, size: int) -> str:
+    """Strong ETag for a file, derived from its mtime and size.
+
+    Consistent across the read (GET/HEAD) and write (PUT precondition) paths
+    because all of them feed the same stat fields in here.
+
+    ponytail: mtime granularity is the ceiling — two writes within the
+    filesystem's mtime resolution (coarse on some NFS) that also keep the same
+    size would share an ETag. Switch to a content hash if that ever matters.
+    """
+    return f'"{last_modified:.6f}-{size}"'
+
+
+def parse_http_date_to_epoch(value: str):
+    """Parse an HTTP-date or ISO-8601 datetime to a POSIX timestamp (float).
+
+    Accepts both because we emit Last-Modified in ISO form; returns None if the
+    value can't be parsed.
+    """
+    from email.utils import parsedate_to_datetime
+    for parse in (parsedate_to_datetime, datetime.fromisoformat):
+        try:
+            dt = parse(value)
+        except (TypeError, ValueError):
+            continue
+        if dt is None:
+            continue
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.timestamp()
+    return None
+
+
 def guess_content_type(filename):
     """A wrapper for guess_type which deals with unknown MIME types"""
     content_type, _ = guess_type(filename)

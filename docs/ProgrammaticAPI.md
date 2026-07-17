@@ -46,6 +46,17 @@ All endpoints require the session cookie. The path segment after `/api/files/` o
 
 `PUT /api/content` is the write path used by a "Save" action. It creates the file if absent or replaces its contents if present, streaming the body to disk so large uploads do not buffer in memory. The parent directory must already exist — create it first with `POST /api/files` (`{"type": "directory"}`). The file is created with the user's ownership and permissions.
 
+### Optimistic concurrency
+
+To avoid clobbering a concurrent edit, `GET`/`HEAD /api/content` return an `ETag` (a strong validator derived from the file's modification time and size) and a `Last-Modified` header. A `PUT` may then carry a precondition:
+
+- `If-Match: "<etag>"` — write only if the file's current ETag matches. Use `If-Match: *` to require the file already exist.
+- `If-Unmodified-Since: <http-date>` — write only if the file hasn't changed since that time (1-second granularity — `If-Match` is the precise option).
+
+If the precondition fails the server returns `412 Precondition Failed` and **leaves the file untouched** (the check runs against the opened file before it is truncated). The typical flow: read the file (keep its `ETag`), and on save `PUT` with `If-Match: <that etag>`; on `412`, tell the user the file changed and re-read.
+
+ETag caveat: it's based on mtime + size, so two writes within the filesystem's mtime resolution (coarse on some NFS) that also keep the same size can share an ETag. Good enough for interactive save-conflict detection, not a substitute for locking.
+
 ## The connect (login) flow
 
 A dedicated bare page, `GET /connect-complete`, drives the popup handshake. The integrating app opens it (in a popup, or a hidden iframe with `?silent=1`) with an `origin` query parameter naming the app's own origin. Once the user is authenticated, the page posts a message back to that origin and, for a popup, closes itself:
