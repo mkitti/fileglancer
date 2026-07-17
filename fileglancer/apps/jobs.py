@@ -870,6 +870,7 @@ async def submit_job(
 
         # Set up the script preamble:
         # - FG_WORK_DIR: the job's working directory (used by subsequent variables)
+        # - Unset PIXI_PROJECT_MANIFEST so mainfest does not leak into environment.
         # - FG_MANIFEST_DIR: the directory containing the app's manifest (pixi.toml,
         #   runnables.yaml, etc.), so commands can reference it explicitly instead
         #   of relying on the cwd. Always points at the manifest directory, even
