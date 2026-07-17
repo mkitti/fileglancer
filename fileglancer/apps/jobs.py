@@ -878,11 +878,11 @@ async def submit_job(
 
         # Set up the script preamble:
         # - FG_WORK_DIR: the job's working directory (used by subsequent variables)
-        # - FG_MANIFEST_DIR: the directory containing the app's manifest (pixi.toml,
-        #   runnables.yaml, etc.), so commands can reference it explicitly instead
-        #   of relying on the cwd. Always points at the manifest directory, even
+        # - FG_MANIFEST_DIR: the directory the job should treat as the app's project root
+        #   (repo[/manifest_path] when the manifest lives with the code; otherwise
+        #   the code repo root), so commands can reference it explicitly instead
+        #   of relying on the cwd. Always points at the repo-side directory, even
         #   when effective_working_dir is "work" (the repo stays reachable there
-        #   via the `repo` symlink).
         # - SERVICE_URL_PATH: for service-type jobs, where to write the service URL
         # - cd into the repo so commands can find project files (pixi.toml, scripts, etc.)
         preamble_lines = []
