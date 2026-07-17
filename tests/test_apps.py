@@ -2879,6 +2879,25 @@ class TestSubmitJobAssembly:
         _, calls = self._submit(tmp_path, monkeypatch, cluster={"executor": "lsf"})
         assert "exit_code" not in self._submitted(calls)["command"]
 
+    def test_default_env_mode_uses_login_shell(self, tmp_path, monkeypatch):
+        job, calls = self._submit(tmp_path, monkeypatch)
+        submitted = self._submitted(calls)
+        assert submitted["login_shell"] is True
+        # The login shell's profile builds PATH; no clean-mode guards needed.
+        assert 'export PATH="${PATH:-' not in submitted["command"]
+        assert job.clean_env is False
+
+    def test_clean_env_starts_script_with_guards(self, tmp_path, monkeypatch):
+        job, calls = self._submit(tmp_path, monkeypatch, clean_env=True)
+        submitted = self._submitted(calls)
+        assert submitted["login_shell"] is False
+        script = submitted["command"]
+        # Clean mode gets no login shell, so the script itself must establish
+        # PATH and identity before anything else runs.
+        assert script.startswith('export PATH="${PATH:-/usr/local/bin:/usr/bin:/bin}"')
+        assert 'export HOME="${HOME:-' in script
+        assert job.clean_env is True
+
     def test_service_entry_point_preamble(self, tmp_path, monkeypatch):
         _, calls = self._submit(
             tmp_path, monkeypatch,

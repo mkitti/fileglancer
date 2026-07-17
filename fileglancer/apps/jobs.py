@@ -634,6 +634,7 @@ async def submit_job(
     extra_args: Optional[str] = None,
     manifest_path: str = "",
     env: Optional[dict] = None,
+    clean_env: bool = False,
     pre_run: Optional[str] = None,
     post_run: Optional[str] = None,
     container: Optional[str] = None,
@@ -644,6 +645,12 @@ async def submit_job(
     Fetches the manifest, validates parameters, builds the command,
     submits to the executor, and creates a DB record.
     Each job runs in its own directory under ~/.fileglancer/jobs/.
+
+    The job's environment is always constructed, never inherited from the
+    server or worker process. By default the job runs under the user's login
+    shell, so their own profile builds PATH/modules/conda as if they had
+    SSH'd to the node. With clean_env=True the job instead starts from a
+    minimal environment (see the preamble guards below) for reproducibility.
     """
     settings = get_settings()
 
@@ -834,6 +841,7 @@ async def submit_job(
             resources=resources_dict,
             manifest_path=manifest_path,
             env=merged_env or None,
+            clean_env=clean_env,
             pre_run=effective_pre_run,
             post_run=effective_post_run,
             container=effective_container,
@@ -870,7 +878,6 @@ async def submit_job(
 
         # Set up the script preamble:
         # - FG_WORK_DIR: the job's working directory (used by subsequent variables)
-        # - Unset PIXI_PROJECT_MANIFEST so mainfest does not leak into environment.
         # - FG_MANIFEST_DIR: the directory containing the app's manifest (pixi.toml,
         #   runnables.yaml, etc.), so commands can reference it explicitly instead
         #   of relying on the cwd. Always points at the manifest directory, even
@@ -878,8 +885,18 @@ async def submit_job(
         #   via the `repo` symlink).
         # - SERVICE_URL_PATH: for service-type jobs, where to write the service URL
         # - cd into the repo so commands can find project files (pixi.toml, scripts, etc.)
-        preamble_lines = [
-            "unset PIXI_PROJECT_MANIFEST",
+        preamble_lines = []
+        if clean_env:
+            # Clean mode starts from an empty scheduler-provided environment
+            # (no login shell), so give the script a sane PATH and identity
+            # before anything else runs. ${VAR:-...} keeps any values the
+            # scheduler did set.
+            preamble_lines += [
+                'export PATH="${PATH:-/usr/local/bin:/usr/bin:/bin}"',
+                'export USER="${USER:-$(id -un)}"',
+                'export HOME="${HOME:-$(getent passwd "$(id -un)" | cut -d: -f6)}"',
+            ]
+        preamble_lines += [
             f"export FG_WORK_DIR={shlex.quote(str(work_dir))}",
             f'export FG_MANIFEST_DIR="$FG_WORK_DIR"/{shlex.quote(cd_suffix)}',
             # Where the script reports its startup phase (e.g. pulling a container
@@ -972,6 +989,9 @@ async def submit_job(
             cluster_config=cluster_config,
             command=full_command,
             job_name=job_name,
+            # Default: login shell, so the user's own profile builds the
+            # job environment. Clean mode: no profile, minimal environment.
+            login_shell=not clean_env,
             resources={
                 "cpus": resource_spec.cpus,
                 "gpus": resource_spec.gpus,

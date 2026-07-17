@@ -48,6 +48,7 @@ interface AppLaunchFormProps {
     resources?: AppResourceDefaults,
     extraArgs?: string,
     env?: Record<string, string>,
+    cleanEnv?: boolean,
     preRun?: string,
     postRun?: string,
     container?: string,
@@ -60,6 +61,7 @@ interface AppLaunchFormProps {
   readonly initialResources?: AppResourceDefaults;
   readonly initialExtraArgs?: string;
   readonly initialEnv?: Record<string, string>;
+  readonly initialCleanEnv?: boolean;
   readonly initialPreRun?: string;
   readonly initialPostRun?: string;
   readonly initialContainer?: string;
@@ -405,6 +407,8 @@ function EnvVarRows({
 function EnvironmentSectionContent({
   envVars,
   setEnvVars,
+  cleanEnv,
+  setCleanEnv,
   preRun,
   setPreRun,
   postRun,
@@ -412,6 +416,8 @@ function EnvironmentSectionContent({
 }: {
   readonly envVars: EnvVar[];
   readonly setEnvVars: Dispatch<SetStateAction<EnvVar[]>>;
+  readonly cleanEnv: boolean;
+  readonly setCleanEnv: Dispatch<SetStateAction<boolean>>;
   readonly preRun: string;
   readonly setPreRun: Dispatch<SetStateAction<string>>;
   readonly postRun: string;
@@ -422,6 +428,20 @@ function EnvironmentSectionContent({
 
   return (
     <div className="space-y-4">
+      <div>
+        <FgSwitch
+          checked={cleanEnv}
+          id="clean-env-toggle"
+          label="Clean environment"
+          onChange={() => setCleanEnv(prev => !prev)}
+        />
+        <Typography className="text-foreground mt-1" type="small">
+          {cleanEnv
+            ? 'The job starts from a minimal clean shell: only variables set here and by the app reach it. Best for reproducibility.'
+            : 'The job runs in your login environment, as if you had SSH’d to the compute node. Turn on to run in a minimal clean shell instead.'}
+        </Typography>
+      </div>
+
       <EnvVarRows envVars={envVars} setEnvVars={setEnvVars} />
 
       <div>
@@ -594,6 +614,8 @@ function SubmitOptionsSectionContent({
 function EnvironmentTabContent({
   envVars,
   setEnvVars,
+  cleanEnv,
+  setCleanEnv,
   preRun,
   setPreRun,
   postRun,
@@ -608,6 +630,8 @@ function EnvironmentTabContent({
 }: {
   readonly envVars: EnvVar[];
   readonly setEnvVars: Dispatch<SetStateAction<EnvVar[]>>;
+  readonly cleanEnv: boolean;
+  readonly setCleanEnv: Dispatch<SetStateAction<boolean>>;
   readonly preRun: string;
   readonly setPreRun: Dispatch<SetStateAction<string>>;
   readonly postRun: string;
@@ -639,9 +663,11 @@ function EnvironmentTabContent({
         />
         <Accordion.Content className="pt-2 pb-4 pl-4">
           <EnvironmentSectionContent
+            cleanEnv={cleanEnv}
             envVars={envVars}
             postRun={postRun}
             preRun={preRun}
+            setCleanEnv={setCleanEnv}
             setEnvVars={setEnvVars}
             setPostRun={setPostRun}
             setPreRun={setPreRun}
@@ -760,6 +786,7 @@ export default function AppLaunchForm({
   initialResources,
   initialExtraArgs: externalExtraArgs,
   initialEnv,
+  initialCleanEnv,
   initialPreRun,
   initialPostRun,
   initialContainer,
@@ -857,6 +884,7 @@ export default function AppLaunchForm({
     }
     return [];
   });
+  const [cleanEnv, setCleanEnv] = useState<boolean>(initialCleanEnv ?? false);
   const [preRun, setPreRun] = useState(
     initialPreRun ?? entryPoint.pre_run ?? ''
   );
@@ -1187,6 +1215,7 @@ export default function AppLaunchForm({
       hasResourceOverrides ? resources : undefined,
       extraArgs.trim() || undefined,
       hasEnv ? envRecord : undefined,
+      cleanEnv || undefined,
       preRun.trim() || undefined,
       postRun.trim() || undefined,
       containerImage.trim() || undefined,
@@ -1256,6 +1285,9 @@ export default function AppLaunchForm({
     if (Object.keys(envRecord).length > 0) {
       params.env = envRecord;
     }
+    if (cleanEnv) {
+      params.clean_env = cleanEnv;
+    }
     if (preRun.trim()) {
       params.pre_run = preRun;
     }
@@ -1304,6 +1336,9 @@ export default function AppLaunchForm({
       setEnvVars(
         Object.entries(parsed.env).map(([key, value]) => ({ key, value }))
       );
+    }
+    if (parsed.clean_env !== undefined) {
+      setCleanEnv(parsed.clean_env);
     }
     if (parsed.pre_run !== undefined) {
       setPreRun(parsed.pre_run);
@@ -1578,6 +1613,7 @@ export default function AppLaunchForm({
               ) : null}
 
               <EnvironmentTabContent
+                cleanEnv={cleanEnv}
                 containerArgs={containerArgs}
                 containerImage={containerImage}
                 entryPoint={entryPoint}
@@ -1585,6 +1621,7 @@ export default function AppLaunchForm({
                 openEnvSections={openEnvSections}
                 postRun={postRun}
                 preRun={preRun}
+                setCleanEnv={setCleanEnv}
                 setContainerArgs={setContainerArgs}
                 setContainerImage={setContainerImage}
                 setEnvVars={setEnvVars}

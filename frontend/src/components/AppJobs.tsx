@@ -45,6 +45,7 @@ export default function AppJobs() {
         env_parameters: job.env_parameters,
         resources: job.resources,
         env: job.env,
+        clean_env: job.clean_env,
         pre_run: job.pre_run,
         post_run: job.post_run,
         container: job.container,
