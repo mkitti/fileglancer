@@ -880,7 +880,7 @@ async def submit_job(
         # - cd into the repo so commands can find project files (pixi.toml, scripts, etc.)
         preamble_lines = [
             "unset PIXI_PROJECT_MANIFEST",
-             f"export FG_WORK_DIR={shlex.quote(str(work_dir))}",
+            f"export FG_WORK_DIR={shlex.quote(str(work_dir))}",
             f'export FG_MANIFEST_DIR="$FG_WORK_DIR"/{shlex.quote(cd_suffix)}',
             # Where the script reports its startup phase (e.g. pulling a container
             # image). The UI reads this to explain a wait before a service is ready.
