@@ -10,20 +10,20 @@ import { Card, Typography } from '@material-tailwind/react';
 import { HiOutlineDownload, HiOutlinePlay } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 
+import AppBreadcrumbs from '@/components/ui/AppsPage/AppBreadcrumbs';
 import AppLaunchForm from '@/components/ui/AppsPage/AppLaunchForm';
-import AppPageHeader from '@/components/ui/AppsPage/AppPageHeader';
 import SharedBadge from '@/components/ui/AppsPage/SharedBadge';
 import {
   buildAppDetailPath,
   buildGithubUrl,
   canonicalGithubUrl,
-  getEntryPointTypeIconType,
-  getAppIconType
+  getEntryPointTypeIconType
 } from '@/utils';
 import { showErrorToast } from '@/utils/errorToast';
 import {
   useAppsQuery,
   useAddAppMutation,
+  useCatalogQuery,
   useManifestPreviewMutation
 } from '@/queries/appsQueries';
 import { useSubmitJobMutation } from '@/queries/jobsQueries';
@@ -48,6 +48,7 @@ export default function AppLaunch() {
   const manifestMutation = useManifestPreviewMutation();
   const submitJobMutation = useSubmitJobMutation();
   const appsQuery = useAppsQuery();
+  const catalogQuery = useCatalogQuery();
   const addAppMutation = useAddAppMutation();
   const [selectedEntryPoint, setSelectedEntryPoint] =
     useState<AppEntryPoint | null>(null);
@@ -99,6 +100,23 @@ export default function AppLaunch() {
   );
   const isInstalled = installedApp !== undefined;
 
+  // Breadcrumb origin is inferred from install status: an installed app is
+  // reached from My Apps and links back to its detail page; an uninstalled app
+  // is browsed from the catalog and links back to its listing (matched in the
+  // already-cached catalog by canonical URL + manifest path).
+  const catalogListing = catalogQuery.data?.find(
+    l =>
+      canonicalGithubUrl(l.url) === appUrl && l.manifest_path === manifestPath
+  );
+  const fromCatalog = !isInstalled && catalogListing !== undefined;
+  const homeTo = fromCatalog ? '/apps/catalog' : '/apps';
+  const homeLabel = fromCatalog ? 'App Catalog' : 'My Apps';
+  const appDetailTo = installedApp
+    ? buildAppDetailPath(installedApp.url, installedApp.manifest_path)
+    : catalogListing
+      ? `/apps/catalog/${catalogListing.id}`
+      : undefined;
+
   useEffect(() => {
     if (appUrl) {
       // The manifest identity is (url, manifest_path); reset the selection so
@@ -115,10 +133,6 @@ export default function AppLaunch() {
   // Prefer the user's saved app name (which may be a custom name chosen when
   // adding the app from the catalog) over the raw manifest name.
   const displayName = installedApp?.name ?? manifest?.name;
-  const headerTitle =
-    displayName && selectedEntryPoint
-      ? `${displayName} - ${selectedEntryPoint.name}`
-      : displayName;
   const isShared =
     installedApp?.listing_id !== undefined && installedApp.listing_id !== null;
 
@@ -198,29 +212,27 @@ export default function AppLaunch() {
 
   return (
     <div>
-      <AppPageHeader
+      <AppBreadcrumbs
         actions={
           manifest && selectedEntryPoint ? (
             <div ref={setLaunchActionsTarget} />
           ) : null
         }
-        backLabel={installedApp ? 'Back to app details' : 'Back to My Apps'}
-        backTo={
-          installedApp
-            ? buildAppDetailPath(installedApp.url, installedApp.manifest_path)
-            : '/apps'
-        }
+        appName={displayName}
+        appTo={appDetailTo}
         description={selectedEntryPoint?.description ?? null}
-        githubUrl={selectedEntryPoint ? appUrl : null}
-        icon={
+        entryPointIcon={
           selectedEntryPoint
             ? getEntryPointTypeIconType(selectedEntryPoint.type)
-            : getAppIconType()
+            : undefined
         }
-        title={headerTitle}
+        entryPointName={selectedEntryPoint?.name}
+        githubUrl={selectedEntryPoint ? appUrl : null}
+        homeLabel={homeLabel}
+        homeTo={homeTo}
       >
         {isShared ? <SharedBadge /> : null}
-      </AppPageHeader>
+      </AppBreadcrumbs>
 
       {/* Not-installed banner — only once the apps list has actually loaded, so
           a failed /api/apps query doesn't wrongly flag every app (including
