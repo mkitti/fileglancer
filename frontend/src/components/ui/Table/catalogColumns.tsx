@@ -134,6 +134,26 @@ export function createCatalogColumns(
       enableSorting: true
     },
     {
+      accessorKey: 'install_count',
+      header: () => <span className="whitespace-nowrap">Installs</span>,
+      cell: ({ getValue, table }) => {
+        const value = getValue() as number;
+        const onContextMenu = table.options.meta?.onCellContextMenu;
+        return (
+          <div
+            className="flex items-center truncate w-full h-full"
+            onContextMenu={e => {
+              e.preventDefault();
+              onContextMenu?.(e, { value: String(value) });
+            }}
+          >
+            <span className="truncate text-sm">{value}</span>
+          </div>
+        );
+      },
+      enableSorting: true
+    },
+    {
       id: 'status',
       accessorFn: row => (getInstalledApp(row) ? 'In your apps' : ''),
       header: 'Status',

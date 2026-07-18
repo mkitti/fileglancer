@@ -554,6 +554,26 @@ def test_list_catalog_visible_to_other_users(client_factory, db_session):
     assert body[0]["name"] == "Shared by Alice"
 
 
+def test_list_catalog_reports_install_count(client_factory, db_session):
+    """install_count is the number of distinct users who currently have the app
+    installed, matched to each listing by (url, manifest_path)."""
+    _seed_listing(db_session, owner_username=OWNER)
+    for user in (OWNER, ADOPTER, "carol"):
+        _seed_user_app(db_session, username=user)
+
+    # A second listing that nobody has installed must report 0.
+    _seed_listing(
+        db_session, owner_username=OWNER,
+        url="https://github.com/owner/other", name="Uninstalled")
+
+    client = client_factory(ADOPTER)
+    response = client.get("/api/catalog")
+    assert response.status_code == 200
+    by_url = {listing["url"]: listing for listing in response.json()}
+    assert by_url["https://github.com/owner/repo"]["install_count"] == 3
+    assert by_url["https://github.com/owner/other"]["install_count"] == 0
+
+
 def test_listings_owner_helper(db_session):
     """Sanity check: get_app_listings_by_owner returns only owner's listings."""
     _seed_listing(db_session, owner_username=OWNER,

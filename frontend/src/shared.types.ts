@@ -184,6 +184,7 @@ type AppListing = {
   description?: string;
   published_at: string;
   updated_at?: string;
+  install_count: number;
 };
 
 type JobFileInfo = {

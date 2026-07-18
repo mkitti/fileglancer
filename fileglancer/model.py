@@ -780,6 +780,7 @@ class AppListing(BaseModel):
     description: Optional[str] = Field(description="Description for the catalog", default=None)
     published_at: datetime = Field(description="When this listing was published")
     updated_at: Optional[datetime] = Field(description="When this listing was last edited", default=None)
+    install_count: int = Field(description="Number of users who currently have this app installed", default=0)
 
 
 def validate_catalog_listing_name(name: Optional[str]) -> Optional[str]:
