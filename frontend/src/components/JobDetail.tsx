@@ -369,10 +369,10 @@ function JobOverview({
             value={
               detailPath ? (
                 <FgLink to={detailPath}>
-                  {`${job.app_name} — ${job.entry_point_name}`}
+                  {`${job.app_name}`}
                 </FgLink>
               ) : (
-                `${job.app_name} — ${job.entry_point_name}`
+                `${job.app_name}`
               )
             }
           />
