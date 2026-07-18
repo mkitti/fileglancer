@@ -21,10 +21,13 @@ import {
   useCatalogQuery,
   useManifestPreviewMutation
 } from '@/queries/appsQueries';
-import { useListingActions } from '@/hooks/useListingActions';
+import {
+  buildListingDetailPath,
+  useListingActions
+} from '@/hooks/useListingActions';
 import { useProfileContext } from '@/contexts/ProfileContext';
 import { buildLaunchPathFromApp, canonicalGithubUrl } from '@/utils';
-import type { AppListing } from '@/shared.types';
+import type { AppListing, LaunchOrigin } from '@/shared.types';
 
 export default function ListingDetail() {
   const { listingId } = useParams<{ listingId: string }>();
@@ -193,15 +196,23 @@ export default function ListingDetail() {
           </div>
         ) : (
           <EntryPointsList
-            onLaunch={ep =>
+            onLaunch={ep => {
+              // Record the App Catalog origin so the launch breadcrumbs link
+              // back to this listing, even when the app is also installed.
+              const from: LaunchOrigin = {
+                homeTo: '/apps/catalog',
+                homeLabel: 'App Catalog',
+                appTo: buildListingDetailPath(listing.id)
+              };
               navigate(
                 buildLaunchPathFromApp(
                   listing.url,
                   listing.manifest_path,
                   ep.id
-                )
-              )
-            }
+                ),
+                { state: { from } }
+              );
+            }}
             runnables={manifest?.runnables ?? []}
           />
         )}

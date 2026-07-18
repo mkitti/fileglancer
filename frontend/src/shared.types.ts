@@ -300,6 +300,21 @@ function parseAppLaunchParamsFile(text: string): AppLaunchParamsFile {
   return parsed as AppLaunchParamsFile;
 }
 
+/**
+ * Breadcrumb origin for the app launch page, passed via React Router location
+ * state so the launch breadcrumbs point back to the page the user actually came
+ * from (My Apps vs the App Catalog) rather than inferring it from install
+ * status. Absent on reload or direct navigation, where the launch page falls
+ * back to inferring the origin.
+ */
+type LaunchOrigin = {
+  /** Top-level page the leading breadcrumb icon returns to. */
+  homeTo: string;
+  homeLabel: string;
+  /** App-level page the app-name segment links to (detail or listing page). */
+  appTo?: string;
+};
+
 export type {
   AppEntryPoint,
   AppLaunchParamsFile,
@@ -319,6 +334,7 @@ export type {
   JobFileInfo,
   JobStatus,
   JobSubmitRequest,
+  LaunchOrigin,
   Profile,
   Result,
   Success,

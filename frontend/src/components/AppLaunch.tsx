@@ -27,7 +27,11 @@ import {
   useManifestPreviewMutation
 } from '@/queries/appsQueries';
 import { useSubmitJobMutation } from '@/queries/jobsQueries';
-import type { AppEntryPoint, AppResourceDefaults } from '@/shared.types';
+import type {
+  AppEntryPoint,
+  AppResourceDefaults,
+  LaunchOrigin
+} from '@/shared.types';
 import FgButton from './designSystem/atoms/FgButton';
 
 export default function AppLaunch() {
@@ -100,22 +104,30 @@ export default function AppLaunch() {
   );
   const isInstalled = installedApp !== undefined;
 
-  // Breadcrumb origin is inferred from install status: an installed app is
-  // reached from My Apps and links back to its detail page; an uninstalled app
-  // is browsed from the catalog and links back to its listing (matched in the
-  // already-cached catalog by canonical URL + manifest path).
+  // Breadcrumb origin: prefer the origin recorded in navigation state (set when
+  // launching from My Apps vs the App Catalog) so the breadcrumbs link back to
+  // where the user actually came from. On reload or direct navigation state is
+  // lost, so fall back to inferring the origin from install status: an installed
+  // app is treated as reached from My Apps and links to its detail page; an
+  // uninstalled app is treated as browsed from the catalog and links to its
+  // listing (matched in the already-cached catalog by canonical URL + path).
+  const originState = (location.state as { from?: LaunchOrigin } | null)?.from;
   const catalogListing = catalogQuery.data?.find(
     l =>
       canonicalGithubUrl(l.url) === appUrl && l.manifest_path === manifestPath
   );
   const fromCatalog = !isInstalled && catalogListing !== undefined;
-  const homeTo = fromCatalog ? '/apps/catalog' : '/apps';
-  const homeLabel = fromCatalog ? 'App Catalog' : 'My Apps';
-  const appDetailTo = installedApp
-    ? buildAppDetailPath(installedApp.url, installedApp.manifest_path)
-    : catalogListing
-      ? `/apps/catalog/${catalogListing.id}`
-      : undefined;
+  const homeTo =
+    originState?.homeTo ?? (fromCatalog ? '/apps/catalog' : '/apps');
+  const homeLabel =
+    originState?.homeLabel ?? (fromCatalog ? 'App Catalog' : 'My Apps');
+  const appDetailTo =
+    originState?.appTo ??
+    (installedApp
+      ? buildAppDetailPath(installedApp.url, installedApp.manifest_path)
+      : catalogListing
+        ? `/apps/catalog/${catalogListing.id}`
+        : undefined);
 
   useEffect(() => {
     if (appUrl) {
