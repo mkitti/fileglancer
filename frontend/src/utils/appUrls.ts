@@ -93,6 +93,29 @@ export function buildGithubUrl(
 }
 
 /**
+ * Split a pasted GitHub URL that embeds a branch/tag (e.g.
+ * `.../repo/tree/my-branch`) into the bare repo URL and the ref, so the ref can
+ * be surfaced in a separate revision field. `ref` is empty when the URL carries
+ * no ref (or the default `main`), or when the string isn't a parseable GitHub
+ * URL — callers should only rewrite the input when `ref` is non-empty, leaving
+ * bare and SSH URLs untouched.
+ */
+export function splitGithubRef(url: string): {
+  repoUrl: string;
+  ref: string;
+} {
+  try {
+    const { owner, repo, branch } = parseGithubUrl(url);
+    return {
+      repoUrl: buildGithubUrl(owner, repo, 'main'),
+      ref: branch === 'main' ? '' : branch
+    };
+  } catch {
+    return { repoUrl: url, ref: '' };
+  }
+}
+
+/**
  * The revision actually cloned, parsed out of the canonical app URL (which
  * always carries it). Falls back to the requested branch, then null.
  */

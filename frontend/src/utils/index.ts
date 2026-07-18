@@ -420,7 +420,8 @@ export {
   buildLaunchPathFromApp,
   buildAppDetailPath,
   buildRelaunchPath,
-  manifestPathInfo
+  manifestPathInfo,
+  splitGithubRef
 } from './appUrls';
 
 // Re-export app icon utilities
