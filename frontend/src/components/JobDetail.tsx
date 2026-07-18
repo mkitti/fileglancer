@@ -387,7 +387,7 @@ function JobOverview({
             }
           />
           <InfoRow
-            label="Version"
+            label="Commit"
             value={
               job.commit_sha ? (
                 commitLink ? (
