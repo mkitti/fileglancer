@@ -5,8 +5,8 @@ import { HiOutlineEllipsisVertical } from 'react-icons/hi2';
 import { FaUsers, FaUsersSlash } from 'react-icons/fa6';
 
 import AppActionDialogs from '@/components/ui/AppsPage/AppActionDialogs';
+import AppBreadcrumbs from '@/components/ui/AppsPage/AppBreadcrumbs';
 import AppInfoTable from '@/components/ui/AppsPage/AppInfoTable';
-import AppPageHeader from '@/components/ui/AppsPage/AppPageHeader';
 import EntryPointsList from '@/components/ui/AppsPage/EntryPointsList';
 import CardActionsMenu from '@/components/ui/Menus/CardActionsMenu';
 import type { MenuItem } from '@/components/ui/Menus/FgMenuItems';
@@ -18,12 +18,7 @@ import UpdateAvailableBadge from '@/components/ui/AppsPage/UpdateAvailableBadge'
 import { useAppsQuery, useAppUpdateAvailable } from '@/queries/appsQueries';
 import { useJobsQuery } from '@/queries/jobsQueries';
 import { useAppActions } from '@/hooks/useAppActions';
-import {
-  buildGithubUrl,
-  canonicalGithubUrl,
-  formatDateString,
-  getAppIconType
-} from '@/utils';
+import { buildGithubUrl, canonicalGithubUrl, formatDateString } from '@/utils';
 import type { UserApp } from '@/shared.types';
 
 const RECENT_JOBS_LIMIT = 5;
@@ -68,7 +63,11 @@ export default function AppDetail() {
   if (!app) {
     return (
       <div>
-        <AppPageHeader title="App not found" />
+        <AppBreadcrumbs
+          appName="App not found"
+          homeLabel="My Apps"
+          homeTo="/apps"
+        />
         <Typography className="text-foreground mb-4">
           This app is not in your apps. It may have been removed.
         </Typography>
@@ -101,7 +100,7 @@ export default function AppDetail() {
 
   return (
     <div>
-      <AppPageHeader
+      <AppBreadcrumbs
         actions={
           <>
             {isShared ? (
@@ -159,8 +158,9 @@ export default function AppDetail() {
             />
           </>
         }
-        icon={getAppIconType()}
-        title={app.name}
+        appName={app.name}
+        homeLabel="My Apps"
+        homeTo="/apps"
       >
         {isShared ? (
           <span className="inline-block px-2 py-0.5 rounded-sm bg-success/10 text-success text-xs font-medium flex-shrink-0">
@@ -168,7 +168,7 @@ export default function AppDetail() {
           </span>
         ) : null}
         {updateAvailable ? <UpdateAvailableBadge /> : null}
-      </AppPageHeader>
+      </AppBreadcrumbs>
 
       <div className="max-w-2xl">
         <AppInfoTable app={app} />
