@@ -221,6 +221,7 @@ type Job = {
   manifest_path: string;
   entry_point_id: string;
   entry_point_name: string;
+  name: string;
   entry_point_type?: 'job' | 'service';
   commit_sha?: string;
   code_repo_url?: string;
@@ -251,6 +252,7 @@ type Job = {
 type JobSubmitRequest = {
   app_url: string;
   manifest_path?: string;
+  name?: string;
   entry_point_id: string;
   parameters: Record<string, unknown>;
   env_parameters?: Record<string, unknown>;

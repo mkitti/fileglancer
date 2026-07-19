@@ -266,3 +266,26 @@ export function useDeleteJobMutation(): UseMutationResult<
     }
   });
 }
+
+export function useUpdateJobMutation(): UseMutationResult<
+  Job,
+  Error,
+  { jobId: number; name: string }
+> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ jobId, name }) => {
+      const response = await sendFetchRequest(`/api/jobs/${jobId}`, 'PATCH', {
+        name
+      });
+      const data = await getResponseJsonOrError(response);
+      if (!response.ok) {
+        throwResponseNotOkError(response, data);
+      }
+      return data as Job;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: jobsQueryKeys.all });
+    }
+  });
+}
