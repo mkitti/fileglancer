@@ -908,6 +908,7 @@ class Job(BaseModel):
     manifest_path: str = Field(description="Relative manifest path within the app repo", default="")
     entry_point_id: str = Field(description="Entry point that was executed")
     entry_point_name: str = Field(description="Display name of the entry point")
+    name: str = Field(description="Human-editable job name")
     entry_point_type: str = Field(description="Whether this is a batch job or long-running service", default="job")
     parameters: Dict = Field(description="Parameters used for the job")
     env_parameters: Optional[Dict] = Field(
@@ -949,6 +950,10 @@ class JobSubmitRequest(BaseModel):
     """Request to submit a new job"""
     app_url: str = Field(description="URL of the app manifest")
     manifest_path: str = Field(description="Relative manifest path within the app repo", default="")
+    name: Optional[str] = Field(
+        description="Job name; defaults to 'app name - entry point' when omitted",
+        default=None,
+    )
     entry_point_id: str = Field(description="Entry point to execute")
     parameters: Dict = Field(description="Parameter values keyed by parameter key")
     env_parameters: Dict = Field(
@@ -1005,6 +1010,11 @@ class JobSubmitRequest(BaseModel):
         if v is not None and _SHELL_METACHAR_PATTERN.search(v):
             raise ValueError(f"container_args contains forbidden characters: {v!r}")
         return v
+
+
+class UpdateJobRequest(BaseModel):
+    """Request to rename a job"""
+    name: str = Field(description="New job name")
 
 
 class PathValidationRequest(BaseModel):
