@@ -2469,7 +2469,7 @@ def create_app(settings):
             id=db_job.id,
             app_url=db_job.app_url,
             app_name=db_job.app_name,
-            name=db_job.name,
+            name=db_job.name or f"{db_job.app_name} - {db_job.entry_point_name}",
             manifest_path=db_job.manifest_path,
             entry_point_id=db_job.entry_point_id,
             entry_point_name=db_job.entry_point_name,
