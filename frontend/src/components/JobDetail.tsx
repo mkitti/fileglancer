@@ -18,6 +18,7 @@ import toast from 'react-hot-toast';
 
 import AnsiText from '@/components/ui/AppsPage/AnsiText';
 import AppPageHeader from '@/components/ui/AppsPage/AppPageHeader';
+import JobTitleEditor from '@/components/ui/AppsPage/JobTitleEditor';
 import FgButton from '@/components/designSystem/atoms/FgButton';
 import FgIcon from '@/components/designSystem/atoms/FgIcon';
 import FgLink from '@/components/designSystem/atoms/FgLink';
@@ -368,9 +369,7 @@ function JobOverview({
             label="App"
             value={
               detailPath ? (
-                <FgLink to={detailPath}>
-                  {`${job.app_name}`}
-                </FgLink>
+                <FgLink to={detailPath}>{`${job.app_name}`}</FgLink>
               ) : (
                 `${job.app_name}`
               )
@@ -715,7 +714,7 @@ export default function JobDetail() {
             description={jobEntryPoint?.description ?? null}
             githubUrl={job.app_url}
             icon={getEntryPointTypeIconType(job.entry_point_type)}
-            title={`${job.app_name} - ${job.entry_point_name}`}
+            title={<JobTitleEditor job={job} />}
           >
             <JobStatusBadge status={job.status} />
           </AppPageHeader>
