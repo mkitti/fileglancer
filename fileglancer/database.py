@@ -150,6 +150,10 @@ class JobDB(Base):
     manifest_path = Column(String, nullable=False, server_default="")
     entry_point_id = Column(String, nullable=False)
     entry_point_name = Column(String, nullable=False)
+    # Human-editable label for the job. Defaults to "app_name - entry_point_name"
+    # at create time; NULL only for rows created before this column (backfilled
+    # by migration).
+    name = Column(String, nullable=True)
     entry_point_type = Column(String, nullable=False, server_default="job")
     parameters = Column(JSON, nullable=False)
     # Environment-tab parameter values. A separate namespace from `parameters`
@@ -983,6 +987,7 @@ def create_job(session: Session, username: str, app_url: str, app_name: str,
                env_parameters: Optional[Dict] = None,
                resources: Optional[Dict] = None, manifest_path: str = "",
                entry_point_type: str = "job",
+               name: Optional[str] = None,
                env: Optional[Dict] = None, pre_run: Optional[str] = None,
                post_run: Optional[str] = None,
                container: Optional[str] = None,
@@ -995,10 +1000,13 @@ def create_job(session: Session, username: str, app_url: str, app_name: str,
                clean_env: bool = False) -> JobDB:
     """Create a new job record"""
     now = datetime.now(UTC)
+    if not (name and name.strip()):
+        name = f"{app_name} - {entry_point_name}"
     job = JobDB(
         username=username,
         app_url=canonical_github_url(app_url),
         app_name=app_name,
+        name=name,
         manifest_path=manifest_path,
         entry_point_id=entry_point_id,
         entry_point_name=entry_point_name,
@@ -1037,6 +1045,18 @@ def get_jobs_by_username(session: Session, username: str, status: Optional[str] 
 def get_job(session: Session, job_id: int, username: str) -> Optional[JobDB]:
     """Get a single job by ID and username"""
     return session.query(JobDB).filter_by(id=job_id, username=username).first()
+
+
+def update_job(session: Session, job_id: int, username: str,
+               name: str) -> Optional[JobDB]:
+    """Rename a job. Returns the job, or None if it doesn't exist or isn't
+    owned by username."""
+    job = session.query(JobDB).filter_by(id=job_id, username=username).first()
+    if job is None:
+        return None
+    job.name = name
+    session.commit()
+    return job
 
 
 def count_active_jobs_by_username(session: Session, username: str) -> int:
