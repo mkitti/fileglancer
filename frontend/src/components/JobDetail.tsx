@@ -368,9 +368,7 @@ function JobOverview({
             label="App"
             value={
               detailPath ? (
-                <FgLink to={detailPath}>
-                  {`${job.app_name}`}
-                </FgLink>
+                <FgLink to={detailPath}>{`${job.app_name}`}</FgLink>
               ) : (
                 `${job.app_name}`
               )
