@@ -882,7 +882,7 @@ async def submit_job(
         #   (repo[/manifest_path] when the manifest lives with the code; otherwise
         #   the code repo root), so commands can reference it explicitly instead
         #   of relying on the cwd. Always points at the repo-side directory, even
-        #   when effective_working_dir is "work" (the repo stays reachable there
+        #   when effective_working_dir is "work" (the repo stays reachable there)
         # - SERVICE_URL_PATH: for service-type jobs, where to write the service URL
         # - cd into the repo so commands can find project files (pixi.toml, scripts, etc.)
         preamble_lines = []

@@ -2862,7 +2862,7 @@ class TestSubmitJobAssembly:
         script = self._submitted(calls)["command"]
 
         assert script.startswith(f"export FG_WORK_DIR={shlex.quote(job.work_dir)}")
-        # FG_MANIFEST_DIR always points at the manifest's directory, so
+        # FG_MANIFEST_DIR points at the app's project root directory, so
         # pixi-style commands can pass --manifest-path explicitly.
         assert 'export FG_MANIFEST_DIR="$FG_WORK_DIR"/repo' in script
         # Default working dir is the repo snapshot (no manifest subdir here).
