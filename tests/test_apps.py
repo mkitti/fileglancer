@@ -2545,6 +2545,10 @@ class TestPixiTaskEnv:
         ep = _task_to_entry_point("build", {"cmd": "make"})
         assert ep.env is None
 
+    def test_task_name_is_shell_quoted(self):
+        ep = _task_to_entry_point("build; echo injected", {"cmd": "make"})
+        assert ep.command == 'pixi run --manifest-path "$FG_MANIFEST_DIR" \'build; echo injected\''
+
 
 class TestPixiAdapterName:
     """The generated app name should come from the pixi project's name, falling
