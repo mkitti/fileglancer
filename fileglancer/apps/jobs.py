@@ -884,7 +884,9 @@ async def submit_job(
         #   of relying on the cwd. Always points at the repo-side directory, even
         #   when effective_working_dir is "work" (the repo stays reachable there)
         # - SERVICE_URL_PATH: for service-type jobs, where to write the service URL
-        # - cd into the repo so commands can find project files (pixi.toml, scripts, etc.)
+        # - cd into the working directory chosen by effective_working_dir (see below);
+        #   this sets where the task's command runs, not how tools locate the manifest
+        #   (pixi is pointed at FG_MANIFEST_DIR explicitly via --manifest-path)
         preamble_lines = []
         if clean_env:
             # Clean mode starts from an empty scheduler-provided environment
