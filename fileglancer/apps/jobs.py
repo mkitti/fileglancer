@@ -37,7 +37,7 @@ from fileglancer.apps.command import (
     _WINDOWS_DRIVE_PATTERN,
 )
 from fileglancer.apps.jobfiles import _build_work_dir
-from fileglancer.giturls import canonical_github_url
+from fileglancer.giturls import canonical_github_url, same_github_repo
 from fileglancer.model import AppEntryPoint
 from fileglancer.settings import get_settings
 
@@ -796,7 +796,7 @@ async def submit_job(
     # so it never drifts again. Pulling is never done here; updates are an
     # explicit user action via the "Update" app endpoint.
     executed_repo_url = None
-    if manifest.repo_url and canonical_github_url(manifest.repo_url) != stored_app_url:
+    if manifest.repo_url and not same_github_repo(manifest.repo_url, stored_app_url):
         # Manifest and tool code live in separate repos: the job runs from the
         # code repo's snapshot root.
         cached_repo_dir, executed_sha = await ensure_repo_snapshot(
