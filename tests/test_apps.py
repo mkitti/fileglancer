@@ -2545,6 +2545,10 @@ class TestPixiTaskEnv:
         ep = _task_to_entry_point("build", {"cmd": "make"})
         assert ep.env is None
 
+    def test_task_name_is_shell_quoted(self):
+        ep = _task_to_entry_point("build; echo injected", {"cmd": "make"})
+        assert ep.command == 'pixi run --manifest-path "$FG_MANIFEST_DIR" \'build; echo injected\''
+
 
 class TestPixiAdapterName:
     """The generated app name should come from the pixi project's name, falling
@@ -2858,6 +2862,9 @@ class TestSubmitJobAssembly:
         script = self._submitted(calls)["command"]
 
         assert script.startswith(f"export FG_WORK_DIR={shlex.quote(job.work_dir)}")
+        # FG_MANIFEST_DIR points at the app's project root directory, so
+        # pixi-style commands can pass --manifest-path explicitly.
+        assert 'export FG_MANIFEST_DIR="$FG_WORK_DIR"/repo' in script
         # Default working dir is the repo snapshot (no manifest subdir here).
         assert 'cd "$FG_WORK_DIR"/repo' in script
         assert "conda activate tools" in script
