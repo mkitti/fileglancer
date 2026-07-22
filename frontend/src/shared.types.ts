@@ -130,7 +130,7 @@ type AppEntryPoint = {
   container?: string;
   bind_paths?: string[];
   container_args?: string;
-  working_dir?: 'work' | 'repo';
+  working_dir?: 'work' | 'manifest' | 'repo';
   auto_url?: boolean;
   service_url_suffix?: string;
   requirements?: string[];

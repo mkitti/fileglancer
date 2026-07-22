@@ -591,11 +591,12 @@ def _container_bind_paths(entry_point, parameters: dict,
        dangling. Cloud-storage URIs and non-absolute values are skipped — they
        are not bind-mountable and would otherwise produce garbage binds.
     2. The runnable's explicit `bind_paths`.
-    3. The cached repo clone, but only when the command runs from `repo`. The
-       `repo` symlink lives inside the (already-bound) work dir yet points at
-       the clone outside it, so without this bind the symlink dangles in the
-       container and the `cd` into it fails. Container runnables default to
-       `work`, so this is only added when the author opts into `repo`.
+    3. The cached repo clone, but only when the command runs from the clone
+       (`manifest` or `repo`). The `repo` symlink lives inside the
+       (already-bound) work dir yet points at the clone outside it, so without
+       this bind the symlink dangles in the container and the `cd` into it
+       fails. Container runnables default to `work`, so this is only added when
+       the author opts into `manifest` or `repo`.
 
     The work dir itself is always bound by `_build_container_script`, so it is
     not included here.
@@ -619,7 +620,7 @@ def _container_bind_paths(entry_point, parameters: dict,
             bind_paths.append(str(PurePosixPath(expanded).parent))
     if entry_point.bind_paths:
         bind_paths.extend(entry_point.bind_paths)
-    if entry_point.effective_working_dir == "repo":
+    if entry_point.effective_working_dir != "work":
         bind_paths.append(str(cached_repo_dir))
     return bind_paths
 
@@ -801,7 +802,7 @@ async def submit_job(
         # code repo's snapshot root.
         cached_repo_dir, executed_sha = await ensure_repo_snapshot(
             manifest.repo_url, sha=pinned_code_sha, username=username)
-        cd_suffix = "repo"
+        manifest_suffix = "repo"
         executed_repo_url = canonical_github_url(manifest.repo_url)
         if app_installed and (pinned_sha is None or pinned_code_sha is None):
             app_sha = pinned_sha
@@ -821,7 +822,7 @@ async def submit_job(
         # that contains the manifest.
         cached_repo_dir, executed_sha = await ensure_repo_snapshot(
             app_clone_url, sha=pinned_sha, username=username)
-        cd_suffix = f"repo/{manifest_path}" if manifest_path else "repo"
+        manifest_suffix = f"repo/{manifest_path}" if manifest_path else "repo"
         if app_installed and pinned_sha is None:
             with db.get_db_session(settings.db_url) as session:
                 db.set_user_app_pins(session, username, stored_app_url,
@@ -920,13 +921,17 @@ async def submit_job(
                 )
         # Choose the working directory. 'work' runs from the job's work dir (the
         # repo is still reachable via the `repo` symlink); 'repo' runs from the
-        # cloned project (optionally the manifest's subdirectory). cd_suffix may
-        # include a Git-derived directory name, so shell-escape it — FG_WORK_DIR
-        # stays in its own double-quoted segment so it still expands.
+        # cloned project's root; 'manifest' runs from the manifest's directory
+        # inside the clone (the repo root plus the manifest's subdirectory).
+        # manifest_suffix may include a Git-derived directory name, so
+        # shell-escape it — FG_WORK_DIR stays in its own double-quoted segment so
+        # it still expands.
         if entry_point.effective_working_dir == "work":
             preamble_lines.append('cd "$FG_WORK_DIR"')
+        elif entry_point.effective_working_dir == "repo":
+            preamble_lines.append('cd "$FG_WORK_DIR"/repo')
         else:
-            preamble_lines.append(f'cd "$FG_WORK_DIR"/{shlex.quote(cd_suffix)}')
+            preamble_lines.append(f'cd "$FG_WORK_DIR"/{shlex.quote(manifest_suffix)}')
         script_parts = ["\n".join(preamble_lines)]
 
         # Conda environment activation

@@ -489,12 +489,12 @@ class AppEntryPoint(BaseModel):
         description="Default extra arguments for container exec (e.g. '--nv')",
         default=None,
     )
-    working_dir: Optional[Literal["work", "repo"]] = Field(
+    working_dir: Optional[Literal["work", "manifest", "repo"]] = Field(
         description=(
-            "Directory the command runs from: 'repo' (the cloned project, "
-            "optionally the manifest's subdirectory) or 'work' (the job's work "
-            "directory). Defaults to 'work' for container entry points and "
-            "'repo' otherwise."
+            "Directory the command runs from: 'manifest' (the manifest's "
+            "directory inside the cloned project), 'repo' (the cloned project's "
+            "root), or 'work' (the job's work directory). Defaults to 'work' for "
+            "container entry points and 'manifest' otherwise."
         ),
         default=None,
     )
@@ -595,15 +595,15 @@ class AppEntryPoint(BaseModel):
 
     @property
     def effective_working_dir(self) -> str:
-        """Resolve where the command runs: 'work' or 'repo'.
+        """Resolve where the command runs: 'work', 'manifest', or 'repo'.
 
         An explicit working_dir wins; otherwise container entry points default
         to 'work' (the repo clone isn't bind-mounted into the container, but the
-        work dir always is) and everything else defaults to 'repo'.
+        work dir always is) and everything else defaults to 'manifest'.
         """
         if self.working_dir:
             return self.working_dir
-        return "work" if self.container else "repo"
+        return "work" if self.container else "manifest"
 
     def flat_parameters(self) -> List[AppParameter]:
         """Return a flat list of all parameters, traversing sections."""
