@@ -798,11 +798,10 @@ async def submit_job(
     # explicit user action via the "Update" app endpoint.
     executed_repo_url = None
     if manifest.repo_url and not same_github_repo(manifest.repo_url, stored_app_url):
-        # Manifest and tool code live in separate repos: the job runs from the
-        # code repo's snapshot root.
+        # Manifest and tool code live in separate repos: the code repo is what
+        # gets cloned as `repo`.
         cached_repo_dir, executed_sha = await ensure_repo_snapshot(
             manifest.repo_url, sha=pinned_code_sha, username=username)
-        manifest_suffix = "repo"
         executed_repo_url = canonical_github_url(manifest.repo_url)
         if app_installed and (pinned_sha is None or pinned_code_sha is None):
             app_sha = pinned_sha
@@ -818,15 +817,18 @@ async def submit_job(
                                      commit_sha=app_sha,
                                      code_commit_sha=executed_sha)
     else:
-        # Manifest and tool code share one repo: run from the subdirectory
-        # that contains the manifest.
+        # Manifest and tool code share one repo: it gets cloned as `repo`.
         cached_repo_dir, executed_sha = await ensure_repo_snapshot(
             app_clone_url, sha=pinned_sha, username=username)
-        manifest_suffix = f"repo/{manifest_path}" if manifest_path else "repo"
         if app_installed and pinned_sha is None:
             with db.get_db_session(settings.db_url) as session:
                 db.set_user_app_pins(session, username, stored_app_url,
                                      manifest_path, commit_sha=executed_sha)
+
+    # 'manifest' working_dir runs from the manifest's subdirectory within the
+    # clone; 'repo' runs from the clone root. The subdir is the same relative
+    # path regardless of whether the manifest and code share a repo.
+    manifest_suffix = f"repo/{manifest_path}" if manifest_path else "repo"
 
     with db.get_db_session(settings.db_url) as session:
         db_job = db.create_job(
