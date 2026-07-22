@@ -4,6 +4,7 @@ Generates an AppManifest from a Pixi project's pixi.toml or pyproject.toml,
 converting pixi tasks into runnables.
 """
 
+import shlex
 import subprocess
 from pathlib import Path
 
@@ -139,7 +140,7 @@ def _task_to_entry_point(name: str, task: dict) -> AppEntryPoint | None:
         cmd = " ".join(cmd)
 
     # Build the pixi run command
-    command = f"pixi run {name}"
+    command = f'pixi run --manifest-path "$FG_MANIFEST_DIR" {shlex.quote(name)}'
 
     description = task.get("description")
 

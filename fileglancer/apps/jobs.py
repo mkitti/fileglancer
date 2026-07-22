@@ -881,8 +881,15 @@ async def submit_job(
 
         # Set up the script preamble:
         # - FG_WORK_DIR: the job's working directory (used by subsequent variables)
+        # - FG_MANIFEST_DIR: the manifest's directory inside the clone
+        #   (repo[/manifest_path]), so commands can reference it explicitly
+        #   instead of relying on the cwd. Always points at the repo-side
+        #   directory, even when effective_working_dir is "work" (the repo stays
+        #   reachable there)
         # - SERVICE_URL_PATH: for service-type jobs, where to write the service URL
-        # - cd into the repo so commands can find project files (pixi.toml, scripts, etc.)
+        # - cd into the working directory chosen by effective_working_dir (see below);
+        #   this sets where the task's command runs, not how tools locate the manifest
+        #   (pixi is pointed at FG_MANIFEST_DIR explicitly via --manifest-path)
         preamble_lines = []
         if clean_env:
             # Clean mode starts from an empty scheduler-provided environment
@@ -896,6 +903,7 @@ async def submit_job(
             ]
         preamble_lines += [
             f"export FG_WORK_DIR={shlex.quote(str(work_dir))}",
+            f'export FG_MANIFEST_DIR="$FG_WORK_DIR"/{shlex.quote(manifest_suffix)}',
             # Where the script reports its startup phase (e.g. pulling a container
             # image). The UI reads this to explain a wait before a service is ready.
             'export FG_PHASE_PATH="$FG_WORK_DIR/phase"',
