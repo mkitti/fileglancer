@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { ChangeEvent } from 'react';
 import { Typography } from '@material-tailwind/react';
 
@@ -13,9 +13,7 @@ import {
   validateJsonState,
   constructNeuroglancerUrl
 } from '@/utils';
-import { resolveViewerTemplate } from '@/utils/viewerUrl';
-import { usePreferencesContext } from '@/contexts/PreferencesContext';
-import { useViewersContext } from '@/contexts/ViewersContext';
+import { DEFAULT_NEUROGLANCER_BASE_URL } from '@/hooks/useDefaultNeuroglancerBaseUrl';
 import FgButton from '@/components/designSystem/atoms/FgButton';
 import FgFormField from '@/components/designSystem/molecules/FgFormField';
 import FgInput from '@/components/designSystem/atoms/formElements/FgInput';
@@ -30,10 +28,13 @@ type NGLinkDialogProps = {
   readonly onCreate?: (payload: CreateNGLinkPayload) => Promise<void>;
   readonly onUpdate?: (payload: UpdateNGLinkPayload) => Promise<void>;
   readonly editItem?: NGLink;
+  /**
+   * Base URL a new short link defaults to, resolved from the deployment config
+   * and the user's Neuroglancer URL preference by the parent. Falls back to the
+   * external default when not provided.
+   */
+  readonly defaultBaseUrl?: string;
 };
-
-// Fallback used only when no Neuroglancer viewer is configured.
-const DEFAULT_BASE_URL = 'https://neuroglancer-demo.appspot.com/';
 
 export default function NGLinkDialog({
   open,
@@ -41,34 +42,12 @@ export default function NGLinkDialog({
   onClose,
   onCreate,
   onUpdate,
-  editItem
+  editItem,
+  defaultBaseUrl = DEFAULT_NEUROGLANCER_BASE_URL
 }: NGLinkDialogProps) {
   const isEditMode = !!editItem;
   const urlInputRef = useRef<HTMLInputElement>(null);
   const shouldAutoSelectUrl = useRef(false);
-
-  const { validViewers } = useViewersContext();
-  const { viewerUrlSources } = usePreferencesContext();
-
-  // The base URL a new short link defaults to, honoring the deployment's
-  // configured Neuroglancer URL and the user's per-viewer URL preference.
-  const defaultBaseUrl = useMemo(() => {
-    const source = viewerUrlSources['neuroglancer'];
-    const neuroglancer = validViewers.find(v => v.key === 'neuroglancer');
-    if (neuroglancer) {
-      const template = resolveViewerTemplate(neuroglancer, source);
-      // Strip the '#!' state fragment to get the bare base URL.
-      return template.split('#!')[0] || DEFAULT_BASE_URL;
-    }
-    // No Neuroglancer viewer is configured, so 'configured'/'manifest' have no
-    // template to resolve. A user-supplied custom URL is the only preference
-    // value that carries a URL on its own; otherwise fall back to the external
-    // default.
-    if (typeof source === 'object' && source.custom) {
-      return source.custom.split('#!')[0] || DEFAULT_BASE_URL;
-    }
-    return DEFAULT_BASE_URL;
-  }, [validViewers, viewerUrlSources]);
 
   const [inputMode, setInputMode] = useState<'url' | 'state'>('url');
   const [neuroglancerUrl, setNeuroglancerUrl] = useState('');
