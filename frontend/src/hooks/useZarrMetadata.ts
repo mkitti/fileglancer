@@ -18,6 +18,7 @@ import {
   determineLayerType
 } from '@/omezarr-helper';
 import { buildUrl } from '@/utils';
+import { resolveViewerTemplate } from '@/utils/viewerUrl';
 import * as zarr from 'zarrita';
 
 export type { OpenWithToolUrls, ZarrMetadata };
@@ -31,7 +32,8 @@ export default function useZarrMetadata() {
   const {
     disableNeuroglancerStateGeneration,
     disableHeuristicalLayerTypeDetection,
-    useLegacyMultichannelApproach
+    useLegacyMultichannelApproach,
+    viewerUrlSources
   } = usePreferencesContext();
   const {
     validViewers,
@@ -135,13 +137,19 @@ export default function useZarrMetadata() {
           continue;
         }
 
+        // Resolve the template based on the user's per-viewer URL preference
+        const effectiveTemplate = resolveViewerTemplate(
+          viewer,
+          viewerUrlSources[viewer.key]
+        );
+
         // Generate the viewer URL
-        let viewerUrl = viewer.urlTemplate;
+        let viewerUrl = effectiveTemplate;
 
         // Special handling for Neuroglancer to maintain existing state generation logic
         if (viewer.key === 'neuroglancer') {
           // Extract base URL from template (everything before #!)
-          const neuroglancerBaseUrl = viewer.urlTemplate.split('#!')[0] + '#!';
+          const neuroglancerBaseUrl = effectiveTemplate.split('#!')[0] + '#!';
           if (disableNeuroglancerStateGeneration) {
             viewerUrl =
               neuroglancerBaseUrl +
@@ -194,9 +202,13 @@ export default function useZarrMetadata() {
         } else {
           // Neuroglancer
           if (url) {
+            // Resolve the template based on the user's per-viewer URL preference
+            const effectiveTemplate = resolveViewerTemplate(
+              viewer,
+              viewerUrlSources[viewer.key]
+            );
             // Extract base URL from template (everything before #!)
-            const neuroglancerBaseUrl =
-              viewer.urlTemplate.split('#!')[0] + '#!';
+            const neuroglancerBaseUrl = effectiveTemplate.split('#!')[0] + '#!';
             if (disableNeuroglancerStateGeneration) {
               openWithToolUrls.neuroglancer =
                 neuroglancerBaseUrl +
@@ -229,6 +241,7 @@ export default function useZarrMetadata() {
     externalDataUrlQuery.data,
     disableNeuroglancerStateGeneration,
     useLegacyMultichannelApproach,
+    viewerUrlSources,
     layerType,
     effectiveZarrVersion,
     validViewers,
