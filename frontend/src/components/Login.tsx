@@ -57,7 +57,9 @@ export default function Login() {
   const bare = isConnectLoginPopup();
 
   return (
-    <div className={`flex flex-col items-center h-full ${bare ? 'p-4' : 'p-8'}`}>
+    <div
+      className={`flex flex-col items-center h-full ${bare ? 'p-4' : 'p-8'}`}
+    >
       <h1
         className={`text-4xl font-bold text-foreground text-center ${bare ? 'mb-2' : 'mb-4'}`}
       >
