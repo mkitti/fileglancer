@@ -454,3 +454,17 @@ export {
   tailLines,
   exitCodeMeaning
 } from './jobDisplay';
+
+/**
+ * True when the login page is being shown inside the external-app connect
+ * popup (redirected here from /connect-complete). Used to render a bare,
+ * compact login with no navbar chrome.
+ */
+export function isConnectLoginPopup(): boolean {
+  const next = new URLSearchParams(window.location.search).get('next');
+  return (
+    window.location.pathname.endsWith('/login') &&
+    !!next &&
+    next.startsWith('/connect-complete')
+  );
+}

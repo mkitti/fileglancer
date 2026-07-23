@@ -1,12 +1,13 @@
 import type { FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router';
-import { HiQuestionMarkCircle, HiLogin } from 'react-icons/hi';
+import { useNavigate } from 'react-router';
+import { HiLogin } from 'react-icons/hi';
 
 import FgIcon from '@/components/designSystem/atoms/FgIcon';
 import FgButton from '@/components/designSystem/atoms/FgButton';
 import FgFormField from '@/components/designSystem/molecules/FgFormField';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useSimpleLoginMutation } from '@/queries/authQueries';
+import { isConnectLoginPopup } from '@/utils';
 import { useEffect } from 'react';
 import FgInput from './designSystem/atoms/formElements/FgInput';
 
@@ -51,35 +52,24 @@ export default function Login() {
     return <div className="text-muted-foreground">Loading...</div>;
   }
 
+  // Halve the spacing inside the compact connect popup so text doesn't wrap
+  // and overflow the small window.
+  const bare = isConnectLoginPopup();
+
   return (
-    <div className="flex flex-col h-full p-8">
-      <h1 className="text-4xl font-bold text-foreground mb-4">
+    <div className={`flex flex-col items-center h-full ${bare ? 'p-4' : 'p-8'}`}>
+      <h1
+        className={`text-4xl font-bold text-foreground text-center ${bare ? 'mb-2' : 'mb-4'}`}
+      >
         Welcome to Fileglancer
       </h1>
-      <p className="text-lg text-muted-foreground mb-12">
-        A powerful file browser and management tool
+      <p
+        className={`text-lg text-muted-foreground text-center ${bare ? 'mb-6' : 'mb-12'}`}
+      >
+        Work with your data right where it lives.
       </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Link
-          className="flex items-start p-6 border rounded-lg dark:border-surface-light hover:bg-accent hover:border-accent-foreground transition-colors group"
-          to="/help"
-        >
-          <FgIcon
-            className="mr-4 text-primary flex-shrink-0"
-            icon={HiQuestionMarkCircle}
-            size="lg"
-          />
-          <div>
-            <h2 className="text-xl font-semibold mb-2 group-hover:text-accent-foreground">
-              Help & Documentation
-            </h2>
-            <p className="text-muted-foreground">
-              Learn more about Fileglancer and how to use it
-            </p>
-          </div>
-        </Link>
-
+      <div className="w-full max-w-md">
         {isSimpleAuth ? (
           <div className="p-6 border-2 border-primary rounded-lg">
             <h2 className="text-xl font-semibold mb-4 text-primary">Log In</h2>
