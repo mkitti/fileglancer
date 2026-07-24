@@ -1097,23 +1097,12 @@ async def cancel_job(job_id: int, username: str) -> db.JobDB:
         if db.is_terminal_job_status(db_job.status):
             raise ValueError(f"Job {job_id} is not cancellable (status: {db_job.status})")
 
-        # Actually stop the running job as the target user. The local executor
-        # spawns a bash subprocess (plus its child workload) whose PID a fresh
-        # executor can't reach, so kill it and its whole process tree by the
-        # PID persisted in its work dir; other executors (LSF, ...) cancel by
-        # cluster job id via py-cluster-api.
-        if settings.cluster.executor == "local":
-            if db_job.work_dir:
-                result = await _dispatch(
-                    username, "cancel_local", work_dir=db_job.work_dir)
-                # Only record KILLED once the workload is confirmed gone —
-                # otherwise we'd report success while the job keeps running.
-                if not (result or {}).get("terminated", False):
-                    raise ValueError(
-                        f"Could not confirm job {job_id} was stopped; it may "
-                        f"still be running. Try again."
-                    )
-        elif db_job.cluster_job_id:
+        # Stop the running job as the target user via py-cluster-api. The
+        # executor cancels by job id (LSF: bkill; local: kill the process
+        # group by PID — the local job id IS the leader PID). cancel() raises
+        # if it can't confirm termination, so a failure propagates here and we
+        # never fall through to marking the job KILLED below.
+        if db_job.cluster_job_id:
             cluster_config = settings.cluster.model_dump(exclude_none=True)
             await _dispatch(
                 username, "cancel",

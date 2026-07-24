@@ -1033,10 +1033,9 @@ def test_cancel_running_job(test_client, db_session):
     job = _seed_job(db_session, status="RUNNING",
                     work_dir="/home/u/.fileglancer/jobs/1-Demo_App-run",
                     cluster_job_id="lsf-1")
-    # The worker action differs by executor (cancel_local vs cancel); the mock
-    # result satisfies both, so this test is independent of any developer
-    # config.yaml that deep-merges an executor into Settings.
-    dispatch = AsyncMock(return_value={"terminated": True})
+    # All executors cancel through the single "cancel" worker action, which
+    # delegates to py-cluster-api's executor.cancel(job_id).
+    dispatch = AsyncMock(return_value={"status": "ok"})
 
     with patch("fileglancer.apps.jobs._dispatch", new=dispatch):
         response = test_client.post(f"/api/jobs/{job.id}/cancel")
@@ -1044,7 +1043,7 @@ def test_cancel_running_job(test_client, db_session):
     assert response.status_code == 200
     assert response.json()["status"] == "KILLED"
     assert response.json()["finished_at"] is not None
-    assert dispatch.await_args.args[1] in ("cancel_local", "cancel")
+    assert dispatch.await_args.args[1] == "cancel"
     db_session.expire_all()
     assert get_job(db_session, job.id, TEST_USERNAME).status == "KILLED"
 

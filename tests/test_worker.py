@@ -30,9 +30,6 @@ from fileglancer.user_worker import (
     _action_validate_proxied_path,
     _action_create_dirs,
     _action_validate_paths,
-    _action_cancel_local,
-    _descendant_pids,
-    _proc_alive,
     WorkerContext,
     _HEADER_FMT,
     _HEADER_SIZE,
@@ -164,71 +161,6 @@ class TestActionTimeout:
         # ceiling must sit above that so a valid snapshot isn't read as a
         # dead worker.
         assert _GIT_ACTION_TIMEOUT >= 600
-
-
-@pytest.mark.skipif(not os.path.isdir("/proc"),
-                    reason="/proc-based process-tree kill requires Linux")
-class TestCancelLocalAction:
-    """cancel_local terminates a local-executor job's whole process tree."""
-
-    def _ctx(self):
-        return WorkerContext(username="test", db=None)
-
-    def _wait_gone(self, pid, timeout=5.0):
-        deadline = time.monotonic() + timeout
-        while _proc_alive(pid) and time.monotonic() < deadline:
-            time.sleep(0.05)
-        return not _proc_alive(pid)
-
-    def test_kills_launcher_and_child_workload(self, tmp_path):
-        """Signalling only the launcher bash would leave its child workload
-        running. The whole tree must be terminated."""
-        import subprocess as sp
-        # `; :` prevents bash from exec-optimizing into sleep, so bash stays the
-        # parent of a real child `sleep` — mirroring a job script's workload.
-        proc = sp.Popen(["bash", "-c", "sleep 300; :"])
-        try:
-            # Wait for bash to fork its child.
-            deadline = time.monotonic() + 5
-            children = []
-            while time.monotonic() < deadline:
-                children = _descendant_pids(proc.pid)
-                if children:
-                    break
-                time.sleep(0.05)
-            assert children, "expected bash to spawn a child workload"
-
-            (tmp_path / "job.pid").write_text(str(proc.pid))
-            result = _action_cancel_local({"work_dir": str(tmp_path)}, self._ctx())
-
-            assert result == {"terminated": True}
-            proc.wait(timeout=5)  # reap the launcher
-            assert self._wait_gone(proc.pid), "launcher bash survived"
-            for child in children:
-                assert self._wait_gone(child), f"child {child} survived cancel"
-        finally:
-            for p in [*_descendant_pids(proc.pid), proc.pid]:
-                try:
-                    os.kill(p, 9)
-                except OSError:
-                    pass
-            if proc.poll() is None:
-                proc.wait(timeout=5)
-
-    def test_missing_pid_file_is_terminated(self, tmp_path):
-        assert _action_cancel_local(
-            {"work_dir": str(tmp_path)}, self._ctx()) == {"terminated": True}
-
-    def test_missing_work_dir_is_terminated(self):
-        assert _action_cancel_local({}, self._ctx()) == {"terminated": True}
-
-    def test_already_dead_pid_is_terminated(self, tmp_path):
-        import subprocess as sp
-        proc = sp.Popen(["sleep", "0.01"])
-        proc.wait()  # reap so the PID is no longer a live process
-        (tmp_path / "job.pid").write_text(str(proc.pid))
-        assert _action_cancel_local(
-            {"work_dir": str(tmp_path)}, self._ctx()) == {"terminated": True}
 
 
 class TestIPCProtocol:

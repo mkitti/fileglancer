@@ -36,7 +36,6 @@ except ImportError:
 import socket
 import struct
 import sys
-import time
 from pathlib import Path
 from typing import Any, Optional
 
@@ -807,127 +806,6 @@ def _action_delete_job_work_dir(request: dict, ctx: WorkerContext) -> dict:
         return {"error": str(e), "status_code": 403}
     except OSError as e:
         return {"error": str(e), "status_code": 500}
-
-
-def _proc_alive(pid: int) -> bool:
-    """True if pid is a live (non-zombie) process.
-
-    Uses /proc so a killed-but-not-yet-reaped process (state 'Z') counts as
-    dead — os.kill(pid, 0) alone would report a zombie as alive.
-    """
-    try:
-        with open(f"/proc/{pid}/stat", "rb") as f:
-            data = f.read()
-        # "pid (comm) state ...": comm may contain spaces/parens, so read the
-        # state character from just after the final ')'.
-        state = data[data.rindex(b")") + 2:data.rindex(b")") + 3]
-        return state not in (b"Z", b"X", b"x")
-    except (FileNotFoundError, ProcessLookupError):
-        return False
-    except OSError:
-        # /proc unavailable — fall back to a signal-0 probe.
-        try:
-            os.kill(pid, 0)
-            return True
-        except ProcessLookupError:
-            return False
-        except PermissionError:
-            return True
-
-
-def _descendant_pids(root_pid: int) -> list[int]:
-    """Return all descendant PIDs of root_pid (children, grandchildren, ...).
-
-    Reads PPID from /proc/<pid>/stat. Must be called before the root is killed:
-    once a parent dies its children reparent to init and can no longer be
-    traced back to root_pid.
-    """
-    children: dict[int, list[int]] = {}
-    for entry in os.listdir("/proc"):
-        if not entry.isdigit():
-            continue
-        try:
-            with open(f"/proc/{entry}/stat", "rb") as f:
-                data = f.read()
-            fields = data[data.rindex(b")") + 2:].split()
-            ppid = int(fields[1])  # state, ppid, ...
-        except (OSError, ValueError, IndexError):
-            continue
-        children.setdefault(ppid, []).append(int(entry))
-
-    result: list[int] = []
-    stack = [root_pid]
-    while stack:
-        for child in children.get(stack.pop(), []):
-            result.append(child)
-            stack.append(child)
-    return result
-
-
-def _terminate_process_tree(pid: int, grace_seconds: float = 3.0) -> bool:
-    """Terminate pid and all its descendants; return True once none survive.
-
-    The launcher bash does not forward SIGTERM to its foreground child, so
-    signalling the launcher alone leaves the real workload running (orphaned).
-    Snapshot the whole tree first (before anything dies and children reparent),
-    SIGTERM it, then SIGKILL any that outlast the grace period.
-    """
-    import signal
-
-    # Snapshot children before signalling; include the launcher itself.
-    targets = _descendant_pids(pid) + [pid]
-
-    def _signal_all(sig: int) -> None:
-        for target in targets:
-            try:
-                os.kill(target, sig)
-            except (ProcessLookupError, PermissionError):
-                pass
-
-    def _any_alive() -> bool:
-        return any(_proc_alive(target) for target in targets)
-
-    _signal_all(signal.SIGTERM)
-    deadline = time.monotonic() + grace_seconds
-    while _any_alive() and time.monotonic() < deadline:
-        time.sleep(0.1)
-
-    if _any_alive():
-        _signal_all(signal.SIGKILL)
-        # SIGKILL is immediate but reaping isn't; give the kernel a moment.
-        time.sleep(0.2)
-
-    return not _any_alive()
-
-
-@action("cancel_local")
-def _action_cancel_local(request: dict, ctx: WorkerContext) -> dict:
-    """Terminate a local-executor job and its whole process tree, as the user.
-
-    The local executor spawns `bash <script>` (in the worker's process group,
-    so we can't safely kill the group), and a fresh executor in a later
-    `cancel` dispatch has no handle to it — so cancellation targets the PID
-    persisted at submit time ({work_dir}/job.pid). Killing only that bash would
-    leave the actual workload (its child) running, so terminate the entire
-    descendant tree and confirm it is gone.
-
-    Returns {"terminated": bool}: True when nothing from the job is left
-    running (already-exited or successfully killed), False when a process
-    survived even SIGKILL — the caller must not then report the job as killed.
-    """
-    work_dir = request.get("work_dir")
-    if not work_dir:
-        return {"terminated": True}
-    pid_file = Path(work_dir) / "job.pid"
-    if not pid_file.is_file():
-        return {"terminated": True}
-    try:
-        pid = int(pid_file.read_text().strip())
-    except (ValueError, OSError):
-        return {"terminated": True}
-    if not _proc_alive(pid):
-        return {"terminated": True}  # already gone
-    return {"terminated": _terminate_process_tree(pid)}
 
 
 @action("get_service_url")
