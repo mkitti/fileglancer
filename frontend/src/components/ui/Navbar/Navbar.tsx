@@ -7,7 +7,7 @@ import {
   Navbar,
   List
 } from '@material-tailwind/react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import type { IconType } from 'react-icons';
 import {
   HiOutlineInformationCircle,

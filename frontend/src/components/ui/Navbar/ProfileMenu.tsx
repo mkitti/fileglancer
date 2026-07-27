@@ -6,7 +6,7 @@ import {
   HiOutlineKey
 } from 'react-icons/hi';
 import { HiOutlineAdjustmentsHorizontal } from 'react-icons/hi2';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 import FgIcon from '@/components/designSystem/atoms/FgIcon';
 import { useProfileContext } from '@/contexts/ProfileContext';

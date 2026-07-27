@@ -1,6 +1,6 @@
 import { useState, useMemo, type ReactNode, type MouseEvent } from 'react';
 import { default as log } from '@/logger';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { IconButton, List, Typography } from '@material-tailwind/react';
 import { HiOutlineFolder } from 'react-icons/hi2';
 import { HiStar } from 'react-icons/hi';
