@@ -90,6 +90,7 @@ export default function ListingInfoTable({
         <InfoRow label="Shared by">{listing.owner_username}</InfoRow>
         <InfoRow label="Published">{publishedAt}</InfoRow>
         <InfoRow label="Last edited">{editedAt}</InfoRow>
+        <InfoRow label="Installs">{listing.install_count}</InfoRow>
         {installedApp ? (
           <InfoRow label="In My Apps">
             <FgLink

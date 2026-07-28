@@ -2099,7 +2099,7 @@ def create_app(settings):
 
     # --- Catalog (shared apps) API ---
 
-    def _listing_to_model(row) -> AppListing:
+    def _listing_to_model(row, install_count: int = 0) -> AppListing:
         return AppListing(
             id=row.id,
             owner_username=row.owner_username,
@@ -2110,6 +2110,7 @@ def create_app(settings):
             description=row.description,
             published_at=row.published_at,
             updated_at=row.updated_at,
+            install_count=install_count,
         )
 
     @app.get("/api/catalog", response_model=list[AppListing],
@@ -2117,7 +2118,11 @@ def create_app(settings):
     async def list_catalog(username: str = Depends(get_current_user)):
         with db.get_db_session(settings.db_url) as session:
             rows = db.list_app_listings(session)
-            return [_listing_to_model(r) for r in rows]
+            counts = db.count_installs_by_app(session)
+            return [
+                _listing_to_model(r, counts.get((r.url, r.manifest_path), 0))
+                for r in rows
+            ]
 
     @app.post("/api/catalog", response_model=AppListing,
               description="Share one of the user's apps to the catalog")

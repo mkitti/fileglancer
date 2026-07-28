@@ -870,15 +870,17 @@ class TestContainerBindPaths:
         binds = _container_bind_paths(ep, {}, None, None, "/cache/repo")
         assert "/shared/ref" in binds and "/scratch" in binds
 
-    def test_repo_bound_only_when_working_dir_repo(self):
+    def test_repo_bound_only_when_running_from_clone(self):
         # Container default is working_dir=work → repo NOT bound.
         work_ep = self._ep()
         assert "work" == work_ep.effective_working_dir
         assert "/cache/repo" not in _container_bind_paths(work_ep, {}, None, None, "/cache/repo")
 
-        # Opt into repo → the cached clone is bound so the repo symlink resolves.
-        repo_ep = self._ep(working_dir="repo")
-        assert "/cache/repo" in _container_bind_paths(repo_ep, {}, None, None, "/cache/repo")
+        # Opt into manifest or repo → the cached clone is bound so the repo
+        # symlink resolves.
+        for wd in ("manifest", "repo"):
+            ep = self._ep(working_dir=wd)
+            assert "/cache/repo" in _container_bind_paths(ep, {}, None, None, "/cache/repo")
 
     def test_file_directory_default_is_bound(self):
         # A file/directory param the user did not override still contributes its
@@ -2496,11 +2498,11 @@ class TestNextflowAdapterNaming:
 
 class TestEffectiveWorkingDir:
     """working_dir resolution: explicit wins; containers default to 'work',
-    everything else to 'repo'."""
+    everything else to 'manifest'."""
 
-    def test_default_is_repo(self):
+    def test_default_is_manifest(self):
         ep = AppEntryPoint(id="r", name="r", command="python x.py")
-        assert ep.effective_working_dir == "repo"
+        assert ep.effective_working_dir == "manifest"
 
     def test_container_defaults_to_work(self):
         ep = AppEntryPoint(id="r", name="r", command="cowsay hi",
@@ -2878,6 +2880,27 @@ class TestSubmitJobAssembly:
                 < script.index("echo after"))
         # The local executor records the exit code for PID polling.
         assert 'trap \'echo $? > "$FG_WORK_DIR/exit_code"\' EXIT' in script
+
+    def test_working_dir_repo_vs_manifest_with_subdir(self, tmp_path, monkeypatch):
+        # With a manifest in a subdirectory: 'manifest' cd's into the subdir,
+        # 'repo' always cd's into the clone root.
+        _, calls = self._submit(
+            tmp_path, monkeypatch,
+            entry_point={"working_dir": "manifest"},
+            manifest_path="tools/rnaseq",
+        )
+        assert 'cd "$FG_WORK_DIR"/repo/tools/rnaseq' in self._submitted(calls)["command"]
+
+        _, calls = self._submit(
+            tmp_path, monkeypatch,
+            entry_point={"working_dir": "repo"},
+            manifest_path="tools/rnaseq",
+        )
+        script = self._submitted(calls)["command"]
+        assert 'cd "$FG_WORK_DIR"/repo\n' in script or script.endswith('cd "$FG_WORK_DIR"/repo')
+        # The cd goes to the clone root, not the manifest subdir (FG_MANIFEST_DIR
+        # still points at the subdir, so check the cd line specifically).
+        assert 'cd "$FG_WORK_DIR"/repo/tools/rnaseq' not in script
 
     def test_non_local_executor_omits_exit_code_trap(self, tmp_path, monkeypatch):
         _, calls = self._submit(tmp_path, monkeypatch, cluster={"executor": "lsf"})

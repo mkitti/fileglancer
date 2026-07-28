@@ -368,11 +368,9 @@ function JobOverview({
             label="App"
             value={
               detailPath ? (
-                <FgLink to={detailPath}>
-                  {`${job.app_name} — ${job.entry_point_name}`}
-                </FgLink>
+                <FgLink to={detailPath}>{`${job.app_name}`}</FgLink>
               ) : (
-                `${job.app_name} — ${job.entry_point_name}`
+                `${job.app_name}`
               )
             }
           />
@@ -387,7 +385,7 @@ function JobOverview({
             }
           />
           <InfoRow
-            label="Version"
+            label="Commit"
             value={
               job.commit_sha ? (
                 commitLink ? (

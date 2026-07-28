@@ -8,7 +8,7 @@ import InYourAppsBadge from '@/components/ui/AppsPage/InYourAppsBadge';
 import { buildListingMenuItems } from '@/components/ui/AppsPage/listingMenuItems';
 import { buildListingDetailPath } from '@/hooks/useListingActions';
 import type { ListingActions } from '@/hooks/useListingActions';
-import { formatDateOnly, getAppIconType, repoLabel } from '@/utils';
+import { formatDateOnly, getAppIconType } from '@/utils';
 import type { AppListing, UserApp } from '@/shared.types';
 
 export function createCatalogColumns(
@@ -17,29 +17,6 @@ export function createCatalogColumns(
   currentUsername: string | undefined
 ): ColumnDef<AppListing>[] {
   return [
-    {
-      id: 'repository',
-      accessorFn: row => repoLabel(row.url),
-      header: 'Repository',
-      cell: ({ getValue, table }) => {
-        const value = getValue() as string;
-        const onContextMenu = table.options.meta?.onCellContextMenu;
-        return (
-          <div
-            className="flex items-center truncate w-full h-full"
-            onContextMenu={e => {
-              e.preventDefault();
-              onContextMenu?.(e, { value });
-            }}
-          >
-            <FgTooltip label={value} triggerClasses="max-w-full truncate">
-              <span className="truncate text-sm">{value}</span>
-            </FgTooltip>
-          </div>
-        );
-      },
-      enableSorting: true
-    },
     {
       accessorKey: 'name',
       header: 'App Name',
@@ -128,6 +105,26 @@ export function createCatalogColumns(
             }}
           >
             <span className="truncate text-sm">{formattedDate}</span>
+          </div>
+        );
+      },
+      enableSorting: true
+    },
+    {
+      accessorKey: 'install_count',
+      header: () => <span className="whitespace-nowrap">Installs</span>,
+      cell: ({ getValue, table }) => {
+        const value = getValue() as number;
+        const onContextMenu = table.options.meta?.onCellContextMenu;
+        return (
+          <div
+            className="flex items-center truncate w-full h-full"
+            onContextMenu={e => {
+              e.preventDefault();
+              onContextMenu?.(e, { value: String(value) });
+            }}
+          >
+            <span className="truncate text-sm">{value}</span>
           </div>
         );
       },

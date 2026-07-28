@@ -4,11 +4,11 @@ from datetime import datetime, timedelta, UTC
 import os
 from functools import lru_cache
 
-from sqlalchemy import create_engine, Boolean, Column, String, Integer, DateTime, JSON, UniqueConstraint
+from sqlalchemy import create_engine, Boolean, Column, String, Integer, DateTime, JSON, UniqueConstraint, func
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.pool import StaticPool
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Tuple
 from loguru import logger
 from cachetools import LRUCache
 
@@ -1267,6 +1267,25 @@ def list_app_listings(session: Session) -> List[AppListingDB]:
 def get_app_listing(session: Session, listing_id: int) -> Optional[AppListingDB]:
     """Get a single app listing by id."""
     return session.query(AppListingDB).filter_by(id=listing_id).first()
+
+
+def count_installs_by_app(session: Session) -> Dict[Tuple[str, str], int]:
+    """Number of users who currently have each app installed, keyed by
+    (canonical url, manifest_path). The user_apps unique constraint on
+    (username, url, manifest_path) means one row per user, so a plain COUNT per
+    (url, manifest_path) is the distinct-user install count. Both user_apps and
+    app_listings store canonicalized URLs, so listings can look up their count
+    by exact (url, manifest_path)."""
+    rows = (
+        session.query(
+            UserAppDB.url,
+            UserAppDB.manifest_path,
+            func.count().label("n"),
+        )
+        .group_by(UserAppDB.url, UserAppDB.manifest_path)
+        .all()
+    )
+    return {(url, manifest_path): n for url, manifest_path, n in rows}
 
 
 def get_app_listings_by_owner(session: Session, owner_username: str) -> List[AppListingDB]:

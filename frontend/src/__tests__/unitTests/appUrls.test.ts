@@ -9,7 +9,8 @@ import {
   canonicalGithubUrl,
   isGithubRepoUrl,
   manifestPathInfo,
-  parseGithubUrl
+  parseGithubUrl,
+  splitGithubRef
 } from '@/utils/appUrls';
 
 describe('app URL helpers', () => {
@@ -80,6 +81,43 @@ describe('app URL helpers', () => {
     expect(buildAppUrl('https://github.com/org/tool/tree/dev', 'v1')).toBe(
       'https://github.com/org/tool/tree/v1'
     );
+  });
+
+  test('splitGithubRef separates an embedded ref from the bare repo URL', () => {
+    // A pasted /tree/<branch> URL yields the bare URL plus the ref.
+    expect(splitGithubRef('https://github.com/org/tool/tree/dev')).toEqual({
+      repoUrl: 'https://github.com/org/tool',
+      ref: 'dev'
+    });
+    // Branch names with slashes are preserved.
+    expect(
+      splitGithubRef('https://github.com/org/tool/tree/feature/my-tool')
+    ).toEqual({
+      repoUrl: 'https://github.com/org/tool',
+      ref: 'feature/my-tool'
+    });
+    // A .git suffix is dropped from the bare URL.
+    expect(splitGithubRef('https://github.com/org/tool.git/tree/v1')).toEqual({
+      repoUrl: 'https://github.com/org/tool',
+      ref: 'v1'
+    });
+    // No embedded ref (bare URL, /tree/main, SSH, or garbage) yields ref=''.
+    expect(splitGithubRef('https://github.com/org/tool')).toEqual({
+      repoUrl: 'https://github.com/org/tool',
+      ref: ''
+    });
+    expect(splitGithubRef('https://github.com/org/tool/tree/main')).toEqual({
+      repoUrl: 'https://github.com/org/tool',
+      ref: ''
+    });
+    expect(splitGithubRef('git@github.com:org/tool.git')).toEqual({
+      repoUrl: 'https://github.com/org/tool',
+      ref: ''
+    });
+    expect(splitGithubRef('not a url')).toEqual({
+      repoUrl: 'not a url',
+      ref: ''
+    });
   });
 
   test('builds launch paths with slash branches in the query string', () => {
