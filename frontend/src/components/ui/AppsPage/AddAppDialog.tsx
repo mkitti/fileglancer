@@ -7,7 +7,7 @@ import FgFormField from '@/components/designSystem/molecules/FgFormField';
 import FgInput from '@/components/designSystem/atoms/formElements/FgInput';
 import FgCheckbox from '@/components/designSystem/atoms/formElements/FgCheckbox';
 import AppTrustNotice from '@/components/ui/AppsPage/AppTrustNotice';
-import { buildAppUrl, isGithubRepoUrl } from '@/utils';
+import { buildAppUrl, isGithubRepoUrl, splitGithubRef } from '@/utils';
 import type { DiscoveredApp } from '@/shared.types';
 
 interface AddAppDialogProps {
@@ -153,9 +153,19 @@ export default function AddAppDialog({
             <FgInput
               autoFocus
               onChange={e => {
-                const value = e.target.value;
-                setRepoUrl(value);
-                validateUrl(value);
+                // If the pasted URL embeds a branch/tag (…/tree/<ref>), move
+                // the ref into the Revision field and keep the URL field bare.
+                const { repoUrl: bareUrl, ref } = splitGithubRef(
+                  e.target.value
+                );
+                if (ref) {
+                  setRepoUrl(bareUrl);
+                  setBranch(ref);
+                  validateUrl(bareUrl);
+                } else {
+                  setRepoUrl(e.target.value);
+                  validateUrl(e.target.value);
+                }
               }}
               onKeyDown={e => {
                 if (

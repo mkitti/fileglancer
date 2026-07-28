@@ -10,24 +10,28 @@ import { Card, Typography } from '@material-tailwind/react';
 import { HiOutlineDownload, HiOutlinePlay } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 
+import AppBreadcrumbs from '@/components/ui/AppsPage/AppBreadcrumbs';
 import AppLaunchForm from '@/components/ui/AppsPage/AppLaunchForm';
-import AppPageHeader from '@/components/ui/AppsPage/AppPageHeader';
 import SharedBadge from '@/components/ui/AppsPage/SharedBadge';
 import {
   buildAppDetailPath,
   buildGithubUrl,
   canonicalGithubUrl,
-  getEntryPointTypeIconType,
-  getAppIconType
+  getEntryPointTypeIconType
 } from '@/utils';
 import { showErrorToast } from '@/utils/errorToast';
 import {
   useAppsQuery,
   useAddAppMutation,
+  useCatalogQuery,
   useManifestPreviewMutation
 } from '@/queries/appsQueries';
 import { useSubmitJobMutation } from '@/queries/jobsQueries';
-import type { AppEntryPoint, AppResourceDefaults } from '@/shared.types';
+import type {
+  AppEntryPoint,
+  AppResourceDefaults,
+  LaunchOrigin
+} from '@/shared.types';
 import FgButton from './designSystem/atoms/FgButton';
 
 export default function AppLaunch() {
@@ -48,6 +52,7 @@ export default function AppLaunch() {
   const manifestMutation = useManifestPreviewMutation();
   const submitJobMutation = useSubmitJobMutation();
   const appsQuery = useAppsQuery();
+  const catalogQuery = useCatalogQuery();
   const addAppMutation = useAddAppMutation();
   const [selectedEntryPoint, setSelectedEntryPoint] =
     useState<AppEntryPoint | null>(null);
@@ -99,6 +104,31 @@ export default function AppLaunch() {
   );
   const isInstalled = installedApp !== undefined;
 
+  // Breadcrumb origin: prefer the origin recorded in navigation state (set when
+  // launching from My Apps vs the App Catalog) so the breadcrumbs link back to
+  // where the user actually came from. On reload or direct navigation state is
+  // lost, so fall back to inferring the origin from install status: an installed
+  // app is treated as reached from My Apps and links to its detail page; an
+  // uninstalled app is treated as browsed from the catalog and links to its
+  // listing (matched in the already-cached catalog by canonical URL + path).
+  const originState = (location.state as { from?: LaunchOrigin } | null)?.from;
+  const catalogListing = catalogQuery.data?.find(
+    l =>
+      canonicalGithubUrl(l.url) === appUrl && l.manifest_path === manifestPath
+  );
+  const fromCatalog = !isInstalled && catalogListing !== undefined;
+  const homeTo =
+    originState?.homeTo ?? (fromCatalog ? '/apps/catalog' : '/apps');
+  const homeLabel =
+    originState?.homeLabel ?? (fromCatalog ? 'App Catalog' : 'My Apps');
+  const appDetailTo =
+    originState?.appTo ??
+    (installedApp
+      ? buildAppDetailPath(installedApp.url, installedApp.manifest_path)
+      : catalogListing
+        ? `/apps/catalog/${catalogListing.id}`
+        : undefined);
+
   useEffect(() => {
     if (appUrl) {
       // The manifest identity is (url, manifest_path); reset the selection so
@@ -115,10 +145,6 @@ export default function AppLaunch() {
   // Prefer the user's saved app name (which may be a custom name chosen when
   // adding the app from the catalog) over the raw manifest name.
   const displayName = installedApp?.name ?? manifest?.name;
-  const headerTitle =
-    displayName && selectedEntryPoint
-      ? `${displayName} - ${selectedEntryPoint.name}`
-      : displayName;
   const isShared =
     installedApp?.listing_id !== undefined && installedApp.listing_id !== null;
 
@@ -150,7 +176,8 @@ export default function AppLaunch() {
     preRun?: string,
     postRun?: string,
     container?: string,
-    containerArgs?: string
+    containerArgs?: string,
+    jobName?: string
   ) => {
     if (!selectedEntryPoint) {
       return;
@@ -160,6 +187,7 @@ export default function AppLaunch() {
       {
         app_url: appUrl,
         manifest_path: manifestPath,
+        name: jobName,
         entry_point_id: selectedEntryPoint.id,
         parameters,
         env_parameters: envParameters,
@@ -198,29 +226,27 @@ export default function AppLaunch() {
 
   return (
     <div>
-      <AppPageHeader
+      <AppBreadcrumbs
         actions={
           manifest && selectedEntryPoint ? (
             <div ref={setLaunchActionsTarget} />
           ) : null
         }
-        backLabel={installedApp ? 'Back to app details' : 'Back to My Apps'}
-        backTo={
-          installedApp
-            ? buildAppDetailPath(installedApp.url, installedApp.manifest_path)
-            : '/apps'
-        }
+        appName={displayName}
+        appTo={appDetailTo}
         description={selectedEntryPoint?.description ?? null}
-        githubUrl={selectedEntryPoint ? appUrl : null}
-        icon={
+        entryPointIcon={
           selectedEntryPoint
             ? getEntryPointTypeIconType(selectedEntryPoint.type)
-            : getAppIconType()
+            : undefined
         }
-        title={headerTitle}
+        entryPointName={selectedEntryPoint?.name}
+        githubUrl={selectedEntryPoint ? appUrl : null}
+        homeLabel={homeLabel}
+        homeTo={homeTo}
       >
         {isShared ? <SharedBadge /> : null}
-      </AppPageHeader>
+      </AppBreadcrumbs>
 
       {/* Not-installed banner — only once the apps list has actually loaded, so
           a failed /api/apps query doesn't wrongly flag every app (including
@@ -276,6 +302,7 @@ export default function AppLaunch() {
         </div>
       ) : manifest && selectedEntryPoint ? (
         <AppLaunchForm
+          defaultJobName={`${displayName ?? ''} - ${selectedEntryPoint.name}`}
           entryPoint={selectedEntryPoint}
           headerActionsTarget={launchActionsTarget}
           initialCleanEnv={relaunchCleanEnv}

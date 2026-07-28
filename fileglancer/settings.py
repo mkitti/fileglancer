@@ -98,6 +98,11 @@ class Settings(BaseSettings):
     # Prevents a full directory scan for the count in very large directories.
     max_directory_count: int = 10000
 
+    # Maximum size in bytes accepted by a PUT /api/content upload. Guards the
+    # streaming write path against an unbounded upload filling the disk. 0
+    # disables the limit. Default 50 GiB.
+    max_upload_size_bytes: int = 50 * 1024 ** 3
+
     # OKTA OAuth/OIDC settings for authentication
     okta_domain: Optional[str] = None
     okta_client_id: Optional[str] = None
@@ -112,6 +117,16 @@ class Settings(BaseSettings):
 
     # Authentication toggle - if False, falls back to $USER environment variable
     enable_okta_auth: bool = False
+
+    # Cross-origin browser apps allowed to call the authenticated API using the
+    # logged-in user's session cookie. List full origins (scheme + host + optional
+    # port), e.g. "https://ai-cryoet.int.janelia.org" or
+    # "https://nextflow.int.janelia.org:8444". Same-origin requests (the
+    # Fileglancer UI itself) are always allowed and need not be listed. Requests
+    # that carry an Origin header not matching this list are rejected on
+    # cookie-authenticated endpoints — this is the CSRF / cross-site boundary for
+    # the programmatic API. Empty (default) means only same-origin calls work.
+    api_allowed_origins: List[str] = []
 
     # CLI mode - enables auto-login endpoint for standalone CLI usage
     cli_mode: bool = False

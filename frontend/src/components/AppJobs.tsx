@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import FgLink from '@/components/designSystem/atoms/FgLink';
 import CancelJobDialog from '@/components/ui/Dialogs/CancelJob';
 import DeleteJobDialog from '@/components/ui/Dialogs/DeleteJob';
+import RenameJobDialog from '@/components/ui/Dialogs/RenameJob';
 import { TableCard } from '@/components/ui/Table/TableCard';
 import { createAppsJobsColumns } from '@/components/ui/Table/appsJobsColumns';
 import { buildRelaunchPath, parseGithubUrl } from '@/utils';
@@ -15,7 +16,8 @@ import type { Job } from '@/shared.types';
 import {
   useJobsQuery,
   useCancelJobMutation,
-  useDeleteJobMutation
+  useDeleteJobMutation,
+  useUpdateJobMutation
 } from '@/queries/jobsQueries';
 
 export default function AppJobs() {
@@ -23,8 +25,10 @@ export default function AppJobs() {
   const jobsQuery = useJobsQuery();
   const cancelJobMutation = useCancelJobMutation();
   const deleteJobMutation = useDeleteJobMutation();
+  const updateJobMutation = useUpdateJobMutation();
   const [jobToCancel, setJobToCancel] = useState<Job | null>(null);
   const [jobToDelete, setJobToDelete] = useState<number | null>(null);
+  const [jobToRename, setJobToRename] = useState<Job | null>(null);
 
   const handleViewJobDetail = (jobId: number) => {
     navigate(`/apps/jobs/${jobId}`);
@@ -83,11 +87,20 @@ export default function AppJobs() {
     }
   };
 
+  const handleConfirmRename = async (name: string) => {
+    if (!jobToRename) {
+      return;
+    }
+    await updateJobMutation.mutateAsync({ jobId: jobToRename.id, name });
+    toast.success('Job renamed');
+  };
+
   const jobsColumns = useMemo(
     () =>
       createAppsJobsColumns({
         onViewDetail: handleViewJobDetail,
         onRelaunch: handleRelaunch,
+        onRename: setJobToRename,
         onCancel: setJobToCancel,
         onDelete: setJobToDelete
       }),
@@ -107,7 +120,7 @@ export default function AppJobs() {
         data={jobsQuery.data || []}
         dataType="jobs"
         errorState={jobsQuery.error}
-        gridColsClass="grid-cols-[2fr_2fr_1fr_2fr_1fr_1fr]"
+        gridColsClass="grid-cols-[3fr_1fr_2fr_1fr_1fr]"
         initialPageSize={50}
         loadingState={jobsQuery.isPending}
       />
@@ -125,6 +138,19 @@ export default function AppJobs() {
         onClose={() => setJobToDelete(null)}
         onConfirm={handleConfirmDeleteJob}
         open={jobToDelete !== null}
+      />
+
+      <RenameJobDialog
+        initialName={
+          jobToRename
+            ? jobToRename.name ||
+              `${jobToRename.app_name} - ${jobToRename.entry_point_name}`
+            : ''
+        }
+        onClose={() => setJobToRename(null)}
+        onSave={handleConfirmRename}
+        open={jobToRename !== null}
+        saving={updateJobMutation.isPending}
       />
     </div>
   );

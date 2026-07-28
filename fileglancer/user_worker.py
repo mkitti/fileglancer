@@ -497,6 +497,7 @@ def _action_open_file(request: dict, ctx: WorkerContext, filestore, fsps) -> dic
 
         return {
             "file_size": file_info.size,
+            "last_modified": file_info.last_modified,
             "content_type": content_type,
             "_fd": fd,
             "_file_handle": file_handle,  # kept alive until fd is sent
@@ -505,6 +506,83 @@ def _action_open_file(request: dict, ctx: WorkerContext, filestore, fsps) -> dic
         return _redirect_or_error(e, fsps)
     except FileNotFoundError:
         return {"error": f"File or directory not found: {fsp_name}/{subpath}", "status_code": 404}
+    except PermissionError:
+        return {"error": f"Permission denied: {fsp_name}/{subpath}", "status_code": 403}
+
+
+@action("write_file")
+@with_filestore
+def _action_write_file(request: dict, ctx: WorkerContext, filestore, fsps) -> dict:
+    """Open a file for writing (truncating) and return a writable file descriptor.
+
+    Mirrors open_file: the worker opens the file as the user so ownership and
+    permissions are the user's, then passes the fd back via SCM_RIGHTS. The main
+    process streams the request body into the fd. The "_fd_mode" key tells the
+    parent to wrap the received fd for writing rather than reading.
+
+    The parent directory must already exist; create it first via create_dir.
+    """
+    fsp_name = request["fsp_name"]
+    subpath = request.get("subpath", "")
+    if_match = request.get("if_match")
+    if_unmodified_since = request.get("if_unmodified_since")
+
+    from fileglancer.filestore import RootCheckError
+    from fileglancer.utils import make_etag
+
+    if not subpath:
+        return {"error": "A file path is required", "status_code": 400}
+
+    def _handle(fh):
+        return {
+            "_fd": fh.fileno(),
+            "_fd_mode": "wb",
+            "_file_handle": fh,  # kept alive until fd is sent
+        }
+
+    try:
+        full_path = filestore._check_path_in_root(subpath)
+        if os.path.isdir(full_path):
+            return {"error": "Cannot write file content to a directory", "status_code": 400}
+
+        if if_match is not None or if_unmodified_since is not None:
+            # Optimistic concurrency: validate the precondition against the real
+            # file before destroying anything. Open write-only WITHOUT create or
+            # truncate so a failed check leaves the file untouched, then truncate
+            # only once the check passes (race-tight — the fd is the exact inode
+            # we validated).
+            try:
+                fd = os.open(full_path, os.O_WRONLY)
+            except FileNotFoundError:
+                if if_match is not None:
+                    # If-Match (incl. "*") needs an existing version to match.
+                    return {"error": "Precondition failed: file does not exist", "status_code": 412}
+                # Only If-Unmodified-Since on a missing file → treat as a create.
+                return _handle(open(full_path, 'wb'))
+
+            st = os.fstat(fd)
+            current_etag = make_etag(st.st_mtime, st.st_size)
+            stale = (
+                (if_match is not None and if_match != '*' and if_match != current_etag)
+                # If-Unmodified-Since is second-granularity by HTTP spec.
+                or (if_unmodified_since is not None and int(st.st_mtime) > int(if_unmodified_since))
+            )
+            if stale:
+                os.close(fd)
+                return {"error": "Precondition failed: file has changed since it was read",
+                        "status_code": 412}
+            os.ftruncate(fd, 0)
+            return _handle(os.fdopen(fd, 'wb'))
+
+        # No precondition — create the file as the user if absent, or replace
+        # existing contents while preserving ownership.
+        return _handle(open(full_path, 'wb'))
+    except RootCheckError as e:
+        return _redirect_or_error(e, fsps)
+    except IsADirectoryError:
+        return {"error": "Cannot write file content to a directory", "status_code": 400}
+    except FileNotFoundError:
+        return {"error": f"Parent directory does not exist: {fsp_name}/{subpath}", "status_code": 404}
     except PermissionError:
         return {"error": f"Permission denied: {fsp_name}/{subpath}", "status_code": 403}
 

@@ -101,3 +101,19 @@ def github_url_with_branch(owner: str, repo: str, branch: str) -> str:
     would mean "current default branch" and therefore could move over time.
     """
     return f"https://github.com/{owner}/{repo}/tree/{branch}"
+
+
+def same_github_repo(a: str, b: str) -> bool:
+    """True if two GitHub URLs point at the same owner/repo, ignoring branch.
+
+    Used to tell "manifest and code live in different repositories" apart from
+    "same repo, different branch". Comparing canonical URLs conflates the two,
+    because a bare repo_url (no /tree/branch) never equals a stored app URL that
+    carries its branch. Returns False if either side isn't a parseable GitHub URL.
+    """
+    try:
+        oa, ra, _ = _parse_github_url(a)
+        ob, rb, _ = _parse_github_url(b)
+    except ValueError:
+        return False
+    return (oa, ra) == (ob, rb)

@@ -37,7 +37,7 @@ from fileglancer.apps.command import (
     _WINDOWS_DRIVE_PATTERN,
 )
 from fileglancer.apps.jobfiles import _build_work_dir
-from fileglancer.giturls import canonical_github_url
+from fileglancer.giturls import canonical_github_url, same_github_repo
 from fileglancer.model import AppEntryPoint
 from fileglancer.settings import get_settings
 
@@ -591,11 +591,12 @@ def _container_bind_paths(entry_point, parameters: dict,
        dangling. Cloud-storage URIs and non-absolute values are skipped — they
        are not bind-mountable and would otherwise produce garbage binds.
     2. The runnable's explicit `bind_paths`.
-    3. The cached repo clone, but only when the command runs from `repo`. The
-       `repo` symlink lives inside the (already-bound) work dir yet points at
-       the clone outside it, so without this bind the symlink dangles in the
-       container and the `cd` into it fails. Container runnables default to
-       `work`, so this is only added when the author opts into `repo`.
+    3. The cached repo clone, but only when the command runs from the clone
+       (`manifest` or `repo`). The `repo` symlink lives inside the
+       (already-bound) work dir yet points at the clone outside it, so without
+       this bind the symlink dangles in the container and the `cd` into it
+       fails. Container runnables default to `work`, so this is only added when
+       the author opts into `manifest` or `repo`.
 
     The work dir itself is always bound by `_build_container_script`, so it is
     not included here.
@@ -619,7 +620,7 @@ def _container_bind_paths(entry_point, parameters: dict,
             bind_paths.append(str(PurePosixPath(expanded).parent))
     if entry_point.bind_paths:
         bind_paths.extend(entry_point.bind_paths)
-    if entry_point.effective_working_dir == "repo":
+    if entry_point.effective_working_dir != "work":
         bind_paths.append(str(cached_repo_dir))
     return bind_paths
 
@@ -633,6 +634,7 @@ async def submit_job(
     resources: Optional[dict] = None,
     extra_args: Optional[str] = None,
     manifest_path: str = "",
+    name: Optional[str] = None,
     env: Optional[dict] = None,
     clean_env: bool = False,
     pre_run: Optional[str] = None,
@@ -796,12 +798,11 @@ async def submit_job(
     # so it never drifts again. Pulling is never done here; updates are an
     # explicit user action via the "Update" app endpoint.
     executed_repo_url = None
-    if manifest.repo_url and canonical_github_url(manifest.repo_url) != stored_app_url:
-        # Manifest and tool code live in separate repos: the job runs from the
-        # code repo's snapshot root.
+    if manifest.repo_url and not same_github_repo(manifest.repo_url, stored_app_url):
+        # Manifest and tool code live in separate repos: the code repo is what
+        # gets cloned as `repo`.
         cached_repo_dir, executed_sha = await ensure_repo_snapshot(
             manifest.repo_url, sha=pinned_code_sha, username=username)
-        cd_suffix = "repo"
         executed_repo_url = canonical_github_url(manifest.repo_url)
         if app_installed and (pinned_sha is None or pinned_code_sha is None):
             app_sha = pinned_sha
@@ -817,15 +818,18 @@ async def submit_job(
                                      commit_sha=app_sha,
                                      code_commit_sha=executed_sha)
     else:
-        # Manifest and tool code share one repo: run from the subdirectory
-        # that contains the manifest.
+        # Manifest and tool code share one repo: it gets cloned as `repo`.
         cached_repo_dir, executed_sha = await ensure_repo_snapshot(
             app_clone_url, sha=pinned_sha, username=username)
-        cd_suffix = f"repo/{manifest_path}" if manifest_path else "repo"
         if app_installed and pinned_sha is None:
             with db.get_db_session(settings.db_url) as session:
                 db.set_user_app_pins(session, username, stored_app_url,
                                      manifest_path, commit_sha=executed_sha)
+
+    # 'manifest' working_dir runs from the manifest's subdirectory within the
+    # clone; 'repo' runs from the clone root. The subdir is the same relative
+    # path regardless of whether the manifest and code share a repo.
+    manifest_suffix = f"repo/{manifest_path}" if manifest_path else "repo"
 
     with db.get_db_session(settings.db_url) as session:
         db_job = db.create_job(
@@ -833,6 +837,7 @@ async def submit_job(
             username=username,
             app_url=app_url,
             app_name=app_name,
+            name=name,
             entry_point_id=entry_point.id,
             entry_point_name=entry_point.name,
             entry_point_type=entry_point.type,
@@ -878,11 +883,11 @@ async def submit_job(
 
         # Set up the script preamble:
         # - FG_WORK_DIR: the job's working directory (used by subsequent variables)
-        # - FG_MANIFEST_DIR: the directory the job should treat as the app's project root
-        #   (repo[/manifest_path] when the manifest lives with the code; otherwise
-        #   the code repo root), so commands can reference it explicitly instead
-        #   of relying on the cwd. Always points at the repo-side directory, even
-        #   when effective_working_dir is "work" (the repo stays reachable there)
+        # - FG_MANIFEST_DIR: the manifest's directory inside the clone
+        #   (repo[/manifest_path]), so commands can reference it explicitly
+        #   instead of relying on the cwd. Always points at the repo-side
+        #   directory, even when effective_working_dir is "work" (the repo stays
+        #   reachable there)
         # - SERVICE_URL_PATH: for service-type jobs, where to write the service URL
         # - cd into the working directory chosen by effective_working_dir (see below);
         #   this sets where the task's command runs, not how tools locate the manifest
@@ -900,7 +905,7 @@ async def submit_job(
             ]
         preamble_lines += [
             f"export FG_WORK_DIR={shlex.quote(str(work_dir))}",
-            f'export FG_MANIFEST_DIR="$FG_WORK_DIR"/{shlex.quote(cd_suffix)}',
+            f'export FG_MANIFEST_DIR="$FG_WORK_DIR"/{shlex.quote(manifest_suffix)}',
             # Where the script reports its startup phase (e.g. pulling a container
             # image). The UI reads this to explain a wait before a service is ready.
             'export FG_PHASE_PATH="$FG_WORK_DIR/phase"',
@@ -928,13 +933,17 @@ async def submit_job(
                 )
         # Choose the working directory. 'work' runs from the job's work dir (the
         # repo is still reachable via the `repo` symlink); 'repo' runs from the
-        # cloned project (optionally the manifest's subdirectory). cd_suffix may
-        # include a Git-derived directory name, so shell-escape it — FG_WORK_DIR
-        # stays in its own double-quoted segment so it still expands.
+        # cloned project's root; 'manifest' runs from the manifest's directory
+        # inside the clone (the repo root plus the manifest's subdirectory).
+        # manifest_suffix may include a Git-derived directory name, so
+        # shell-escape it — FG_WORK_DIR stays in its own double-quoted segment so
+        # it still expands.
         if entry_point.effective_working_dir == "work":
             preamble_lines.append('cd "$FG_WORK_DIR"')
+        elif entry_point.effective_working_dir == "repo":
+            preamble_lines.append('cd "$FG_WORK_DIR"/repo')
         else:
-            preamble_lines.append(f'cd "$FG_WORK_DIR"/{shlex.quote(cd_suffix)}')
+            preamble_lines.append(f'cd "$FG_WORK_DIR"/{shlex.quote(manifest_suffix)}')
         script_parts = ["\n".join(preamble_lines)]
 
         # Conda environment activation

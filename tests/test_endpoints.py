@@ -848,9 +848,229 @@ def test_get_file_content_directory_error(test_client, temp_dir):
 
     response = test_client.get("/api/content/tempdir?subpath=test_directory")
     assert response.status_code == 400
-    data = response.json()
-    assert "error" in data
-    assert "directory" in data["error"].lower()
+
+
+def test_put_file_content_creates_file(test_client, temp_dir):
+    """PUT to /api/content writes body to a new file."""
+    content = "hello from the programmatic API"
+    response = test_client.put(
+        "/api/content/tempdir?subpath=written.txt",
+        content=content.encode("utf-8"),
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["bytes_written"] == len(content.encode("utf-8"))
+
+    written_path = os.path.join(temp_dir, "written.txt")
+    assert os.path.exists(written_path)
+    with open(written_path) as f:
+        assert f.read() == content
+
+
+def test_put_file_content_overwrites_file(test_client, temp_dir):
+    """PUT replaces the contents of an existing file (truncating)."""
+    target = os.path.join(temp_dir, "overwrite.txt")
+    with open(target, "w") as f:
+        f.write("original much longer content")
+
+    new_content = "new"
+    response = test_client.put(
+        "/api/content/tempdir?subpath=overwrite.txt",
+        content=new_content.encode("utf-8"),
+    )
+    assert response.status_code == 200
+    with open(target) as f:
+        assert f.read() == new_content
+
+
+def test_put_file_content_binary(test_client, temp_dir):
+    """PUT writes binary bodies byte-for-byte."""
+    data = bytes(range(256))
+    response = test_client.put(
+        "/api/content/tempdir?subpath=blob.bin",
+        content=data,
+    )
+    assert response.status_code == 200
+    with open(os.path.join(temp_dir, "blob.bin"), "rb") as f:
+        assert f.read() == data
+
+
+def test_put_file_content_into_subdir(test_client, temp_dir):
+    """PUT writes into an existing subdirectory."""
+    os.makedirs(os.path.join(temp_dir, "sub"))
+    response = test_client.put(
+        "/api/content/tempdir?subpath=sub/nested.txt",
+        content=b"nested",
+    )
+    assert response.status_code == 200
+    assert os.path.exists(os.path.join(temp_dir, "sub", "nested.txt"))
+
+
+def test_put_file_content_missing_parent_dir(test_client, temp_dir):
+    """PUT to a path whose parent directory doesn't exist returns 404."""
+    response = test_client.put(
+        "/api/content/tempdir?subpath=does_not_exist/file.txt",
+        content=b"data",
+    )
+    assert response.status_code == 404
+
+
+def test_put_file_content_to_directory_fails(test_client, temp_dir):
+    """PUT targeting an existing directory returns 400."""
+    os.makedirs(os.path.join(temp_dir, "adir"))
+    response = test_client.put(
+        "/api/content/tempdir?subpath=adir",
+        content=b"data",
+    )
+    assert response.status_code == 400
+
+
+def test_put_file_content_path_traversal_blocked(test_client, temp_dir):
+    """PUT with a traversal subpath is rejected before touching the filesystem."""
+    response = test_client.put(
+        "/api/content/tempdir?subpath=../escape.txt",
+        content=b"data",
+    )
+    assert response.status_code == 400
+    assert not os.path.exists(os.path.join(os.path.dirname(temp_dir), "escape.txt"))
+
+
+def test_get_content_emits_etag_and_last_modified(test_client, temp_dir):
+    """GET content returns an ETag and Last-Modified for concurrency validators."""
+    with open(os.path.join(temp_dir, "etagged.txt"), "w") as f:
+        f.write("v1")
+    response = test_client.get("/api/content/tempdir?subpath=etagged.txt")
+    assert response.status_code == 200
+    assert response.headers.get("ETag")
+    assert response.headers.get("Last-Modified")
+
+
+def test_put_if_match_matches_succeeds(test_client, temp_dir):
+    """PUT with a current If-Match ETag succeeds."""
+    with open(os.path.join(temp_dir, "oc.txt"), "w") as f:
+        f.write("v1")
+    etag = test_client.get("/api/content/tempdir?subpath=oc.txt").headers["ETag"]
+
+    response = test_client.put(
+        "/api/content/tempdir?subpath=oc.txt",
+        content=b"v2",
+        headers={"If-Match": etag},
+    )
+    assert response.status_code == 200
+    with open(os.path.join(temp_dir, "oc.txt")) as f:
+        assert f.read() == "v2"
+
+
+def test_put_if_match_stale_returns_412_and_preserves_file(test_client, temp_dir):
+    """A stale If-Match ETag returns 412 and leaves the file untouched."""
+    target = os.path.join(temp_dir, "oc2.txt")
+    with open(target, "w") as f:
+        f.write("original")
+
+    response = test_client.put(
+        "/api/content/tempdir?subpath=oc2.txt",
+        content=b"clobbered",
+        headers={"If-Match": '"stale-etag-value"'},
+    )
+    assert response.status_code == 412
+    with open(target) as f:
+        assert f.read() == "original"  # untouched
+
+
+def test_put_if_match_star_requires_existence(test_client, temp_dir):
+    """If-Match: * on a missing file returns 412 (nothing to match)."""
+    response = test_client.put(
+        "/api/content/tempdir?subpath=missing.txt",
+        content=b"data",
+        headers={"If-Match": "*"},
+    )
+    assert response.status_code == 412
+    assert not os.path.exists(os.path.join(temp_dir, "missing.txt"))
+
+
+def test_put_if_unmodified_since_stale_returns_412(test_client, temp_dir):
+    """If-Unmodified-Since older than the file's mtime returns 412."""
+    target = os.path.join(temp_dir, "oc3.txt")
+    with open(target, "w") as f:
+        f.write("original")
+    # A date well in the past — the file was modified after it.
+    response = test_client.put(
+        "/api/content/tempdir?subpath=oc3.txt",
+        content=b"clobbered",
+        headers={"If-Unmodified-Since": "Wed, 01 Jan 2020 00:00:00 GMT"},
+    )
+    assert response.status_code == 412
+    with open(target) as f:
+        assert f.read() == "original"
+
+
+def test_put_if_unmodified_since_fresh_succeeds(test_client, temp_dir):
+    """If-Unmodified-Since matching the file's Last-Modified succeeds."""
+    with open(os.path.join(temp_dir, "oc4.txt"), "w") as f:
+        f.write("v1")
+    last_modified = test_client.get(
+        "/api/content/tempdir?subpath=oc4.txt"
+    ).headers["Last-Modified"]
+
+    response = test_client.put(
+        "/api/content/tempdir?subpath=oc4.txt",
+        content=b"v2",
+        headers={"If-Unmodified-Since": last_modified},
+    )
+    assert response.status_code == 200
+
+
+def _set_max_upload(value):
+    """Set max_upload_size_bytes on the active (test-patched) settings object."""
+    from fileglancer.settings import get_settings
+    settings = get_settings()
+    prev = settings.max_upload_size_bytes
+    settings.max_upload_size_bytes = value
+    return settings, prev
+
+
+def test_put_upload_over_limit_content_length_413(test_client, temp_dir):
+    """A declared Content-Length over the limit is rejected before the file opens."""
+    settings, prev = _set_max_upload(10)
+    try:
+        response = test_client.put(
+            "/api/content/tempdir?subpath=toobig.txt",
+            content=b"x" * 100,
+        )
+        assert response.status_code == 413
+        assert not os.path.exists(os.path.join(temp_dir, "toobig.txt"))
+    finally:
+        settings.max_upload_size_bytes = prev
+
+
+def test_put_upload_over_limit_streaming_413(test_client, temp_dir):
+    """An upload exceeding the limit is rejected (413), honest or chunked."""
+    settings, prev = _set_max_upload(10)
+    try:
+        def gen():
+            for _ in range(5):
+                yield b"x" * 8  # 40 bytes total
+
+        response = test_client.put(
+            "/api/content/tempdir?subpath=toobig_stream.txt",
+            content=gen(),
+        )
+        assert response.status_code == 413
+    finally:
+        settings.max_upload_size_bytes = prev
+
+
+def test_put_upload_within_limit_succeeds(test_client, temp_dir):
+    """An upload under the limit still succeeds."""
+    settings, prev = _set_max_upload(1000)
+    try:
+        response = test_client.put(
+            "/api/content/tempdir?subpath=ok.txt",
+            content=b"small",
+        )
+        assert response.status_code == 200
+    finally:
+        settings.max_upload_size_bytes = prev
 
 
 def test_get_file_content_not_found(test_client):

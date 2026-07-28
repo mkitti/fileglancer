@@ -24,10 +24,12 @@ import Notifications from '@/components/ui/Notifications/Notifications';
 import ErrorFallback from '@/components/ErrorFallback';
 import { ServerDownOverlay } from '@/components/ui/Dialogs/ServerDownOverlay';
 import { useServerHealthContext } from '@/contexts/ServerHealthContext';
+import { isConnectLoginPopup } from '@/utils';
 
 const MainLayoutContent = () => {
   const { showWarningOverlay, checkHealth, nextRetrySeconds } =
     useServerHealthContext();
+  const bare = isConnectLoginPopup();
 
   return (
     <ShepherdJourneyProvider>
@@ -39,10 +41,12 @@ const MainLayoutContent = () => {
         }}
       />
       <div className="flex flex-col h-full w-full overflow-y-hidden bg-background text-foreground box-border">
-        <div className="flex-shrink-0 w-full">
-          <FileglancerNavbar />
-          <Notifications />
-        </div>
+        {!bare ? (
+          <div className="flex-shrink-0 w-full">
+            <FileglancerNavbar />
+            <Notifications />
+          </div>
+        ) : null}
         <div className="flex flex-col items-center flex-1 w-full overflow-hidden">
           <ErrorBoundary FallbackComponent={ErrorFallback}>
             <Outlet />

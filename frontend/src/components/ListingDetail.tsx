@@ -8,7 +8,7 @@ import {
 } from 'react-icons/hi2';
 import { FaUsersSlash } from 'react-icons/fa6';
 
-import AppPageHeader from '@/components/ui/AppsPage/AppPageHeader';
+import AppBreadcrumbs from '@/components/ui/AppsPage/AppBreadcrumbs';
 import EntryPointsList from '@/components/ui/AppsPage/EntryPointsList';
 import ListingActionDialogs from '@/components/ui/AppsPage/ListingActionDialogs';
 import ListingInfoTable from '@/components/ui/AppsPage/ListingInfoTable';
@@ -21,19 +21,13 @@ import {
   useCatalogQuery,
   useManifestPreviewMutation
 } from '@/queries/appsQueries';
-import { useListingActions } from '@/hooks/useListingActions';
-import { useProfileContext } from '@/contexts/ProfileContext';
 import {
-  buildLaunchPathFromApp,
-  canonicalGithubUrl,
-  getAppIconType
-} from '@/utils';
-import type { AppListing } from '@/shared.types';
-
-const BACK_PROPS = {
-  backLabel: 'Back to App Catalog',
-  backTo: '/apps/catalog'
-};
+  buildListingDetailPath,
+  useListingActions
+} from '@/hooks/useListingActions';
+import { useProfileContext } from '@/contexts/ProfileContext';
+import { buildLaunchPathFromApp, canonicalGithubUrl } from '@/utils';
+import type { AppListing, LaunchOrigin } from '@/shared.types';
 
 export default function ListingDetail() {
   const { listingId } = useParams<{ listingId: string }>();
@@ -81,7 +75,11 @@ export default function ListingDetail() {
   if (!listing) {
     return (
       <div>
-        <AppPageHeader {...BACK_PROPS} title="Listing not found" />
+        <AppBreadcrumbs
+          appName="Listing not found"
+          homeLabel="App Catalog"
+          homeTo="/apps/catalog"
+        />
         <Typography className="text-foreground mb-4">
           This catalog listing does not exist. It may have been unshared.
         </Typography>
@@ -118,8 +116,7 @@ export default function ListingDetail() {
 
   return (
     <div>
-      <AppPageHeader
-        {...BACK_PROPS}
+      <AppBreadcrumbs
         actions={
           <>
             {!alreadyAdded ? (
@@ -170,15 +167,16 @@ export default function ListingDetail() {
             ) : null}
           </>
         }
-        icon={getAppIconType()}
-        title={listing.name}
+        appName={listing.name}
+        homeLabel="App Catalog"
+        homeTo="/apps/catalog"
       >
         {alreadyAdded ? (
           <span className="inline-block px-2 py-0.5 rounded-sm bg-success/10 text-success text-xs font-medium flex-shrink-0">
             In your apps
           </span>
         ) : null}
-      </AppPageHeader>
+      </AppBreadcrumbs>
 
       <div className="max-w-2xl">
         <ListingInfoTable
@@ -198,15 +196,23 @@ export default function ListingDetail() {
           </div>
         ) : (
           <EntryPointsList
-            onLaunch={ep =>
+            onLaunch={ep => {
+              // Record the App Catalog origin so the launch breadcrumbs link
+              // back to this listing, even when the app is also installed.
+              const from: LaunchOrigin = {
+                homeTo: '/apps/catalog',
+                homeLabel: 'App Catalog',
+                appTo: buildListingDetailPath(listing.id)
+              };
               navigate(
                 buildLaunchPathFromApp(
                   listing.url,
                   listing.manifest_path,
                   ep.id
-                )
-              )
-            }
+                ),
+                { state: { from } }
+              );
+            }}
             runnables={manifest?.runnables ?? []}
           />
         )}

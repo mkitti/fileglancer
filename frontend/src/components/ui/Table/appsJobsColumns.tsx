@@ -2,7 +2,6 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import FgLink from '@/components/designSystem/atoms/FgLink';
 import CardActionsMenu from '@/components/ui/Menus/CardActionsMenu';
-import FgTooltip from '@/components/ui/widgets/FgTooltip';
 import JobStatusBadge from '@/components/ui/AppsPage/JobStatusBadge';
 import { formatDateString } from '@/utils';
 import { formatDuration } from '@/utils/jobDisplay';
@@ -13,6 +12,7 @@ import type { Job } from '@/shared.types';
 type JobActionCallbacks = {
   onViewDetail: (jobId: number) => void;
   onRelaunch: (job: Job) => void;
+  onRename: (job: Job) => void;
   onCancel: (job: Job) => void;
   onDelete: (jobId: number) => void;
 };
@@ -26,44 +26,22 @@ export function createAppsJobsColumns(
 ): ColumnDef<Job>[] {
   return [
     {
-      accessorKey: 'app_name',
-      header: 'App',
-      cell: ({ getValue, table }) => {
-        const value = getValue() as string;
+      accessorKey: 'name',
+      header: 'Name',
+      cell: ({ row, table }) => {
+        const job = row.original;
+        const label = job.name || `${job.app_name} - ${job.entry_point_name}`;
         const onContextMenu = table.options.meta?.onCellContextMenu;
         return (
           <div
             className="flex items-center truncate w-full h-full"
             onContextMenu={e => {
               e.preventDefault();
-              onContextMenu?.(e, { value });
+              onContextMenu?.(e, { value: label });
             }}
           >
-            <FgTooltip label={value}>
-              <span className="truncate">{value}</span>
-            </FgTooltip>
-          </div>
-        );
-      },
-      enableSorting: true
-    },
-    {
-      accessorKey: 'entry_point_name',
-      header: 'Entry Point',
-      cell: ({ getValue, row, table }) => {
-        const value = getValue() as string;
-        const jobId = row.original.id;
-        const onContextMenu = table.options.meta?.onCellContextMenu;
-        return (
-          <div
-            className="flex items-center truncate w-full h-full"
-            onContextMenu={e => {
-              e.preventDefault();
-              onContextMenu?.(e, { value });
-            }}
-          >
-            <FgLink className="truncate text-left" to={`/apps/jobs/${jobId}`}>
-              {value}
+            <FgLink className="truncate text-left" to={`/apps/jobs/${job.id}`}>
+              {label}
             </FgLink>
           </div>
         );
@@ -135,6 +113,10 @@ export function createAppsJobsColumns(
           {
             name: 'Relaunch',
             action: props => props.onRelaunch(props.job)
+          },
+          {
+            name: 'Rename',
+            action: props => props.onRename(props.job)
           },
           {
             name: isService ? 'Stop Service' : 'Cancel',

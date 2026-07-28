@@ -129,7 +129,7 @@ export default function Catalog() {
             data={filteredListings}
             dataType="shared apps"
             errorState={catalogQuery.error}
-            gridColsClass="grid-cols-[2fr_2fr_3fr_1fr_1fr_1fr_1fr]"
+            gridColsClass="grid-cols-[minmax(8rem,2fr)_minmax(10rem,5fr)_7rem_7rem_5rem_6.5rem_4.5rem]"
             initialPageSize={50}
             loadingState={catalogQuery.isPending}
           />
