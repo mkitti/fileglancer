@@ -30,6 +30,7 @@ from fileglancer.user_worker import (
     _action_validate_proxied_path,
     _action_create_dirs,
     _action_validate_paths,
+    _action_cancel,
     WorkerContext,
     _HEADER_FMT,
     _HEADER_SIZE,
@@ -161,6 +162,71 @@ class TestActionTimeout:
         # ceiling must sit above that so a valid snapshot isn't read as a
         # dead worker.
         assert _GIT_ACTION_TIMEOUT >= 600
+
+
+class TestCancelAction:
+    """The unified 'cancel' action stops a job through py-cluster-api.
+
+    For the local executor the job id is the leader PID, and cancel kills the
+    whole process group by PID — no fileglancer-side /proc walking. This
+    exercises the real executor (py-cluster-api >= 0.8.0), not a mock.
+    """
+
+    def _ctx(self):
+        return WorkerContext(username="test", db=None)
+
+    def _spawn_orphaned_group(self):
+        """Start a process group led by a process reparented to init, so
+        nothing in the test process is its parent — exactly like a job whose
+        submitting worker has exited (init then reaps the killed group).
+
+        setsid() makes the child a session/group leader whose pgid equals its
+        pid, so the parent already knows the group id. The child forks the real
+        workload (a backgrounded sleep plus a foreground sleep, so the group
+        holds more than one process) and exits, orphaning it to init.
+        """
+        pid = os.fork()
+        if pid == 0:  # child: becomes the group leader, then bails out
+            os.setsid()
+            if os.fork() == 0:  # grandchild: the actual workload, same group
+                os.execvp("bash", ["bash", "-c", "sleep 300 & sleep 300"])
+            os._exit(0)
+        os.waitpid(pid, 0)  # reap the leader; the workload lives on under init
+        return pid  # == the group id (setsid set pgid == leader pid)
+
+    def test_local_cancel_kills_process_group(self):
+        pgid = self._spawn_orphaned_group()
+        try:
+            time.sleep(0.2)
+            os.killpg(pgid, 0)  # group is alive (raises if not)
+
+            result = _action_cancel(
+                {"cluster_config": {"executor": "local"},
+                 "job_id": str(pgid)},
+                self._ctx(),
+            )
+            assert result == {"status": "ok"}
+
+            # cancel() only returns once the group is confirmed gone.
+            with pytest.raises(ProcessLookupError):
+                os.killpg(pgid, 0)
+        finally:
+            try:
+                os.killpg(pgid, 9)
+            except OSError:
+                pass
+
+    def test_local_cancel_already_gone_is_ok(self, tmp_path):
+        import subprocess as sp
+
+        proc = sp.Popen(["sleep", "0.01"], start_new_session=True)
+        proc.wait()  # already exited before we cancel
+        result = _action_cancel(
+            {"cluster_config": {"executor": "local"},
+             "job_id": str(proc.pid)},
+            self._ctx(),
+        )
+        assert result == {"status": "ok"}
 
 
 class TestIPCProtocol:
