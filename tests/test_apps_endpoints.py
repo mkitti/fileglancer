@@ -1041,14 +1041,17 @@ def test_cancel_running_job(test_client, db_session):
         response = test_client.post(f"/api/jobs/{job.id}/cancel")
 
     assert response.status_code == 200
-    assert response.json()["status"] == "KILLED"
+    # User-initiated cancel is recorded as CANCELLED (not KILLED), and asks the
+    # scheduler to mark the job done via done=True.
+    assert response.json()["status"] == "CANCELLED"
     assert response.json()["finished_at"] is not None
     assert dispatch.await_args.args[1] == "cancel"
+    assert dispatch.await_args.kwargs["done"] is True
     db_session.expire_all()
-    assert get_job(db_session, job.id, TEST_USERNAME).status == "KILLED"
+    assert get_job(db_session, job.id, TEST_USERNAME).status == "CANCELLED"
 
 
-@pytest.mark.parametrize("status", ["DONE", "FAILED", "KILLED"])
+@pytest.mark.parametrize("status", ["DONE", "FAILED", "KILLED", "CANCELLED"])
 def test_cancel_terminal_job_400(test_client, db_session, status):
     job = _seed_job(db_session, status=status)
 

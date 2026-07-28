@@ -969,7 +969,7 @@ def delete_expired_sessions(session: Session):
 
 # --- Job database functions ---
 
-TERMINAL_JOB_STATUSES = ("DONE", "FAILED", "KILLED")
+TERMINAL_JOB_STATUSES = ("DONE", "FAILED", "KILLED", "CANCELLED")
 
 
 def is_terminal_job_status(status: str | None) -> bool:

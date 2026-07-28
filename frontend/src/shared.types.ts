@@ -200,11 +200,17 @@ type KnownJobStatus =
   | 'DONE'
   | 'FAILED'
   | 'KILLED'
+  | 'CANCELLED'
   | 'UNKNOWN';
 
 type JobStatus = KnownJobStatus | (string & {});
 
-const TERMINAL_JOB_STATUSES = new Set<string>(['DONE', 'FAILED', 'KILLED']);
+const TERMINAL_JOB_STATUSES = new Set<string>([
+  'DONE',
+  'FAILED',
+  'KILLED',
+  'CANCELLED'
+]);
 
 function isTerminalJobStatus(status?: string | null): boolean {
   return typeof status === 'string' && TERMINAL_JOB_STATUSES.has(status);

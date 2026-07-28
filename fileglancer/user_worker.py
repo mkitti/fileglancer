@@ -1112,9 +1112,13 @@ def _action_submit(request: dict, ctx: WorkerContext) -> dict:
 
 @action("cancel")
 def _action_cancel(request: dict, ctx: WorkerContext) -> dict:
-    """Cancel a cluster job via py-cluster-api."""
+    """Cancel a cluster job via py-cluster-api.
+
+    done=True asks the scheduler to mark the job DONE instead of killed
+    (LSF: bkill -d); it is ignored by executors without that notion.
+    """
     executor = _get_executor(request)
-    _run_async(executor.cancel(request["job_id"]))
+    _run_async(executor.cancel(request["job_id"], done=request.get("done", False)))
     return {"status": "ok"}
 
 

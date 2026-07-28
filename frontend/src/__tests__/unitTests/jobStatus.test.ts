@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { isActiveJobStatus, isTerminalJobStatus } from '@/shared.types';
 
 describe('job status helpers', () => {
-  it('only treats DONE, FAILED, and KILLED as terminal', () => {
-    for (const status of ['DONE', 'FAILED', 'KILLED']) {
+  it('treats DONE, FAILED, KILLED, and CANCELLED as terminal', () => {
+    for (const status of ['DONE', 'FAILED', 'KILLED', 'CANCELLED']) {
       expect(isTerminalJobStatus(status)).toBe(true);
       expect(isActiveJobStatus(status)).toBe(false);
     }

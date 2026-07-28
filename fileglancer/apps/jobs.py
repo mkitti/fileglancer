@@ -1108,20 +1108,26 @@ async def cancel_job(job_id: int, username: str) -> db.JobDB:
 
         # Stop the running job as the target user via py-cluster-api. The
         # executor cancels by job id (LSF: bkill; local: kill the process
-        # group by PID — the local job id IS the leader PID). cancel() raises
-        # if it can't confirm termination, so a failure propagates here and we
-        # never fall through to marking the job KILLED below.
+        # group by PID — the local job id IS the leader PID). done=True asks
+        # the scheduler to record the job as DONE rather than a signalled kill
+        # (LSF: bkill -d), so a user-cancelled job isn't reported as a failure.
+        # cancel() raises if it can't confirm termination, so a failure
+        # propagates here and we never fall through to the status update below.
         if db_job.cluster_job_id:
             cluster_config = settings.cluster.model_dump(exclude_none=True)
             await _dispatch(
                 username, "cancel",
                 cluster_config=cluster_config,
                 job_id=db_job.cluster_job_id,
+                done=True,
             )
 
-        # Update DB
+        # Record it as CANCELLED in our own DB. This is Fileglancer's status,
+        # independent of what the scheduler logs: a user-initiated stop is a
+        # cancellation, distinct from a job the scheduler killed (KILLED) or
+        # that exited on its own (DONE/FAILED).
         now = datetime.now(UTC)
-        db.update_job_status(session, db_job.id, "KILLED", finished_at=now)
+        db.update_job_status(session, db_job.id, "CANCELLED", finished_at=now)
         db_job = db.get_job(session, db_job.id, username)
         session.expunge(db_job)
 
