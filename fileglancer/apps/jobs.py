@@ -317,10 +317,23 @@ async def _poll_jobs(settings):
 
         polled_jobs = result.get("jobs", {})
 
+        # End the read transaction opened at the top of this cycle so the reads
+        # below observe status changes that a concurrent writer committed while
+        # bjobs was in flight (rows are expired by the commit and reloaded on
+        # access). A user cancel takes seconds to round-trip through the worker,
+        # which is exactly the window this poll spent awaiting bjobs.
+        session.commit()
+
         # Update DB with polled statuses
         for db_job in jobs_to_poll:
             info = polled_jobs.get(db_job.cluster_job_id)
             if info is None:
+                continue
+            # Never overwrite a job that has already reached a terminal status.
+            # A cancel may have finalized it as CANCELLED mid-cycle, and bjobs
+            # can briefly report a torn-down job with an unmapped status that
+            # maps to UNKNOWN — clobbering the cancel with a spurious UNKNOWN.
+            if db.is_terminal_job_status(db_job.status):
                 continue
             new_status = info["status"].upper()
             old_status = db_job.status
