@@ -176,7 +176,8 @@ export default function AppLaunch() {
     preRun?: string,
     postRun?: string,
     container?: string,
-    containerArgs?: string
+    containerArgs?: string,
+    jobName?: string
   ) => {
     if (!selectedEntryPoint) {
       return;
@@ -186,6 +187,7 @@ export default function AppLaunch() {
       {
         app_url: appUrl,
         manifest_path: manifestPath,
+        name: jobName,
         entry_point_id: selectedEntryPoint.id,
         parameters,
         env_parameters: envParameters,
@@ -300,6 +302,7 @@ export default function AppLaunch() {
         </div>
       ) : manifest && selectedEntryPoint ? (
         <AppLaunchForm
+          defaultJobName={`${displayName ?? ''} - ${selectedEntryPoint.name}`}
           entryPoint={selectedEntryPoint}
           headerActionsTarget={launchActionsTarget}
           initialCleanEnv={relaunchCleanEnv}

@@ -2315,6 +2315,7 @@ def create_app(settings):
                 resources=resources_dict,
                 extra_args=body.extra_args,
                 manifest_path=body.manifest_path,
+                name=body.name,
                 env=body.env,
                 clean_env=body.clean_env,
                 pre_run=body.pre_run,
@@ -2377,6 +2378,20 @@ def create_app(settings):
                 except Exception:
                     pass
             return _convert_job(db_job, service_url=service_url, files=files, phase=phase)
+
+    @app.patch("/api/jobs/{job_id}", response_model=Job,
+               description="Rename a job")
+    async def rename_job(job_id: int,
+                         body: UpdateJobRequest,
+                         username: str = Depends(get_current_user)):
+        name = body.name.strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="Job name must not be empty")
+        with db.get_db_session(settings.db_url) as session:
+            db_job = db.update_job(session, job_id, username, name)
+            if db_job is None:
+                raise HTTPException(status_code=404, detail="Job not found")
+            return _convert_job(db_job)
 
     @app.post("/api/jobs/{job_id}/cancel",
               description="Cancel a running job")
@@ -2454,6 +2469,7 @@ def create_app(settings):
             id=db_job.id,
             app_url=db_job.app_url,
             app_name=db_job.app_name,
+            name=db_job.name or f"{db_job.app_name} - {db_job.entry_point_name}",
             manifest_path=db_job.manifest_path,
             entry_point_id=db_job.entry_point_id,
             entry_point_name=db_job.entry_point_name,

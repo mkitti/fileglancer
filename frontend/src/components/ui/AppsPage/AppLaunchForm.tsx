@@ -15,6 +15,8 @@ import {
 
 import FgButton from '@/components/designSystem/atoms/FgButton';
 import FgIcon from '@/components/designSystem/atoms/FgIcon';
+import FgInput from '@/components/designSystem/atoms/formElements/FgInput';
+import FgFormField from '@/components/designSystem/molecules/FgFormField';
 import FileSelectorButton from '@/components/ui/FileSelector/FileSelectorButton';
 import FgSwitch from '@/components/ui/widgets/FgSwitch';
 import { usePreferencesContext } from '@/contexts/PreferencesContext';
@@ -41,6 +43,7 @@ import type {
 
 interface AppLaunchFormProps {
   readonly entryPoint: AppEntryPoint;
+  readonly defaultJobName: string;
   readonly headerActionsTarget?: HTMLElement | null;
   readonly onSubmit: (
     parameters: Record<string, unknown>,
@@ -52,7 +55,8 @@ interface AppLaunchFormProps {
     preRun?: string,
     postRun?: string,
     container?: string,
-    containerArgs?: string
+    containerArgs?: string,
+    jobName?: string
   ) => void;
   readonly submitting: boolean;
   readonly submitError?: string;
@@ -777,6 +781,7 @@ function ClusterTabContent({
 
 export default function AppLaunchForm({
   entryPoint,
+  defaultJobName,
   headerActionsTarget,
   onSubmit,
   submitting,
@@ -852,6 +857,7 @@ export default function AppLaunchForm({
     }
   );
   const [extraArgs, setExtraArgs] = useState<string>(resolvedExtraArgs);
+  const [jobName, setJobName] = useState(defaultJobName);
   // Whether the user has touched the Extra Arguments field (typing or a
   // params-file import). An empty string alone can't distinguish "not loaded
   // yet" from "deliberately cleared", so late-arriving defaults key off this.
@@ -1219,7 +1225,8 @@ export default function AppLaunchForm({
       preRun.trim() || undefined,
       postRun.trim() || undefined,
       containerImage.trim() || undefined,
-      containerArgs.trim() || undefined
+      containerArgs.trim() || undefined,
+      jobName.trim() || undefined
     );
   };
 
@@ -1448,6 +1455,18 @@ export default function AppLaunchForm({
       {/* Errors (top) */}
       {validationErrorBanner}
       {submitErrorBanner}
+
+      {/* Job name — prefilled with "app name - entry point", editable */}
+      <div className="max-w-2xl mb-4">
+        <FgFormField htmlFor="job-name" label="Job name">
+          <FgInput
+            id="job-name"
+            onChange={e => setJobName(e.target.value)}
+            type="text"
+            value={jobName}
+          />
+        </FgFormField>
+      </div>
 
       {/* Tabs */}
       <Tabs onValueChange={setActiveTab} value={activeTab}>
