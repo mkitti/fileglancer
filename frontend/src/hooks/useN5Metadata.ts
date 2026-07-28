@@ -2,10 +2,17 @@ import { useMemo } from 'react';
 import { useFileBrowserContext } from '@/contexts/FileBrowserContext';
 import { useProxiedPathContext } from '@/contexts/ProxiedPathContext';
 import { useExternalBucketContext } from '@/contexts/ExternalBucketContext';
+import { usePreferencesContext } from '@/contexts/PreferencesContext';
+import { useViewersContext } from '@/contexts/ViewersContext';
+import { resolveViewerTemplate } from '@/utils/viewerUrl';
 import { useN5MetadataQuery } from '@/queries/n5Queries';
 import type { N5Metadata, N5OpenWithToolUrls } from '@/queries/n5Queries';
 
 export type { N5Metadata, N5OpenWithToolUrls };
+
+// Fallback used only when no Neuroglancer viewer is configured.
+const FALLBACK_NEUROGLANCER_BASE_URL =
+  'https://neuroglancer-demo.appspot.com/#!';
 
 /**
  * Get the Neuroglancer source URL for N5 format
@@ -51,6 +58,8 @@ export default function useN5Metadata() {
   const { fileQuery } = useFileBrowserContext();
   const { currentDirProxiedPathQuery } = useProxiedPathContext();
   const { externalDataUrlQuery } = useExternalBucketContext();
+  const { viewerUrlSources } = usePreferencesContext();
+  const { validViewers } = useViewersContext();
 
   // Fetch N5 metadata
   const n5MetadataQuery = useN5MetadataQuery({
@@ -66,7 +75,15 @@ export default function useN5Metadata() {
       return null;
     }
 
-    const neuroglancerBaseUrl = 'https://neuroglancer-demo.appspot.com/#!';
+    // Resolve the Neuroglancer base URL from the deployment config and the
+    // user's per-viewer URL preference, matching the OME-Zarr/Zarr path.
+    const neuroglancer = validViewers.find(v => v.key === 'neuroglancer');
+    const neuroglancerBaseUrl = neuroglancer
+      ? resolveViewerTemplate(
+          neuroglancer,
+          viewerUrlSources['neuroglancer']
+        ).split('#!')[0] + '#!'
+      : FALLBACK_NEUROGLANCER_BASE_URL;
 
     const url =
       externalDataUrlQuery.data || currentDirProxiedPathQuery.data?.url;
@@ -86,7 +103,9 @@ export default function useN5Metadata() {
   }, [
     metadata,
     currentDirProxiedPathQuery.data?.url,
-    externalDataUrlQuery.data
+    externalDataUrlQuery.data,
+    validViewers,
+    viewerUrlSources
   ]);
 
   return {

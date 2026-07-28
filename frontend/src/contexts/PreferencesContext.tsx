@@ -39,6 +39,18 @@ export type FolderPreference = {
   fspName: string;
 };
 
+/**
+ * Which URL to use for a given viewer. Defaults to 'configured' when a viewer
+ * is absent from the map.
+ *   - 'configured': the deployment default (viewers.config instance_template_url
+ *     override, else the manifest default)
+ *   - 'manifest': the capability-manifest library's default (e.g. the external
+ *     Neuroglancer at appspot)
+ *   - { custom }: a user-supplied template URL (reserved for future UI)
+ */
+export type ViewerUrlSource = 'configured' | 'manifest' | { custom: string };
+export type ViewerUrlSources = Record<string, ViewerUrlSource>;
+
 type PreferencesContextType = {
   //Full query for accessing loading/error states
   preferenceQuery: ReturnType<typeof usePreferencesQuery>;
@@ -52,6 +64,7 @@ type PreferencesContextType = {
   disableNeuroglancerStateGeneration: boolean;
   disableHeuristicalLayerTypeDetection: boolean;
   useLegacyMultichannelApproach: boolean;
+  viewerUrlSources: ViewerUrlSources;
   isFilteredByGroups: boolean;
   showTutorial: boolean;
   defaultExtraArgs: string;
@@ -84,6 +97,10 @@ type PreferencesContextType = {
   toggleDisableNeuroglancerStateGeneration: () => Promise<Result<void>>;
   toggleDisableHeuristicalLayerTypeDetection: () => Promise<Result<void>>;
   toggleUseLegacyMultichannelApproach: () => Promise<Result<void>>;
+  setViewerUrlSource: (
+    viewerKey: string,
+    source: ViewerUrlSource
+  ) => Promise<Result<void>>;
   toggleFilterByGroups: () => Promise<Result<void>>;
   toggleShowTutorial: () => Promise<Result<void>>;
   updateDefaultExtraArgs: (args: string) => Promise<Result<void>>;
@@ -255,6 +272,25 @@ export const PreferencesProvider = ({
       'useLegacyMultichannelApproach',
       preferencesQuery.data?.useLegacyMultichannelApproach || false
     );
+  };
+
+  const setViewerUrlSource = async (
+    viewerKey: string,
+    source: ViewerUrlSource
+  ): Promise<Result<void>> => {
+    try {
+      const updated: ViewerUrlSources = {
+        ...(preferencesQuery.data?.viewerUrlSources || {}),
+        [viewerKey]: source
+      };
+      await updatePreferenceMutation.mutateAsync({
+        key: 'viewerUrlSources',
+        value: updated
+      });
+      return createSuccess(undefined);
+    } catch (error) {
+      return handleError(error);
+    }
   };
 
   const toggleShowTutorial = async (): Promise<Result<void>> => {
@@ -550,6 +586,7 @@ export const PreferencesProvider = ({
       preferencesQuery.data?.disableHeuristicalLayerTypeDetection || false,
     useLegacyMultichannelApproach:
       preferencesQuery.data?.useLegacyMultichannelApproach || false,
+    viewerUrlSources: preferencesQuery.data?.viewerUrlSources || {},
     isFilteredByGroups: preferencesQuery.data?.isFilteredByGroups ?? true,
     showTutorial: preferencesQuery.data?.showTutorial ?? true,
     defaultExtraArgs: preferencesQuery.data?.defaultExtraArgs || '',
@@ -579,6 +616,7 @@ export const PreferencesProvider = ({
     toggleDisableNeuroglancerStateGeneration,
     toggleDisableHeuristicalLayerTypeDetection,
     toggleUseLegacyMultichannelApproach,
+    setViewerUrlSource,
     toggleFilterByGroups,
     toggleShowTutorial,
     updateDefaultExtraArgs,

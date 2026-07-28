@@ -13,6 +13,7 @@ import {
   validateJsonState,
   constructNeuroglancerUrl
 } from '@/utils';
+import { DEFAULT_NEUROGLANCER_BASE_URL } from '@/hooks/useDefaultNeuroglancerBaseUrl';
 import FgButton from '@/components/designSystem/atoms/FgButton';
 import FgFormField from '@/components/designSystem/molecules/FgFormField';
 import FgInput from '@/components/designSystem/atoms/formElements/FgInput';
@@ -27,9 +28,13 @@ type NGLinkDialogProps = {
   readonly onCreate?: (payload: CreateNGLinkPayload) => Promise<void>;
   readonly onUpdate?: (payload: UpdateNGLinkPayload) => Promise<void>;
   readonly editItem?: NGLink;
+  /**
+   * Base URL a new short link defaults to, resolved from the deployment config
+   * and the user's Neuroglancer URL preference by the parent. Falls back to the
+   * external default when not provided.
+   */
+  readonly defaultBaseUrl?: string;
 };
-
-const DEFAULT_BASE_URL = 'https://neuroglancer-demo.appspot.com/';
 
 export default function NGLinkDialog({
   open,
@@ -37,7 +42,8 @@ export default function NGLinkDialog({
   onClose,
   onCreate,
   onUpdate,
-  editItem
+  editItem,
+  defaultBaseUrl = DEFAULT_NEUROGLANCER_BASE_URL
 }: NGLinkDialogProps) {
   const isEditMode = !!editItem;
   const urlInputRef = useRef<HTMLInputElement>(null);
@@ -46,7 +52,7 @@ export default function NGLinkDialog({
   const [inputMode, setInputMode] = useState<'url' | 'state'>('url');
   const [neuroglancerUrl, setNeuroglancerUrl] = useState('');
   const [stateJson, setStateJson] = useState('');
-  const [baseUrl, setBaseUrl] = useState(DEFAULT_BASE_URL);
+  const [baseUrl, setBaseUrl] = useState(defaultBaseUrl);
   const [shortName, setShortName] = useState('');
   const [title, setTitle] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -78,11 +84,21 @@ export default function NGLinkDialog({
       setShortName('');
       setTitle('');
       setStateJson('');
-      setBaseUrl(DEFAULT_BASE_URL);
       setUrlValidationError(null);
       setStateValidationError(null);
     }
   }, [editItem]);
+
+  // When creating a new link, keep the base URL aligned with the resolved
+  // default as it becomes available (viewers finishing loading) or changes
+  // (preference update). Owns the create-mode base URL so the reset above
+  // stays keyed on editItem alone and never clears a half-filled form. Does
+  // not run in edit mode, so existing links keep their stored base URL.
+  useEffect(() => {
+    if (!editItem) {
+      setBaseUrl(defaultBaseUrl);
+    }
+  }, [defaultBaseUrl, editItem]);
 
   // Auto-select the URL text once after it's populated in edit mode
   useEffect(() => {
@@ -131,7 +147,7 @@ export default function NGLinkDialog({
     if (!isEditMode) {
       setNeuroglancerUrl('');
       setStateJson('');
-      setBaseUrl(DEFAULT_BASE_URL);
+      setBaseUrl(defaultBaseUrl);
     }
     setUrlValidationError(null);
     setStateValidationError(null);
@@ -172,7 +188,7 @@ export default function NGLinkDialog({
     setInputMode('url');
     setNeuroglancerUrl('');
     setStateJson('');
-    setBaseUrl(DEFAULT_BASE_URL);
+    setBaseUrl(defaultBaseUrl);
     setShortName('');
     setTitle('');
     onClose();
@@ -294,7 +310,7 @@ export default function NGLinkDialog({
               autoFocus
               id="neuroglancer-url"
               onChange={handleUrlChange}
-              placeholder="https://neuroglancer-demo.appspot.com/#!{...}"
+              placeholder={`${defaultBaseUrl}#!{...}`}
               ref={urlInputRef}
               size="lg"
               type="text"
@@ -328,7 +344,7 @@ export default function NGLinkDialog({
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
                   setBaseUrl(e.target.value)
                 }
-                placeholder="https://neuroglancer-demo.appspot.com/"
+                placeholder={defaultBaseUrl}
                 size="lg"
                 type="text"
                 value={baseUrl}
