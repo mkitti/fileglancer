@@ -299,7 +299,10 @@ class UserWorker:
             raise
 
         if fds:
-            response["_file_handle"] = os.fdopen(fds[0], "rb")
+            # Actions that open a file for writing (write_file) set _fd_mode so
+            # the fd is wrapped writable; reads default to "rb".
+            fd_mode = response.pop("_fd_mode", "rb")
+            response["_file_handle"] = os.fdopen(fds[0], fd_mode)
             for extra_fd in fds[1:]:
                 try:
                     os.close(extra_fd)

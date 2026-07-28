@@ -23,6 +23,34 @@ export type SimpleLoginResponse = {
   redirect?: string;
 };
 
+export type AllowedOrigins = {
+  origins: string[];
+};
+
+/**
+ * Fetches the cross-origin allowlist so the connect popup can verify the
+ * requesting app's origin before posting an auth result back to it.
+ */
+export const useAllowedOriginsQuery = () => {
+  const fetchAllowedOrigins = async ({
+    signal
+  }: QueryFunctionContext): Promise<AllowedOrigins> => {
+    return (await sendRequestAndThrowForNotOk(
+      '/api/auth/allowed-origins',
+      'GET',
+      undefined,
+      { signal }
+    )) as AllowedOrigins;
+  };
+
+  return useQuery<AllowedOrigins, Error>({
+    queryKey: ['auth', 'allowed-origins'],
+    queryFn: fetchAllowedOrigins,
+    staleTime: Infinity,
+    retry: false
+  });
+};
+
 export const useAuthStatusQuery = () => {
   const fetchAuthStatus = async ({
     signal
