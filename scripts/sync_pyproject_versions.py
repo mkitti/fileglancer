@@ -442,11 +442,19 @@ def sync_pyproject(text, render_fn):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument(
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
         "--unpin",
         action="store_true",
         help="Restore semver ranges instead of writing exact pins. Run this "
         "before `pixi update`; run again without --unpin afterward to re-pin.",
+    )
+    mode.add_argument(
+        "--check",
+        action="store_true",
+        help="Don't write anything -- exit non-zero if pyproject.toml doesn't "
+        "already match pixi.lock's exact versions. Used by the pypi-build "
+        "hatch hook to catch a forgotten `sync-pypi-versions` before publishing.",
     )
     args = parser.parse_args()
 
@@ -477,6 +485,12 @@ def main():
     if updated == original:
         print(nothing_to_do_message)
         return
+
+    if args.check:
+        print("pyproject.toml does not match pixi.lock. Run `pixi run sync-pypi-versions` and commit the result:", file=sys.stderr)
+        for section, name, old, new in changes:
+            print(f"  {section}: {name}: {old} -> {new}", file=sys.stderr)
+        return 1
 
     PYPROJECT.write_text(updated)
     print(f"{verb} {len(changes)} dependency spec(s) in pyproject.toml:")

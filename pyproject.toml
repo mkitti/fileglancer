@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling>=1.5.0", "hatch-nodejs-version>=0.3.2"]
+requires = ["hatchling>=1.5.0", "hatch-nodejs-version>=0.3.2", "pyyaml>=6"]
 build-backend = "hatchling.build"
 
 [project]
@@ -88,6 +88,9 @@ artifacts = [
 
 [tool.hatch.build.hooks.version]
 path = "fileglancer/_version.py"
+
+[tool.hatch.build.hooks.custom]
+path = "hatch_build.py"
 
 [tool.check-wheel-contents]
 ignore = ["W002"]
