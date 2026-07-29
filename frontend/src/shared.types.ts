@@ -200,7 +200,7 @@ type KnownJobStatus =
   | 'DONE'
   | 'FAILED'
   | 'KILLED'
-  | 'CANCELLED'
+  | 'STOPPED'
   | 'UNKNOWN';
 
 type JobStatus = KnownJobStatus | (string & {});
@@ -209,7 +209,7 @@ const TERMINAL_JOB_STATUSES = new Set<string>([
   'DONE',
   'FAILED',
   'KILLED',
-  'CANCELLED'
+  'STOPPED'
 ]);
 
 function isTerminalJobStatus(status?: string | null): boolean {

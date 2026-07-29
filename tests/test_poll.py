@@ -100,7 +100,7 @@ class TestPollSkipsSameStatus:
         # The poll skips jobs already terminal in the DB; the RUNNING job here
         # is not, so the write must still happen.
         mock_db.is_terminal_job_status.side_effect = lambda s: s in (
-            "DONE", "FAILED", "KILLED", "CANCELLED"
+            "DONE", "FAILED", "KILLED", "STOPPED"
         )
 
         # Worker returns DONE — different from DB's RUNNING
@@ -152,7 +152,7 @@ class TestPollDoesNotClobberTerminal:
     poll must not overwrite an already-terminal status with a stale result.
 
     Regression for a user cancel showing up as UNKNOWN — the poll wrote the
-    torn-down job's bjobs status (unmapped -> UNKNOWN) over the CANCELLED the
+    torn-down job's bjobs status (unmapped -> UNKNOWN) over the STOPPED the
     cancel had just committed."""
 
     @patch("fileglancer.apps.jobs._dispatch", new_callable=AsyncMock)
@@ -166,14 +166,14 @@ class TestPollDoesNotClobberTerminal:
         mock_db.get_db_session.return_value.__exit__ = MagicMock(return_value=False)
         mock_db.get_active_jobs.return_value = [job]
         mock_db.is_terminal_job_status.side_effect = lambda s: s in (
-            "DONE", "FAILED", "KILLED", "CANCELLED"
+            "DONE", "FAILED", "KILLED", "STOPPED"
         )
 
         # Simulate a user cancel landing during the bjobs round-trip: the job
-        # is finalized as CANCELLED while the poll awaits, and bjobs reports the
+        # is finalized as STOPPED while the poll awaits, and bjobs reports the
         # torn-down job with a status that maps to UNKNOWN.
         async def dispatch(username, action, **kwargs):
-            job.status = "CANCELLED"
+            job.status = "STOPPED"
             return {
                 "jobs": {
                     "1001": {

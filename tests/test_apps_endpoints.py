@@ -1041,17 +1041,35 @@ def test_cancel_running_job(test_client, db_session):
         response = test_client.post(f"/api/jobs/{job.id}/cancel")
 
     assert response.status_code == 200
-    # User-initiated cancel is recorded as CANCELLED (not KILLED), and asks the
-    # scheduler to mark the job done via done=True.
-    assert response.json()["status"] == "CANCELLED"
+    # A cancelled batch job is recorded as KILLED, same as always.
+    assert response.json()["status"] == "KILLED"
     assert response.json()["finished_at"] is not None
     assert dispatch.await_args.args[1] == "cancel"
+    assert dispatch.await_args.kwargs["done"] is False
+    db_session.expire_all()
+    assert get_job(db_session, job.id, TEST_USERNAME).status == "KILLED"
+
+
+def test_cancel_running_service(test_client, db_session):
+    job = _seed_job(db_session, status="RUNNING", entry_point_type="service",
+                    work_dir="/home/u/.fileglancer/jobs/1-Demo_App-run",
+                    cluster_job_id="lsf-1")
+    dispatch = AsyncMock(return_value={"status": "ok"})
+
+    with patch("fileglancer.apps.jobs._dispatch", new=dispatch):
+        response = test_client.post(f"/api/jobs/{job.id}/cancel")
+
+    assert response.status_code == 200
+    # A stopped service is recorded as STOPPED and asks the scheduler to mark
+    # the job done via done=True, since stopping it is a normal user action.
+    assert response.json()["status"] == "STOPPED"
+    assert response.json()["finished_at"] is not None
     assert dispatch.await_args.kwargs["done"] is True
     db_session.expire_all()
-    assert get_job(db_session, job.id, TEST_USERNAME).status == "CANCELLED"
+    assert get_job(db_session, job.id, TEST_USERNAME).status == "STOPPED"
 
 
-@pytest.mark.parametrize("status", ["DONE", "FAILED", "KILLED", "CANCELLED"])
+@pytest.mark.parametrize("status", ["DONE", "FAILED", "KILLED", "STOPPED"])
 def test_cancel_terminal_job_400(test_client, db_session, status):
     job = _seed_job(db_session, status=status)
 

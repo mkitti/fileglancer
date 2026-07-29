@@ -13,7 +13,7 @@ const STATUS_MAP: Record<string, StatusDisplay> = {
   DONE: { color: 'success', label: 'Done' },
   FAILED: { color: 'error', label: 'Failed' },
   KILLED: { color: 'warning', label: 'Killed' },
-  CANCELLED: { color: 'neutral', label: 'Cancelled' },
+  STOPPED: { color: 'neutral', label: 'Stopped' },
   UNKNOWN: { color: 'neutral', label: 'Unknown' }
 };
 

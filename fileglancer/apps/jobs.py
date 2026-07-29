@@ -330,9 +330,10 @@ async def _poll_jobs(settings):
             if info is None:
                 continue
             # Never overwrite a job that has already reached a terminal status.
-            # A cancel may have finalized it as CANCELLED mid-cycle, and bjobs
-            # can briefly report a torn-down job with an unmapped status that
-            # maps to UNKNOWN — clobbering the cancel with a spurious UNKNOWN.
+            # A cancel may have finalized it as KILLED/STOPPED mid-cycle, and
+            # bjobs can briefly report a torn-down job with an unmapped status
+            # that maps to UNKNOWN — clobbering the cancel with a spurious
+            # UNKNOWN.
             if db.is_terminal_job_status(db_job.status):
                 continue
             new_status = info["status"].upper()
@@ -1119,30 +1120,33 @@ async def cancel_job(job_id: int, username: str) -> db.JobDB:
         if db.is_terminal_job_status(db_job.status):
             raise ValueError(f"Job {job_id} is not cancellable (status: {db_job.status})")
 
+        is_service = getattr(db_job, "entry_point_type", "job") == "service"
+
         # Stop the running job as the target user via py-cluster-api. The
         # executor cancels by job id (LSF: bkill; local: kill the process
-        # group by PID — the local job id IS the leader PID). done=True asks
-        # the scheduler to record the job as DONE rather than a signalled kill
-        # (LSF: bkill -d), so a user-cancelled job isn't reported as a failure.
-        # cancel() raises if it can't confirm termination, so a failure
-        # propagates here and we never fall through to the status update below.
+        # group by PID — the local job id IS the leader PID). For a service,
+        # done=True asks the scheduler to record it as DONE rather than a
+        # signalled kill (LSF: bkill -d), since stopping a service is a normal
+        # user action, not a failure. A batch job is cancelled the same way it
+        # always was (plain bkill). cancel() raises if it can't confirm
+        # termination, so a failure propagates here and we never fall through
+        # to the status update below.
         if db_job.cluster_job_id:
             cluster_config = settings.cluster.model_dump(exclude_none=True)
             await _dispatch(
                 username, "cancel",
                 cluster_config=cluster_config,
                 job_id=db_job.cluster_job_id,
-                done=True,
+                done=is_service,
             )
 
-        # Record it as CANCELLED in our own DB. This is Fileglancer's status,
-        # independent of what the scheduler logs: a user-initiated stop is a
-        # cancellation, distinct from a job the scheduler killed (KILLED) or
-        # that exited on its own (DONE/FAILED).
+        # Services are marked STOPPED (a deliberate shutdown); batch jobs keep
+        # the long-standing KILLED status.
+        new_status = "STOPPED" if is_service else "KILLED"
         now = datetime.now(UTC)
-        db.update_job_status(session, db_job.id, "CANCELLED", finished_at=now)
+        db.update_job_status(session, db_job.id, new_status, finished_at=now)
         db_job = db.get_job(session, db_job.id, username)
         session.expunge(db_job)
 
-    logger.info(f"Job {job_id} cancelled by user {username}")
+    logger.info(f"Job {job_id} {'stopped' if is_service else 'killed'} by user {username}")
     return db_job
