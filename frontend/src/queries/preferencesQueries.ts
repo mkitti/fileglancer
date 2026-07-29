@@ -17,7 +17,8 @@ import type {
   ZonePreference,
   FileSharePathPreference,
   FolderPreference,
-  FolderFavorite
+  FolderFavorite,
+  ViewerUrlSources
 } from '@/contexts/PreferencesContext';
 import {
   getResponseJsonOrError,
@@ -37,6 +38,7 @@ type PreferencesApiResponse = {
   disableNeuroglancerStateGeneration?: { value: boolean };
   disableHeuristicalLayerTypeDetection?: { value: boolean };
   useLegacyMultichannelApproach?: { value: boolean };
+  viewerUrlSources?: { value: ViewerUrlSources };
   isFilteredByGroups?: { value: boolean };
   showTutorial?: { value: boolean };
   defaultExtraArgs?: { value: string };
@@ -70,6 +72,7 @@ export type PreferencesQueryData = {
   disableNeuroglancerStateGeneration: boolean;
   disableHeuristicalLayerTypeDetection: boolean;
   useLegacyMultichannelApproach: boolean;
+  viewerUrlSources: ViewerUrlSources;
   isFilteredByGroups: boolean;
   showTutorial: boolean;
   defaultExtraArgs: string;
@@ -242,6 +245,7 @@ const createTransformPreferences = (
         rawData.disableHeuristicalLayerTypeDetection?.value || false,
       useLegacyMultichannelApproach:
         rawData.useLegacyMultichannelApproach?.value || false,
+      viewerUrlSources: rawData.viewerUrlSources?.value || {},
       isFilteredByGroups: rawData.isFilteredByGroups?.value ?? true,
       showTutorial: rawData.showTutorial?.value ?? true,
       defaultExtraArgs: rawData.defaultExtraArgs?.value || '',

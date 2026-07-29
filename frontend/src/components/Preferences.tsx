@@ -29,8 +29,16 @@ export default function Preferences() {
             <Typography className="font-semibold mb-4" type="lead">
               Data links
             </Typography>
-            <div className="flex flex-col gap-4 pl-4 max-w-md">
+            <div className="pl-4 max-w-md">
               <DataLinkOptions />
+            </div>
+          </div>
+
+          <div>
+            <Typography className="font-semibold mb-4" type="lead">
+              Neuroglancer links
+            </Typography>
+            <div className="pl-4 max-w-md">
               <NeuroglancerOptions />
             </div>
           </div>

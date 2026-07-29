@@ -74,7 +74,7 @@ export default function DataLinkOptions({
   };
 
   return (
-    <>
+    <div className="space-y-4">
       <FgSwitch
         checked={automaticOption.checked}
         id={automaticOption.id}
@@ -83,6 +83,6 @@ export default function DataLinkOptions({
         showState
       />
       {hideSubpathMode ? null : <SubpathModeOptions />}
-    </>
+    </div>
   );
 }
