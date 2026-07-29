@@ -967,8 +967,10 @@ def test_get_jobs_lists_and_filters_by_status(test_client, db_session):
 
 
 def test_get_active_job_count(test_client, db_session):
-    """The badge count endpoint counts non-terminal jobs only. UNKNOWN is
-    active (see get_active_jobs); DONE/FAILED/KILLED are terminal."""
+    """The badge count endpoint counts running/pending jobs only. UNKNOWN
+    doesn't count here (unlike get_active_jobs's polling/delete guard) since
+    the scheduler can't confirm it's actually running; DONE/FAILED/KILLED are
+    terminal."""
     _seed_job(db_session, status="DONE")
     _seed_job(db_session, status="FAILED")
     _seed_job(db_session, status="PENDING")
@@ -978,7 +980,7 @@ def test_get_active_job_count(test_client, db_session):
     response = test_client.get("/api/jobs/active-count")
 
     assert response.status_code == 200
-    assert response.json() == {"count": 3}
+    assert response.json() == {"count": 2}
 
 
 def test_get_jobs_listing_skips_service_url_resolution(test_client, db_session, temp_dir):

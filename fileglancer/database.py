@@ -1060,9 +1060,16 @@ def update_job(session: Session, job_id: int, username: str,
 
 
 def count_active_jobs_by_username(session: Session, username: str) -> int:
-    """Count a user's jobs that are not known-terminal (see get_active_jobs)."""
+    """Count a user's jobs that are running/pending, for the header badge.
+
+    Unlike get_active_jobs (used for polling/delete guards, where UNKNOWN
+    must stay "active" so a possibly-live job is never dropped), UNKNOWN jobs
+    don't count here — the scheduler can't currently confirm they're
+    running, so the badge shouldn't claim they are.
+    """
     return session.query(JobDB).filter_by(username=username).filter(
-        ~JobDB.status.in_(TERMINAL_JOB_STATUSES)
+        ~JobDB.status.in_(TERMINAL_JOB_STATUSES),
+        JobDB.status != "UNKNOWN",
     ).count()
 
 
