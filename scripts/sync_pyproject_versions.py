@@ -12,10 +12,22 @@ platform/Python-version combo -- the dependency is split into multiple PEP
 markers, one per distinct version, so both `pip install` and pixi stay
 satisfiable everywhere pixi.lock covers.
 
-Run directly (`python scripts/sync_pyproject_versions.py`) or via
-`pixi run sync-pypi-versions`.
+Because these pins become part of the editable `fileglancer` package's own
+metadata, pixi feeds them back into its own solve on every `pixi update` --
+an exact pin can't move, and can even make `pixi update` fail outright if a
+conda-resolved version has since diverged from it. Run with `--unpin` first
+to restore semver ranges (from the matching [tool.pixi.*] table, or from
+[tool.sync-pypi-versions.ranges] for PyPI-only packages with no such table),
+run `pixi update`, then run again without `--unpin` to re-pin to the new
+pixi.lock:
+
+    pixi run unpin-pypi-versions && pixi update && pixi run sync-pypi-versions
+
+Run directly (`python scripts/sync_pyproject_versions.py [--unpin]`) or via
+`pixi run sync-pypi-versions` / `pixi run unpin-pypi-versions`.
 """
 
+import argparse
 import re
 import sys
 import tomllib
@@ -45,6 +57,17 @@ TARGETS = {
     ("project.optional-dependencies", "release"): "release",
     ("dependency-groups", "release"): "release",
 }
+
+# pyproject.toml (table, array key) -> the [tool.pixi(.feature.<name>)?.dependencies]
+# table (as a dotted-path tuple) whose ranges --unpin should restore from.
+MIRROR_TABLE_FOR_TARGET = {
+    ("project", "dependencies"): ("tool", "pixi", "dependencies"),
+    ("project.optional-dependencies", "test"): ("tool", "pixi", "feature", "test", "dependencies"),
+    ("project.optional-dependencies", "release"): ("tool", "pixi", "feature", "release", "dependencies"),
+    ("dependency-groups", "release"): ("tool", "pixi", "feature", "release", "dependencies"),
+}
+# Fallback source of ranges for PyPI-only packages with no [tool.pixi.*] mirror.
+EXTRA_RANGES_TABLE = ("tool", "sync-pypi-versions", "ranges")
 
 HEADER_RE = re.compile(r"^\[(?P<table>[^\]]+)\]\s*$")
 ARRAY_START_RE = re.compile(r"^(?P<key>[A-Za-z_][A-Za-z0-9_-]*)\s*=\s*\[\s*$")
@@ -267,7 +290,68 @@ def render_pins(ctx, name, extras, table, key, changes, old_spec_display):
     return new_text
 
 
-def sync_pyproject(text, ctx):
+def get_nested_table(data, path):
+    node = data
+    for part in path:
+        if not isinstance(node, dict) or part not in node:
+            return {}
+        node = node[part]
+    return node if isinstance(node, dict) else {}
+
+
+def range_spec_from_value(value):
+    """[tool.pixi(.feature.*)?.dependencies] entries are usually a plain
+    range string, but pixi also allows `{ version = "...", ... }`."""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        return value.get("version")
+    return None
+
+
+class RangesContext:
+    """Where --unpin restores each dependency's semver range from."""
+
+    def __init__(self, pyproject_text):
+        data = tomllib.loads(pyproject_text)
+
+        self.mirror_ranges = {}  # dotted-path tuple -> {normalized_name: range_spec}
+        for path in set(MIRROR_TABLE_FOR_TARGET.values()):
+            table = get_nested_table(data, path)
+            self.mirror_ranges[path] = {
+                normalize(name): range_spec_from_value(value)
+                for name, value in table.items()
+                if range_spec_from_value(value)
+            }
+
+        extra_table = get_nested_table(data, EXTRA_RANGES_TABLE)
+        self.extra_ranges = {normalize(name): value for name, value in extra_table.items() if isinstance(value, str)}
+
+    def range_for(self, name, table, key):
+        """The range to restore `name` to, or None for "no constraint"."""
+        normalized = normalize(name)
+        mirror_path = MIRROR_TABLE_FOR_TARGET[(table, key)]
+        range_spec = self.mirror_ranges.get(mirror_path, {}).get(normalized)
+        if range_spec is None:
+            range_spec = self.extra_ranges.get(normalized)
+        return range_spec
+
+
+def render_unpin(ranges_ctx, name, extras, table, key, changes, old_spec_display):
+    range_spec = ranges_ctx.range_for(name, table, key)
+    if range_spec:
+        new_text = f'"{name}{extras} {range_spec}"'
+        new_display = f"{name}{extras} {range_spec}"
+    else:
+        new_text = f'"{name}{extras}"'
+        new_display = "(unpinned)"
+
+    if new_display != old_spec_display:
+        changes.append((f"[{table}] {key}", name, old_spec_display, new_display))
+    return new_text
+
+
+def sync_pyproject(text, render_fn):
     lines = text.splitlines(keepends=True)
     out = []
     current_table = None
@@ -305,14 +389,14 @@ def sync_pyproject(text, ctx):
                 name_key = normalize(name)
                 if name_key in seen_names:
                     # a leftover line from a previous run's marker split of this
-                    # same package (see render_pins) -- drop it, already handled.
+                    # same package (see render_pins/render_unpin) -- drop it, already handled.
                     i += 1
                     continue
                 seen_names.add(name_key)
 
                 extras = dep_match.group("extras") or ""
                 old_spec_display = (dep_match.group("spec") or "").strip() or "(unpinned)"
-                new_text = render_pins(ctx, name, extras, current_table, key, changes, old_spec_display)
+                new_text = render_fn(name, extras, current_table, key, changes, old_spec_display)
 
                 items = new_text.split(", ")
                 indent = dep_match.group("indent")
@@ -338,13 +422,13 @@ def sync_pyproject(text, ctx):
                 name_key = normalize(name)
                 if name_key in seen_names:
                     # a leftover item from a previous run's marker split of this
-                    # same package (see render_pins) -- drop it, already handled.
+                    # same package (see render_pins/render_unpin) -- drop it, already handled.
                     continue
                 seen_names.add(name_key)
 
                 extras = dep_match.group("extras") or ""
                 old_spec_display = (dep_match.group("spec") or "").strip() or "(unpinned)"
-                parts.append(render_pins(ctx, name, extras, current_table, key, changes, old_spec_display))
+                parts.append(render_fn(name, extras, current_table, key, changes, old_spec_display))
 
             out.append(f"{key} = [{', '.join(parts)}]\n")
             i += 1
@@ -357,22 +441,45 @@ def sync_pyproject(text, ctx):
 
 
 def main():
-    lock = yaml.safe_load(PIXI_LOCK.read_text())
-    original = PYPROJECT.read_text()
-    ctx = Context(lock, original)
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument(
+        "--unpin",
+        action="store_true",
+        help="Restore semver ranges instead of writing exact pins. Run this "
+        "before `pixi update`; run again without --unpin afterward to re-pin.",
+    )
+    args = parser.parse_args()
 
-    updated, changes = sync_pyproject(original, ctx)
+    original = PYPROJECT.read_text()
+
+    if args.unpin:
+        ranges_ctx = RangesContext(original)
+        render_fn = lambda name, extras, table, key, changes, old: render_unpin(  # noqa: E731
+            ranges_ctx, name, extras, table, key, changes, old
+        )
+        nothing_to_do_message = "pyproject.toml already uses semver ranges; nothing to do."
+        verb = "Restored"
+    else:
+        lock = yaml.safe_load(PIXI_LOCK.read_text())
+        ctx = Context(lock, original)
+        render_fn = lambda name, extras, table, key, changes, old: render_pins(  # noqa: E731
+            ctx, name, extras, table, key, changes, old
+        )
+        nothing_to_do_message = "pyproject.toml already matches pixi.lock; nothing to do."
+        verb = "Updated"
+
+    updated, changes = sync_pyproject(original, render_fn)
 
     # Compare final text, not just the internal `changes` log: a name that was
     # already split across multiple marker-qualified lines by a previous run
     # is recomputed (and looks "changed" per-line) even when nothing actually
     # needs to change.
     if updated == original:
-        print("pyproject.toml already matches pixi.lock; nothing to do.")
+        print(nothing_to_do_message)
         return
 
     PYPROJECT.write_text(updated)
-    print(f"Updated {len(changes)} dependency pin(s) in pyproject.toml:")
+    print(f"{verb} {len(changes)} dependency spec(s) in pyproject.toml:")
     for section, name, old, new in changes:
         print(f"  {section}: {name} {old} -> {new}")
 

@@ -135,6 +135,8 @@ test-py312 = ["test", "py312"]
 
 [tool.pixi.tasks]
 sync-pypi-versions = "python scripts/sync_pyproject_versions.py"
+unpin-pypi-versions = "python scripts/sync_pyproject_versions.py --unpin"
+bump-pypi-versions = "python scripts/sync_pyproject_versions.py --unpin && pixi update && python scripts/sync_pyproject_versions.py"
 pip-install = { cmd = "pixi reinstall fileglancer" }
 pip-uninstall = { cmd = "pixi clean" }
 node-install = "cd frontend && npm install"
@@ -199,6 +201,15 @@ uvicorn = ">=0.38.0,<0.39"
 
 [tool.pixi.pypi-dependencies]
 fileglancer = { path = ".", editable = true }
+
+# Semver ranges scripts/sync_pyproject_versions.py restores via `--unpin` (run
+# before `pixi update`, so it has room to move) for PyPI-only packages that
+# have no [tool.pixi.*] conda mirror to restore a range from. Not read by
+# pixi or pip -- sync_pyproject_versions.py is the only consumer.
+[tool.sync-pypi-versions.ranges]
+x2s3 = ">=1.3.0,<2"
+py-cluster-api = ">=0.7.0,<0.8"
+build = ">=1.3.0,<2"
 
 [dependency-groups]
 release = ["build ==1.5.0"]
