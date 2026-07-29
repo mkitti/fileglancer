@@ -1062,16 +1062,17 @@ def test_cancel_running_service(test_client, db_session):
         response = test_client.post(f"/api/jobs/{job.id}/cancel")
 
     assert response.status_code == 200
-    # A stopped service is recorded as STOPPED and asks the scheduler to mark
-    # the job done via done=True, since stopping it is a normal user action.
-    assert response.json()["status"] == "STOPPED"
+    # A stopped service is recorded as DONE, same as any completed pipeline,
+    # and asks the scheduler to mark the job done via done=True, since
+    # stopping it is a normal user action.
+    assert response.json()["status"] == "DONE"
     assert response.json()["finished_at"] is not None
     assert dispatch.await_args.kwargs["done"] is True
     db_session.expire_all()
-    assert get_job(db_session, job.id, TEST_USERNAME).status == "STOPPED"
+    assert get_job(db_session, job.id, TEST_USERNAME).status == "DONE"
 
 
-@pytest.mark.parametrize("status", ["DONE", "FAILED", "KILLED", "STOPPED"])
+@pytest.mark.parametrize("status", ["DONE", "FAILED", "KILLED"])
 def test_cancel_terminal_job_400(test_client, db_session, status):
     job = _seed_job(db_session, status=status)
 

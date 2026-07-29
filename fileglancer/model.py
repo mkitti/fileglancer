@@ -915,7 +915,7 @@ class Job(BaseModel):
         description="Environment-tab parameter values (separate namespace from parameters)",
         default=None,
     )
-    status: str = Field(description="Job status (PENDING, RUNNING, UNKNOWN, DONE, FAILED, KILLED, STOPPED)")
+    status: str = Field(description="Job status (PENDING, RUNNING, UNKNOWN, DONE, FAILED, KILLED)")
     exit_code: Optional[int] = Field(description="Exit code of the job", default=None)
     resources: Optional[Dict] = Field(description="Requested resources", default=None)
     env: Optional[Dict[str, str]] = Field(description="Environment variables used for the job", default=None)

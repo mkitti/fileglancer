@@ -1061,7 +1061,6 @@ def _run_ui(stdscr, state: SharedState, ui: UIContext, meta: dict):
         "DONE": C_CYAN,
         "FAILED": C_RED | curses.A_BOLD,
         "KILLED": C_MAGENTA,
-        "STOPPED": C_MAGENTA,
         "UNKNOWN": C_RED,
     }
     KIND_ATTRS = {

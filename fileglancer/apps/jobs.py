@@ -330,7 +330,7 @@ async def _poll_jobs(settings):
             if info is None:
                 continue
             # Never overwrite a job that has already reached a terminal status.
-            # A cancel may have finalized it as KILLED/STOPPED mid-cycle, and
+            # A cancel may have finalized it as KILLED/DONE mid-cycle, and
             # bjobs can briefly report a torn-down job with an unmapped status
             # that maps to UNKNOWN — clobbering the cancel with a spurious
             # UNKNOWN.
@@ -1140,9 +1140,10 @@ async def cancel_job(job_id: int, username: str) -> db.JobDB:
                 done=is_service,
             )
 
-        # Services are marked STOPPED (a deliberate shutdown); batch jobs keep
-        # the long-standing KILLED status.
-        new_status = "STOPPED" if is_service else "KILLED"
+        # A stopped service is marked DONE, same as any other completed
+        # pipeline (it matches the DONE the scheduler itself recorded via
+        # done=True above). Batch jobs keep the long-standing KILLED status.
+        new_status = "DONE" if is_service else "KILLED"
         now = datetime.now(UTC)
         db.update_job_status(session, db_job.id, new_status, finished_at=now)
         db_job = db.get_job(session, db_job.id, username)
