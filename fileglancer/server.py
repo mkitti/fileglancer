@@ -2462,7 +2462,7 @@ def create_app(settings):
             return JobResponse(jobs=[_convert_job(j) for j in db_jobs])
 
     @app.get("/api/jobs/active-count", response_model=JobActiveCountResponse,
-             description="Count the user's active (non-terminal) jobs")
+             description="Count the user's pending/running jobs (UNKNOWN excluded)")
     async def get_active_job_count(username: str = Depends(get_current_user)):
         # The navbar badge polls this from every page, so it must stay a
         # cheap DB count: no service-URL resolution or worker round-trips

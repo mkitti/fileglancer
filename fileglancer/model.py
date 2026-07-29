@@ -1043,5 +1043,5 @@ class JobResponse(BaseModel):
 
 
 class JobActiveCountResponse(BaseModel):
-    """Response containing the number of active (non-terminal) jobs"""
+    """Response containing the number of pending/running jobs (UNKNOWN excluded)"""
     count: int = Field(description="Number of active jobs")
