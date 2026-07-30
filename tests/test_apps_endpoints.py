@@ -967,8 +967,10 @@ def test_get_jobs_lists_and_filters_by_status(test_client, db_session):
 
 
 def test_get_active_job_count(test_client, db_session):
-    """The badge count endpoint counts non-terminal jobs only. UNKNOWN is
-    active (see get_active_jobs); DONE/FAILED/KILLED are terminal."""
+    """The badge count endpoint counts running/pending jobs only. UNKNOWN
+    doesn't count here (unlike get_active_jobs's polling/delete guard) since
+    the scheduler can't confirm it's actually running; DONE/FAILED/KILLED are
+    terminal."""
     _seed_job(db_session, status="DONE")
     _seed_job(db_session, status="FAILED")
     _seed_job(db_session, status="PENDING")
@@ -978,7 +980,7 @@ def test_get_active_job_count(test_client, db_session):
     response = test_client.get("/api/jobs/active-count")
 
     assert response.status_code == 200
-    assert response.json() == {"count": 3}
+    assert response.json() == {"count": 2}
 
 
 def test_get_jobs_listing_skips_service_url_resolution(test_client, db_session, temp_dir):
@@ -1033,20 +1035,41 @@ def test_cancel_running_job(test_client, db_session):
     job = _seed_job(db_session, status="RUNNING",
                     work_dir="/home/u/.fileglancer/jobs/1-Demo_App-run",
                     cluster_job_id="lsf-1")
-    # The worker action differs by executor (cancel_local vs cancel); the mock
-    # result satisfies both, so this test is independent of any developer
-    # config.yaml that deep-merges an executor into Settings.
-    dispatch = AsyncMock(return_value={"terminated": True})
+    # All executors cancel through the single "cancel" worker action, which
+    # delegates to py-cluster-api's executor.cancel(job_id).
+    dispatch = AsyncMock(return_value={"status": "ok"})
 
     with patch("fileglancer.apps.jobs._dispatch", new=dispatch):
         response = test_client.post(f"/api/jobs/{job.id}/cancel")
 
     assert response.status_code == 200
+    # A cancelled batch job is recorded as KILLED, same as always.
     assert response.json()["status"] == "KILLED"
     assert response.json()["finished_at"] is not None
-    assert dispatch.await_args.args[1] in ("cancel_local", "cancel")
+    assert dispatch.await_args.args[1] == "cancel"
+    assert dispatch.await_args.kwargs["done"] is False
     db_session.expire_all()
     assert get_job(db_session, job.id, TEST_USERNAME).status == "KILLED"
+
+
+def test_cancel_running_service(test_client, db_session):
+    job = _seed_job(db_session, status="RUNNING", entry_point_type="service",
+                    work_dir="/home/u/.fileglancer/jobs/1-Demo_App-run",
+                    cluster_job_id="lsf-1")
+    dispatch = AsyncMock(return_value={"status": "ok"})
+
+    with patch("fileglancer.apps.jobs._dispatch", new=dispatch):
+        response = test_client.post(f"/api/jobs/{job.id}/cancel")
+
+    assert response.status_code == 200
+    # A stopped service is recorded as DONE, same as any completed pipeline,
+    # and asks the scheduler to mark the job done via done=True, since
+    # stopping it is a normal user action.
+    assert response.json()["status"] == "DONE"
+    assert response.json()["finished_at"] is not None
+    assert dispatch.await_args.kwargs["done"] is True
+    db_session.expire_all()
+    assert get_job(db_session, job.id, TEST_USERNAME).status == "DONE"
 
 
 @pytest.mark.parametrize("status", ["DONE", "FAILED", "KILLED"])

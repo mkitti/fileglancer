@@ -317,10 +317,24 @@ async def _poll_jobs(settings):
 
         polled_jobs = result.get("jobs", {})
 
+        # End the read transaction opened at the top of this cycle so the reads
+        # below observe status changes that a concurrent writer committed while
+        # bjobs was in flight (rows are expired by the commit and reloaded on
+        # access). A user cancel takes seconds to round-trip through the worker,
+        # which is exactly the window this poll spent awaiting bjobs.
+        session.commit()
+
         # Update DB with polled statuses
         for db_job in jobs_to_poll:
             info = polled_jobs.get(db_job.cluster_job_id)
             if info is None:
+                continue
+            # Never overwrite a job that has already reached a terminal status.
+            # A cancel may have finalized it as KILLED/DONE mid-cycle, and
+            # bjobs can briefly report a torn-down job with an unmapped status
+            # that maps to UNKNOWN — clobbering the cancel with a spurious
+            # UNKNOWN.
+            if db.is_terminal_job_status(db_job.status):
                 continue
             new_status = info["status"].upper()
             old_status = db_job.status
@@ -1106,35 +1120,34 @@ async def cancel_job(job_id: int, username: str) -> db.JobDB:
         if db.is_terminal_job_status(db_job.status):
             raise ValueError(f"Job {job_id} is not cancellable (status: {db_job.status})")
 
-        # Actually stop the running job as the target user. The local executor
-        # spawns a bash subprocess (plus its child workload) whose PID a fresh
-        # executor can't reach, so kill it and its whole process tree by the
-        # PID persisted in its work dir; other executors (LSF, ...) cancel by
-        # cluster job id via py-cluster-api.
-        if settings.cluster.executor == "local":
-            if db_job.work_dir:
-                result = await _dispatch(
-                    username, "cancel_local", work_dir=db_job.work_dir)
-                # Only record KILLED once the workload is confirmed gone —
-                # otherwise we'd report success while the job keeps running.
-                if not (result or {}).get("terminated", False):
-                    raise ValueError(
-                        f"Could not confirm job {job_id} was stopped; it may "
-                        f"still be running. Try again."
-                    )
-        elif db_job.cluster_job_id:
+        is_service = getattr(db_job, "entry_point_type", "job") == "service"
+
+        # Stop the running job as the target user via py-cluster-api. The
+        # executor cancels by job id (LSF: bkill; local: kill the process
+        # group by PID — the local job id IS the leader PID). For a service,
+        # done=True asks the scheduler to record it as DONE rather than a
+        # signalled kill (LSF: bkill -d), since stopping a service is a normal
+        # user action, not a failure. A batch job is cancelled the same way it
+        # always was (plain bkill). cancel() raises if it can't confirm
+        # termination, so a failure propagates here and we never fall through
+        # to the status update below.
+        if db_job.cluster_job_id:
             cluster_config = settings.cluster.model_dump(exclude_none=True)
             await _dispatch(
                 username, "cancel",
                 cluster_config=cluster_config,
                 job_id=db_job.cluster_job_id,
+                done=is_service,
             )
 
-        # Update DB
+        # A stopped service is marked DONE, same as any other completed
+        # pipeline (it matches the DONE the scheduler itself recorded via
+        # done=True above). Batch jobs keep the long-standing KILLED status.
+        new_status = "DONE" if is_service else "KILLED"
         now = datetime.now(UTC)
-        db.update_job_status(session, db_job.id, "KILLED", finished_at=now)
+        db.update_job_status(session, db_job.id, new_status, finished_at=now)
         db_job = db.get_job(session, db_job.id, username)
         session.expunge(db_job)
 
-    logger.info(f"Job {job_id} cancelled by user {username}")
+    logger.info(f"Job {job_id} {'stopped' if is_service else 'killed'} by user {username}")
     return db_job
