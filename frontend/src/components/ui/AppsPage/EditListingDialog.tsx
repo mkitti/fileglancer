@@ -12,7 +12,6 @@ import {
   buildAppUrl,
   buildGithubUrl,
   isGithubRepoUrl,
-  manifestPathInfo,
   parseGithubUrl
 } from '@/utils';
 import type { AppListing } from '@/shared.types';
@@ -112,10 +111,14 @@ export default function EditListingDialog({
     }
   };
 
-  // Not linked to GitHub like on the detail page: the revision (and thus the
-  // link target) may be about to change.
-  const manifestLabel = listing
-    ? manifestPathInfo(listing.manifest_path).label
+  // The exact manifest filename isn't known here (auto-detected projects use
+  // e.g. nextflow_schema.json or pixi.toml), so name only the manifest
+  // directory, and only when it isn't the repo root.
+  const manifestDir = listing
+    ? listing.manifest_path
+        .trim()
+        .replace(/^\.?\//, '')
+        .replace(/\/+$/, '')
     : '';
 
   return (
@@ -124,8 +127,14 @@ export default function EditListingDialog({
         Edit Listing
       </Typography>
       <Typography className="mb-4 text-foreground text-sm">
-        Changing the repository or revision re-validates that the app manifest{' '}
-        <code>{manifestLabel}</code> still exists there.
+        Changing the repository or revision re-validates that the app manifest
+        {manifestDir ? (
+          <>
+            {' '}
+            in <code>./{manifestDir}/</code>
+          </>
+        ) : null}{' '}
+        still exists there.
       </Typography>
 
       <FgFormField

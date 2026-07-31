@@ -51,6 +51,7 @@ View the app at http://localhost:7878
 |---------|-------------|
 | `pixi run dev-install` | Build frontend and install Python package |
 | `pixi run dev-launch` | Start dev server on port 7878 with auto-reload |
+| `pixi run debug-launch` | Job-system debug TUI (same as `fileglancer debug`) |
 | `pixi run dev-watch` | Watch frontend for changes and rebuild |
 | `pixi run node-install` | Install frontend npm dependencies |
 | `pixi run node-build` | Build frontend |

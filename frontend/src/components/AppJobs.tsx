@@ -45,6 +45,7 @@ export default function AppJobs() {
         env_parameters: job.env_parameters,
         resources: job.resources,
         env: job.env,
+        clean_env: job.clean_env,
         pre_run: job.pre_run,
         post_run: job.post_run,
         container: job.container,
@@ -107,6 +108,7 @@ export default function AppJobs() {
         dataType="jobs"
         errorState={jobsQuery.error}
         gridColsClass="grid-cols-[2fr_2fr_1fr_2fr_1fr_1fr]"
+        initialPageSize={50}
         loadingState={jobsQuery.isPending}
       />
 

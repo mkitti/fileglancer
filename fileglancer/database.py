@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, UTC
 import os
 from functools import lru_cache
 
-from sqlalchemy import create_engine, Column, String, Integer, DateTime, JSON, UniqueConstraint
+from sqlalchemy import create_engine, Boolean, Column, String, Integer, DateTime, JSON, UniqueConstraint
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.pool import StaticPool
@@ -160,6 +160,9 @@ class JobDB(Base):
     exit_code = Column(Integer, nullable=True)
     resources = Column(JSON, nullable=True)
     env = Column(JSON, nullable=True)
+    # When True the job ran in a clean shell (minimal constructed
+    # environment); when False/NULL it ran under the user's login shell.
+    clean_env = Column(Boolean, nullable=True)
     pre_run = Column(String, nullable=True)
     post_run = Column(String, nullable=True)
     container = Column(String, nullable=True)
@@ -988,7 +991,8 @@ def create_job(session: Session, username: str, app_url: str, app_name: str,
                conda_env: Optional[str] = None,
                requirements: Optional[List[str]] = None,
                commit_sha: Optional[str] = None,
-               code_repo_url: Optional[str] = None) -> JobDB:
+               code_repo_url: Optional[str] = None,
+               clean_env: bool = False) -> JobDB:
     """Create a new job record"""
     now = datetime.now(UTC)
     job = JobDB(
@@ -1003,6 +1007,7 @@ def create_job(session: Session, username: str, app_url: str, app_name: str,
         env_parameters=env_parameters,
         resources=resources,
         env=env,
+        clean_env=clean_env,
         pre_run=pre_run,
         post_run=post_run,
         container=container,
@@ -1032,6 +1037,13 @@ def get_jobs_by_username(session: Session, username: str, status: Optional[str] 
 def get_job(session: Session, job_id: int, username: str) -> Optional[JobDB]:
     """Get a single job by ID and username"""
     return session.query(JobDB).filter_by(id=job_id, username=username).first()
+
+
+def count_active_jobs_by_username(session: Session, username: str) -> int:
+    """Count a user's jobs that are not known-terminal (see get_active_jobs)."""
+    return session.query(JobDB).filter_by(username=username).filter(
+        ~JobDB.status.in_(TERMINAL_JOB_STATUSES)
+    ).count()
 
 
 def get_active_jobs(session: Session) -> List[JobDB]:

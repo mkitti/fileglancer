@@ -25,6 +25,7 @@ export const clusterDefaultsQueryKeys = {
 export const jobsQueryKeys = {
   all: ['cluster-jobs'] as const,
   list: () => ['cluster-jobs', 'list'] as const,
+  activeCount: () => ['cluster-jobs', 'active-count'] as const,
   detail: (id: number) => ['cluster-jobs', 'detail', id] as const
 };
 
@@ -55,6 +56,20 @@ async function fetchJobs(signal?: AbortSignal): Promise<Job[]> {
     throwResponseNotOkError(response, data);
   }
   return (data as { jobs: Job[] }).jobs;
+}
+
+async function fetchActiveJobCount(signal?: AbortSignal): Promise<number> {
+  const response = await sendFetchRequest(
+    '/api/jobs/active-count',
+    'GET',
+    undefined,
+    { signal }
+  );
+  const data = await getResponseJsonOrError(response);
+  if (!response.ok) {
+    throwResponseNotOkError(response, data);
+  }
+  return (data as { count: number }).count;
 }
 
 async function fetchJob(jobId: number, signal?: AbortSignal): Promise<Job> {
@@ -118,6 +133,20 @@ export function useJobsQuery(): UseQueryResult<Job[], Error> {
       }
       const hasActive = jobs.some(j => isActiveJobStatus(j.status));
       return hasActive ? 5000 : false;
+    }
+  });
+}
+
+export function useActiveJobCountQuery(): UseQueryResult<number, Error> {
+  return useQuery({
+    queryKey: jobsQueryKeys.activeCount(),
+    queryFn: ({ signal }) => fetchActiveJobCount(signal),
+    // Auto-refresh every 5 seconds while any job is active, like the full
+    // listing. Submit/cancel/delete mutations invalidate this via the shared
+    // 'cluster-jobs' key prefix, so an idle badge still picks up new jobs.
+    refetchInterval: query => {
+      const count = query.state.data;
+      return count && count > 0 ? 5000 : false;
     }
   });
 }

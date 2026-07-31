@@ -2314,6 +2314,7 @@ def create_app(settings):
                 extra_args=body.extra_args,
                 manifest_path=body.manifest_path,
                 env=body.env,
+                clean_env=body.clean_env,
                 pre_run=body.pre_run,
                 post_run=body.post_run,
                 container=body.container,
@@ -2334,39 +2335,23 @@ def create_app(settings):
              description="List the user's jobs")
     async def get_jobs(status: Optional[str] = Query(None, description="Filter by status"),
                        username: str = Depends(get_current_user)):
+        # Pure DB read: service_url/phase are only shown on the job detail
+        # page, and the single-job endpoint below resolves them itself, so the
+        # listing skips that worker round-trip (it reads work-dir files over
+        # NFS and this endpoint is polled every few seconds).
         with db.get_db_session(settings.db_url) as session:
             db_jobs = db.get_jobs_by_username(session, username, status)
-            # Read service_url/phase for all running service jobs in a single
-            # worker round-trip. This endpoint is polled every few seconds and
-            # the worker executes one action at a time, so dispatching per job
-            # would serially block the worker (and the user's file browsing)
-            # once several services are running.
-            running_services = [
-                j for j in db_jobs
-                if getattr(j, 'entry_point_type', 'job') == 'service'
-                and j.status == 'RUNNING'
-            ]
-            services = {}
-            if running_services:
-                try:
-                    result = await _worker_exec(
-                        username, "get_service_urls",
-                        jobs=[{
-                            "id": j.id,
-                            "app_name": j.app_name,
-                            "entry_point_id": j.entry_point_id,
-                            "work_dir": j.work_dir,
-                        } for j in running_services],
-                    )
-                    services = result.get("services") or {}
-                except Exception:
-                    pass
-            jobs = []
-            for j in db_jobs:
-                info = services.get(str(j.id)) or {}
-                jobs.append(_convert_job(j, service_url=info.get("service_url"),
-                                         phase=info.get("phase")))
-            return JobResponse(jobs=jobs)
+            return JobResponse(jobs=[_convert_job(j) for j in db_jobs])
+
+    @app.get("/api/jobs/active-count", response_model=JobActiveCountResponse,
+             description="Count the user's active (non-terminal) jobs")
+    async def get_active_job_count(username: str = Depends(get_current_user)):
+        # The navbar badge polls this from every page, so it must stay a
+        # cheap DB count: no service-URL resolution or worker round-trips
+        # like the full listing above.
+        with db.get_db_session(settings.db_url) as session:
+            count = db.count_active_jobs_by_username(session, username)
+            return JobActiveCountResponse(count=count)
 
     @app.get("/api/jobs/{job_id}", response_model=Job,
              description="Get a single job by ID")
@@ -2487,6 +2472,7 @@ def create_app(settings):
             exit_code=db_job.exit_code,
             resources=db_job.resources,
             env=db_job.env,
+            clean_env=db_job.clean_env,
             pre_run=db_job.pre_run,
             post_run=db_job.post_run,
             container=db_job.container,

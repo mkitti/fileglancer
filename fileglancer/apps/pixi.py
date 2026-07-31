@@ -4,6 +4,7 @@ Generates an AppManifest from a Pixi project's pixi.toml or pyproject.toml,
 converting pixi tasks into runnables.
 """
 
+import shlex
 import subprocess
 from pathlib import Path
 
@@ -22,20 +23,20 @@ _PIXI_TOML = "pixi.toml"
 _PYPROJECT_TOML = "pyproject.toml"
 
 
-def _read_pixi_config(directory: Path) -> dict | None:
+def _read_pixi_config(directory: Path) -> tuple[dict, str] | None:
     """Read pixi configuration from pixi.toml or pyproject.toml.
 
-    Returns the pixi config dict (equivalent to the [tool.pixi] section),
-    or None if no pixi project is found. For pyproject.toml, project metadata
-    from the top-level [project] section is merged in if not already present
-    in [tool.pixi].
+    Returns (pixi config dict, source filename), where the config dict is
+    equivalent to the [tool.pixi] section, or None if no pixi project is
+    found. For pyproject.toml, project metadata from the top-level [project]
+    section is merged in if not already present in [tool.pixi].
     """
     pixi_path = directory / _PIXI_TOML
     if pixi_path.is_file():
         data = tomllib.loads(pixi_path.read_text())
         # In pixi.toml, the config is at the top level
         if "tasks" in data or "project" in data:
-            return data
+            return data, _PIXI_TOML
         return None
 
     pyproject_path = directory / _PYPROJECT_TOML
@@ -54,7 +55,7 @@ def _read_pixi_config(directory: Path) -> dict | None:
                     if key not in pixi_project and key in top_project:
                         pixi_project[key] = top_project[key]
                 pixi_config["project"] = pixi_project
-            return pixi_config
+            return pixi_config, _PYPROJECT_TOML
         return None
 
     return None
@@ -139,7 +140,7 @@ def _task_to_entry_point(name: str, task: dict) -> AppEntryPoint | None:
         cmd = " ".join(cmd)
 
     # Build the pixi run command
-    command = f"pixi run {name}"
+    command = f'pixi run --manifest-path "$FG_MANIFEST_DIR" {shlex.quote(name)}'
 
     description = task.get("description")
 
@@ -197,7 +198,7 @@ class PixiAdapter:
         return _read_pixi_config(directory) is not None
 
     def convert(self, directory: Path) -> AppManifest:
-        config = _read_pixi_config(directory)
+        config, source_filename = _read_pixi_config(directory)
 
         # Extract project metadata
         project = config.get("project", config.get("workspace", {}))
@@ -226,6 +227,7 @@ class PixiAdapter:
         return AppManifest(
             name=name,
             description=description,
+            source_filename=source_filename,
             requirements=["pixi"],
             runnables=runnables,
         )

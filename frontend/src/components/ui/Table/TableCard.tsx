@@ -86,6 +86,7 @@ type TableProps<TData> = {
   readonly gridColsClass: string;
   readonly loadingState: boolean;
   readonly headerActions?: ReactNode;
+  readonly initialPageSize?: number;
 };
 
 function SortIcons<TData, TValue>({
@@ -266,7 +267,7 @@ function TableHeader({
           >
             <Select.Trigger placeholder="Page size" />
             <Select.List>
-              {['10', '20', '30', '40', '50'].map(pageSize => (
+              {['10', '20', '30', '40', '50', '100'].map(pageSize => (
                 <Select.Option key={pageSize} value={pageSize}>
                   {pageSize}/page
                 </Select.Option>
@@ -325,7 +326,8 @@ function Table<TData>({
   loadingState,
   errorState,
   dataType,
-  headerActions
+  headerActions,
+  initialPageSize
 }: TableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState<string>('');
@@ -364,6 +366,11 @@ function Table<TData>({
   const table = useReactTable({
     data,
     columns: columns as ColumnDef<unknown>[],
+    initialState: {
+      pagination: {
+        pageSize: initialPageSize ?? 10
+      }
+    },
     state: {
       sorting,
       globalFilter
@@ -495,7 +502,8 @@ function TableCard<TData>({
   loadingState,
   errorState,
   dataType,
-  headerActions
+  headerActions,
+  initialPageSize
 }: TableProps<TData>) {
   return (
     <Card className="min-h-48 dark:border-surface-light">
@@ -506,6 +514,7 @@ function TableCard<TData>({
         errorState={errorState}
         gridColsClass={gridColsClass}
         headerActions={headerActions}
+        initialPageSize={initialPageSize}
         loadingState={loadingState}
       />
     </Card>

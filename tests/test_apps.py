@@ -2545,6 +2545,10 @@ class TestPixiTaskEnv:
         ep = _task_to_entry_point("build", {"cmd": "make"})
         assert ep.env is None
 
+    def test_task_name_is_shell_quoted(self):
+        ep = _task_to_entry_point("build; echo injected", {"cmd": "make"})
+        assert ep.command == 'pixi run --manifest-path "$FG_MANIFEST_DIR" \'build; echo injected\''
+
 
 class TestPixiAdapterName:
     """The generated app name should come from the pixi project's name, falling
@@ -2584,6 +2588,54 @@ class TestPixiAdapterName:
         monkeypatch.setattr(pixi_mod, "_get_git_repo_name", lambda d: None)
         manifest = PixiAdapter().convert(tmp_path)
         assert manifest.name == tmp_path.name
+
+
+class TestManifestSourceFilename:
+    """The manifest records which file it was read or generated from, so the
+    UI can link to the real source instead of always naming runnables.yaml."""
+
+    def test_runnables_yaml(self, tmp_path):
+        from fileglancer.apps.manifest import _read_manifest_file
+
+        (tmp_path / "runnables.yaml").write_text(
+            "name: Test\n"
+            "runnables:\n"
+            "  - id: run\n"
+            "    name: Run\n"
+            "    command: echo\n"
+        )
+        assert _read_manifest_file(tmp_path).source_filename == "runnables.yaml"
+
+    def test_nextflow_schema(self, tmp_path):
+        (tmp_path / "nextflow_schema.json").write_text(json.dumps({
+            "$defs": {
+                "input": {
+                    "title": "Input",
+                    "properties": {"input_dir": {"type": "string"}},
+                }
+            },
+            "allOf": [{"$ref": "#/$defs/input"}],
+        }))
+        manifest = NextflowAdapter().convert(tmp_path)
+        assert manifest.source_filename == "nextflow_schema.json"
+
+    def test_pixi_toml(self, tmp_path):
+        from fileglancer.apps.pixi import PixiAdapter
+
+        (tmp_path / "pixi.toml").write_text(
+            '[project]\nname = "Foo"\n\n[tasks]\nrun = "echo hi"\n'
+        )
+        manifest = PixiAdapter().convert(tmp_path)
+        assert manifest.source_filename == "pixi.toml"
+
+    def test_pyproject_toml(self, tmp_path):
+        from fileglancer.apps.pixi import PixiAdapter
+
+        (tmp_path / "pyproject.toml").write_text(
+            '[project]\nname = "Foo"\n\n[tool.pixi.tasks]\nrun = "echo hi"\n'
+        )
+        manifest = PixiAdapter().convert(tmp_path)
+        assert manifest.source_filename == "pyproject.toml"
 
 
 @pytest.mark.skipif(
@@ -2809,8 +2861,10 @@ class TestSubmitJobAssembly:
         )
         script = self._submitted(calls)["command"]
 
-        assert script.startswith("unset PIXI_PROJECT_MANIFEST")
-        assert f"export FG_WORK_DIR={shlex.quote(job.work_dir)}" in script
+        assert script.startswith(f"export FG_WORK_DIR={shlex.quote(job.work_dir)}")
+        # FG_MANIFEST_DIR points at the app's project root directory, so
+        # pixi-style commands can pass --manifest-path explicitly.
+        assert 'export FG_MANIFEST_DIR="$FG_WORK_DIR"/repo' in script
         # Default working dir is the repo snapshot (no manifest subdir here).
         assert 'cd "$FG_WORK_DIR"/repo' in script
         assert "conda activate tools" in script
@@ -2828,6 +2882,25 @@ class TestSubmitJobAssembly:
     def test_non_local_executor_omits_exit_code_trap(self, tmp_path, monkeypatch):
         _, calls = self._submit(tmp_path, monkeypatch, cluster={"executor": "lsf"})
         assert "exit_code" not in self._submitted(calls)["command"]
+
+    def test_default_env_mode_uses_login_shell(self, tmp_path, monkeypatch):
+        job, calls = self._submit(tmp_path, monkeypatch)
+        submitted = self._submitted(calls)
+        assert submitted["login_shell"] is True
+        # The login shell's profile builds PATH; no clean-mode guards needed.
+        assert 'export PATH="${PATH:-' not in submitted["command"]
+        assert job.clean_env is False
+
+    def test_clean_env_starts_script_with_guards(self, tmp_path, monkeypatch):
+        job, calls = self._submit(tmp_path, monkeypatch, clean_env=True)
+        submitted = self._submitted(calls)
+        assert submitted["login_shell"] is False
+        script = submitted["command"]
+        # Clean mode gets no login shell, so the script itself must establish
+        # PATH and identity before anything else runs.
+        assert script.startswith('export PATH="${PATH:-/usr/local/bin:/usr/bin:/bin}"')
+        assert 'export HOME="${HOME:-' in script
+        assert job.clean_env is True
 
     def test_service_entry_point_preamble(self, tmp_path, monkeypatch):
         _, calls = self._submit(

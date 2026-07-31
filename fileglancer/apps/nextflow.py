@@ -219,6 +219,7 @@ class NextflowAdapter:
         return AppManifest(
             name=name,
             description=description,
+            source_filename=_NEXTFLOW_SCHEMA_FILENAME,
             requirements=["nextflow"],
             runnables=[entry_point],
         )

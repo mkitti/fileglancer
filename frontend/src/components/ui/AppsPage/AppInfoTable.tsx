@@ -69,7 +69,10 @@ function GithubUrlValue({ url }: { readonly url: string }) {
 
 export default function AppInfoTable({ app }: { readonly app: UserApp }) {
   const revision = appRevision(app.url, app.branch);
-  const manifestPath = manifestPathInfo(app.manifest_path);
+  const manifestPath = manifestPathInfo(
+    app.manifest_path,
+    app.manifest?.source_filename
+  );
   const commitUrl = app.commit_sha
     ? buildGithubCommitUrl(app.url, app.commit_sha)
     : null;

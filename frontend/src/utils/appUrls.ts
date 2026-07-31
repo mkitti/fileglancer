@@ -127,13 +127,19 @@ const MANIFEST_FILENAME = 'runnables.yaml';
 
 /**
  * The repo-relative file path and "./"-prefixed display label of an app's
- * runnables.yaml, given the manifest path stored on an app or listing (a
- * directory path, "" for the repo root).
+ * manifest file, given the manifest path stored on an app or listing (a
+ * directory path, "" for the repo root) and the manifest's source filename
+ * (e.g. nextflow_schema.json or pixi.toml for auto-detected projects;
+ * defaults to runnables.yaml when unknown).
  */
-export function manifestPathInfo(path: string): {
+export function manifestPathInfo(
+  path: string,
+  sourceFilename?: string
+): {
   filePath: string;
   label: string;
 } {
+  const filename = sourceFilename?.trim() || MANIFEST_FILENAME;
   const normalized = path
     .trim()
     .replace(/^\.?\//, '')
@@ -141,11 +147,10 @@ export function manifestPathInfo(path: string): {
 
   const filePath =
     !normalized || normalized === '.'
-      ? MANIFEST_FILENAME
-      : normalized === MANIFEST_FILENAME ||
-          normalized.endsWith(`/${MANIFEST_FILENAME}`)
+      ? filename
+      : normalized === filename || normalized.endsWith(`/${filename}`)
         ? normalized
-        : `${normalized}/${MANIFEST_FILENAME}`;
+        : `${normalized}/${filename}`;
 
   return { filePath, label: `./${filePath}` };
 }

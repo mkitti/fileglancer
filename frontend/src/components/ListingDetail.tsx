@@ -181,7 +181,11 @@ export default function ListingDetail() {
       </AppPageHeader>
 
       <div className="max-w-2xl">
-        <ListingInfoTable installedApp={installedApp} listing={listing} />
+        <ListingInfoTable
+          installedApp={installedApp}
+          listing={listing}
+          manifest={manifest}
+        />
 
         {manifestMutation.isPending && !manifest ? (
           <Typography className="text-foreground" type="small">
