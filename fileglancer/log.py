@@ -5,6 +5,7 @@ This middleware logs HTTP access information including authenticated username.
 It replaces Uvicorn's default access logger to provide more detailed logging
 with application-level authentication context.
 """
+import logging
 import time
 from typing import Callable
 
@@ -15,6 +16,24 @@ from starlette.types import ASGIApp
 
 from fileglancer import auth
 from fileglancer.settings import Settings
+
+
+def disable_uvicorn_access_log():
+    """Silence Uvicorn's own access logger, which AccessLogMiddleware replaces.
+
+    Left enabled, every request is logged twice: once here with the username and
+    duration, once by Uvicorn without them. Uvicorn's ``--no-access-log`` does
+    the same thing from the outside, but it has to be remembered on every launch
+    command, and it was missing from several. Doing it where the middleware is
+    installed covers any way the app is started.
+
+    Matches what Uvicorn's own ``access_log=False`` does. Safe to call more than
+    once, and safe at import time: Uvicorn configures logging before it imports
+    the app, including in each --reload/--workers subprocess.
+    """
+    access_logger = logging.getLogger("uvicorn.access")
+    access_logger.handlers = []
+    access_logger.propagate = False
 
 
 class AccessLogMiddleware(BaseHTTPMiddleware):

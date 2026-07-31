@@ -194,7 +194,6 @@ def start(host, port, reload, workers, ssl_keyfile, ssl_certfile,
         'app': 'fileglancer.server:app',
         'host': host,
         'port': port,
-        'access_log': False,
         'proxy_headers': True,
         'forwarded_allow_ips': '*',
         'timeout_keep_alive': timeout_keep_alive

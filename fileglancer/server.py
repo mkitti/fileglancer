@@ -42,7 +42,7 @@ from fileglancer.settings import get_settings
 from fileglancer.issues import create_jira_ticket, get_jira_ticket_details, delete_jira_ticket
 from fileglancer.utils import format_timestamp, guess_content_type, parse_range_header, make_etag, parse_http_date_to_epoch
 from fileglancer.filestore import Filestore, RootCheckError
-from fileglancer.log import AccessLogMiddleware
+from fileglancer.log import AccessLogMiddleware, disable_uvicorn_access_log
 from fileglancer.worker_pool import (
     WorkerPool, WorkerError, WorkerDead, prepare_worker_request)
 from fileglancer.user_worker import serialize_job_for_worker
@@ -571,8 +571,10 @@ def create_app(settings):
     app = FastAPI(lifespan=lifespan)
 
     # Add custom access log middleware
-    # This logs HTTP access information with authenticated username
+    # This logs HTTP access information with authenticated username, and
+    # supersedes Uvicorn's access log rather than adding to it.
     app.add_middleware(AccessLogMiddleware, settings=settings)
+    disable_uvicorn_access_log()
 
     # Attach an S3-style x-amz-request-id header to data-link (/files/) responses,
     # carrying over the feature added in x2s3 1.3.0 (which only applies it within
@@ -2748,5 +2750,4 @@ app = create_app(get_settings())
 
 if __name__ == "__main__":
     import uvicorn
-    # Disable Uvicorn's default access logger since we use custom middleware
-    uvicorn.run(app, host="0.0.0.0", port=8000, lifespan="on", access_log=False)
+    uvicorn.run(app, host="0.0.0.0", port=8000, lifespan="on")

@@ -144,14 +144,14 @@ node-prettier-write = "cd frontend && npx prettier --list-different --write '**/
 node-check = "cd frontend && npx tsc --noEmit -p tsconfig.app.json"
 node-install-ui-tests = "npm --prefix frontend/ui-tests install"
 test-ui = { cmd = "npm --prefix frontend/ui-tests run test ", depends-on = ["node-install-ui-tests"] }
-test-launch = "pixi run uvicorn fileglancer.server:app --no-access-log --port 7879"
+test-launch = "pixi run uvicorn fileglancer.server:app --port 7879"
 dev-install = { depends-on = ["node-build", "pip-install"] }
 dev-watch = { cmd = "cd frontend && NODE_ENV=development npm run watch" }
 storybook = { cmd = "npm run storybook", cwd = "frontend" }
 storybook-build = { cmd = "npm run build-storybook", cwd = "frontend" }
 dev-vite = { cmd = "cd frontend && npx vite" }
 dev-vite-remote = { cmd = "cd frontend && SSL_KEYFILE=/opt/certs/cert.key SSL_CERTFILE=/opt/certs/cert.crt npx vite" }
-dev-launch = "pixi run uvicorn fileglancer.server:app --no-access-log --port 7878 --reload"
+dev-launch = "pixi run uvicorn fileglancer.server:app --port 7878 --reload"
 debug-launch = "fileglancer debug"
 dev-launch-remote = "pixi run uvicorn fileglancer.server:app --host 0.0.0.0 --port 7878 --reload --ssl-keyfile /opt/certs/cert.key --ssl-certfile /opt/certs/cert.crt"
 prod-launch-remote = "pixi run uvicorn fileglancer.server:app --workers 10 --host 0.0.0.0 --port 7878 --ssl-keyfile /opt/certs/cert.key --ssl-certfile /opt/certs/cert.crt"
