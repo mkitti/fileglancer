@@ -30,6 +30,20 @@ requires_ssh_keygen = pytest.mark.skipif(
 )
 
 
+@pytest.fixture(autouse=True)
+def _clear_fsp_caches():
+    """Drop the file-share-path caches between tests.
+
+    They are keyed by database URL, so tests can't read each other's shares,
+    but a test that adds a share to its own database and reads it back would
+    otherwise be racing the TTL.
+    """
+    from fileglancer import database, worker_pool
+    database._fsp_cache.clear()
+    worker_pool._fsp_row_cache.clear()
+    yield
+
+
 def pytest_sessionstart(session):
     """
     Called after the Session object has been created and before performing collection

@@ -10,7 +10,7 @@ from conftest import requires_symlinks
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from fileglancer.database import *
-from fileglancer.database import _find_best_fsp_match
+from fileglancer.database import _find_best_fsp_match, _fsp_cache
 from fileglancer.model import FileSharePath
 from fileglancer.utils import slugify_path
 
@@ -91,6 +91,43 @@ def fsp(db_session, temp_dir):
     db_session.query(FileSharePathDB).delete()
     db_session.commit()
     db_session.close()
+
+
+def test_file_share_paths_are_served_from_cache(db_session):
+    """Repeat reads come from the cache, so changes lag by up to the TTL."""
+    db_session.add(FileSharePathDB(
+        name="s1", zone="z", group="g", storage="local", mount_path="/s1"))
+    db_session.commit()
+    assert [p.name for p in get_file_share_paths(db_session)] == ["s1"]
+
+    # Row deleted underneath: still served from the cache until it expires.
+    db_session.query(FileSharePathDB).delete()
+    db_session.commit()
+    assert [p.name for p in get_file_share_paths(db_session)] == ["s1"]
+
+    _fsp_cache.clear()
+    assert get_file_share_paths(db_session) == []
+
+
+def test_file_share_path_cache_is_keyed_by_database(db_session, temp_dir):
+    """A second database in the same process must not see the first's shares."""
+    db_session.add(FileSharePathDB(
+        name="first", zone="z", group="g", storage="local", mount_path="/first"))
+    db_session.commit()
+    assert [p.name for p in get_file_share_paths(db_session)] == ["first"]
+
+    other_engine = create_engine(f"sqlite:///{os.path.join(temp_dir, 'other.db')}")
+    Base.metadata.create_all(other_engine)
+    other_session = sessionmaker(bind=other_engine)()
+    try:
+        other_session.add(FileSharePathDB(
+            name="second", zone="z", group="g", storage="local", mount_path="/second"))
+        other_session.commit()
+        assert [p.name for p in get_file_share_paths(other_session)] == ["second"]
+        assert [p.name for p in get_file_share_paths(db_session)] == ["first"]
+    finally:
+        other_session.close()
+        other_engine.dispose()
 
 
 def test_user_preferences(db_session):
