@@ -235,7 +235,7 @@ class UserWorker:
 
         self.sock.settimeout(timeout)
         try:
-            request = prepare_worker_request(request, self.username, self.db_proxy)
+            request = prepare_worker_request(request, self.db_proxy)
         except Exception as e:
             logger.exception(
                 f"Failed to prepare {request.get('action')} request for "

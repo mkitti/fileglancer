@@ -67,9 +67,6 @@ class _EmptyDbProxy:
     def get_file_share_paths(self):
         return []
 
-    def get_job(self, job_id: int, username: str):
-        return None
-
 
 # ---------------------------------------------------------------------------
 # IPC protocol tests (user_worker.py _send/_recv/_send_with_fd)

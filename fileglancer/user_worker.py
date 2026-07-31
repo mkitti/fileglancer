@@ -151,32 +151,17 @@ def action(name: str):
 # ---------------------------------------------------------------------------
 #
 # Worker subprocesses run as the (untrusted) target user, so we don't give
-# them the database URL.  The parent process reads the small amount of DB data
-# an action needs before sending the request to the worker and includes it in
-# the request payload.  Workers never send reverse DB RPCs.
+# them the database URL.  Every DB-derived value an action needs is serialized
+# into its request by the parent, so the worker never initiates anything: the
+# protocol is strictly one request in, one response out, with no worker->parent
+# dispatch surface at all.
 #
-# In dev/test mode (no subprocess), the same handlers use LocalDbProxy which
-# calls the database functions directly to prepare the same request payload.
+# The file-share-path list is attached centrally by prepare_worker_request,
+# because ~17 actions need it and the endpoints that dispatch them have no
+# reason to know that.  Anything an endpoint already has in hand (job rows) is
+# passed as an ordinary request kwarg at the call site instead.
 
 from types import SimpleNamespace
-
-
-def _job_db_to_dict(j) -> dict:
-    """Serialize a JobDB row to a JSON-safe dict for transport to the worker.
-
-    Only includes fields used by worker-side handlers (read_job_file,
-    get_service_url, delete_job_work_dir) — keep this list minimal so the
-    worker sees as little of the DB row as possible.
-    """
-    return {
-        "id": j.id,
-        "app_name": j.app_name,
-        "entry_point_id": j.entry_point_id,
-        "entry_point_type": getattr(j, "entry_point_type", "job"),
-        "status": j.status,
-        "work_dir": j.work_dir,
-        "script_path": getattr(j, "script_path", None),
-    }
 
 
 class LocalDbProxy:
@@ -194,14 +179,6 @@ class LocalDbProxy:
         from fileglancer import database as db
         with db.get_db_session(self.db_url) as session:
             return db.get_file_share_paths(session)
-
-    def get_job(self, job_id: int, username: str):
-        from fileglancer import database as db
-        with db.get_db_session(self.db_url) as session:
-            j = db.get_job(session, job_id, username)
-            if j is None:
-                return None
-            return SimpleNamespace(**_job_db_to_dict(j))
 
 
 # Actions that need the file-share-path list to resolve fsp_name, validate
@@ -226,45 +203,18 @@ ACTIONS_REQUIRING_FILE_SHARE_PATHS = frozenset({
     "submit",
 })
 
-# Actions that need a minimal job row.  get_service_urls already receives a
-# caller-built list of job dicts to batch many jobs into one worker round-trip.
-ACTIONS_REQUIRING_JOB = frozenset({
-    "get_job_file",
-    "delete_job_work_dir",
-    "get_service_url",
-})
+def prepare_worker_request(request: dict, db_proxy: LocalDbProxy) -> dict:
+    """Return a request enriched with the DB data the worker needs.
 
-
-def _serialize_file_share_paths(paths) -> list[dict]:
-    return [fsp.model_dump(mode="json") for fsp in paths]
-
-
-def _serialize_job_for_worker(job) -> Optional[dict]:
-    return None if job is None else vars(job)
-
-
-def prepare_worker_request(request: dict, username: str, db_proxy: LocalDbProxy) -> dict:
-    """Return a request enriched with all DB-derived data the worker needs.
-
-    The worker protocol is one request / one response.  Any DB lookups required
-    by an action happen here, in the parent process, before the request is sent
-    to the untrusted user-context subprocess.
+    Only the file-share-path list is fetched here; it is needed by too many
+    actions to be the dispatching endpoint's business.  Everything else the
+    worker needs from the DB is passed by the caller as a request kwarg.
     """
-    action_name = request.get("action")
-    enriched = dict(request)
+    if request.get("action") not in ACTIONS_REQUIRING_FILE_SHARE_PATHS:
+        return request
 
-    if action_name in ACTIONS_REQUIRING_FILE_SHARE_PATHS:
-        enriched["file_share_paths"] = _serialize_file_share_paths(
-            db_proxy.get_file_share_paths()
-        )
-
-    if action_name in ACTIONS_REQUIRING_JOB:
-        job_id = enriched["job_id"]
-        enriched["job"] = _serialize_job_for_worker(
-            db_proxy.get_job(job_id, username)
-        )
-
-    return enriched
+    fsps = db_proxy.get_file_share_paths()
+    return {**request, "file_share_paths": [f.model_dump(mode="json") for f in fsps]}
 
 
 def _file_share_paths_from_request(request: dict) -> list:
@@ -281,14 +231,33 @@ def _file_share_paths_from_request(request: dict) -> list:
     return [FileSharePath(**row) for row in (rows or [])]
 
 
+def serialize_job_for_worker(j) -> dict:
+    """Serialize a JobDB row to a JSON-safe dict for transport to the worker.
+
+    Called by endpoints that already hold the row.  Only includes fields used
+    by worker-side handlers (read_job_file, get_service_url,
+    delete_job_work_dir) — keep this list minimal so the worker sees as little
+    of the DB row as possible.
+    """
+    return {
+        "id": j.id,
+        "app_name": j.app_name,
+        "entry_point_id": j.entry_point_id,
+        "entry_point_type": getattr(j, "entry_point_type", "job"),
+        "status": j.status,
+        "work_dir": j.work_dir,
+        "script_path": getattr(j, "script_path", None),
+    }
+
+
 def _job_from_request(request: dict):
-    """Deserialize parent-provided minimal job payload."""
+    """Deserialize the caller-provided job payload."""
     try:
         row = request["job"]
     except KeyError as e:
         raise RuntimeError(
             f"Worker request for {request.get('action')} is missing "
-            "parent-provided job"
+            "caller-provided job"
         ) from e
     return SimpleNamespace(**row) if row else None
 
