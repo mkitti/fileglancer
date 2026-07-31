@@ -137,11 +137,12 @@ def _recvall(sock: socket.socket, n: int) -> Optional[bytes]:
 # Populated by @action(name) decorators on each handler.
 _ACTIONS: dict[str, Any] = {}
 
-# Actions whose handler needs the file-share-path list, so the parent knows to
-# attach it (see prepare_worker_request). Derived from the decorators rather
-# than hand-listed: a handler that reads the list without being registered here
-# would only fail at request time, on whatever path happens to exercise it.
-_ACTIONS_NEEDING_FSPS: set[str] = set()
+# Actions whose handler needs the file-share-path list, read by the parent
+# (worker_pool.prepare_worker_request) to decide what to attach. Derived from
+# the decorators rather than hand-listed: a handler that reads the list without
+# being registered here would only fail at request time, on whatever path
+# happens to exercise it.
+ACTIONS_NEEDING_FSPS: set[str] = set()
 
 
 def action(name: str, needs_fsps: bool = False):
@@ -153,58 +154,29 @@ def action(name: str, needs_fsps: bool = False):
     def decorator(fn):
         _ACTIONS[name] = fn
         if needs_fsps or getattr(fn, "_needs_fsps", False):
-            _ACTIONS_NEEDING_FSPS.add(name)
+            ACTIONS_NEEDING_FSPS.add(name)
         return fn
     return decorator
 
 
 # ---------------------------------------------------------------------------
-# Parent-prepared DB data
+# Parent-provided DB data
 # ---------------------------------------------------------------------------
 #
-# Worker subprocesses run as the (untrusted) target user, so we don't give
-# them the database URL.  Every DB-derived value an action needs is serialized
-# into its request by the parent, so the worker never initiates anything: the
-# protocol is strictly one request in, one response out, with no worker->parent
-# dispatch surface at all.
+# Worker subprocesses run as the (untrusted) target user, so we don't give them
+# the database URL — nothing in this module ever opens a session.  Every
+# DB-derived value an action needs is serialized into its request by the parent,
+# so the worker never initiates anything: the protocol is strictly one request
+# in, one response out, with no worker->parent dispatch surface at all.
 #
-# The file-share-path list is attached centrally by prepare_worker_request,
-# because ~17 actions need it and the endpoints that dispatch them have no
-# reason to know that.  Anything an endpoint already has in hand (job rows) is
-# passed as an ordinary request kwarg at the call site instead.
+# The file-share-path list is attached centrally by the parent
+# (worker_pool.prepare_worker_request), because too many actions need it for the
+# dispatching endpoint to be responsible for it.  Anything an endpoint already
+# has in hand (job rows) is passed as an ordinary request kwarg at the call site.
+# This module holds the two sides of that wire format: the parent-side
+# serializer and the worker-side readers below.
 
 from types import SimpleNamespace
-
-
-class LocalDbProxy:
-    """Small parent-side DB facade used to prepare worker requests.
-
-    Used by WorkerPool before dispatching to a subprocess and by CLI/dev mode
-    before calling action handlers in-process.  It is never constructed inside
-    the user worker subprocess.
-    """
-
-    def __init__(self, db_url: str):
-        self.db_url = db_url
-
-    def get_file_share_paths(self):
-        from fileglancer import database as db
-        with db.get_db_session(self.db_url) as session:
-            return db.get_file_share_paths(session)
-
-
-def prepare_worker_request(request: dict, db_proxy: LocalDbProxy) -> dict:
-    """Return a request enriched with the DB data the worker needs.
-
-    Only the file-share-path list is fetched here; it is needed by too many
-    actions to be the dispatching endpoint's business.  Everything else the
-    worker needs from the DB is passed by the caller as a request kwarg.
-    """
-    if request.get("action") not in _ACTIONS_NEEDING_FSPS:
-        return request
-
-    fsps = db_proxy.get_file_share_paths()
-    return {**request, "file_share_paths": [f.model_dump(mode="json") for f in fsps]}
 
 
 def _file_share_paths_from_request(request: dict) -> list:

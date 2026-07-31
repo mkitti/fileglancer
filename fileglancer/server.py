@@ -43,7 +43,8 @@ from fileglancer.issues import create_jira_ticket, get_jira_ticket_details, dele
 from fileglancer.utils import format_timestamp, guess_content_type, parse_range_header
 from fileglancer.filestore import Filestore, RootCheckError
 from fileglancer.log import AccessLogMiddleware
-from fileglancer.worker_pool import WorkerPool, WorkerError, WorkerDead
+from fileglancer.worker_pool import (
+    WorkerPool, WorkerError, WorkerDead, prepare_worker_request)
 from fileglancer.user_worker import serialize_job_for_worker
 from fileglancer import sshkeys
 
@@ -366,18 +367,13 @@ def create_app(settings):
                 raise HTTPException(status_code=e.status_code, detail=str(e))
         else:
             # CLI mode: run action directly in-process (single-user, no setuid)
-            from fileglancer.user_worker import (
-                _ACTIONS,
-                WorkerContext,
-                LocalDbProxy,
-                prepare_worker_request,
-            )
+            from fileglancer.user_worker import _ACTIONS, WorkerContext
             handler = _ACTIONS.get(action)
             if handler is None:
                 raise HTTPException(status_code=500, detail=f"Unknown action: {action}")
             ctx = WorkerContext(username=username)
             request = prepare_worker_request(
-                {"action": action, **kwargs}, LocalDbProxy(settings.db_url))
+                {"action": action, **kwargs}, settings.db_url)
             try:
                 result = handler(request, ctx)
             except Exception as e:

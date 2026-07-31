@@ -28,7 +28,7 @@ from fileglancer.user_worker import (
     _send_with_fd,
     _recv,
     _ACTIONS,
-    _ACTIONS_NEEDING_FSPS,
+    ACTIONS_NEEDING_FSPS,
     _action_validate_proxied_path,
     _action_create_dirs,
     _action_validate_paths,
@@ -42,6 +42,7 @@ from fileglancer.user_worker import (
 )
 from fileglancer.filestore import Filestore
 from fileglancer.model import FileSharePath
+from fileglancer import worker_pool as worker_pool_module
 from fileglancer.worker_pool import (
     UserWorker,
     WorkerPool,
@@ -63,13 +64,6 @@ def _with_fsps(request, *fsps):
     return {**request, "file_share_paths": _fsp_rows(*fsps)}
 
 
-class _EmptyDbProxy:
-    """Parent-side DB proxy stub for IPC tests."""
-
-    def get_file_share_paths(self):
-        return []
-
-
 def test_fsp_registry_covers_every_handler_that_reads_the_list():
     """A handler reading file_share_paths must be registered as needing them.
 
@@ -81,7 +75,7 @@ def test_fsp_registry_covers_every_handler_that_reads_the_list():
     for name, handler in _ACTIONS.items():
         reads_directly = "_file_share_paths_from_request" in inspect.getsource(handler)
         via_decorator = getattr(handler, "_needs_fsps", False)
-        assert (reads_directly or via_decorator) == (name in _ACTIONS_NEEDING_FSPS), name
+        assert (reads_directly or via_decorator) == (name in ACTIONS_NEEDING_FSPS), name
 
 
 # ---------------------------------------------------------------------------
@@ -432,6 +426,11 @@ class TestIPCProtocol:
 class TestUserWorkerIPC:
     """Test UserWorker's _send_and_recv with a mock worker on the other end."""
 
+    @pytest.fixture(autouse=True)
+    def _stub_fsp_read(self, monkeypatch):
+        """These tests exercise IPC framing, not DB prep."""
+        monkeypatch.setattr(worker_pool_module, "_fetch_fsp_rows", lambda db_url: [])
+
     def _make_worker_pair(self):
         """Create a UserWorker connected to a mock 'worker' socket."""
         parent, child = socket.socketpair()
@@ -445,8 +444,7 @@ class TestUserWorkerIPC:
             def wait(self): pass
             def kill(self): pass
 
-        worker = UserWorker("testuser", FakeProcess(), parent,
-                            db_proxy=_EmptyDbProxy())
+        worker = UserWorker("testuser", FakeProcess(), parent, db_url=None)
         return worker, child
 
     def test_send_and_recv_basic(self):
@@ -470,7 +468,7 @@ class TestUserWorkerIPC:
             worker.sock.close()
             child.close()
 
-    def test_send_and_recv_preloads_db_data(self):
+    def test_send_and_recv_preloads_db_data(self, monkeypatch):
         """Parent attaches needed DB data before sending to the worker."""
         parent, child = socket.socketpair()
         parent.setblocking(True)
@@ -482,15 +480,14 @@ class TestUserWorkerIPC:
             def wait(self): pass
             def kill(self): pass
 
-        class FakeDbProxy:
-            def get_file_share_paths(self):
-                return [FileSharePath(
-                    zone="z", name="home", group="g", storage="local",
-                    mount_path="/home/test",
-                )]
+        monkeypatch.setattr(
+            worker_pool_module, "_fetch_fsp_rows",
+            lambda db_url: _fsp_rows(FileSharePath(
+                zone="z", name="home", group="g", storage="local",
+                mount_path="/home/test",
+            )))
 
-        worker = UserWorker("testuser", FakeProcess(), parent,
-                            db_proxy=FakeDbProxy())
+        worker = UserWorker("testuser", FakeProcess(), parent, db_url="sqlite://")
         try:
             def mock_worker():
                 req = _recv(child)
@@ -570,6 +567,11 @@ class TestUserWorkerIPC:
 class TestUserWorkerExecute:
     """Test the async execute() method."""
 
+    @pytest.fixture(autouse=True)
+    def _stub_fsp_read(self, monkeypatch):
+        """These tests exercise IPC framing, not DB prep."""
+        monkeypatch.setattr(worker_pool_module, "_fetch_fsp_rows", lambda db_url: [])
+
     def _make_worker_pair(self):
         parent, child = socket.socketpair()
         parent.setblocking(True)
@@ -581,8 +583,7 @@ class TestUserWorkerExecute:
             def wait(self): pass
             def kill(self): pass
 
-        worker = UserWorker("testuser", FakeProcess(), parent,
-                            db_proxy=_EmptyDbProxy())
+        worker = UserWorker("testuser", FakeProcess(), parent, db_url=None)
         return worker, child
 
     @pytest.mark.asyncio
@@ -635,7 +636,7 @@ class TestUserWorkerExecute:
             def wait(self): pass
             def kill(self): pass
 
-        worker = UserWorker("testuser", DeadProcess(), parent, db_proxy=None)
+        worker = UserWorker("testuser", DeadProcess(), parent, db_url=None)
         with pytest.raises(WorkerDead):
             await worker.execute("anything")
         parent.close()

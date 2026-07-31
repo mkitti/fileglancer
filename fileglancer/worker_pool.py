@@ -74,6 +74,28 @@ def _timeout_for_action(action: str) -> float:
     return _GIT_ACTION_TIMEOUT if action in _LONG_ACTIONS else _DEFAULT_REQUEST_TIMEOUT
 
 
+def _fetch_fsp_rows(db_url: str) -> list[dict]:
+    """Read the file share paths and serialize them for the worker."""
+    from fileglancer import database as db
+    with db.get_db_session(db_url) as session:
+        return [f.model_dump(mode="json") for f in db.get_file_share_paths(session)]
+
+
+def prepare_worker_request(request: dict, db_url: str) -> dict:
+    """Attach the DB data the worker needs to a request.
+
+    Only the file-share-path list, which too many actions need for the
+    dispatching endpoint to be responsible for it; everything else the worker
+    needs from the DB is passed by the caller as a request kwarg. This runs in
+    the parent process, which is the only one holding db_url.
+    """
+    from fileglancer.user_worker import ACTIONS_NEEDING_FSPS
+
+    if request.get("action") not in ACTIONS_NEEDING_FSPS:
+        return request
+    return {**request, "file_share_paths": _fetch_fsp_rows(db_url)}
+
+
 # Worker env is an allowlist, not a denylist: workers run as the (untrusted)
 # target user, so anything in their environment is readable by that user via
 # /proc/<pid>/environ. Only pass variables the worker legitimately needs (git,
@@ -158,11 +180,11 @@ class UserWorker:
     """
 
     def __init__(self, username: str, process: subprocess.Popen,
-                 sock: socket.socket, db_proxy):
+                 sock: socket.socket, db_url: Optional[str]):
         self.username = username
         self.process = process
         self.sock = sock
-        self.db_proxy = db_proxy  # LocalDbProxy used to prepare worker requests
+        self.db_url = db_url  # parent-side only; used to prepare requests
         self.last_activity = time.monotonic()
         self._busy = False
         self._lock = asyncio.Lock()  # serialize requests to the worker
@@ -231,11 +253,9 @@ class UserWorker:
         sent.  The worker never gets DB credentials and never sends reverse DB
         RPCs; this remains a simple one request / one response exchange.
         """
-        from fileglancer.user_worker import prepare_worker_request
-
         self.sock.settimeout(timeout)
         try:
-            request = prepare_worker_request(request, self.db_proxy)
+            request = prepare_worker_request(request, self.db_url)
         except Exception as e:
             logger.exception(
                 f"Failed to prepare {request.get('action')} request for "
@@ -346,17 +366,12 @@ class WorkerPool:
     """
 
     def __init__(self, settings: Settings):
-        from fileglancer.user_worker import LocalDbProxy
-
         self.settings = settings
         self._workers: dict[str, UserWorker] = {}
         self._locks: dict[str, asyncio.Lock] = {}
         self._eviction_task: Optional[asyncio.Task] = None
         self.max_workers = settings.worker_pool_max_workers
         self.idle_timeout = settings.worker_pool_idle_timeout
-        # All worker DB requests are satisfied by this proxy in the parent;
-        # the worker subprocess never sees the DB URL.
-        self._db_proxy = LocalDbProxy(settings.db_url)
 
     def _get_lock(self, username: str) -> asyncio.Lock:
         if username not in self._locks:
@@ -454,7 +469,7 @@ class WorkerPool:
         # Start a background task to forward worker stderr to loguru
         asyncio.create_task(self._forward_stderr(username, process))
 
-        return UserWorker(username, process, parent_sock, self._db_proxy)
+        return UserWorker(username, process, parent_sock, self.settings.db_url)
 
     async def _forward_stderr(self, username: str, process: subprocess.Popen):
         """Forward worker stderr lines to loguru in the background.
