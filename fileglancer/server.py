@@ -40,7 +40,7 @@ from fileglancer.giturls import canonical_github_url
 from fileglancer.model import *
 from fileglancer.settings import get_settings
 from fileglancer.issues import create_jira_ticket, get_jira_ticket_details, delete_jira_ticket
-from fileglancer.utils import format_timestamp, guess_content_type, parse_range_header
+from fileglancer.utils import format_timestamp, guess_content_type, parse_range_header, make_etag, parse_http_date_to_epoch
 from fileglancer.filestore import Filestore, RootCheckError
 from fileglancer.log import AccessLogMiddleware
 from fileglancer.worker_pool import (
@@ -176,8 +176,14 @@ def get_current_user(request: Request):
 
     If OKTA auth is enabled, validates session from cookie
     If OKTA auth is disabled, falls back to $USER environment variable
+
+    Also enforces the cross-origin allowlist: a request carrying an Origin
+    header that is neither same-origin nor listed in api_allowed_origins is
+    rejected with 403 before the session is even consulted.
     """
-    return auth.get_current_user(request, get_settings())
+    settings = get_settings()
+    auth.enforce_request_origin(request, settings)
+    return auth.get_current_user(request, settings)
 
 
 def _convert_external_bucket(db_bucket: db.ExternalBucketDB) -> ExternalBucket:
@@ -379,8 +385,11 @@ def create_app(settings):
             except Exception as e:
                 logger.exception(f"Action handler error for {username} action={action}: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
-            # Strip the raw fd (not meaningful in-process), keep _file_handle
+            # Strip the raw fd (not meaningful in-process), keep _file_handle.
+            # _fd_mode is only a hint for the subprocess fd wrapper; in-process
+            # the handler already returns a handle opened in the right mode.
             result.pop("_fd", None)
+            result.pop("_fd_mode", None)
             return result
 
     def _resolve_proxy_info(sharing_key: str, captured_path: str) -> Tuple[dict | Response, str]:
@@ -799,6 +808,19 @@ def create_app(settings):
 
         auth_method = "okta" if settings.enable_okta_auth else "simple"
         return {"authenticated": False, "auth_method": auth_method}
+
+
+    @app.get("/api/auth/allowed-origins",
+             description="List cross-origin app origins permitted to use the API")
+    async def allowed_origins():
+        """Return the configured cross-origin allowlist.
+
+        Public (unauthenticated) so an integrating app's connect popup can
+        confirm its own origin is permitted before initiating the flow. The
+        list is not sensitive — it is the same boundary the server enforces on
+        every authenticated request.
+        """
+        return {"origins": [str(o) for o in settings.api_allowed_origins]}
 
 
     @app.get("/api/file-share-paths", response_model=FileSharePathResponse,
@@ -1457,6 +1479,8 @@ def create_app(settings):
             headers['Content-Length'] = str(info["size"])
         if info.get("last_modified") is not None:
             headers['Last-Modified'] = format_timestamp(info["last_modified"])
+            if info.get("size") is not None:
+                headers['ETag'] = make_etag(info["last_modified"], info["size"])
 
         return Response(status_code=200, headers=headers, media_type=content_type)
 
@@ -1485,7 +1509,14 @@ def create_app(settings):
 
         file_size = result["file_size"]
         content_type = result["content_type"]
+        last_modified = result.get("last_modified")
         file_name = subpath.split('/')[-1] if subpath else ''
+
+        # Validators for optimistic-concurrency writes (see PUT below).
+        validator_headers = {}
+        if last_modified is not None:
+            validator_headers['Last-Modified'] = format_timestamp(last_modified)
+            validator_headers['ETag'] = make_etag(last_modified, file_size)
 
         range_header = request.headers.get('Range')
 
@@ -1505,6 +1536,7 @@ def create_app(settings):
                 'Accept-Ranges': 'bytes',
                 'Content-Length': str(content_length),
                 'Content-Range': f'bytes {start}-{end}/{file_size}',
+                **validator_headers,
             }
 
             if content_type == 'application/octet-stream' and file_name:
@@ -1522,6 +1554,7 @@ def create_app(settings):
             headers = {
                 'Accept-Ranges': 'bytes',
                 'Content-Length': str(file_size),
+                **validator_headers,
             }
 
             if content_type == 'application/octet-stream' and file_name:
@@ -1533,6 +1566,88 @@ def create_app(settings):
                 headers=headers,
                 media_type=content_type
             )
+
+
+    @app.put("/api/content/{path_name:path}")
+    async def put_file_content(request: Request, path_name: str,
+                               subpath: Optional[str] = Query(''),
+                               username: str = Depends(get_current_user)):
+        """Write the request body to a file, as the authenticated user.
+
+        Creates the file if it does not exist, or replaces its contents if it
+        does. The parent directory must already exist. The body is streamed to
+        disk so large uploads do not buffer in memory.
+        """
+        if subpath:
+            filestore_name = path_name
+        else:
+            filestore_name, _, subpath = path_name.partition('/')
+
+        if not subpath:
+            raise HTTPException(status_code=400, detail="File path is required")
+
+        # Sanitize the target path the same way file creation does, to prevent
+        # path traversal outside the file share.
+        normalized_path = os.path.normpath(subpath)
+        if normalized_path.startswith('..') or os.path.isabs(normalized_path):
+            raise HTTPException(status_code=400, detail="Path cannot escape the current directory")
+        _validate_filename(os.path.basename(normalized_path))
+
+        # Optimistic concurrency: honor If-Match (ETag) and If-Unmodified-Since.
+        # A mismatch returns 412 from the worker without altering the file.
+        if_match = request.headers.get('if-match')
+        ius_raw = request.headers.get('if-unmodified-since')
+        if_unmodified_since = parse_http_date_to_epoch(ius_raw) if ius_raw else None
+        if ius_raw and if_unmodified_since is None:
+            raise HTTPException(status_code=400, detail="Invalid If-Unmodified-Since header")
+
+        # Cap upload size. Reject up front on a declared Content-Length so we
+        # never open/truncate the file for an obviously-too-large upload; the
+        # streaming loop below re-checks for chunked or dishonest clients.
+        max_size = settings.max_upload_size_bytes
+        if max_size:
+            declared = request.headers.get('content-length')
+            if declared and declared.isdigit() and int(declared) > max_size:
+                raise HTTPException(status_code=413,
+                                    detail=f"Upload exceeds the maximum size of {max_size} bytes")
+
+        result = await _worker_exec(username, "write_file",
+                                    fsp_name=filestore_name, subpath=normalized_path,
+                                    if_match=if_match, if_unmodified_since=if_unmodified_since)
+
+        if result.get("redirect"):
+            redirect_url = f"/api/content/{result['fsp_name']}"
+            if result.get("subpath"):
+                redirect_url += f"?subpath={result['subpath']}"
+            # 307 preserves the PUT method and body when the client re-requests.
+            return RedirectResponse(url=redirect_url, status_code=307)
+        if "error" in result:
+            raise HTTPException(status_code=result.get("status_code", 500), detail=result["error"])
+
+        file_handle = result.get("_file_handle")
+        if file_handle is None:
+            raise HTTPException(status_code=500, detail="Failed to open file for writing")
+
+        loop = asyncio.get_event_loop()
+        bytes_written = 0
+        try:
+            async for chunk in request.stream():
+                if not chunk:
+                    continue
+                if max_size and bytes_written + len(chunk) > max_size:
+                    # ponytail: leaves a partial file on disk (bounded by
+                    # max_size); the early Content-Length check avoids this for
+                    # honest clients. Unlink-on-abort if that ever matters.
+                    raise HTTPException(status_code=413,
+                                        detail=f"Upload exceeds the maximum size of {max_size} bytes")
+                await loop.run_in_executor(None, file_handle.write, chunk)
+                bytes_written += len(chunk)
+        finally:
+            await loop.run_in_executor(None, file_handle.close)
+
+        logger.info(f"User {username} wrote {bytes_written} bytes to {filestore_name}/{normalized_path}")
+        return JSONResponse(status_code=200,
+                            content={"message": "File written", "bytes_written": bytes_written})
 
 
     @app.get("/api/files/{path_name}")
@@ -2102,7 +2217,7 @@ def create_app(settings):
 
     # --- Catalog (shared apps) API ---
 
-    def _listing_to_model(row) -> AppListing:
+    def _listing_to_model(row, install_count: int = 0) -> AppListing:
         return AppListing(
             id=row.id,
             owner_username=row.owner_username,
@@ -2113,6 +2228,7 @@ def create_app(settings):
             description=row.description,
             published_at=row.published_at,
             updated_at=row.updated_at,
+            install_count=install_count,
         )
 
     @app.get("/api/catalog", response_model=list[AppListing],
@@ -2120,7 +2236,11 @@ def create_app(settings):
     async def list_catalog(username: str = Depends(get_current_user)):
         with db.get_db_session(settings.db_url) as session:
             rows = db.list_app_listings(session)
-            return [_listing_to_model(r) for r in rows]
+            counts = db.count_installs_by_app(session)
+            return [
+                _listing_to_model(r, counts.get((r.url, r.manifest_path), 0))
+                for r in rows
+            ]
 
     @app.post("/api/catalog", response_model=AppListing,
               description="Share one of the user's apps to the catalog")
@@ -2313,6 +2433,7 @@ def create_app(settings):
                 resources=resources_dict,
                 extra_args=body.extra_args,
                 manifest_path=body.manifest_path,
+                name=body.name,
                 env=body.env,
                 clean_env=body.clean_env,
                 pre_run=body.pre_run,
@@ -2344,7 +2465,7 @@ def create_app(settings):
             return JobResponse(jobs=[_convert_job(j) for j in db_jobs])
 
     @app.get("/api/jobs/active-count", response_model=JobActiveCountResponse,
-             description="Count the user's active (non-terminal) jobs")
+             description="Count the user's pending/running jobs (UNKNOWN excluded)")
     async def get_active_job_count(username: str = Depends(get_current_user)):
         # The navbar badge polls this from every page, so it must stay a
         # cheap DB count: no service-URL resolution or worker round-trips
@@ -2377,6 +2498,20 @@ def create_app(settings):
                 except Exception:
                     pass
             return _convert_job(db_job, service_url=service_url, files=files, phase=phase)
+
+    @app.patch("/api/jobs/{job_id}", response_model=Job,
+               description="Rename a job")
+    async def rename_job(job_id: int,
+                         body: UpdateJobRequest,
+                         username: str = Depends(get_current_user)):
+        name = body.name.strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="Job name must not be empty")
+        with db.get_db_session(settings.db_url) as session:
+            db_job = db.update_job(session, job_id, username, name)
+            if db_job is None:
+                raise HTTPException(status_code=404, detail="Job not found")
+            return _convert_job(db_job)
 
     @app.post("/api/jobs/{job_id}/cancel",
               description="Cancel a running job")
@@ -2462,6 +2597,7 @@ def create_app(settings):
             id=db_job.id,
             app_url=db_job.app_url,
             app_name=db_job.app_name,
+            name=db_job.name or f"{db_job.app_name} - {db_job.entry_point_name}",
             manifest_path=db_job.manifest_path,
             entry_point_id=db_job.entry_point_id,
             entry_point_name=db_job.entry_point_name,

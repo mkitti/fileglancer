@@ -4,11 +4,11 @@ from datetime import datetime, timedelta, UTC
 import os
 from functools import lru_cache
 
-from sqlalchemy import create_engine, Boolean, Column, String, Integer, DateTime, JSON, UniqueConstraint
+from sqlalchemy import create_engine, Boolean, Column, String, Integer, DateTime, JSON, UniqueConstraint, func
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.pool import StaticPool
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Tuple
 from loguru import logger
 from cachetools import LRUCache
 
@@ -150,6 +150,10 @@ class JobDB(Base):
     manifest_path = Column(String, nullable=False, server_default="")
     entry_point_id = Column(String, nullable=False)
     entry_point_name = Column(String, nullable=False)
+    # Human-editable label for the job. Defaults to "app_name - entry_point_name"
+    # at create time; NULL only for rows created before this column (backfilled
+    # by migration).
+    name = Column(String, nullable=True)
     entry_point_type = Column(String, nullable=False, server_default="job")
     parameters = Column(JSON, nullable=False)
     # Environment-tab parameter values. A separate namespace from `parameters`
@@ -983,6 +987,7 @@ def create_job(session: Session, username: str, app_url: str, app_name: str,
                env_parameters: Optional[Dict] = None,
                resources: Optional[Dict] = None, manifest_path: str = "",
                entry_point_type: str = "job",
+               name: Optional[str] = None,
                env: Optional[Dict] = None, pre_run: Optional[str] = None,
                post_run: Optional[str] = None,
                container: Optional[str] = None,
@@ -995,10 +1000,13 @@ def create_job(session: Session, username: str, app_url: str, app_name: str,
                clean_env: bool = False) -> JobDB:
     """Create a new job record"""
     now = datetime.now(UTC)
+    if not (name and name.strip()):
+        name = f"{app_name} - {entry_point_name}"
     job = JobDB(
         username=username,
         app_url=canonical_github_url(app_url),
         app_name=app_name,
+        name=name,
         manifest_path=manifest_path,
         entry_point_id=entry_point_id,
         entry_point_name=entry_point_name,
@@ -1039,10 +1047,29 @@ def get_job(session: Session, job_id: int, username: str) -> Optional[JobDB]:
     return session.query(JobDB).filter_by(id=job_id, username=username).first()
 
 
+def update_job(session: Session, job_id: int, username: str,
+               name: str) -> Optional[JobDB]:
+    """Rename a job. Returns the job, or None if it doesn't exist or isn't
+    owned by username."""
+    job = session.query(JobDB).filter_by(id=job_id, username=username).first()
+    if job is None:
+        return None
+    job.name = name
+    session.commit()
+    return job
+
+
 def count_active_jobs_by_username(session: Session, username: str) -> int:
-    """Count a user's jobs that are not known-terminal (see get_active_jobs)."""
+    """Count a user's jobs that are running/pending, for the header badge.
+
+    Unlike get_active_jobs (used for polling/delete guards, where UNKNOWN
+    must stay "active" so a possibly-live job is never dropped), UNKNOWN jobs
+    don't count here — the scheduler can't currently confirm they're
+    running, so the badge shouldn't claim they are.
+    """
     return session.query(JobDB).filter_by(username=username).filter(
-        ~JobDB.status.in_(TERMINAL_JOB_STATUSES)
+        ~JobDB.status.in_(TERMINAL_JOB_STATUSES),
+        JobDB.status != "UNKNOWN",
     ).count()
 
 
@@ -1267,6 +1294,25 @@ def list_app_listings(session: Session) -> List[AppListingDB]:
 def get_app_listing(session: Session, listing_id: int) -> Optional[AppListingDB]:
     """Get a single app listing by id."""
     return session.query(AppListingDB).filter_by(id=listing_id).first()
+
+
+def count_installs_by_app(session: Session) -> Dict[Tuple[str, str], int]:
+    """Number of users who currently have each app installed, keyed by
+    (canonical url, manifest_path). The user_apps unique constraint on
+    (username, url, manifest_path) means one row per user, so a plain COUNT per
+    (url, manifest_path) is the distinct-user install count. Both user_apps and
+    app_listings store canonicalized URLs, so listings can look up their count
+    by exact (url, manifest_path)."""
+    rows = (
+        session.query(
+            UserAppDB.url,
+            UserAppDB.manifest_path,
+            func.count().label("n"),
+        )
+        .group_by(UserAppDB.url, UserAppDB.manifest_path)
+        .all()
+    )
+    return {(url, manifest_path): n for url, manifest_path, n in rows}
 
 
 def get_app_listings_by_owner(session: Session, owner_username: str) -> List[AppListingDB]:

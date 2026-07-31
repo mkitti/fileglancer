@@ -10,6 +10,7 @@ import FgDialog from '@/components/ui/Dialogs/FgDialog';
 import { useNGLinkContext } from '@/contexts/NGLinkContext';
 import type { CreateNGLinkPayload, NGLink } from '@/queries/ngLinkQueries';
 import { copyToClipboard } from '@/utils/copyText';
+import { useDefaultNeuroglancerBaseUrl } from '@/hooks/useDefaultNeuroglancerBaseUrl';
 import FgButton from './designSystem/atoms/FgButton';
 
 export default function NGLinks() {
@@ -22,6 +23,7 @@ export default function NGLinks() {
   const [showDialog, setShowDialog] = useState(false);
   const [editItem, setEditItem] = useState<NGLink | undefined>(undefined);
   const [deleteItem, setDeleteItem] = useState<NGLink | undefined>(undefined);
+  const defaultBaseUrl = useDefaultNeuroglancerBaseUrl();
 
   const handleOpenCreate = () => {
     setEditItem(undefined);
@@ -134,6 +136,7 @@ export default function NGLinks() {
       </div>
       {showDialog ? (
         <NGLinkDialog
+          defaultBaseUrl={defaultBaseUrl}
           editItem={editItem}
           onClose={handleClose}
           onCreate={handleCreate}

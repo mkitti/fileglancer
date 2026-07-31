@@ -26,6 +26,13 @@ export interface ValidViewer {
   displayName: string;
   /** URL template (may contain {dataLink} placeholder) */
   urlTemplate: string;
+  /**
+   * The capability-manifest library's default template, before any instance
+   * override from viewers.config. Empty string if the manifest has no
+   * template_url. Used to let users opt back to the manifest default (e.g. the
+   * external Neuroglancer at appspot) when a deployment overrides the URL.
+   */
+  manifestTemplateUrl: string;
   /** Logo path */
   logoPath: string;
   /** Tooltip/alt text label */
@@ -124,10 +131,15 @@ export function ViewersProvider({
           }
 
           // Replace {DATA_URL} with {dataLink} for consistency with existing code
-          const normalizedUrlTemplate = urlTemplate.replace(
-            /{DATA_URL}/g,
-            '{dataLink}'
-          );
+          const normalizeTemplate = (template: string) =>
+            template.replace(/{DATA_URL}/g, '{dataLink}');
+          const normalizedUrlTemplate = normalizeTemplate(urlTemplate);
+
+          // The manifest's own default template (before any instance override),
+          // normalized the same way. Empty string if the manifest has none.
+          const manifestTemplateUrl = manifest.viewer.template_url
+            ? normalizeTemplate(manifest.viewer.template_url)
+            : '';
 
           // Create valid viewer entry
           const key = normalizeViewerName(manifest.viewer.name);
@@ -139,6 +151,7 @@ export function ViewersProvider({
             key,
             displayName,
             urlTemplate: normalizedUrlTemplate,
+            manifestTemplateUrl,
             logoPath,
             label,
             manifest

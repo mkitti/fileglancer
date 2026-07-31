@@ -32,9 +32,7 @@ from fileglancer.user_worker import (
     _action_validate_proxied_path,
     _action_create_dirs,
     _action_validate_paths,
-    _action_cancel_local,
-    _descendant_pids,
-    _proc_alive,
+    _action_cancel,
     WorkerContext,
     _HEADER_FMT,
     _HEADER_SIZE,
@@ -192,69 +190,69 @@ class TestActionTimeout:
         assert _GIT_ACTION_TIMEOUT >= 600
 
 
-@pytest.mark.skipif(not os.path.isdir("/proc"),
-                    reason="/proc-based process-tree kill requires Linux")
-class TestCancelLocalAction:
-    """cancel_local terminates a local-executor job's whole process tree."""
+class TestCancelAction:
+    """The unified 'cancel' action stops a job through py-cluster-api.
+
+    For the local executor the job id is the leader PID, and cancel kills the
+    whole process group by PID — no fileglancer-side /proc walking. This
+    exercises the real executor (py-cluster-api >= 0.8.0), not a mock.
+    """
 
     def _ctx(self):
         return WorkerContext(username="test")
 
-    def _wait_gone(self, pid, timeout=5.0):
-        deadline = time.monotonic() + timeout
-        while _proc_alive(pid) and time.monotonic() < deadline:
-            time.sleep(0.05)
-        return not _proc_alive(pid)
+    def _spawn_orphaned_group(self):
+        """Start a process group led by a process reparented to init, so
+        nothing in the test process is its parent — exactly like a job whose
+        submitting worker has exited (init then reaps the killed group).
 
-    def test_kills_launcher_and_child_workload(self, tmp_path):
-        """Signalling only the launcher bash would leave its child workload
-        running. The whole tree must be terminated."""
-        import subprocess as sp
-        # `; :` prevents bash from exec-optimizing into sleep, so bash stays the
-        # parent of a real child `sleep` — mirroring a job script's workload.
-        proc = sp.Popen(["bash", "-c", "sleep 300; :"])
+        setsid() makes the child a session/group leader whose pgid equals its
+        pid, so the parent already knows the group id. The child forks the real
+        workload (a backgrounded sleep plus a foreground sleep, so the group
+        holds more than one process) and exits, orphaning it to init.
+        """
+        pid = os.fork()
+        if pid == 0:  # child: becomes the group leader, then bails out
+            os.setsid()
+            if os.fork() == 0:  # grandchild: the actual workload, same group
+                os.execvp("bash", ["bash", "-c", "sleep 300 & sleep 300"])
+            os._exit(0)
+        os.waitpid(pid, 0)  # reap the leader; the workload lives on under init
+        return pid  # == the group id (setsid set pgid == leader pid)
+
+    def test_local_cancel_kills_process_group(self):
+        pgid = self._spawn_orphaned_group()
         try:
-            # Wait for bash to fork its child.
-            deadline = time.monotonic() + 5
-            children = []
-            while time.monotonic() < deadline:
-                children = _descendant_pids(proc.pid)
-                if children:
-                    break
-                time.sleep(0.05)
-            assert children, "expected bash to spawn a child workload"
+            time.sleep(0.2)
+            os.killpg(pgid, 0)  # group is alive (raises if not)
 
-            (tmp_path / "job.pid").write_text(str(proc.pid))
-            result = _action_cancel_local({"work_dir": str(tmp_path)}, self._ctx())
+            result = _action_cancel(
+                {"cluster_config": {"executor": "local"},
+                 "job_id": str(pgid)},
+                self._ctx(),
+            )
+            assert result == {"status": "ok"}
 
-            assert result == {"terminated": True}
-            proc.wait(timeout=5)  # reap the launcher
-            assert self._wait_gone(proc.pid), "launcher bash survived"
-            for child in children:
-                assert self._wait_gone(child), f"child {child} survived cancel"
+            # cancel() only returns once the group is confirmed gone.
+            with pytest.raises(ProcessLookupError):
+                os.killpg(pgid, 0)
         finally:
-            for p in [*_descendant_pids(proc.pid), proc.pid]:
-                try:
-                    os.kill(p, 9)
-                except OSError:
-                    pass
-            if proc.poll() is None:
-                proc.wait(timeout=5)
+            try:
+                os.killpg(pgid, 9)
+            except OSError:
+                pass
 
-    def test_missing_pid_file_is_terminated(self, tmp_path):
-        assert _action_cancel_local(
-            {"work_dir": str(tmp_path)}, self._ctx()) == {"terminated": True}
-
-    def test_missing_work_dir_is_terminated(self):
-        assert _action_cancel_local({}, self._ctx()) == {"terminated": True}
-
-    def test_already_dead_pid_is_terminated(self, tmp_path):
+    def test_local_cancel_already_gone_is_ok(self, tmp_path):
         import subprocess as sp
-        proc = sp.Popen(["sleep", "0.01"])
-        proc.wait()  # reap so the PID is no longer a live process
-        (tmp_path / "job.pid").write_text(str(proc.pid))
-        assert _action_cancel_local(
-            {"work_dir": str(tmp_path)}, self._ctx()) == {"terminated": True}
+
+        proc = sp.Popen(["sleep", "0.01"], start_new_session=True)
+        proc.wait()  # already exited before we cancel
+        result = _action_cancel(
+            {"cluster_config": {"executor": "local"},
+             "job_id": str(proc.pid)},
+            self._ctx(),
+        )
+        assert result == {"status": "ok"}
 
 
 class TestIPCProtocol:

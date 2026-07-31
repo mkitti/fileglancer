@@ -114,6 +114,12 @@ viewers:
 
 ```
 
+#### Per-user override of the Neuroglancer URL
+
+When a deployment overrides Neuroglancer's URL with `instance_template_url` (for example, to point at an internal Neuroglancer instance), individual users can still switch their own links back to the manifest default (the external Neuroglancer at `neuroglancer-demo.appspot.com`) from **Preferences → Neuroglancer**.
+
+This choice is a per-user preference (`viewerUrlSources`); it does not change the deployment configuration and only affects the user who sets it. The option only appears when the deployment actually overrides the Neuroglancer URL — if the configured URL already equals the manifest default, there is nothing to switch between and no control is shown.
+
 ### Add a custom viewer
 
 To add a new viewer, create a capability manifest YAML file, host it at a URL, and reference it in the config:

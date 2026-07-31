@@ -36,7 +36,6 @@ except ImportError:
 import socket
 import struct
 import sys
-import time
 from pathlib import Path
 from typing import Any, Optional
 
@@ -470,6 +469,7 @@ def _action_open_file(request: dict, ctx: WorkerContext, filestore, fsps) -> dic
 
         return {
             "file_size": file_info.size,
+            "last_modified": file_info.last_modified,
             "content_type": content_type,
             "_fd": fd,
             "_file_handle": file_handle,  # kept alive until fd is sent
@@ -478,6 +478,83 @@ def _action_open_file(request: dict, ctx: WorkerContext, filestore, fsps) -> dic
         return _redirect_or_error(e, fsps)
     except FileNotFoundError:
         return {"error": f"File or directory not found: {fsp_name}/{subpath}", "status_code": 404}
+    except PermissionError:
+        return {"error": f"Permission denied: {fsp_name}/{subpath}", "status_code": 403}
+
+
+@action("write_file")
+@with_filestore
+def _action_write_file(request: dict, ctx: WorkerContext, filestore, fsps) -> dict:
+    """Open a file for writing (truncating) and return a writable file descriptor.
+
+    Mirrors open_file: the worker opens the file as the user so ownership and
+    permissions are the user's, then passes the fd back via SCM_RIGHTS. The main
+    process streams the request body into the fd. The "_fd_mode" key tells the
+    parent to wrap the received fd for writing rather than reading.
+
+    The parent directory must already exist; create it first via create_dir.
+    """
+    fsp_name = request["fsp_name"]
+    subpath = request.get("subpath", "")
+    if_match = request.get("if_match")
+    if_unmodified_since = request.get("if_unmodified_since")
+
+    from fileglancer.filestore import RootCheckError
+    from fileglancer.utils import make_etag
+
+    if not subpath:
+        return {"error": "A file path is required", "status_code": 400}
+
+    def _handle(fh):
+        return {
+            "_fd": fh.fileno(),
+            "_fd_mode": "wb",
+            "_file_handle": fh,  # kept alive until fd is sent
+        }
+
+    try:
+        full_path = filestore._check_path_in_root(subpath)
+        if os.path.isdir(full_path):
+            return {"error": "Cannot write file content to a directory", "status_code": 400}
+
+        if if_match is not None or if_unmodified_since is not None:
+            # Optimistic concurrency: validate the precondition against the real
+            # file before destroying anything. Open write-only WITHOUT create or
+            # truncate so a failed check leaves the file untouched, then truncate
+            # only once the check passes (race-tight — the fd is the exact inode
+            # we validated).
+            try:
+                fd = os.open(full_path, os.O_WRONLY)
+            except FileNotFoundError:
+                if if_match is not None:
+                    # If-Match (incl. "*") needs an existing version to match.
+                    return {"error": "Precondition failed: file does not exist", "status_code": 412}
+                # Only If-Unmodified-Since on a missing file → treat as a create.
+                return _handle(open(full_path, 'wb'))
+
+            st = os.fstat(fd)
+            current_etag = make_etag(st.st_mtime, st.st_size)
+            stale = (
+                (if_match is not None and if_match != '*' and if_match != current_etag)
+                # If-Unmodified-Since is second-granularity by HTTP spec.
+                or (if_unmodified_since is not None and int(st.st_mtime) > int(if_unmodified_since))
+            )
+            if stale:
+                os.close(fd)
+                return {"error": "Precondition failed: file has changed since it was read",
+                        "status_code": 412}
+            os.ftruncate(fd, 0)
+            return _handle(os.fdopen(fd, 'wb'))
+
+        # No precondition — create the file as the user if absent, or replace
+        # existing contents while preserving ownership.
+        return _handle(open(full_path, 'wb'))
+    except RootCheckError as e:
+        return _redirect_or_error(e, fsps)
+    except IsADirectoryError:
+        return {"error": "Cannot write file content to a directory", "status_code": 400}
+    except FileNotFoundError:
+        return {"error": f"Parent directory does not exist: {fsp_name}/{subpath}", "status_code": 404}
     except PermissionError:
         return {"error": f"Permission denied: {fsp_name}/{subpath}", "status_code": 403}
 
@@ -781,127 +858,6 @@ def _action_delete_job_work_dir(request: dict, ctx: WorkerContext) -> dict:
         return {"error": str(e), "status_code": 500}
 
 
-def _proc_alive(pid: int) -> bool:
-    """True if pid is a live (non-zombie) process.
-
-    Uses /proc so a killed-but-not-yet-reaped process (state 'Z') counts as
-    dead — os.kill(pid, 0) alone would report a zombie as alive.
-    """
-    try:
-        with open(f"/proc/{pid}/stat", "rb") as f:
-            data = f.read()
-        # "pid (comm) state ...": comm may contain spaces/parens, so read the
-        # state character from just after the final ')'.
-        state = data[data.rindex(b")") + 2:data.rindex(b")") + 3]
-        return state not in (b"Z", b"X", b"x")
-    except (FileNotFoundError, ProcessLookupError):
-        return False
-    except OSError:
-        # /proc unavailable — fall back to a signal-0 probe.
-        try:
-            os.kill(pid, 0)
-            return True
-        except ProcessLookupError:
-            return False
-        except PermissionError:
-            return True
-
-
-def _descendant_pids(root_pid: int) -> list[int]:
-    """Return all descendant PIDs of root_pid (children, grandchildren, ...).
-
-    Reads PPID from /proc/<pid>/stat. Must be called before the root is killed:
-    once a parent dies its children reparent to init and can no longer be
-    traced back to root_pid.
-    """
-    children: dict[int, list[int]] = {}
-    for entry in os.listdir("/proc"):
-        if not entry.isdigit():
-            continue
-        try:
-            with open(f"/proc/{entry}/stat", "rb") as f:
-                data = f.read()
-            fields = data[data.rindex(b")") + 2:].split()
-            ppid = int(fields[1])  # state, ppid, ...
-        except (OSError, ValueError, IndexError):
-            continue
-        children.setdefault(ppid, []).append(int(entry))
-
-    result: list[int] = []
-    stack = [root_pid]
-    while stack:
-        for child in children.get(stack.pop(), []):
-            result.append(child)
-            stack.append(child)
-    return result
-
-
-def _terminate_process_tree(pid: int, grace_seconds: float = 3.0) -> bool:
-    """Terminate pid and all its descendants; return True once none survive.
-
-    The launcher bash does not forward SIGTERM to its foreground child, so
-    signalling the launcher alone leaves the real workload running (orphaned).
-    Snapshot the whole tree first (before anything dies and children reparent),
-    SIGTERM it, then SIGKILL any that outlast the grace period.
-    """
-    import signal
-
-    # Snapshot children before signalling; include the launcher itself.
-    targets = _descendant_pids(pid) + [pid]
-
-    def _signal_all(sig: int) -> None:
-        for target in targets:
-            try:
-                os.kill(target, sig)
-            except (ProcessLookupError, PermissionError):
-                pass
-
-    def _any_alive() -> bool:
-        return any(_proc_alive(target) for target in targets)
-
-    _signal_all(signal.SIGTERM)
-    deadline = time.monotonic() + grace_seconds
-    while _any_alive() and time.monotonic() < deadline:
-        time.sleep(0.1)
-
-    if _any_alive():
-        _signal_all(signal.SIGKILL)
-        # SIGKILL is immediate but reaping isn't; give the kernel a moment.
-        time.sleep(0.2)
-
-    return not _any_alive()
-
-
-@action("cancel_local")
-def _action_cancel_local(request: dict, ctx: WorkerContext) -> dict:
-    """Terminate a local-executor job and its whole process tree, as the user.
-
-    The local executor spawns `bash <script>` (in the worker's process group,
-    so we can't safely kill the group), and a fresh executor in a later
-    `cancel` dispatch has no handle to it — so cancellation targets the PID
-    persisted at submit time ({work_dir}/job.pid). Killing only that bash would
-    leave the actual workload (its child) running, so terminate the entire
-    descendant tree and confirm it is gone.
-
-    Returns {"terminated": bool}: True when nothing from the job is left
-    running (already-exited or successfully killed), False when a process
-    survived even SIGKILL — the caller must not then report the job as killed.
-    """
-    work_dir = request.get("work_dir")
-    if not work_dir:
-        return {"terminated": True}
-    pid_file = Path(work_dir) / "job.pid"
-    if not pid_file.is_file():
-        return {"terminated": True}
-    try:
-        pid = int(pid_file.read_text().strip())
-    except (ValueError, OSError):
-        return {"terminated": True}
-    if not _proc_alive(pid):
-        return {"terminated": True}  # already gone
-    return {"terminated": _terminate_process_tree(pid)}
-
-
 @action("get_service_url")
 def _action_get_service_url(request: dict, ctx: WorkerContext) -> dict:
     """Read the service URL and startup phase from a job's work directory."""
@@ -1134,9 +1090,13 @@ def _action_submit(request: dict, ctx: WorkerContext) -> dict:
 
 @action("cancel")
 def _action_cancel(request: dict, ctx: WorkerContext) -> dict:
-    """Cancel a cluster job via py-cluster-api."""
+    """Cancel a cluster job via py-cluster-api.
+
+    done=True asks the scheduler to mark the job DONE instead of killed
+    (LSF: bkill -d); it is ignored by executors without that notion.
+    """
     executor = _get_executor(request)
-    _run_async(executor.cancel(request["job_id"]))
+    _run_async(executor.cancel(request["job_id"], done=request.get("done", False)))
     return {"status": "ok"}
 
 

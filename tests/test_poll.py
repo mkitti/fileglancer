@@ -97,6 +97,11 @@ class TestPollSkipsSameStatus:
         mock_db.get_db_session.return_value.__enter__ = lambda _: mock_session
         mock_db.get_db_session.return_value.__exit__ = MagicMock(return_value=False)
         mock_db.get_active_jobs.return_value = [job]
+        # The poll skips jobs already terminal in the DB; the RUNNING job here
+        # is not, so the write must still happen.
+        mock_db.is_terminal_job_status.side_effect = lambda s: s in (
+            "DONE", "FAILED", "KILLED"
+        )
 
         # Worker returns DONE — different from DB's RUNNING
         mock_dispatch.return_value = {
@@ -140,6 +145,53 @@ class TestPollSkipsSameStatus:
         # _dispatch is called as (username, action, **kwargs)
         kwargs = mock_dispatch.call_args.kwargs
         assert kwargs["job_statuses"] == {"1001": "RUNNING", "1002": "PENDING"}
+
+
+class TestPollDoesNotClobberTerminal:
+    """A cancel that finalizes a job while bjobs is in flight must win: the
+    poll must not overwrite an already-terminal status with a stale result.
+
+    Regression for a user cancel showing up as UNKNOWN — the poll wrote the
+    torn-down job's bjobs status (unmapped -> UNKNOWN) over the KILLED the
+    cancel had just committed."""
+
+    @patch("fileglancer.apps.jobs._dispatch", new_callable=AsyncMock)
+    @patch("fileglancer.apps.jobs.db")
+    def test_terminal_status_not_overwritten(self, mock_db, mock_dispatch):
+        settings = _make_settings()
+
+        job = _make_db_job(1, "1001", "RUNNING")
+        mock_session = MagicMock()
+        mock_db.get_db_session.return_value.__enter__ = lambda _: mock_session
+        mock_db.get_db_session.return_value.__exit__ = MagicMock(return_value=False)
+        mock_db.get_active_jobs.return_value = [job]
+        mock_db.is_terminal_job_status.side_effect = lambda s: s in (
+            "DONE", "FAILED", "KILLED"
+        )
+
+        # Simulate a user cancel landing during the bjobs round-trip: the job
+        # is finalized as KILLED while the poll awaits, and bjobs reports the
+        # torn-down job with a status that maps to UNKNOWN.
+        async def dispatch(username, action, **kwargs):
+            job.status = "KILLED"
+            return {
+                "jobs": {
+                    "1001": {
+                        "status": "unknown",
+                        "exit_code": None,
+                        "exec_host": None,
+                        "start_time": None,
+                        "finish_time": None,
+                    },
+                },
+            }
+
+        mock_dispatch.side_effect = dispatch
+
+        asyncio.run(_poll_jobs(settings))
+
+        # The poll must leave the cancellation intact.
+        mock_db.update_job_status.assert_not_called()
 
 
 class TestPollUnknownCutoff:

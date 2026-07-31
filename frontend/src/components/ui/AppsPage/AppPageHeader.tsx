@@ -10,7 +10,7 @@ import FgIcon from '@/components/designSystem/atoms/FgIcon';
 import FgTooltip from '@/components/ui/widgets/FgTooltip';
 
 interface AppPageHeaderProps {
-  readonly title?: string;
+  readonly title?: ReactNode;
   readonly icon?: IconType;
   readonly description?: string | null;
   readonly githubUrl?: string | null;
@@ -55,9 +55,16 @@ export default function AppPageHeader({
           {icon ? (
             <FgIcon className="text-foreground flex-shrink-0" icon={icon} />
           ) : null}
-          <Typography className="text-foreground font-bold truncate" type="h6">
-            {title}
-          </Typography>
+          {typeof title === 'string' ? (
+            <Typography
+              className="text-foreground font-bold truncate"
+              type="h6"
+            >
+              {title}
+            </Typography>
+          ) : (
+            title
+          )}
           {children}
         </div>
         {actions ? (

@@ -40,15 +40,17 @@ function CommitValue({
   readonly sha: string;
   readonly href: string | null;
 }) {
+  // Short SHA in monospace, formatted identically to the Job page "Commit" row.
+  const short = sha.slice(0, 7);
   if (href) {
     return (
-      <FgExternalLink className="break-all" href={href} size="sm">
-        {sha}
+      <FgExternalLink className="text-xs font-mono" href={href}>
+        {short}
       </FgExternalLink>
     );
   }
 
-  return <span className="break-all text-sm">{sha}</span>;
+  return <span className="text-xs font-mono">{short}</span>;
 }
 
 function GithubUrlValue({ url }: { readonly url: string }) {
@@ -116,7 +118,7 @@ export default function AppInfoTable({ app }: { readonly app: UserApp }) {
           )}
         </InfoRow>
         {app.commit_sha ? (
-          <InfoRow label="App commit">
+          <InfoRow label="Commit">
             <CommitValue href={commitUrl} sha={app.commit_sha} />
           </InfoRow>
         ) : null}

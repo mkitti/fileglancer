@@ -1,0 +1,33 @@
+{
+  "name": "@fileglancer/client",
+  "version": "0.1.0",
+  "description": "Browser client for the Fileglancer programmatic API — read and write scientific data files as the logged-in user, with a popup login handshake.",
+  "license": "BSD-3-Clause",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit"
+  },
+  "keywords": [
+    "fileglancer",
+    "janelia",
+    "ome-zarr",
+    "files"
+  ],
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}

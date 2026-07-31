@@ -178,6 +178,49 @@ def test_status_updated_at_tracks_status_changes(db_session):
     assert job.status_updated_at == running_stamp
 
 
+def test_create_job_defaults_name_from_app_and_entry_point(db_session):
+    job = create_job(
+        db_session, "testuser", "https://github.com/owner/repo",
+        "My App", "run", "Run Thing", {},
+    )
+    assert job.name == "My App - Run Thing"
+
+
+def test_create_job_keeps_explicit_name(db_session):
+    job = create_job(
+        db_session, "testuser", "https://github.com/owner/repo",
+        "My App", "run", "Run Thing", {}, name="Custom Name",
+    )
+    assert job.name == "Custom Name"
+
+
+def test_create_job_blank_name_falls_back_to_default(db_session):
+    job = create_job(
+        db_session, "testuser", "https://github.com/owner/repo",
+        "My App", "run", "Run Thing", {}, name="   ",
+    )
+    assert job.name == "My App - Run Thing"
+
+
+def test_update_job_sets_name(db_session):
+    job = create_job(
+        db_session, "testuser", "https://github.com/owner/repo",
+        "My App", "run", "Run Thing", {},
+    )
+    updated = update_job(db_session, job.id, "testuser", "Renamed")
+    assert updated is not None
+    assert updated.name == "Renamed"
+    assert get_job(db_session, job.id, "testuser").name == "Renamed"
+
+
+def test_update_job_wrong_user_returns_none(db_session):
+    job = create_job(
+        db_session, "testuser", "https://github.com/owner/repo",
+        "My App", "run", "Run Thing", {},
+    )
+    assert update_job(db_session, job.id, "someone_else", "Renamed") is None
+
+
 def test_create_proxied_path(db_session, fsp):
     # Test creating a new proxied path
     username = "testuser"

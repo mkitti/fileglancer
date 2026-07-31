@@ -10,7 +10,7 @@ import {
 } from '@/queries/appsQueries';
 import { buildAppDetailPath, buildLaunchPathFromApp } from '@/utils';
 import { showErrorToast } from '@/utils/errorToast';
-import type { UserApp } from '@/shared.types';
+import type { LaunchOrigin, UserApp } from '@/shared.types';
 
 export interface AppActions {
   launch: (app: UserApp, entryPointId?: string) => void;
@@ -58,7 +58,16 @@ export function useAppActions(opts?: { onRemoved?: () => void }): AppActions {
   const unshareListingMutation = useUnshareListingMutation();
 
   const launch = (app: UserApp, entryPointId?: string) => {
-    navigate(buildLaunchPathFromApp(app.url, app.manifest_path, entryPointId));
+    // Record the My Apps origin so the launch breadcrumbs link back here rather
+    // than inferring the origin from install status.
+    const from: LaunchOrigin = {
+      homeTo: '/apps',
+      homeLabel: 'My Apps',
+      appTo: buildAppDetailPath(app.url, app.manifest_path)
+    };
+    navigate(buildLaunchPathFromApp(app.url, app.manifest_path, entryPointId), {
+      state: { from }
+    });
   };
 
   const view = (app: UserApp) => {

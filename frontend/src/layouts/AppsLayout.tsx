@@ -12,6 +12,7 @@ import {
 import FgBadge from '@/components/designSystem/atoms/FgBadge';
 import FgIcon from '@/components/designSystem/atoms/FgIcon';
 import { useActiveJobCount } from '@/hooks/useActiveJobCount';
+import type { LaunchOrigin } from '@/shared.types';
 
 interface TabItem {
   to: string;
@@ -46,15 +47,32 @@ function TabAccent({ active }: { readonly active: boolean }) {
 
 export default function AppsLayout() {
   const activeJobCount = useActiveJobCount();
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const { pathname } = location;
 
-  // App detail and launch pages are drill-downs from My Apps, so keep that tab
-  // highlighted there (NavLink's own matching would mark it inactive).
+  // The launch/relaunch pages are drill-downs with no tab of their own, so keep
+  // the originating tab selected. The origin is recorded in navigation state
+  // (My Apps vs App Catalog); without it (reload/direct nav) default to My Apps.
+  const launchOrigin = (location.state as { from?: LaunchOrigin } | null)?.from;
+  const onLaunchPage =
+    pathname.startsWith('/apps/launch/') ||
+    pathname.startsWith('/apps/relaunch/');
+  const catalogLaunch =
+    onLaunchPage && launchOrigin?.homeTo === '/apps/catalog';
+
+  // App detail and launches originating from My Apps keep My Apps highlighted
+  // (NavLink's own matching would mark it inactive on these drill-downs).
   const myAppsActive =
     pathname === '/apps' ||
     pathname.startsWith('/apps/detail/') ||
-    pathname.startsWith('/apps/launch/') ||
-    pathname.startsWith('/apps/relaunch/');
+    (onLaunchPage && !catalogLaunch);
+
+  // App Catalog stays highlighted on its own pages and on a catalog-originated
+  // launch (where the pathname alone wouldn't match).
+  const catalogActive =
+    pathname === '/apps/catalog' ||
+    pathname.startsWith('/apps/catalog/') ||
+    catalogLaunch;
 
   const tabs: TabItem[] = [
     {
@@ -64,7 +82,12 @@ export default function AppsLayout() {
       end: true,
       isActive: myAppsActive
     },
-    { to: '/apps/catalog', label: 'App Catalog', icon: HiOutlineSquares2X2 },
+    {
+      to: '/apps/catalog',
+      label: 'App Catalog',
+      icon: HiOutlineSquares2X2,
+      isActive: catalogActive
+    },
     {
       to: '/apps/jobs',
       label: 'Jobs',
