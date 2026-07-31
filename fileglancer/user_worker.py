@@ -1093,6 +1093,10 @@ def _action_submit(request: dict, ctx: WorkerContext) -> dict:
 
     executor = _get_executor(request)
 
+    # Parsed up front: a missing payload must fail before the job is submitted,
+    # since raising afterwards would lose the job id.
+    fsps = _file_share_paths_from_request(request)
+
     work_dir = Path(request["work_dir"])
     work_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1138,12 +1142,14 @@ def _action_submit(request: dict, ctx: WorkerContext) -> dict:
     work_dir_subpath = None
     try:
         from fileglancer.database import find_fsp_in_paths
-        match = find_fsp_in_paths(_file_share_paths_from_request(request), str(work_dir))
+        match = find_fsp_in_paths(fsps, str(work_dir))
         if match:
             work_dir_fsp_name = match[0].name
             work_dir_subpath = match[1]
-    except Exception:
-        pass
+    except Exception as e:
+        # The job is already running: a stale mount under realpath() must not
+        # cost us the job id. Browse links just stay unresolved.
+        logger.warning(f"Could not resolve a browse-link base for {work_dir}: {e}")
 
     return {
         "job_id": job.job_id,
