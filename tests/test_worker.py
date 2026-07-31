@@ -6,6 +6,7 @@ and the in-process dev-mode fallback.
 """
 
 import asyncio
+import inspect
 import json
 import os
 import socket
@@ -27,6 +28,7 @@ from fileglancer.user_worker import (
     _send_with_fd,
     _recv,
     _ACTIONS,
+    _ACTIONS_NEEDING_FSPS,
     _action_validate_proxied_path,
     _action_create_dirs,
     _action_validate_paths,
@@ -66,6 +68,20 @@ class _EmptyDbProxy:
 
     def get_file_share_paths(self):
         return []
+
+
+def test_fsp_registry_covers_every_handler_that_reads_the_list():
+    """A handler reading file_share_paths must be registered as needing them.
+
+    Otherwise the parent won't attach the list and the action fails at request
+    time rather than at import time. @with_filestore reads the list on its
+    handler's behalf and marks itself, so those handlers' bodies don't mention
+    it (inspect.getsource follows functools.wraps to the inner function).
+    """
+    for name, handler in _ACTIONS.items():
+        reads_directly = "_file_share_paths_from_request" in inspect.getsource(handler)
+        via_decorator = getattr(handler, "_needs_fsps", False)
+        assert (reads_directly or via_decorator) == (name in _ACTIONS_NEEDING_FSPS), name
 
 
 # ---------------------------------------------------------------------------

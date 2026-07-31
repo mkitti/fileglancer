@@ -137,11 +137,23 @@ def _recvall(sock: socket.socket, n: int) -> Optional[bytes]:
 # Populated by @action(name) decorators on each handler.
 _ACTIONS: dict[str, Any] = {}
 
+# Actions whose handler needs the file-share-path list, so the parent knows to
+# attach it (see prepare_worker_request). Derived from the decorators rather
+# than hand-listed: a handler that reads the list without being registered here
+# would only fail at request time, on whatever path happens to exercise it.
+_ACTIONS_NEEDING_FSPS: set[str] = set()
 
-def action(name: str):
-    """Register a handler under the given action name."""
+
+def action(name: str, needs_fsps: bool = False):
+    """Register a handler under the given action name.
+
+    ``needs_fsps`` marks handlers that read request["file_share_paths"]
+    directly. Handlers wrapped in @with_filestore are marked automatically.
+    """
     def decorator(fn):
         _ACTIONS[name] = fn
+        if needs_fsps or getattr(fn, "_needs_fsps", False):
+            _ACTIONS_NEEDING_FSPS.add(name)
         return fn
     return decorator
 
@@ -181,28 +193,6 @@ class LocalDbProxy:
             return db.get_file_share_paths(session)
 
 
-# Actions that need the file-share-path list to resolve fsp_name, validate
-# containment, or build redirect/browse-link metadata.
-ACTIONS_REQUIRING_FILE_SHARE_PATHS = frozenset({
-    "list_dir",
-    "list_dir_paged",
-    "get_file_info",
-    "check_binary",
-    "open_file",
-    "head_file",
-    "create_dir",
-    "create_file",
-    "rename",
-    "delete",
-    "chmod",
-    "update_file",
-    "validate_proxied_path",
-    "validate_paths",
-    "create_dirs",
-    "get_profile",
-    "submit",
-})
-
 def prepare_worker_request(request: dict, db_proxy: LocalDbProxy) -> dict:
     """Return a request enriched with the DB data the worker needs.
 
@@ -210,7 +200,7 @@ def prepare_worker_request(request: dict, db_proxy: LocalDbProxy) -> dict:
     actions to be the dispatching endpoint's business.  Everything else the
     worker needs from the DB is passed by the caller as a request kwarg.
     """
-    if request.get("action") not in ACTIONS_REQUIRING_FILE_SHARE_PATHS:
+    if request.get("action") not in _ACTIONS_NEEDING_FSPS:
         return request
 
     fsps = db_proxy.get_file_share_paths()
@@ -351,6 +341,8 @@ def with_filestore(fn):
         if filestore is None:
             return error_response
         return fn(request, ctx, filestore, fsps)
+    # Read by @action, which is applied outside this decorator.
+    wrapper._needs_fsps = True
     return wrapper
 
 
@@ -649,7 +641,7 @@ def _action_update_file(request: dict, ctx: WorkerContext, filestore, fsps) -> d
         return {"error": str(e), "status_code": 500}
 
 
-@action("validate_paths")
+@action("validate_paths", needs_fsps=True)
 def _action_validate_paths(request: dict, ctx: WorkerContext) -> dict:
     """Validate file/directory paths for app parameters."""
     from fileglancer.apps.command import validate_path_in_filestore
@@ -675,7 +667,7 @@ def _action_validate_paths(request: dict, ctx: WorkerContext) -> dict:
     return {"errors": errors}
 
 
-@action("create_dirs")
+@action("create_dirs", needs_fsps=True)
 def _action_create_dirs(request: dict, ctx: WorkerContext) -> dict:
     """Create directories for app params with exists=false.
 
@@ -706,7 +698,7 @@ def _action_create_dirs(request: dict, ctx: WorkerContext) -> dict:
     return {"errors": errors}
 
 
-@action("get_profile")
+@action("get_profile", needs_fsps=True)
 def _action_get_profile(request: dict, ctx: WorkerContext) -> dict:
     """Get user profile information."""
     username = ctx.username
@@ -1122,7 +1114,7 @@ def _get_executor(request: dict):
     return create_executor(**config)
 
 
-@action("submit")
+@action("submit", needs_fsps=True)
 def _action_submit(request: dict, ctx: WorkerContext) -> dict:
     """Create work dir, symlink repo, submit job via py-cluster-api."""
     from cluster_api import ResourceSpec
