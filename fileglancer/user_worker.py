@@ -1328,9 +1328,8 @@ def _action_remote_heads(request: dict, ctx: WorkerContext) -> dict:
 class WorkerContext:
     """Holds per-worker state."""
 
-    def __init__(self, username: str, db=None):
+    def __init__(self, username: str):
         self.username = username
-        self.db = db
 
 
 def main():

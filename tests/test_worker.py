@@ -199,7 +199,7 @@ class TestCancelLocalAction:
     """cancel_local terminates a local-executor job's whole process tree."""
 
     def _ctx(self):
-        return WorkerContext(username="test", db=None)
+        return WorkerContext(username="test")
 
     def _wait_gone(self, pid, timeout=5.0):
         deadline = time.monotonic() + timeout
@@ -264,7 +264,7 @@ class TestGetServiceUrlsAction:
     services are running."""
 
     def _ctx(self):
-        return WorkerContext(username="test", db=None)
+        return WorkerContext(username="test")
 
     def test_reads_urls_and_phases_for_all_jobs(self, tmp_path):
         ready = tmp_path / "ready"
