@@ -10,7 +10,7 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.pool import StaticPool
 from typing import Optional, Dict, List, Tuple
 from loguru import logger
-from cachetools import LRUCache
+from cachetools import LRUCache, TTLCache
 
 from fileglancer.giturls import canonical_github_url
 from fileglancer.model import FileSharePath
@@ -29,6 +29,15 @@ _engine_cache = {}
 
 # Sharing key cache - LRU cache for ProxiedPathDB objects
 _sharing_key_cache = None
+
+# File share path cache. The list changes rarely (written by an external
+# process) and is read on every proxied data request and every worker file
+# action, so it is cached for a short window rather than re-queried per call.
+# Keyed by database URL: a process can talk to more than one database (the test
+# suite builds a fresh one per module), and an unkeyed cache would serve one
+# database's shares for another's.
+FSP_CACHE_TTL_SECONDS = 60
+_fsp_cache = TTLCache(maxsize=8, ttl=FSP_CACHE_TTL_SECONDS)
 
 def _get_sharing_key_cache():
     """Get or initialize the sharing key cache"""
@@ -418,6 +427,41 @@ def get_all_paths(session, fsp_name: Optional[str] = None):
     return query.all()
 
 
+def _load_file_share_paths(session: Session) -> List[FileSharePath]:
+    """Build the full file share path list from config or the database.
+
+    Priority:
+    1. Check local configuration first - if paths exist in local configuration, use those
+    2. Otherwise, check the database
+    """
+    settings = get_settings()
+    file_share_mounts = settings.file_share_mounts
+
+    if file_share_mounts:
+        return [FileSharePath(
+            name=slugify_path(path),
+            zone='Local',
+            group='local',
+            storage='home' if path in ("~", "~/") else 'local',
+            mount_path=path,
+            mac_path=path,
+            windows_path=path,
+            linux_path=path,
+        ) for path in file_share_mounts]
+
+    db_paths = get_all_paths(session)
+    return [FileSharePath(
+        name=path.name,
+        zone=path.zone,
+        group=path.group,
+        storage=path.storage,
+        mount_path=path.mount_path,
+        mac_path=path.mac_path,
+        windows_path=path.windows_path,
+        linux_path=path.linux_path,
+    ) for path in db_paths]
+
+
 def get_file_share_paths(session: Session, fsp_name: Optional[str] = None):
     """
     Get all file share paths from either the local configuration or the database.
@@ -425,9 +469,12 @@ def get_file_share_paths(session: Session, fsp_name: Optional[str] = None):
     This is the single source of truth for retrieving file share paths.
     Returns a list of FileSharePath model objects (not database models).
 
-    Priority:
-    1. Check local configuration first - if paths exist in local configuration, use those
-    2. Otherwise, check the database
+    Served from a short-lived process-local cache. Every proxied data request
+    resolves its file share path through here (once per chunk a viewer pulls),
+    as does every file action dispatched to a worker, so the uncached cost is
+    paid on the hottest paths in the app. Nothing in Fileglancer writes the
+    file_share_paths table -- it is populated externally -- so there is no
+    event to invalidate on and the cache is a plain TTL.
 
     Args:
         session: Database session
@@ -436,39 +483,14 @@ def get_file_share_paths(session: Session, fsp_name: Optional[str] = None):
     Returns:
         List of FileSharePath objects ready to be used in responses
     """
-    settings = get_settings()
-    file_share_mounts = settings.file_share_mounts
-
-    if file_share_mounts:
-        paths = []
-        for path in file_share_mounts:
-            name = slugify_path(path)
-            paths.append(FileSharePath(
-                name=name,
-                zone='Local',
-                group='local',
-                storage = 'home' if path in ("~", "~/") else 'local',
-                mount_path=path,
-                mac_path=path,
-                windows_path=path,
-                linux_path=path,
-            ))
-        if fsp_name:
-            paths = [path for path in paths if path.name == fsp_name]
-        return paths
-    else:
-        # Use database paths
-        db_paths = get_all_paths(session, fsp_name)
-        return [FileSharePath(
-            name=path.name,
-            zone=path.zone,
-            group=path.group,
-            storage=path.storage,
-            mount_path=path.mount_path,
-            mac_path=path.mac_path,
-            windows_path=path.windows_path,
-            linux_path=path.linux_path,
-        ) for path in db_paths]
+    key = str(session.get_bind().url)
+    paths = _fsp_cache.get(key)
+    if paths is None:
+        paths = _fsp_cache[key] = _load_file_share_paths(session)
+    if fsp_name:
+        return [path for path in paths if path.name == fsp_name]
+    # Copy so a caller mutating the list can't corrupt the cached one.
+    return list(paths)
 
 
 def get_file_share_path(session: Session, name: str) -> Optional[FileSharePath]:

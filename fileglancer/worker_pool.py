@@ -38,9 +38,15 @@ import sys
 import time
 from typing import Any, Optional
 
+from cachetools import TTLCache
 from loguru import logger
 
+from fileglancer.database import FSP_CACHE_TTL_SECONDS
 from fileglancer.settings import Settings
+
+# Worker-bound (JSON-serialized) file share paths, keyed by database URL for the
+# same reason the model-level cache is; see _fetch_fsp_rows.
+_fsp_row_cache = TTLCache(maxsize=8, ttl=FSP_CACHE_TTL_SECONDS)
 
 
 # Length-prefix format: 4-byte big-endian unsigned int
@@ -75,10 +81,21 @@ def _timeout_for_action(action: str) -> float:
 
 
 def _fetch_fsp_rows(db_url: str) -> list[dict]:
-    """Read the file share paths and serialize them for the worker."""
+    """Read the file share paths and serialize them for the worker.
+
+    The serialized form is cached as well as the underlying list: dumping a few
+    hundred models costs more than the query does once the query is cached, and
+    every file action dispatched to a worker pays it. Same TTL, so the worker
+    sees a list no staler than the rest of the app does.
+    """
     from fileglancer import database as db
-    with db.get_db_session(db_url) as session:
-        return [f.model_dump(mode="json") for f in db.get_file_share_paths(session)]
+
+    rows = _fsp_row_cache.get(db_url)
+    if rows is None:
+        with db.get_db_session(db_url) as session:
+            rows = [f.model_dump(mode="json") for f in db.get_file_share_paths(session)]
+        _fsp_row_cache[db_url] = rows
+    return rows
 
 
 def prepare_worker_request(request: dict, db_url: str) -> dict:
