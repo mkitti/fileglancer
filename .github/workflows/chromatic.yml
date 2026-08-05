@@ -37,6 +37,10 @@ jobs:
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          # Don't persist the base-repo GITHUB_TOKEN in .git/config: this job
+          # checks out untrusted fork code and runs `npm ci` (lifecycle scripts),
+          # which could otherwise read the token. Chromatic doesn't need it.
+          persist-credentials: false
           # For fork PRs, check out the contributor's head commit from their fork.
           # Falls back to the base repository for pushes and same-repo PRs.
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
