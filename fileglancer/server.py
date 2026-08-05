@@ -42,8 +42,10 @@ from fileglancer.settings import get_settings
 from fileglancer.issues import create_jira_ticket, get_jira_ticket_details, delete_jira_ticket
 from fileglancer.utils import format_timestamp, guess_content_type, parse_range_header, make_etag, parse_http_date_to_epoch
 from fileglancer.filestore import Filestore, RootCheckError
-from fileglancer.log import AccessLogMiddleware
-from fileglancer.worker_pool import WorkerPool, WorkerError, WorkerDead
+from fileglancer.log import AccessLogMiddleware, disable_uvicorn_access_log
+from fileglancer.worker_pool import (
+    WorkerPool, WorkerError, WorkerDead, prepare_worker_request)
+from fileglancer.user_worker import serialize_job_for_worker
 from fileglancer import sshkeys
 
 from x2s3.utils import get_read_access_acl, get_nosuchbucket_response, get_error_response, generate_request_id
@@ -371,12 +373,13 @@ def create_app(settings):
                 raise HTTPException(status_code=e.status_code, detail=str(e))
         else:
             # CLI mode: run action directly in-process (single-user, no setuid)
-            from fileglancer.user_worker import _ACTIONS, WorkerContext, LocalDbProxy
+            from fileglancer.user_worker import _ACTIONS, WorkerContext
             handler = _ACTIONS.get(action)
             if handler is None:
                 raise HTTPException(status_code=500, detail=f"Unknown action: {action}")
-            ctx = WorkerContext(username=username, db=LocalDbProxy(settings.db_url))
-            request = {"action": action, **kwargs}
+            ctx = WorkerContext(username=username)
+            request = prepare_worker_request(
+                {"action": action, **kwargs}, settings.db_url)
             try:
                 result = handler(request, ctx)
             except Exception as e:
@@ -568,8 +571,10 @@ def create_app(settings):
     app = FastAPI(lifespan=lifespan)
 
     # Add custom access log middleware
-    # This logs HTTP access information with authenticated username
+    # This logs HTTP access information with authenticated username, and
+    # supersedes Uvicorn's access log rather than adding to it.
     app.add_middleware(AccessLogMiddleware, settings=settings)
+    disable_uvicorn_access_log()
 
     # Attach an S3-style x-amz-request-id header to data-link (/files/) responses,
     # carrying over the feature added in x2s3 1.3.0 (which only applies it within
@@ -2462,7 +2467,7 @@ def create_app(settings):
             return JobResponse(jobs=[_convert_job(j) for j in db_jobs])
 
     @app.get("/api/jobs/active-count", response_model=JobActiveCountResponse,
-             description="Count the user's active (non-terminal) jobs")
+             description="Count the user's pending/running jobs (UNKNOWN excluded)")
     async def get_active_job_count(username: str = Depends(get_current_user)):
         # The navbar badge polls this from every page, so it must stay a
         # cheap DB count: no service-URL resolution or worker round-trips
@@ -2487,7 +2492,9 @@ def create_app(settings):
             phase = None
             if getattr(db_job, 'entry_point_type', 'job') == 'service' and db_job.status == 'RUNNING':
                 try:
-                    svc_result = await _worker_exec(username, "get_service_url", job_id=job_id)
+                    svc_result = await _worker_exec(
+                        username, "get_service_url", job_id=job_id,
+                        job=serialize_job_for_worker(db_job))
                     service_url = svc_result.get("service_url")
                     phase = svc_result.get("phase")
                 except Exception:
@@ -2531,7 +2538,9 @@ def create_app(settings):
                     status_code=409,
                     detail="Job is active; cancel or stop it before deleting.",
                 )
-            result = await _worker_exec(username, "delete_job_work_dir", job_id=job_id)
+            result = await _worker_exec(
+                username, "delete_job_work_dir", job_id=job_id,
+                job=serialize_job_for_worker(db_job))
             if result.get("error"):
                 raise HTTPException(
                     status_code=result.get("status_code", 500),
@@ -2547,8 +2556,14 @@ def create_app(settings):
                            username: str = Depends(get_current_user)):
         if file_type not in ("script", "stdout", "stderr"):
             raise HTTPException(status_code=400, detail="file_type must be script, stdout, or stderr")
+        with db.get_db_session(settings.db_url) as session:
+            db_job = db.get_job(session, job_id, username)
+            if db_job is None:
+                raise HTTPException(status_code=404, detail="Job not found")
+            job_row = serialize_job_for_worker(db_job)
         try:
-            result = await _worker_exec(username, "get_job_file", job_id=job_id, file_type=file_type)
+            result = await _worker_exec(username, "get_job_file", job_id=job_id,
+                                        file_type=file_type, job=job_row)
             if "error" in result:
                 raise HTTPException(status_code=result.get("status_code", 404), detail=result["error"])
             content = result.get("content")
@@ -2735,5 +2750,4 @@ app = create_app(get_settings())
 
 if __name__ == "__main__":
     import uvicorn
-    # Disable Uvicorn's default access logger since we use custom middleware
-    uvicorn.run(app, host="0.0.0.0", port=8000, lifespan="on", access_log=False)
+    uvicorn.run(app, host="0.0.0.0", port=8000, lifespan="on")

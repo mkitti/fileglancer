@@ -38,9 +38,15 @@ import sys
 import time
 from typing import Any, Optional
 
+from cachetools import TTLCache
 from loguru import logger
 
+from fileglancer.database import FSP_CACHE_TTL_SECONDS
 from fileglancer.settings import Settings
+
+# Worker-bound (JSON-serialized) file share paths, keyed by database URL for the
+# same reason the model-level cache is; see _fetch_fsp_rows.
+_fsp_row_cache = TTLCache(maxsize=8, ttl=FSP_CACHE_TTL_SECONDS)
 
 
 # Length-prefix format: 4-byte big-endian unsigned int
@@ -72,6 +78,39 @@ _LONG_ACTIONS = frozenset({
 def _timeout_for_action(action: str) -> float:
     """Return the receive timeout (seconds) for a worker action."""
     return _GIT_ACTION_TIMEOUT if action in _LONG_ACTIONS else _DEFAULT_REQUEST_TIMEOUT
+
+
+def _fetch_fsp_rows(db_url: str) -> list[dict]:
+    """Read the file share paths and serialize them for the worker.
+
+    The serialized form is cached as well as the underlying list: dumping a few
+    hundred models costs more than the query does once the query is cached, and
+    every file action dispatched to a worker pays it. Same TTL, so the worker
+    sees a list no staler than the rest of the app does.
+    """
+    from fileglancer import database as db
+
+    rows = _fsp_row_cache.get(db_url)
+    if rows is None:
+        with db.get_db_session(db_url) as session:
+            rows = [f.model_dump(mode="json") for f in db.get_file_share_paths(session)]
+        _fsp_row_cache[db_url] = rows
+    return rows
+
+
+def prepare_worker_request(request: dict, db_url: str) -> dict:
+    """Attach the DB data the worker needs to a request.
+
+    Only the file-share-path list, which too many actions need for the
+    dispatching endpoint to be responsible for it; everything else the worker
+    needs from the DB is passed by the caller as a request kwarg. This runs in
+    the parent process, which is the only one holding db_url.
+    """
+    from fileglancer.user_worker import ACTIONS_NEEDING_FSPS
+
+    if request.get("action") not in ACTIONS_NEEDING_FSPS:
+        return request
+    return {**request, "file_share_paths": _fetch_fsp_rows(db_url)}
 
 
 # Worker env is an allowlist, not a denylist: workers run as the (untrusted)
@@ -114,7 +153,7 @@ def _build_worker_env(base_env: dict, home_dir: str, log_level: str,
     unconditionally — even if an operator lists it in passthrough — so
     Fileglancer secrets (session key, Okta/Atlassian secrets, DB URL) can never
     reach the user. The worker gets its config over the IPC socket instead (DB
-    access via RpcDbProxy).
+    data is attached to the request by the parent).
 
     A passthrough entry ending in ``_`` is treated as a prefix; otherwise it is
     an exact variable name.
@@ -158,11 +197,11 @@ class UserWorker:
     """
 
     def __init__(self, username: str, process: subprocess.Popen,
-                 sock: socket.socket, db_proxy):
+                 sock: socket.socket, db_url: Optional[str]):
         self.username = username
         self.process = process
         self.sock = sock
-        self.db_proxy = db_proxy  # LocalDbProxy used to satisfy worker db_requests
+        self.db_url = db_url  # parent-side only; used to prepare requests
         self.last_activity = time.monotonic()
         self._busy = False
         self._lock = asyncio.Lock()  # serialize requests to the worker
@@ -227,20 +266,21 @@ class UserWorker:
         request (requests are serialized under the per-worker lock, so this is
         safe) so that a long git clone/snapshot isn't misread as a dead worker.
 
-        Loops on receive: any inbound ``_kind == "db_request"`` message is a
-        reverse-RPC from the worker (which has no DB credentials) asking the
-        parent to run a DB query on its behalf. We dispatch it, send back a
-        ``db_response``, and keep reading. Anything else is the action result.
+        Any DB data the worker needs is attached to the request before it is
+        sent.  The worker never gets DB credentials and never sends reverse DB
+        RPCs; this remains a simple one request / one response exchange.
         """
         self.sock.settimeout(timeout)
+        try:
+            request = prepare_worker_request(request, self.db_url)
+        except Exception as e:
+            logger.exception(
+                f"Failed to prepare {request.get('action')} request for "
+                f"{self.username}"
+            )
+            raise WorkerError(f"Failed to prepare worker request: {e}") from e
         self._send_msg(request)
-
-        while True:
-            response = self._recv_msg()
-            if response.get("_kind") == "db_request":
-                self._handle_db_request(response)
-                continue
-            return response
+        return self._recv_msg()
 
     def _send_msg(self, msg: dict):
         """Send a length-prefixed JSON message."""
@@ -311,32 +351,6 @@ class UserWorker:
 
         return response
 
-    def _handle_db_request(self, request: dict):
-        """Run a DB query on behalf of the worker and send the result back."""
-        from fileglancer.user_worker import DB_METHODS, serialize_db_result
-
-        method = request.get("method")
-        kwargs = request.get("kwargs", {}) or {}
-        if method not in DB_METHODS:
-            self._send_msg({
-                "_kind": "db_response",
-                "ok": False,
-                "error": f"Unknown db method: {method}",
-            })
-            return
-
-        try:
-            value = getattr(self.db_proxy, method)(**kwargs)
-            result = serialize_db_result(method, value)
-            self._send_msg({"_kind": "db_response", "ok": True, "result": result})
-        except Exception as e:
-            logger.exception(f"db_request {method} for {self.username} failed")
-            self._send_msg({
-                "_kind": "db_response",
-                "ok": False,
-                "error": f"{type(e).__name__}: {e}",
-            })
-
     async def shutdown(self, timeout: float = 5.0):
         """Ask the worker to shut down gracefully, then force-kill if needed."""
         if not self.is_alive:
@@ -372,17 +386,12 @@ class WorkerPool:
     """
 
     def __init__(self, settings: Settings):
-        from fileglancer.user_worker import LocalDbProxy
-
         self.settings = settings
         self._workers: dict[str, UserWorker] = {}
         self._locks: dict[str, asyncio.Lock] = {}
         self._eviction_task: Optional[asyncio.Task] = None
         self.max_workers = settings.worker_pool_max_workers
         self.idle_timeout = settings.worker_pool_idle_timeout
-        # All worker DB requests are satisfied by this proxy in the parent;
-        # the worker subprocess never sees the DB URL.
-        self._db_proxy = LocalDbProxy(settings.db_url)
 
     def _get_lock(self, username: str) -> asyncio.Lock:
         if username not in self._locks:
@@ -480,7 +489,7 @@ class WorkerPool:
         # Start a background task to forward worker stderr to loguru
         asyncio.create_task(self._forward_stderr(username, process))
 
-        return UserWorker(username, process, parent_sock, self._db_proxy)
+        return UserWorker(username, process, parent_sock, self.settings.db_url)
 
     async def _forward_stderr(self, username: str, process: subprocess.Popen):
         """Forward worker stderr lines to loguru in the background.

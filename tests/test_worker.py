@@ -6,6 +6,7 @@ and the in-process dev-mode fallback.
 """
 
 import asyncio
+import inspect
 import json
 import os
 import socket
@@ -27,18 +28,18 @@ from fileglancer.user_worker import (
     _send_with_fd,
     _recv,
     _ACTIONS,
+    ACTIONS_NEEDING_FSPS,
     _action_validate_proxied_path,
     _action_create_dirs,
     _action_validate_paths,
-    _action_cancel_local,
-    _descendant_pids,
-    _proc_alive,
+    _action_cancel,
     WorkerContext,
     _HEADER_FMT,
     _HEADER_SIZE,
 )
 from fileglancer.filestore import Filestore
 from fileglancer.model import FileSharePath
+from fileglancer import worker_pool as worker_pool_module
 from fileglancer.worker_pool import (
     UserWorker,
     WorkerPool,
@@ -49,6 +50,29 @@ from fileglancer.worker_pool import (
     _DEFAULT_REQUEST_TIMEOUT,
     _GIT_ACTION_TIMEOUT,
 )
+
+
+def _fsp_rows(*fsps):
+    """Serialize FileSharePath models the same way the parent does."""
+    return [fsp.model_dump(mode="json") for fsp in fsps]
+
+
+def _with_fsps(request, *fsps):
+    return {**request, "file_share_paths": _fsp_rows(*fsps)}
+
+
+def test_fsp_registry_covers_every_handler_that_reads_the_list():
+    """A handler reading file_share_paths must be registered as needing them.
+
+    Otherwise the parent won't attach the list and the action fails at request
+    time rather than at import time. @with_filestore reads the list on its
+    handler's behalf and marks itself, so those handlers' bodies don't mention
+    it (inspect.getsource follows functools.wraps to the inner function).
+    """
+    for name, handler in _ACTIONS.items():
+        reads_directly = "_file_share_paths_from_request" in inspect.getsource(handler)
+        via_decorator = getattr(handler, "_needs_fsps", False)
+        assert (reads_directly or via_decorator) == (name in ACTIONS_NEEDING_FSPS), name
 
 
 # ---------------------------------------------------------------------------
@@ -166,69 +190,69 @@ class TestActionTimeout:
         assert _GIT_ACTION_TIMEOUT >= 600
 
 
-@pytest.mark.skipif(not os.path.isdir("/proc"),
-                    reason="/proc-based process-tree kill requires Linux")
-class TestCancelLocalAction:
-    """cancel_local terminates a local-executor job's whole process tree."""
+class TestCancelAction:
+    """The unified 'cancel' action stops a job through py-cluster-api.
+
+    For the local executor the job id is the leader PID, and cancel kills the
+    whole process group by PID — no fileglancer-side /proc walking. This
+    exercises the real executor (py-cluster-api >= 0.8.0), not a mock.
+    """
 
     def _ctx(self):
-        return WorkerContext(username="test", db=None)
+        return WorkerContext(username="test")
 
-    def _wait_gone(self, pid, timeout=5.0):
-        deadline = time.monotonic() + timeout
-        while _proc_alive(pid) and time.monotonic() < deadline:
-            time.sleep(0.05)
-        return not _proc_alive(pid)
+    def _spawn_orphaned_group(self):
+        """Start a process group led by a process reparented to init, so
+        nothing in the test process is its parent — exactly like a job whose
+        submitting worker has exited (init then reaps the killed group).
 
-    def test_kills_launcher_and_child_workload(self, tmp_path):
-        """Signalling only the launcher bash would leave its child workload
-        running. The whole tree must be terminated."""
-        import subprocess as sp
-        # `; :` prevents bash from exec-optimizing into sleep, so bash stays the
-        # parent of a real child `sleep` — mirroring a job script's workload.
-        proc = sp.Popen(["bash", "-c", "sleep 300; :"])
+        setsid() makes the child a session/group leader whose pgid equals its
+        pid, so the parent already knows the group id. The child forks the real
+        workload (a backgrounded sleep plus a foreground sleep, so the group
+        holds more than one process) and exits, orphaning it to init.
+        """
+        pid = os.fork()
+        if pid == 0:  # child: becomes the group leader, then bails out
+            os.setsid()
+            if os.fork() == 0:  # grandchild: the actual workload, same group
+                os.execvp("bash", ["bash", "-c", "sleep 300 & sleep 300"])
+            os._exit(0)
+        os.waitpid(pid, 0)  # reap the leader; the workload lives on under init
+        return pid  # == the group id (setsid set pgid == leader pid)
+
+    def test_local_cancel_kills_process_group(self):
+        pgid = self._spawn_orphaned_group()
         try:
-            # Wait for bash to fork its child.
-            deadline = time.monotonic() + 5
-            children = []
-            while time.monotonic() < deadline:
-                children = _descendant_pids(proc.pid)
-                if children:
-                    break
-                time.sleep(0.05)
-            assert children, "expected bash to spawn a child workload"
+            time.sleep(0.2)
+            os.killpg(pgid, 0)  # group is alive (raises if not)
 
-            (tmp_path / "job.pid").write_text(str(proc.pid))
-            result = _action_cancel_local({"work_dir": str(tmp_path)}, self._ctx())
+            result = _action_cancel(
+                {"cluster_config": {"executor": "local"},
+                 "job_id": str(pgid)},
+                self._ctx(),
+            )
+            assert result == {"status": "ok"}
 
-            assert result == {"terminated": True}
-            proc.wait(timeout=5)  # reap the launcher
-            assert self._wait_gone(proc.pid), "launcher bash survived"
-            for child in children:
-                assert self._wait_gone(child), f"child {child} survived cancel"
+            # cancel() only returns once the group is confirmed gone.
+            with pytest.raises(ProcessLookupError):
+                os.killpg(pgid, 0)
         finally:
-            for p in [*_descendant_pids(proc.pid), proc.pid]:
-                try:
-                    os.kill(p, 9)
-                except OSError:
-                    pass
-            if proc.poll() is None:
-                proc.wait(timeout=5)
+            try:
+                os.killpg(pgid, 9)
+            except OSError:
+                pass
 
-    def test_missing_pid_file_is_terminated(self, tmp_path):
-        assert _action_cancel_local(
-            {"work_dir": str(tmp_path)}, self._ctx()) == {"terminated": True}
-
-    def test_missing_work_dir_is_terminated(self):
-        assert _action_cancel_local({}, self._ctx()) == {"terminated": True}
-
-    def test_already_dead_pid_is_terminated(self, tmp_path):
+    def test_local_cancel_already_gone_is_ok(self, tmp_path):
         import subprocess as sp
-        proc = sp.Popen(["sleep", "0.01"])
-        proc.wait()  # reap so the PID is no longer a live process
-        (tmp_path / "job.pid").write_text(str(proc.pid))
-        assert _action_cancel_local(
-            {"work_dir": str(tmp_path)}, self._ctx()) == {"terminated": True}
+
+        proc = sp.Popen(["sleep", "0.01"], start_new_session=True)
+        proc.wait()  # already exited before we cancel
+        result = _action_cancel(
+            {"cluster_config": {"executor": "local"},
+             "job_id": str(proc.pid)},
+            self._ctx(),
+        )
+        assert result == {"status": "ok"}
 
 
 class TestIPCProtocol:
@@ -364,6 +388,11 @@ class TestIPCProtocol:
 class TestUserWorkerIPC:
     """Test UserWorker's _send_and_recv with a mock worker on the other end."""
 
+    @pytest.fixture(autouse=True)
+    def _stub_fsp_read(self, monkeypatch):
+        """These tests exercise IPC framing, not DB prep."""
+        monkeypatch.setattr(worker_pool_module, "_fetch_fsp_rows", lambda db_url: [])
+
     def _make_worker_pair(self):
         """Create a UserWorker connected to a mock 'worker' socket."""
         parent, child = socket.socketpair()
@@ -377,7 +406,7 @@ class TestUserWorkerIPC:
             def wait(self): pass
             def kill(self): pass
 
-        worker = UserWorker("testuser", FakeProcess(), parent, db_proxy=None)
+        worker = UserWorker("testuser", FakeProcess(), parent, db_url=None)
         return worker, child
 
     def test_send_and_recv_basic(self):
@@ -396,6 +425,44 @@ class TestUserWorkerIPC:
 
             result = worker._send_and_recv({"action": "ping"})
             assert result == {"status": "pong"}
+            t.join()
+        finally:
+            worker.sock.close()
+            child.close()
+
+    def test_send_and_recv_preloads_db_data(self, monkeypatch):
+        """Parent attaches needed DB data before sending to the worker."""
+        parent, child = socket.socketpair()
+        parent.setblocking(True)
+
+        class FakeProcess:
+            returncode = None
+            pid = 12345
+            def poll(self): return None
+            def wait(self): pass
+            def kill(self): pass
+
+        monkeypatch.setattr(
+            worker_pool_module, "_fetch_fsp_rows",
+            lambda db_url: _fsp_rows(FileSharePath(
+                zone="z", name="home", group="g", storage="local",
+                mount_path="/home/test",
+            )))
+
+        worker = UserWorker("testuser", FakeProcess(), parent, db_url="sqlite://")
+        try:
+            def mock_worker():
+                req = _recv(child)
+                assert req["action"] == "get_profile"
+                assert req["file_share_paths"][0]["name"] == "home"
+                _send(child, {"ok": True})
+
+            import threading
+            t = threading.Thread(target=mock_worker)
+            t.start()
+
+            result = worker._send_and_recv({"action": "get_profile"})
+            assert result == {"ok": True}
             t.join()
         finally:
             worker.sock.close()
@@ -462,6 +529,11 @@ class TestUserWorkerIPC:
 class TestUserWorkerExecute:
     """Test the async execute() method."""
 
+    @pytest.fixture(autouse=True)
+    def _stub_fsp_read(self, monkeypatch):
+        """These tests exercise IPC framing, not DB prep."""
+        monkeypatch.setattr(worker_pool_module, "_fetch_fsp_rows", lambda db_url: [])
+
     def _make_worker_pair(self):
         parent, child = socket.socketpair()
         parent.setblocking(True)
@@ -473,7 +545,7 @@ class TestUserWorkerExecute:
             def wait(self): pass
             def kill(self): pass
 
-        worker = UserWorker("testuser", FakeProcess(), parent, db_proxy=None)
+        worker = UserWorker("testuser", FakeProcess(), parent, db_url=None)
         return worker, child
 
     @pytest.mark.asyncio
@@ -526,7 +598,7 @@ class TestUserWorkerExecute:
             def wait(self): pass
             def kill(self): pass
 
-        worker = UserWorker("testuser", DeadProcess(), parent, db_proxy=None)
+        worker = UserWorker("testuser", DeadProcess(), parent, db_url=None)
         with pytest.raises(WorkerDead):
             await worker.execute("anything")
         parent.close()
@@ -628,16 +700,12 @@ class TestActionHandlers:
 
     @pytest.fixture
     def ctx(self, temp_dir):
-        """Create a WorkerContext with a LocalDbProxy backed by the test database."""
-        from fileglancer.settings import get_settings
-        from fileglancer.user_worker import LocalDbProxy
-        settings = get_settings()
-        return WorkerContext(username=os.environ.get("USER", "test"),
-                              db=LocalDbProxy(settings.db_url))
+        """Create a WorkerContext matching the subprocess worker."""
+        return WorkerContext(username=os.environ.get("USER", "test"))
 
     def test_get_profile(self, ctx):
         handler = _ACTIONS["get_profile"]
-        result = handler({"action": "get_profile"}, ctx)
+        result = handler({"action": "get_profile", "file_share_paths": []}, ctx)
         assert "username" in result
         assert "groups" in result
         assert isinstance(result["groups"], list)
@@ -648,7 +716,11 @@ class TestActionHandlers:
 
     def test_validate_paths_empty(self, ctx):
         handler = _ACTIONS["validate_paths"]
-        result = handler({"action": "validate_paths", "paths": {}}, ctx)
+        result = handler({
+            "action": "validate_paths",
+            "paths": {},
+            "file_share_paths": [],
+        }, ctx)
         assert result == {"errors": {}}
 
 
@@ -672,10 +744,7 @@ class TestWorkerMainLoop:
             except KeyError:
                 username = str(uid)
 
-            from fileglancer.settings import get_settings
-            from fileglancer.user_worker import LocalDbProxy
-            settings = get_settings()
-            ctx = WorkerContext(username=username, db=LocalDbProxy(settings.db_url))
+            ctx = WorkerContext(username=username)
 
             while True:
                 try:
@@ -740,7 +809,7 @@ class TestWorkerMainLoop:
         parent, child = socket.socketpair()
         t = self._run_worker_loop(child)
 
-        _send(parent, {"action": "get_profile"})
+        _send(parent, {"action": "get_profile", "file_share_paths": []})
         result = _recv(parent)
         assert "username" in result
         assert "groups" in result
@@ -755,11 +824,15 @@ class TestWorkerMainLoop:
         t = self._run_worker_loop(child)
 
         # Send several requests
-        _send(parent, {"action": "get_profile"})
+        _send(parent, {"action": "get_profile", "file_share_paths": []})
         r1 = _recv(parent)
         assert "username" in r1
 
-        _send(parent, {"action": "validate_paths", "paths": {}})
+        _send(parent, {
+            "action": "validate_paths",
+            "paths": {},
+            "file_share_paths": [],
+        })
         r2 = _recv(parent)
         assert r2 == {"errors": {}}
 
@@ -778,39 +851,32 @@ class TestWorkerMainLoop:
         assert not t.is_alive()
 
 
-class _StubDb:
-    """Minimal db proxy exposing the file share paths the worker resolves."""
-
-    def __init__(self, fsps):
-        self._fsps = fsps
-
-    def get_file_share_paths(self):
-        return self._fsps
-
-
 class TestValidateProxiedPathAction:
     """Tests for the validate_proxied_path action.
 
     The action is wrapped with @with_filestore, which resolves the filestore
-    from ctx.db.get_file_share_paths() using request["fsp_name"]. Each test uses
-    a distinct fsp_name to avoid the module-level _filestore_cache.
+    from parent-provided request["file_share_paths"] using request["fsp_name"].
+    Each test uses a distinct fsp_name to avoid the module-level
+    _filestore_cache.
     """
 
     def _ctx(self, fsp_name, mount_path):
         fsp = FileSharePath(zone="test", name=fsp_name, mount_path=str(mount_path))
-        return WorkerContext(username="test", db=_StubDb([fsp]))
+        return WorkerContext(username="test"), fsp
 
     def test_accepts_regular_file(self, tmp_path):
         (tmp_path / "file.txt").write_text("data")
-        ctx = self._ctx("vpp_file", tmp_path)
+        ctx, fsp = self._ctx("vpp_file", tmp_path)
         result = _action_validate_proxied_path(
-            {"fsp_name": "vpp_file", "path": "file.txt"}, ctx)
+            _with_fsps({"fsp_name": "vpp_file", "path": "file.txt"}, fsp), ctx)
         assert result == {"ok": True}
 
     def test_missing_path_returns_error(self, tmp_path):
-        ctx = self._ctx("vpp_missing", tmp_path)
+        ctx, fsp = self._ctx("vpp_missing", tmp_path)
         result = _action_validate_proxied_path(
-            {"fsp_name": "vpp_missing", "path": "nope.txt"}, ctx)
+            _with_fsps({"fsp_name": "vpp_missing", "path": "nope.txt"}, fsp),
+            ctx,
+        )
         assert result["status_code"] == 400
 
     @requires_symlinks
@@ -818,9 +884,11 @@ class TestValidateProxiedPathAction:
         target = tmp_path / "target.txt"
         target.write_text("data")
         os.symlink(target, tmp_path / "link.txt")
-        ctx = self._ctx("vpp_symlink", tmp_path)
+        ctx, fsp = self._ctx("vpp_symlink", tmp_path)
         result = _action_validate_proxied_path(
-            {"fsp_name": "vpp_symlink", "path": "link.txt"}, ctx)
+            _with_fsps({"fsp_name": "vpp_symlink", "path": "link.txt"}, fsp),
+            ctx,
+        )
         assert result == {"ok": True}
 
 
@@ -829,37 +897,41 @@ class TestCreateDirsAction:
 
     def _ctx(self, mount_path):
         fsp = FileSharePath(zone="test", name="cd", mount_path=str(mount_path))
-        return WorkerContext(username="test", db=_StubDb([fsp]))
+        return WorkerContext(username="test"), fsp
 
     def test_creates_missing_directory(self, tmp_path):
-        ctx = self._ctx(tmp_path)
+        ctx, fsp = self._ctx(tmp_path)
         target = tmp_path / "logs" / "run1"
-        result = _action_create_dirs({"paths": {"0": str(target)}}, ctx)
+        result = _action_create_dirs(
+            _with_fsps({"paths": {"0": str(target)}}, fsp), ctx)
         assert result == {"errors": {}}
         assert target.is_dir()
 
     def test_existing_directory_is_noop(self, tmp_path):
-        ctx = self._ctx(tmp_path)
+        ctx, fsp = self._ctx(tmp_path)
         target = tmp_path / "logs"
         target.mkdir()
-        result = _action_create_dirs({"paths": {"0": str(target)}}, ctx)
+        result = _action_create_dirs(
+            _with_fsps({"paths": {"0": str(target)}}, fsp), ctx)
         assert result == {"errors": {}}
         assert target.is_dir()
 
     def test_refuses_path_outside_any_share(self, tmp_path):
         share = tmp_path / "share"
         share.mkdir()
-        ctx = self._ctx(share)
+        ctx, fsp = self._ctx(share)
         outside = tmp_path / "outside" / "dir"
-        result = _action_create_dirs({"paths": {"0": str(outside)}}, ctx)
+        result = _action_create_dirs(
+            _with_fsps({"paths": {"0": str(outside)}}, fsp), ctx)
         assert "0" in result["errors"]
         assert not outside.exists()
 
     def test_expands_tilde_as_the_user(self, tmp_path, monkeypatch):
         # Point HOME at a share so '~' resolves inside it.
         monkeypatch.setenv("HOME", str(tmp_path))
-        ctx = self._ctx(tmp_path)
-        result = _action_create_dirs({"paths": {"0": "~/.fileglancer/logs"}}, ctx)
+        ctx, fsp = self._ctx(tmp_path)
+        result = _action_create_dirs(
+            _with_fsps({"paths": {"0": "~/.fileglancer/logs"}}, fsp), ctx)
         assert result == {"errors": {}}
         assert (tmp_path / ".fileglancer" / "logs").is_dir()
 
@@ -869,19 +941,23 @@ class TestValidatePathsAction:
 
     def _ctx(self, mount_path):
         fsp = FileSharePath(zone="test", name="vp", mount_path=str(mount_path))
-        return WorkerContext(username="test", db=_StubDb([fsp]))
+        return WorkerContext(username="test"), fsp
 
     def test_missing_dir_fails_by_default(self, tmp_path):
-        ctx = self._ctx(tmp_path)
+        ctx, fsp = self._ctx(tmp_path)
         missing = tmp_path / "logs"
-        result = _action_validate_paths({"paths": {"logdir": str(missing)}}, ctx)
+        result = _action_validate_paths(
+            _with_fsps({"paths": {"logdir": str(missing)}}, fsp), ctx)
         assert "logdir" in result["errors"]
 
     def test_missing_dir_ok_when_may_be_missing(self, tmp_path):
-        ctx = self._ctx(tmp_path)
+        ctx, fsp = self._ctx(tmp_path)
         missing = tmp_path / "logs"
         result = _action_validate_paths(
-            {"paths": {"logdir": str(missing)}, "may_be_missing": ["logdir"]},
+            _with_fsps({
+                "paths": {"logdir": str(missing)},
+                "may_be_missing": ["logdir"],
+            }, fsp),
             ctx,
         )
         assert result == {"errors": {}}
@@ -889,30 +965,39 @@ class TestValidatePathsAction:
     def test_may_be_missing_still_enforces_containment(self, tmp_path):
         share = tmp_path / "share"
         share.mkdir()
-        ctx = self._ctx(share)
+        ctx, fsp = self._ctx(share)
         outside = tmp_path / "outside" / "logs"
         result = _action_validate_paths(
-            {"paths": {"logdir": str(outside)}, "may_be_missing": ["logdir"]},
+            _with_fsps({
+                "paths": {"logdir": str(outside)},
+                "may_be_missing": ["logdir"],
+            }, fsp),
             ctx,
         )
         assert "logdir" in result["errors"]
 
     def test_folder_rejected_when_file_expected(self, tmp_path):
-        ctx = self._ctx(tmp_path)
+        ctx, fsp = self._ctx(tmp_path)
         subdir = tmp_path / "results"
         subdir.mkdir()
         result = _action_validate_paths(
-            {"paths": {"input": str(subdir)}, "types": {"input": "file"}},
+            _with_fsps({
+                "paths": {"input": str(subdir)},
+                "types": {"input": "file"},
+            }, fsp),
             ctx,
         )
         assert result["errors"]["input"] == "Path is a folder, but a file is required"
 
     def test_file_rejected_when_directory_expected(self, tmp_path):
-        ctx = self._ctx(tmp_path)
+        ctx, fsp = self._ctx(tmp_path)
         csv = tmp_path / "samples.csv"
         csv.write_text("sample\n")
         result = _action_validate_paths(
-            {"paths": {"outdir": str(csv)}, "types": {"outdir": "directory"}},
+            _with_fsps({
+                "paths": {"outdir": str(csv)},
+                "types": {"outdir": "directory"},
+            }, fsp),
             ctx,
         )
         assert result["errors"]["outdir"] == "Path is a file, but a folder is required"
@@ -920,23 +1005,28 @@ class TestValidatePathsAction:
     def test_existing_wrong_type_rejected_even_when_may_be_missing(self, tmp_path):
         # An exists=false param skips the existence check, but a path that DOES
         # exist with the wrong type is still an error.
-        ctx = self._ctx(tmp_path)
+        ctx, fsp = self._ctx(tmp_path)
         csv = tmp_path / "samples.csv"
         csv.write_text("sample\n")
         result = _action_validate_paths(
-            {"paths": {"outdir": str(csv)}, "may_be_missing": ["outdir"],
-             "types": {"outdir": "directory"}},
+            _with_fsps({
+                "paths": {"outdir": str(csv)},
+                "may_be_missing": ["outdir"],
+                "types": {"outdir": "directory"},
+            }, fsp),
             ctx,
         )
         assert result["errors"]["outdir"] == "Path is a file, but a folder is required"
 
     def test_matching_type_passes(self, tmp_path):
-        ctx = self._ctx(tmp_path)
+        ctx, fsp = self._ctx(tmp_path)
         csv = tmp_path / "samples.csv"
         csv.write_text("sample\n")
         result = _action_validate_paths(
-            {"paths": {"input": str(csv), "outdir": str(tmp_path)},
-             "types": {"input": "file", "outdir": "directory"}},
+            _with_fsps({
+                "paths": {"input": str(csv), "outdir": str(tmp_path)},
+                "types": {"input": "file", "outdir": "directory"},
+            }, fsp),
             ctx,
         )
         assert result == {"errors": {}}
