@@ -62,6 +62,10 @@ The new version should now be [available on PyPI](https://pypi.org/project/fileg
 
 Now [draft a new release](https://github.com/JaneliaSciComp/fileglancer/releases/new). Create a new tag that is the same as the version number, and set the release title to the same (e.g. "1.0.0". Click on "Generate release notes" and make any necessary edits. Ideally, you should include any release notes from the associated [fileglancer-central](https://github.com/JaneliaSciComp/fileglancer-central) release.
 
+## Post-deployment of a new release
+
+Periodically, following a new release on production, run `pixi run bump-pypi-versions` - this command temporarily unpins the PyPI versions, runs `pixi update`, and then `pixi run sync-pypi-versions`, to allow packages to update and re-pin.
+
 ## Other documentation
 
 - [Development](Development.md)
