@@ -8,6 +8,16 @@ Since the PyPI package supports Python 3.12 (`requires-python = ">=3.12.0"`), ve
 pixi run test-py312
 ```
 
+## Verify the build won't be blocked
+
+The wheel build (`pixi run pypi-build`) fails if `pyproject.toml`'s pinned PyPI dependency versions don't match `pixi.lock`. Check this up front, so a stale pin doesn't block the build *after* you've already bumped the version:
+
+```bash
+pixi run sync-pypi-versions --check
+```
+
+If it reports a mismatch, run `pixi run bump-pypi-versions` (to also pick up newer versions) or `pixi run sync-pypi-versions` (to pin to the current lock), then commit the result before continuing.
+
 ## Bump the version number
 
 To view the current version:
