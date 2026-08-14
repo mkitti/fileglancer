@@ -12,6 +12,10 @@ type MetadataHintVariant =
   | { case: 'zarr-v2-no-multiscales' }
   | { case: 'zarr-v3-no-multiscales' }
   | { case: 'zarr-query-error'; errorMessage?: string }
+  // Zarr - metadata is valid, but the layout will make viewing awkward
+  | { case: 'zarr-single-level'; size: string }
+  | { case: 'zarr-large-chunks'; size: string; compressed: boolean }
+  | { case: 'zarr-axis-order'; axisOrder: string; expectedOrder: string }
   // N5 - query never fired
   | { case: 'n5-has-s0-no-attrs' }
   | { case: 'n5-has-attrs-no-s0' }
@@ -71,6 +75,24 @@ function getHintConfig(variant: MetadataHintVariant): HintConfig {
         description: variant.errorMessage
           ? `Could not read Zarr metadata. ${variant.errorMessage}`
           : 'Could not read Zarr metadata.'
+      };
+    case 'zarr-single-level':
+      return {
+        kind: 'warning',
+        title: 'Only one resolution level',
+        description: `This dataset declares multiscales but only supplies a single level, for ${variant.size} of data. Viewers must read full-resolution at every zoom level, so viewing the whole image is far more expensive than it needs to be. Generating a multiscale pyramid fixes this.`
+      };
+    case 'zarr-axis-order':
+      return {
+        kind: 'warning',
+        title: 'Axes are not in the order OME-Zarr specifies',
+        description: `The axes are ordered ${variant.axisOrder}, but the spec requires T, C, Z, Y, X order - here that would be ${variant.expectedOrder}. Many tools take the last two axes to be the image plane, so they will show a cross-section rather than the expected view. Rewriting the dataset with the axes in spec order avoids this.`
+      };
+    case 'zarr-large-chunks':
+      return {
+        kind: 'warning',
+        title: 'Chunks may be too large for efficient viewing',
+        description: `This dataset uses ${variant.size} chunks ${variant.compressed ? '(before compression)' : '(without compression)'}. Chunk files larger than the browser's cache limit are re-downloaded on every access, which makes viewing slow. A final chunk size of 1-10 MB works best.`
       };
     case 'n5-has-s0-no-attrs':
       logger.info(

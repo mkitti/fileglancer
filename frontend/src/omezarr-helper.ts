@@ -1,6 +1,8 @@
 import { default as log } from '@/logger';
+import { formatFileSize } from '@/utils';
 import * as zarr from 'zarrita';
 import * as omezarr from 'ome-zarr.js';
+import { classifyCodec } from '@bioimagetools/capability-manifest';
 import type {
   OmeZarrMetadata,
   MultiscaleMetadata,
@@ -21,6 +23,173 @@ export type Metadata = OmeZarrMetadata & {
   scales: number[][] | undefined;
   zarrVersion: 2 | 3;
 };
+
+/**
+ * Something about the dataset's layout that will make it awkward to view.
+ * Purely advisory - nothing is withheld on account of these.
+ */
+export type DatasetWarning =
+  | { case: 'zarr-single-level'; size: string }
+  | { case: 'zarr-large-chunks'; size: string; compressed: boolean }
+  | { case: 'zarr-axis-order'; axisOrder: string; expectedOrder: string };
+
+/**
+ * Chunks above this defeat the browser cache. Applies when the array is stored
+ * without compression, so the size we compute is the size that transfers.
+ */
+export const MAX_CHUNK_BYTES = 10 * 1024 ** 2;
+/**
+ * The same limit for compressed arrays, where all we can compute is the logical
+ * (uncompressed) extent and the real transfer is some unknowable fraction of it.
+ * Set high enough that a typical ratio cannot push a healthy dataset over.
+ */
+export const MAX_LOGICAL_CHUNK_BYTES = 32 * 1024 ** 2;
+/**
+ * Below this, a single-level image is small enough that the missing pyramid
+ * costs nothing worth mentioning.
+ */
+export const MAX_SINGLE_LEVEL_BYTES = 1024 ** 3;
+
+/** The axis order OME-Zarr requires, minus any axes the dataset omits. */
+const CANONICAL_AXIS_ORDER = ['t', 'c', 'z', 'y', 'x'];
+
+/**
+ * Whether the array's chunks are compressed on disk.
+ *
+ * A codec pipeline can nest: a sharded v3 array lists only `sharding_indexed`
+ * at the top level and carries the real compressor in its configuration, so the
+ * pipeline has to be walked rather than scanned. Anything `classifyCodec` does
+ * not recognize counts as compression, and metadata we never fetched counts as
+ * compression too - both keep us on the permissive threshold, where the cost of
+ * being wrong is a missed warning instead of a false one.
+ */
+function hasCompressionCodec(codecs: NonNullable<Metadata['codecs']>): boolean {
+  return codecs.some(codec => {
+    const nested = codec.configuration?.codecs;
+    if (Array.isArray(nested) && hasCompressionCodec(nested)) {
+      return true;
+    }
+    return classifyCodec(codec.name) !== 'structural';
+  });
+}
+
+function isStoredCompressed(metadata: Metadata): boolean {
+  if (metadata.codecs) {
+    return hasCompressionCodec(metadata.codecs);
+  }
+  if (metadata.compressor !== undefined) {
+    return metadata.compressor !== null;
+  }
+  return true;
+}
+
+/**
+ * Bytes per element for a zarrita dtype. Only numeric dtypes are sized; bool,
+ * string and object dtypes fall back to 1, which under-estimates rather than
+ * over-warns (they don't occur in imaging data).
+ */
+function getBytesPerElement(dtype: string): number {
+  const bits = Number(/^(?:u?int|float)(\d+)$/.exec(dtype)?.[1]);
+  return Number.isFinite(bits) ? bits / 8 : 1;
+}
+
+function product(dims: number[]): number {
+  return dims.reduce((total, dim) => total * dim, 1);
+}
+
+/**
+ * The axis names, lowercased, or null if any of them is not one of the five the
+ * spec defines. A dataset using custom axes is not something we can judge.
+ */
+function getCanonicalAxisNames(metadata: Metadata): string[] | null {
+  const axes = metadata.multiscales?.[0]?.axes ?? metadata.axes;
+  if (!axes?.length) {
+    return null;
+  }
+  const names = axes.map(axis => axis.name?.toLowerCase());
+  return names.every(name => name && CANONICAL_AXIS_ORDER.includes(name))
+    ? (names as string[])
+    : null;
+}
+
+/** Whether `names` appears in CANONICAL_AXIS_ORDER order, skipping absent axes. */
+function isCanonicallyOrdered(names: string[]): boolean {
+  let from = 0;
+  return names.every(name => {
+    const index = CANONICAL_AXIS_ORDER.indexOf(name, from);
+    if (index === -1) {
+      return false;
+    }
+    from = index + 1;
+    return true;
+  });
+}
+
+const formatAxes = (names: string[]) =>
+  names.map(name => name.toUpperCase()).join(', ');
+
+/**
+ * Flag layout choices that make a dataset awkward to view.
+ *
+ * A multiscales group with a single dataset provides no downsampled data, so
+ * every zoom level reads full-resolution chunks - the root cause of the incident
+ * that prompted these checks.
+ *
+ * Chunks past the browser's cache entry limit are re-fetched on every access.
+ * Sizes are computed from the shape, so they are logical: exact for an
+ * uncompressed array and an upper bound for a compressed one, which is why the
+ * limit depends on whether a compressor is in play.
+ *
+ * Axis order matters because plenty of tools take the last two axes to be the
+ * image plane. OME-Zarr requires t, c, z, y, x order for exactly that reason,
+ * and a dataset that ignores it renders as a cross-section elsewhere.
+ */
+export function getDatasetWarnings(metadata: Metadata): DatasetWarning[] {
+  const { arr } = metadata;
+  if (!arr) {
+    return [];
+  }
+
+  const bytesPerElement = getBytesPerElement(arr.dtype);
+  const warnings: DatasetWarning[] = [];
+
+  // Declaring multiscales with one dataset is declaring a pyramid and supplying
+  // none. Keyed on the dataset count rather than the number of shapes, because
+  // a plain zarr array also has exactly one shape and is not making any such
+  // claim - `arr` is level 0, so its shape is the full resolution.
+  const levels = metadata.multiscales?.[0]?.datasets?.length;
+  const fullResBytes = product(arr.shape) * bytesPerElement;
+  if (levels === 1 && fullResBytes > MAX_SINGLE_LEVEL_BYTES) {
+    warnings.push({
+      case: 'zarr-single-level',
+      size: formatFileSize(fullResBytes)
+    });
+  }
+
+  const compressed = isStoredCompressed(metadata);
+  const chunkBytes = product(arr.chunks) * bytesPerElement;
+  const chunkLimit = compressed ? MAX_LOGICAL_CHUNK_BYTES : MAX_CHUNK_BYTES;
+  if (chunkBytes > chunkLimit) {
+    warnings.push({
+      case: 'zarr-large-chunks',
+      size: formatFileSize(chunkBytes),
+      compressed
+    });
+  }
+
+  const axisNames = getCanonicalAxisNames(metadata);
+  if (axisNames && !isCanonicallyOrdered(axisNames)) {
+    warnings.push({
+      case: 'zarr-axis-order',
+      axisOrder: formatAxes(axisNames),
+      expectedOrder: formatAxes(
+        CANONICAL_AXIS_ORDER.filter(name => axisNames.includes(name))
+      )
+    });
+  }
+
+  return warnings;
+}
 
 type OmeZarrChannel = {
   name: string;
