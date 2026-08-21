@@ -30,28 +30,41 @@ export type Metadata = OmeZarrMetadata & {
  */
 export type DatasetWarning =
   | { case: 'zarr-single-level'; size: string }
-  | { case: 'zarr-large-chunks'; size: string; compressed: boolean }
-  | { case: 'zarr-axis-order'; axisOrder: string; expectedOrder: string };
+  | {
+      case: 'zarr-large-chunks';
+      size: string;
+      compressed: boolean;
+      sharded: boolean;
+    };
 
 /**
- * Chunks above this defeat the browser cache. Applies when the array is stored
+ * Chunks above this are large enough to slow viewing down: a viewer has to
+ * fetch a whole chunk to show any part of it. Applies when the array is stored
  * without compression, so the size we compute is the size that transfers.
+ *
+ * Published guidance puts the useful range well below this - the image.sc
+ * discussion of OME-Zarr chunk sizes lands on 1-10 MB [1], AWS gives 8-16 MB as
+ * typical for S3 byte-range reads [2], and webknossos recommends 32^3 to 128^3
+ * voxel inner chunks [3]. 32 MB is the top of what anyone recommends, so a chunk
+ * past it is outside the range rather than merely on the large side of it.
+ *
+ * [1] https://forum.image.sc/t/should-compression-play-a-role-in-selecting-chunk-sizes-for-ome-zarr-v0-4-datasets/117877
+ * [2] https://d1.awsstatic.com/whitepapers/AmazonS3BestPractices.pdf
+ * [3] https://docs.webknossos.org/webknossos/data/zarr.html
  */
-export const MAX_CHUNK_BYTES = 10 * 1024 ** 2;
+export const MAX_CHUNK_BYTES = 32 * 1024 ** 2;
 /**
  * The same limit for compressed arrays, where all we can compute is the logical
  * (uncompressed) extent and the real transfer is some unknowable fraction of it.
- * Set high enough that a typical ratio cannot push a healthy dataset over.
+ * Doubled, so a chunk has to be outside the recommended range even at a
+ * conservative 2x ratio before we say anything.
  */
-export const MAX_LOGICAL_CHUNK_BYTES = 32 * 1024 ** 2;
+export const MAX_LOGICAL_CHUNK_BYTES = 64 * 1024 ** 2;
 /**
  * Below this, a single-level image is small enough that the missing pyramid
  * costs nothing worth mentioning.
  */
 export const MAX_SINGLE_LEVEL_BYTES = 1024 ** 3;
-
-/** The axis order OME-Zarr requires, minus any axes the dataset omits. */
-const CANONICAL_AXIS_ORDER = ['t', 'c', 'z', 'y', 'x'];
 
 /**
  * Whether the array's chunks are compressed on disk.
@@ -71,6 +84,18 @@ function hasCompressionCodec(codecs: NonNullable<Metadata['codecs']>): boolean {
     }
     return classifyCodec(codec.name) !== 'structural';
   });
+}
+
+/**
+ * Whether the array is sharded. Worth knowing because zarrita resolves the
+ * sharding codec when it opens the array - `arr.chunks` is then the inner chunk
+ * shape, the unit a viewer actually fetches, and not the shard around it. The
+ * warning says so, since "chunk" alone is ambiguous once sharding is in play.
+ */
+function isSharded(metadata: Metadata): boolean {
+  return (
+    metadata.codecs?.some(codec => codec.name === 'sharding_indexed') ?? false
+  );
 }
 
 function isStoredCompressed(metadata: Metadata): boolean {
@@ -98,51 +123,17 @@ function product(dims: number[]): number {
 }
 
 /**
- * The axis names, lowercased, or null if any of them is not one of the five the
- * spec defines. A dataset using custom axes is not something we can judge.
- */
-function getCanonicalAxisNames(metadata: Metadata): string[] | null {
-  const axes = metadata.multiscales?.[0]?.axes ?? metadata.axes;
-  if (!axes?.length) {
-    return null;
-  }
-  const names = axes.map(axis => axis.name?.toLowerCase());
-  return names.every(name => name && CANONICAL_AXIS_ORDER.includes(name))
-    ? (names as string[])
-    : null;
-}
-
-/** Whether `names` appears in CANONICAL_AXIS_ORDER order, skipping absent axes. */
-function isCanonicallyOrdered(names: string[]): boolean {
-  let from = 0;
-  return names.every(name => {
-    const index = CANONICAL_AXIS_ORDER.indexOf(name, from);
-    if (index === -1) {
-      return false;
-    }
-    from = index + 1;
-    return true;
-  });
-}
-
-const formatAxes = (names: string[]) =>
-  names.map(name => name.toUpperCase()).join(', ');
-
-/**
  * Flag layout choices that make a dataset awkward to view.
  *
  * A multiscales group with a single dataset provides no downsampled data, so
  * every zoom level reads full-resolution chunks - the root cause of the incident
  * that prompted these checks.
  *
- * Chunks past the browser's cache entry limit are re-fetched on every access.
- * Sizes are computed from the shape, so they are logical: exact for an
- * uncompressed array and an upper bound for a compressed one, which is why the
- * limit depends on whether a compressor is in play.
- *
- * Axis order matters because plenty of tools take the last two axes to be the
- * image plane. OME-Zarr requires t, c, z, y, x order for exactly that reason,
- * and a dataset that ignores it renders as a cross-section elsewhere.
+ * Chunks far above the recommended range slow viewing down, because a viewer has
+ * to fetch a whole chunk to show any part of it. Sizes are computed from the
+ * shape, so they are logical: exact for an uncompressed array and an upper bound
+ * for a compressed one, which is why the limit depends on whether a compressor
+ * is in play.
  */
 export function getDatasetWarnings(metadata: Metadata): DatasetWarning[] {
   const { arr } = metadata;
@@ -173,18 +164,8 @@ export function getDatasetWarnings(metadata: Metadata): DatasetWarning[] {
     warnings.push({
       case: 'zarr-large-chunks',
       size: formatFileSize(chunkBytes),
-      compressed
-    });
-  }
-
-  const axisNames = getCanonicalAxisNames(metadata);
-  if (axisNames && !isCanonicallyOrdered(axisNames)) {
-    warnings.push({
-      case: 'zarr-axis-order',
-      axisOrder: formatAxes(axisNames),
-      expectedOrder: formatAxes(
-        CANONICAL_AXIS_ORDER.filter(name => axisNames.includes(name))
-      )
+      compressed,
+      sharded: isSharded(metadata)
     });
   }
 

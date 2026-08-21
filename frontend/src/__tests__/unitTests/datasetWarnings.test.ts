@@ -15,12 +15,6 @@ const createMetadata = (
     ...extra
   }) as unknown as Metadata;
 
-const axes = (...names: string[]): Partial<Metadata> => ({
-  multiscales: [
-    { axes: names.map(name => ({ name, type: 'space' })), datasets: [{}, {}] }
-  ] as unknown as Metadata['multiscales']
-});
-
 const levels = (count: number): Partial<Metadata> => ({
   multiscales: [
     { datasets: Array.from({ length: count }, () => ({})) }
@@ -45,32 +39,37 @@ describe('getDatasetWarnings: chunk size', () => {
     expect(getDatasetWarnings(createMetadata([64, 64, 64]))).toEqual([]);
   });
 
-  it('does not warn about a compressed 16 MB chunk', () => {
-    // raw/s2: 16 MB inner chunks that zstd takes to ~12 MB on disk.
+  it('does not warn about a compressed 48 MB chunk', () => {
+    // 48 MB inner chunks that zstd takes to well under the 32 MB guidance.
     expect(
       getDatasetWarnings(
-        createMetadata([8, 128, 128, 128], 'uint8', SHARDED_ZSTD)
+        createMetadata([24, 128, 128, 128], 'uint8', SHARDED_ZSTD)
       )
     ).toEqual([]);
   });
 
   it('holds an uncompressed array to the stricter limit', () => {
-    // The same 16 MB chunks, but stored raw, so 16 MB is what transfers.
+    // The same 48 MB chunks, but stored raw, so 48 MB is what transfers.
     for (const raw of [UNCOMPRESSED_V3, { compressor: null }]) {
       expect(
-        getDatasetWarnings(createMetadata([8, 128, 128, 128], 'uint8', raw))
+        getDatasetWarnings(createMetadata([24, 128, 128, 128], 'uint8', raw))
       ).toEqual([
-        { case: 'zarr-large-chunks', size: '16 MB', compressed: false }
+        {
+          case: 'zarr-large-chunks',
+          size: '48 MB',
+          compressed: false,
+          sharded: false
+        }
       ]);
     }
   });
 
   it('finds a compressor nested inside a sharding codec', () => {
     // sharding_indexed is structural, so a flat scan would call this
-    // uncompressed and warn at 16 MB.
+    // uncompressed and warn at 48 MB.
     expect(
       getDatasetWarnings(
-        createMetadata([8, 128, 128, 128], 'uint8', SHARDED_ZSTD)
+        createMetadata([24, 128, 128, 128], 'uint8', SHARDED_ZSTD)
       )
     ).toEqual([]);
   });
@@ -78,7 +77,7 @@ describe('getDatasetWarnings: chunk size', () => {
   it('assumes compressed when codec metadata was never fetched', () => {
     // Unknown lands on the permissive limit: a missed warning beats a false one.
     expect(
-      getDatasetWarnings(createMetadata([8, 128, 128, 128], 'uint8'))
+      getDatasetWarnings(createMetadata([24, 128, 128, 128], 'uint8'))
     ).toEqual([]);
   });
 
@@ -87,7 +86,29 @@ describe('getDatasetWarnings: chunk size', () => {
     expect(
       getDatasetWarnings(createMetadata([256, 256, 256, 8], 'uint8'))
     ).toEqual([
-      { case: 'zarr-large-chunks', size: '128 MB', compressed: true }
+      {
+        case: 'zarr-large-chunks',
+        size: '128 MB',
+        compressed: true,
+        sharded: false
+      }
+    ]);
+  });
+
+  it('calls out that a sharded array is measured by its inner chunks', () => {
+    // zarrita resolves the sharding codec, so arr.chunks is the inner chunk
+    // shape - the shard around it is never what we size.
+    expect(
+      getDatasetWarnings(
+        createMetadata([256, 256, 256, 8], 'uint8', SHARDED_ZSTD)
+      )
+    ).toEqual([
+      {
+        case: 'zarr-large-chunks',
+        size: '128 MB',
+        compressed: true,
+        sharded: true
+      }
     ]);
   });
 
@@ -128,70 +149,5 @@ describe('getDatasetWarnings: resolution levels', () => {
     expect(
       getDatasetWarnings(createMetadata([64, 64, 64], 'uint8', {}, BIG))
     ).toEqual([]);
-  });
-});
-
-describe('getDatasetWarnings: axis order', () => {
-  it('accepts spec order', () => {
-    for (const names of [
-      ['t', 'c', 'z', 'y', 'x'],
-      ['c', 'z', 'y', 'x'],
-      ['z', 'y', 'x'],
-      ['y', 'x']
-    ]) {
-      expect(
-        getDatasetWarnings(
-          createMetadata([64, 64, 64], 'uint16', axes(...names))
-        )
-      ).toEqual([]);
-    }
-  });
-
-  it('warns about the seed151 c,x,y,z order', () => {
-    expect(
-      getDatasetWarnings(
-        createMetadata([64, 64, 64, 8], 'uint8', axes('c', 'x', 'y', 'z'))
-      )
-    ).toEqual([
-      {
-        case: 'zarr-axis-order',
-        axisOrder: 'C, X, Y, Z',
-        expectedOrder: 'C, Z, Y, X'
-      }
-    ]);
-  });
-
-  it('warns when the channel axis trails the spatial axes', () => {
-    expect(
-      getDatasetWarnings(
-        createMetadata([64, 64, 64, 8], 'uint8', axes('x', 'y', 'z', 'c'))
-      )
-    ).toEqual([
-      {
-        case: 'zarr-axis-order',
-        axisOrder: 'X, Y, Z, C',
-        expectedOrder: 'C, Z, Y, X'
-      }
-    ]);
-  });
-
-  it('is case insensitive', () => {
-    expect(
-      getDatasetWarnings(
-        createMetadata([64, 64, 64], 'uint16', axes('Z', 'Y', 'X'))
-      )
-    ).toEqual([]);
-  });
-
-  it('stays quiet about custom axes it cannot judge', () => {
-    expect(
-      getDatasetWarnings(
-        createMetadata([64, 64, 64], 'uint16', axes('c', 'angle', 'y', 'x'))
-      )
-    ).toEqual([]);
-  });
-
-  it('stays quiet about a plain array with no axes', () => {
-    expect(getDatasetWarnings(createMetadata([64, 64, 64]))).toEqual([]);
   });
 });
