@@ -267,6 +267,22 @@ def _convert_ticket(db_ticket: db.TicketDB) -> Ticket:
     )
 
 
+def _convert_api_token(row: db.ApiTokenDB) -> ApiTokenInfo:
+    """Convert an ApiTokenDB row to the public ApiTokenInfo model.
+
+    Deliberately does not carry token_hash: this model is what the listing
+    endpoint returns.
+    """
+    return ApiTokenInfo(
+        token_id=row.token_id,
+        name=row.name,
+        scopes=row.scopes.split(),
+        created_at=row.created_at,
+        expires_at=row.expires_at,
+        last_used_at=row.last_used_at,
+    )
+
+
 def _validate_filename(name: str) -> None:
     """
     Validate that a filename/dirname is safe and only refers to a single item in the current directory.
@@ -1446,6 +1462,52 @@ def create_app(settings):
             media_type="application/x-pem-file",
             headers=headers,
         )
+
+    # API token management. These endpoints are session-only: they are absent
+    # from the scope table in auth.py, so deny-by-default means a token can
+    # never be used to mint or revoke another token.
+    @app.get("/api/tokens", response_model=ApiTokenListResponse,
+             description="List the current user's API tokens")
+    async def list_api_tokens(username: str = Depends(get_current_user)):
+        with db.get_db_session(settings.db_url) as session:
+            rows = db.list_api_tokens(session, username)
+            return ApiTokenListResponse(
+                tokens=[_convert_api_token(row) for row in rows])
+
+
+    @app.post("/api/tokens", response_model=ApiTokenCreateResponse,
+              status_code=201,
+              description="Create an API token; the secret is returned once")
+    async def create_api_token(payload: ApiTokenCreateRequest,
+                               username: str = Depends(get_current_user)):
+        if not payload.scopes:
+            raise HTTPException(status_code=400,
+                                detail="At least one scope is required")
+        unknown = sorted(set(payload.scopes) - auth.API_SCOPES)
+        if unknown:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown scopes: {', '.join(unknown)}. "
+                       f"Valid scopes: {', '.join(sorted(auth.API_SCOPES))}")
+
+        with db.get_db_session(settings.db_url) as session:
+            row, secret = db.create_api_token(
+                session, username, payload.name.strip(), payload.scopes,
+                expires_in_days=payload.expires_in_days)
+            logger.info(f"Created API token {row.token_id} for {username} "
+                        f"with scopes {row.scopes}")
+            return ApiTokenCreateResponse(token=_convert_api_token(row),
+                                          secret=secret)
+
+
+    @app.delete("/api/tokens/{token_id}", description="Revoke an API token")
+    async def delete_api_token(token_id: str = Path(..., description="The token's public id"),
+                               username: str = Depends(get_current_user)):
+        with db.get_db_session(settings.db_url) as session:
+            if db.delete_api_token(session, username, token_id) == 0:
+                raise HTTPException(status_code=404, detail="Token not found")
+        logger.info(f"Revoked API token {token_id} for {username}")
+        return {"message": f"Token {token_id} revoked"}
 
     # File content endpoint
     @app.head("/api/content/{path_name:path}")

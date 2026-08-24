@@ -18,6 +18,7 @@ from fileglancer.database import (
     FileSharePathDB,
     create_api_token,
     create_engine,
+    create_session,
     dispose_engine,
     sessionmaker,
 )
@@ -116,7 +117,6 @@ def test_session_only_path_is_refused_to_every_token(token_app):
     assert "not accessible with an API token" in response.json()["error"]
 
 
-@pytest.mark.xfail(reason="POST /api/tokens lands in Task 4", strict=True)
 def test_a_token_cannot_mint_another_token(token_app):
     client, _ = _client_with_token(token_app, ["files:write", "links:write",
                                                "jobs:write"])
@@ -215,6 +215,54 @@ def test_token_use_updates_last_used_at(token_app):
     _, db_session = token_app
     db_session.refresh(row)
     assert row.last_used_at is not None
+
+
+def test_malformed_token_with_empty_id_is_rejected(token_app):
+    app, _ = token_app
+    client = TestClient(app)
+
+    response = client.get("/api/files/tempdir",
+                          headers={"Authorization": "Bearer fgt__secretonly"})
+
+    assert response.status_code == 401
+    assert "malformed" in response.json()["error"].lower()
+
+
+def test_malformed_token_with_empty_secret_is_rejected(token_app):
+    app, db_session = token_app
+    row, _ = create_api_token(db_session, "alice", "test", ["files:read"])
+    client = TestClient(app)
+
+    response = client.get("/api/files/tempdir",
+                          headers={"Authorization": f"Bearer fgt_{row.token_id}_"})
+
+    assert response.status_code == 401
+    assert "malformed" in response.json()["error"].lower()
+
+
+def test_bearer_token_never_falls_back_to_cookie_auth(token_app):
+    """A request carrying BOTH a bearer token and a session cookie must be
+    authenticated by the token alone, never by the cookie.
+
+    server.py skips the Origin check whenever a bearer token is present. If
+    get_current_user ever fell back to the cookie when the token failed, that
+    combination would authenticate a cross-origin cookie request with the
+    Origin check skipped -- a CSRF hole. This pins the property shut.
+    """
+    app, db_session = token_app
+    user_session = create_session(
+        db_session, username="alice", email=None,
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
+        session_secret_key="testkey")
+    client = TestClient(app)
+    client.cookies.set("fg_session", user_session.session_id)
+
+    response = client.get(
+        "/api/files/tempdir",
+        headers={"Authorization": "Bearer fgt_deadbeefcafe_wrongsecret",
+                 "Origin": "https://evil.example.com"})
+
+    assert response.status_code == 401
 
 
 def test_every_authenticated_route_is_classified(token_app):
