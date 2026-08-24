@@ -130,3 +130,19 @@ def test_touch_updates_when_stale(db_session):
 
 def test_touch_ignores_unknown_token(db_session):
     touch_api_token(db_session, "doesnotexist")  # must not raise
+
+
+def test_token_id_contains_no_format_delimiter(db_session):
+    """token_id must never contain '_', the delimiter in fgt_<id>_<secret>.
+
+    A token_id containing '_' parses to a truncated id, so the token is
+    permanently unusable. Many iterations because the old implementation
+    failed only ~17% of the time.
+    """
+    for i in range(200):
+        row, plaintext = create_api_token(db_session, "alice", f"t{i}",
+                                          ["files:read"])
+        assert "_" not in row.token_id
+        prefix, token_id, secret = plaintext.split("_", 2)
+        assert token_id == row.token_id
+        assert hash_token_secret(secret) == row.token_hash

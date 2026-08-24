@@ -1046,7 +1046,10 @@ def create_api_token(session: Session, username: str, name: str,
         raise ValueError(
             f"expires_in_days must be between 1 and {MAX_TOKEN_EXPIRY_DAYS}")
 
-    token_id = secrets.token_urlsafe(16)[:API_TOKEN_ID_LENGTH]
+    # token_hex, not token_urlsafe: the base64url alphabet contains '_', which
+    # is the delimiter in the fgt_<token_id>_<secret> format, so ~17% of
+    # urlsafe ids would break parsing and be permanently unusable.
+    token_id = secrets.token_hex(API_TOKEN_ID_LENGTH // 2)
     secret = secrets.token_urlsafe(32)
     now = datetime.now(UTC)
 
