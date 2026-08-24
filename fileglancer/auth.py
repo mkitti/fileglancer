@@ -3,6 +3,7 @@ Authentication module for OKTA OAuth/OIDC integration
 """
 import os
 import hashlib
+import hmac
 from datetime import datetime, timedelta, UTC
 from typing import Optional
 from urllib.parse import urlsplit
@@ -163,9 +164,17 @@ def get_current_user(request: Request, settings: Settings) -> str:
     """
     Get the current authenticated user
 
-    Always validates session from cookie (for both OKTA and simple auth)
+    Resolves an Authorization: Bearer API token when one is present, and
+    otherwise validates the session cookie (for both OKTA and simple auth).
+    Because every authenticated route depends on this one function, adding
+    token auth here covers the whole API without touching any route.
+
     Raises HTTPException(401) if authentication fails
     """
+    raw_token = parse_bearer_token(request)
+    if raw_token:
+        return get_user_from_token(request, settings, raw_token)
+
     user_session = get_session_from_cookie(request, settings)
 
     if not user_session:
@@ -286,3 +295,64 @@ def token_has_scope(granted: str, required: str) -> bool:
     # ':write' implies ':read' for the same resource.
     resource, _, action = required.partition(":")
     return action == "read" and f"{resource}:write" in held
+
+
+def parse_bearer_token(request: Request) -> Optional[str]:
+    """Extract a Fileglancer API token from the Authorization header.
+
+    Returns None when the header is absent, is not a Bearer credential, or
+    carries a Bearer value that is not one of our tokens. In all three cases
+    the caller falls through to cookie auth rather than failing, so an
+    unrelated Bearer header does not break a cookie-authenticated request.
+    """
+    header = request.headers.get('authorization', '')
+    scheme, _, value = header.partition(' ')
+    value = value.strip()
+    if scheme.lower() != 'bearer' or not value.startswith(db.API_TOKEN_PREFIX + '_'):
+        return None
+    return value
+
+
+def get_user_from_token(request: Request, settings: Settings, raw_token: str) -> str:
+    """Resolve an API token to a username, enforcing expiry and scope.
+
+    Raises HTTPException(401) for an invalid or expired token and
+    HTTPException(403) when the token lacks the scope the request needs.
+    """
+    parts = raw_token.split('_', 2)
+    if len(parts) != 3 or not parts[1] or not parts[2]:
+        raise HTTPException(status_code=401, detail="Malformed API token")
+    _, token_id, secret = parts
+
+    with db.get_db_session(settings.db_url) as session:
+        row = db.get_api_token_by_id(session, token_id)
+        # Hash the presented secret regardless, then compare in constant time.
+        presented = db.hash_token_secret(secret)
+        if row is None or not hmac.compare_digest(presented, row.token_hash):
+            logger.info(f"Rejected API token with id {token_id}")
+            raise HTTPException(status_code=401, detail="Invalid API token")
+
+        # SQLAlchemy strips tzinfo on read; add it back before comparing.
+        expires_at = row.expires_at.replace(tzinfo=UTC)
+        if expires_at < datetime.now(UTC):
+            raise HTTPException(
+                status_code=401,
+                detail=f"API token expired on {expires_at.date().isoformat()}")
+
+        username = row.username
+        granted = row.scopes
+
+    required = required_scope(request.url.path, request.method)
+    if required is None:
+        raise HTTPException(
+            status_code=403,
+            detail=f"{request.url.path} is not accessible with an API token")
+    if not token_has_scope(granted, required):
+        raise HTTPException(
+            status_code=403,
+            detail=f"API token is missing the required scope: {required}")
+
+    with db.get_db_session(settings.db_url) as session:
+        db.touch_api_token(session, token_id)
+
+    return username

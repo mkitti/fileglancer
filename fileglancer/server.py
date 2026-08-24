@@ -174,15 +174,17 @@ def get_current_user(request: Request):
     """
     FastAPI dependency to get the current authenticated user
 
-    If OKTA auth is enabled, validates session from cookie
-    If OKTA auth is disabled, falls back to $USER environment variable
+    Resolves either an Authorization: Bearer API token or a session cookie.
 
-    Also enforces the cross-origin allowlist: a request carrying an Origin
-    header that is neither same-origin nor listed in api_allowed_origins is
-    rejected with 403 before the session is even consulted.
+    The cross-origin allowlist is enforced for cookie auth only. Origin
+    enforcement exists because the session cookie is ambient — a browser
+    attaches it to same-site requests whether or not the page meant to make
+    them. A bearer token is never ambient, so there is no CSRF surface to
+    defend, and programmatic clients send no Origin header at all.
     """
     settings = get_settings()
-    auth.enforce_request_origin(request, settings)
+    if auth.parse_bearer_token(request) is None:
+        auth.enforce_request_origin(request, settings)
     return auth.get_current_user(request, settings)
 
 
