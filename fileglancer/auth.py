@@ -209,3 +209,80 @@ def delete_session_cookie(response: Response, settings: Settings):
         secure=settings.session_cookie_secure,
         samesite='lax'
     )
+
+
+# --- API token scopes ---
+
+API_SCOPES = frozenset({
+    "files:read", "files:write",
+    "links:read", "links:write",
+    "jobs:read", "jobs:write",
+})
+
+# Sentinel meaning "any valid token may call this", as distinct from None,
+# which means "no token may call this at all".
+ANY_SCOPE = ""
+
+# Maps a request path prefix to the resource whose scope guards it. Order does
+# not matter; prefixes are mutually exclusive.
+#
+# Deliberately absent: /api/file-share-paths, /api/external-buckets and
+# /api/version have no get_current_user dependency and are already
+# unauthenticated, so this table is never consulted for them. That is what
+# lets the Python client resolve paths regardless of a token's scopes.
+_SCOPE_PREFIXES = (
+    ("/api/files", "files"),
+    ("/api/content", "files"),
+    ("/api/proxied-path", "links"),
+    ("/api/neuroglancer", "links"),
+    ("/api/jobs", "jobs"),
+    ("/api/cluster-defaults", "jobs"),
+)
+
+# Readable by any valid token regardless of scope: identity and liveness.
+_ANY_SCOPE_PATHS = ("/api/profile", "/api/auth/status")
+
+_READ_METHODS = ("GET", "HEAD")
+
+
+def _path_matches(path: str, prefix: str) -> bool:
+    """True when path is the prefix itself or a child of it.
+
+    The explicit '/' check is what stops '/api/filesystem-admin' from being
+    treated as a child of '/api/files'.
+    """
+    return path == prefix or path.startswith(prefix + "/")
+
+
+def required_scope(path: str, method: str) -> Optional[str]:
+    """Return the scope an API token needs to call path with method.
+
+    Returns ANY_SCOPE when any valid token suffices, and None when the path is
+    not reachable with a token at all. None is the default: a path that is not
+    listed here is session-only, which is what keeps /api/ssh-keys,
+    /api/tokens, /api/apps, /api/catalog, /api/preference and /api/ticket out
+    of reach without naming any of them.
+    """
+    if any(_path_matches(path, p) for p in _ANY_SCOPE_PATHS):
+        return ANY_SCOPE
+
+    for prefix, resource in _SCOPE_PREFIXES:
+        if _path_matches(path, prefix):
+            action = "read" if method.upper() in _READ_METHODS else "write"
+            return f"{resource}:{action}"
+
+    return None
+
+
+def token_has_scope(granted: str, required: str) -> bool:
+    """Check a token's space-separated scope string against a requirement."""
+    if required == ANY_SCOPE:
+        return True
+
+    held = set(granted.split())
+    if required in held:
+        return True
+
+    # ':write' implies ':read' for the same resource.
+    resource, _, action = required.partition(":")
+    return action == "read" and f"{resource}:write" in held
