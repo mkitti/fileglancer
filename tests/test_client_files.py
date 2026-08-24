@@ -107,6 +107,15 @@ def test_delete_removes_a_file(fg, share_root):
     assert not os.path.exists(target)
 
 
+def test_ls_on_a_file_raises_rather_than_returning_empty(fg, share_root):
+    """A file must not look like an empty directory."""
+    target = os.path.join(share_root, "notafolder.txt")
+    fg.write(target, b"x")
+
+    with pytest.raises(FileglancerError, match="Not a directory"):
+        fg.ls(target)
+
+
 def test_error_response_becomes_a_fileglancer_error(fg, share_root):
     with pytest.raises(FileglancerError) as excinfo:
         fg.ls(os.path.join(share_root, "does-not-exist"))

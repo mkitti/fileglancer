@@ -156,10 +156,17 @@ class Fileglancer:
 
         Each returned FileInfo carries an absolute_path, so results can be fed
         straight back into any other method.
+
+        Raises FileglancerError if the path is not a directory. The API omits
+        the file list for non-directories, so without this check ls() on a
+        file would return an empty list, which a caller would read as an
+        empty directory.
         """
         fsp_name, subpath = self._resolve(path)
         data = self._request("GET", f"/api/files/{fsp_name}",
                              params={"subpath": subpath}).json()
+        if not data["info"].get("is_dir"):
+            raise FileglancerError(f"Not a directory: {path}")
         return [FileInfo(**entry) for entry in data.get("files", [])]
 
     def stat(self, path: str) -> FileInfo:
