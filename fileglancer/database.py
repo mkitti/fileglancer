@@ -273,6 +273,37 @@ class SessionDB(Base):
     last_accessed_at = Column(DateTime, nullable=False, default=lambda: datetime.now(UTC))
 
 
+# --- API token constants ---
+
+API_TOKEN_PREFIX = "fgt"
+API_TOKEN_ID_LENGTH = 12
+DEFAULT_TOKEN_EXPIRY_DAYS = 30
+MAX_TOKEN_EXPIRY_DAYS = 365
+
+# last_used_at is refreshed at most this often, so token auth does not cost a
+# database write on every single API request.
+TOKEN_TOUCH_INTERVAL_SECONDS = 300
+
+
+class ApiTokenDB(Base):
+    """Database model for programmatic API tokens.
+
+    Only the SHA-256 hash of the secret half is stored. The full token string
+    is returned exactly once, at creation, and is not recoverable afterwards.
+    """
+    __tablename__ = 'api_tokens'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    token_id = Column(String, nullable=False, unique=True, index=True)
+    token_hash = Column(String, nullable=False)
+    username = Column(String, nullable=False, index=True)
+    name = Column(String, nullable=False)
+    scopes = Column(String, nullable=False)
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(UTC))
+    expires_at = Column(DateTime, nullable=False)
+    last_used_at = Column(DateTime, nullable=True)
+
+
 def run_alembic_upgrade(db_url):
     """Run Alembic migrations to upgrade database to latest version"""
     global _migrations_run
@@ -987,6 +1018,94 @@ def delete_expired_sessions(session: Session):
     deleted = session.query(SessionDB).filter(SessionDB.expires_at < now).delete()
     session.commit()
     return deleted
+
+
+# --- API token functions ---
+
+def hash_token_secret(secret: str) -> str:
+    """Hash the secret half of an API token.
+
+    ponytail: SHA-256 rather than a slow KDF. The secret is 32 bytes from
+    secrets.token_urlsafe, not a human-chosen password, so key stretching
+    defends against nothing here. Revisit only if user-chosen secrets are
+    ever allowed.
+    """
+    return hashlib.sha256(secret.encode('utf-8')).hexdigest()
+
+
+def create_api_token(session: Session, username: str, name: str,
+                     scopes: List[str],
+                     expires_in_days: int = DEFAULT_TOKEN_EXPIRY_DAYS
+                     ) -> Tuple[ApiTokenDB, str]:
+    """Create an API token for a user.
+
+    Returns (row, plaintext_token). The plaintext token is the only time the
+    secret is available; only its hash is persisted.
+    """
+    if not 1 <= expires_in_days <= MAX_TOKEN_EXPIRY_DAYS:
+        raise ValueError(
+            f"expires_in_days must be between 1 and {MAX_TOKEN_EXPIRY_DAYS}")
+
+    token_id = secrets.token_urlsafe(16)[:API_TOKEN_ID_LENGTH]
+    secret = secrets.token_urlsafe(32)
+    now = datetime.now(UTC)
+
+    row = ApiTokenDB(
+        token_id=token_id,
+        token_hash=hash_token_secret(secret),
+        username=username,
+        name=name,
+        scopes=" ".join(sorted(scopes)),
+        created_at=now,
+        expires_at=now + timedelta(days=expires_in_days),
+        last_used_at=None,
+    )
+    session.add(row)
+    session.commit()
+    return row, f"{API_TOKEN_PREFIX}_{token_id}_{secret}"
+
+
+def get_api_token_by_id(session: Session, token_id: str) -> Optional[ApiTokenDB]:
+    """Get an API token row by its public token_id."""
+    return session.query(ApiTokenDB).filter_by(token_id=token_id).first()
+
+
+def list_api_tokens(session: Session, username: str) -> List[ApiTokenDB]:
+    """List a user's API tokens, newest first."""
+    return (session.query(ApiTokenDB)
+            .filter_by(username=username)
+            .order_by(ApiTokenDB.created_at.desc())
+            .all())
+
+
+def delete_api_token(session: Session, username: str, token_id: str) -> int:
+    """Revoke a token. Returns the number of rows deleted (0 or 1).
+
+    Filtering on username as well as token_id means one user cannot revoke
+    another user's token by guessing its id.
+    """
+    deleted = (session.query(ApiTokenDB)
+               .filter_by(username=username, token_id=token_id)
+               .delete())
+    session.commit()
+    return deleted
+
+
+def touch_api_token(session: Session, token_id: str) -> None:
+    """Refresh last_used_at, at most once per TOKEN_TOUCH_INTERVAL_SECONDS."""
+    row = get_api_token_by_id(session, token_id)
+    if row is None:
+        return
+
+    now = datetime.now(UTC)
+    if row.last_used_at is not None:
+        # SQLAlchemy strips tzinfo on read; add it back before comparing.
+        last_used = row.last_used_at.replace(tzinfo=UTC)
+        if (now - last_used).total_seconds() < TOKEN_TOUCH_INTERVAL_SECONDS:
+            return
+
+    row.last_used_at = now
+    session.commit()
 
 
 # --- Job database functions ---
