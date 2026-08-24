@@ -1492,7 +1492,7 @@ def create_app(settings):
 
         with db.get_db_session(settings.db_url) as session:
             row, secret = db.create_api_token(
-                session, username, payload.name.strip(), payload.scopes,
+                session, username, payload.name, payload.scopes,
                 expires_in_days=payload.expires_in_days)
             logger.info(f"Created API token {row.token_id} for {username} "
                         f"with scopes {row.scopes}")

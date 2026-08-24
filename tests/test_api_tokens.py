@@ -66,6 +66,13 @@ def test_scopes_are_stored_space_separated_and_sorted(db_session):
     assert row.scopes == "files:read links:write"
 
 
+def test_duplicate_scopes_are_deduplicated(db_session):
+    row, _ = create_api_token(db_session, "alice", "laptop",
+                              ["files:read", "files:read", "links:write"])
+
+    assert row.scopes == "files:read links:write"
+
+
 def test_token_ids_are_unique_across_creations(db_session):
     ids = {create_api_token(db_session, "alice", f"t{i}", ["files:read"])[0].token_id
            for i in range(50)}

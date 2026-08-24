@@ -363,6 +363,16 @@ class ApiTokenCreateRequest(BaseModel):
         default=30, ge=1, le=365
     )
 
+    @field_validator('name')
+    @classmethod
+    def _strip_name(cls, value: str) -> str:
+        """Strip before validating, so a whitespace-only name is rejected
+        rather than silently stored as an empty string."""
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("name must not be blank")
+        return stripped
+
 
 class ApiTokenCreateResponse(BaseModel):
     """Response for a newly created API token"""

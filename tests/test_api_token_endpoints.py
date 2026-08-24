@@ -83,3 +83,20 @@ def test_delete_revokes_the_token(test_client):
 
 def test_delete_unknown_token_returns_404(test_client):
     assert test_client.delete("/api/tokens/doesnotexist").status_code == 404
+
+
+def test_create_rejects_whitespace_only_name(test_client):
+    response = test_client.post("/api/tokens", json={
+        "name": "   ", "scopes": ["files:read"],
+    })
+
+    assert response.status_code == 400
+
+
+def test_create_strips_surrounding_whitespace_from_name(test_client):
+    response = test_client.post("/api/tokens", json={
+        "name": "  laptop  ", "scopes": ["files:read"],
+    })
+
+    assert response.status_code == 201
+    assert response.json()["token"]["name"] == "laptop"
