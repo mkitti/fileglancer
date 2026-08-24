@@ -1,12 +1,12 @@
-"""Client file operations, driven against the real app over ASGI.
+"""Client file operations, driven against the real app.
 
 Reuses the token_app fixture from test_api_token_auth so the client exercises
 the full bearer-auth path rather than a dependency override.
 """
 import os
 
-import httpx
 import pytest
+from fastapi.testclient import TestClient
 
 from fileglancer.client import Fileglancer, FileglancerError
 from fileglancer.database import create_api_token
@@ -16,13 +16,19 @@ from test_api_token_auth import token_app  # noqa: F401
 
 @pytest.fixture
 def fg(token_app):
-    """A client wired to the test app via ASGI, with all scopes."""
+    """A client wired to the test app, with all scopes.
+
+    TestClient is a synchronous httpx.Client that speaks ASGI directly, so the
+    client's real request path is exercised with no server process. It also
+    defaults to follow_redirects=True and base_url="http://testserver".
+    """
     app, db_session = token_app
     _, plaintext = create_api_token(
         db_session, "alice", "test",
         ["files:write", "links:write", "jobs:write"])
-    client = Fileglancer(url="http://testserver", token=plaintext,
-                         transport=httpx.ASGITransport(app=app))
+    client = Fileglancer(url="http://testserver", token=plaintext)
+    client._client = TestClient(
+        app, headers={"Authorization": f"Bearer {plaintext}"})
     yield client
     client.close()
 
@@ -111,8 +117,9 @@ def test_error_response_becomes_a_fileglancer_error(fg, share_root):
 def test_a_read_only_token_cannot_write(token_app, share_root):
     app, db_session = token_app
     _, plaintext = create_api_token(db_session, "alice", "ro", ["files:read"])
-    client = Fileglancer(url="http://testserver", token=plaintext,
-                         transport=httpx.ASGITransport(app=app))
+    client = Fileglancer(url="http://testserver", token=plaintext)
+    client._client = TestClient(
+        app, headers={"Authorization": f"Bearer {plaintext}"})
 
     with pytest.raises(FileglancerError) as excinfo:
         client.mkdir(os.path.join(share_root, "nope"))

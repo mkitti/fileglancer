@@ -9,7 +9,6 @@ operates on absolute filesystem paths rather than Fileglancer's internal
     fg = Fileglancer()  # reads FILEGLANCER_URL and FILEGLANCER_TOKEN
     link = fg.create_data_link("/nearline/alice/sample.zarr")
 """
-import asyncio
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -32,35 +31,6 @@ class FileglancerError(Exception):
         self.status_code = status_code
 
 
-class _SyncFromAsyncTransport(httpx.BaseTransport):
-    """Adapts an async-only transport (httpx.ASGITransport, used by tests to
-    exercise the real app with no running server) so it works with the
-    synchronous httpx.Client used here.
-
-    Runs one event loop per request and fully reads the response body inside
-    it, since the response stream from an async transport isn't safe to read
-    synchronously afterwards. Fine for tests; not meant for high throughput.
-    """
-
-    def __init__(self, async_transport: httpx.AsyncBaseTransport):
-        self._async_transport = async_transport
-
-    def handle_request(self, request: httpx.Request) -> httpx.Response:
-        async def run() -> httpx.Response:
-            response = await self._async_transport.handle_async_request(request)
-            await response.aread()
-            return response
-        response = asyncio.run(run())
-        # response.stream is async-only; httpx.Client requires a sync stream,
-        # so rebuild the response around the body already read above.
-        return httpx.Response(response.status_code, headers=response.headers,
-                              content=response.content,
-                              extensions=response.extensions, request=request)
-
-    def close(self) -> None:
-        asyncio.run(self._async_transport.aclose())
-
-
 class Fileglancer:
     """A client for the Fileglancer HTTP API.
 
@@ -69,12 +39,10 @@ class Fileglancer:
         token: An API token created in the web UI. Defaults to
             $FILEGLANCER_TOKEN.
         timeout: Per-request timeout in seconds.
-        transport: An httpx transport, for testing against an ASGI app.
     """
 
     def __init__(self, url: Optional[str] = None, token: Optional[str] = None,
-                 timeout: float = 60.0,
-                 transport: Optional[httpx.BaseTransport] = None):
+                 timeout: float = 60.0):
         url = url or os.environ.get("FILEGLANCER_URL")
         token = token or os.environ.get("FILEGLANCER_TOKEN")
         if not url:
@@ -85,16 +53,10 @@ class Fileglancer:
                 "No API token. Pass token= or set FILEGLANCER_TOKEN. Create a "
                 "token on the API Tokens page of the Fileglancer web UI.")
 
-        if transport is not None and not hasattr(transport, "handle_request"):
-            # An async-only transport (e.g. httpx.ASGITransport) can't be used
-            # directly by the synchronous httpx.Client below.
-            transport = _SyncFromAsyncTransport(transport)
-
         self._client = httpx.Client(
             base_url=url.rstrip("/"),
             headers={"Authorization": f"Bearer {token}"},
             timeout=timeout,
-            transport=transport,
             follow_redirects=True,
         )
         self._fsp_cache: Optional[List[FileSharePath]] = None
