@@ -9,11 +9,13 @@ operates on absolute filesystem paths rather than Fileglancer's internal
     fg = Fileglancer()  # reads FILEGLANCER_URL and FILEGLANCER_TOKEN
     link = fg.create_data_link("/nearline/alice/sample.zarr")
 """
+import asyncio
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
 
+from fileglancer.filestore import FileInfo
 from fileglancer.model import FileSharePath
 
 # Neuroglancer base URL used when the caller does not supply one. The server
@@ -28,6 +30,35 @@ class FileglancerError(Exception):
     def __init__(self, message: str, status_code: Optional[int] = None):
         super().__init__(message)
         self.status_code = status_code
+
+
+class _SyncFromAsyncTransport(httpx.BaseTransport):
+    """Adapts an async-only transport (httpx.ASGITransport, used by tests to
+    exercise the real app with no running server) so it works with the
+    synchronous httpx.Client used here.
+
+    Runs one event loop per request and fully reads the response body inside
+    it, since the response stream from an async transport isn't safe to read
+    synchronously afterwards. Fine for tests; not meant for high throughput.
+    """
+
+    def __init__(self, async_transport: httpx.AsyncBaseTransport):
+        self._async_transport = async_transport
+
+    def handle_request(self, request: httpx.Request) -> httpx.Response:
+        async def run() -> httpx.Response:
+            response = await self._async_transport.handle_async_request(request)
+            await response.aread()
+            return response
+        response = asyncio.run(run())
+        # response.stream is async-only; httpx.Client requires a sync stream,
+        # so rebuild the response around the body already read above.
+        return httpx.Response(response.status_code, headers=response.headers,
+                              content=response.content,
+                              extensions=response.extensions, request=request)
+
+    def close(self) -> None:
+        asyncio.run(self._async_transport.aclose())
 
 
 class Fileglancer:
@@ -53,6 +84,11 @@ class Fileglancer:
             raise FileglancerError(
                 "No API token. Pass token= or set FILEGLANCER_TOKEN. Create a "
                 "token on the API Tokens page of the Fileglancer web UI.")
+
+        if transport is not None and not hasattr(transport, "handle_request"):
+            # An async-only transport (e.g. httpx.ASGITransport) can't be used
+            # directly by the synchronous httpx.Client below.
+            transport = _SyncFromAsyncTransport(transport)
 
         self._client = httpx.Client(
             base_url=url.rstrip("/"),
@@ -150,3 +186,67 @@ class Fileglancer:
                 root = fsp.mount_path.rstrip("/")
                 return f"{root}/{path}" if path else root
         raise FileglancerError(f"Unknown file share: {fsp_name}")
+
+    # --- File operations ---
+
+    def ls(self, path: str) -> List[FileInfo]:
+        """List the contents of a directory.
+
+        Each returned FileInfo carries an absolute_path, so results can be fed
+        straight back into any other method.
+        """
+        fsp_name, subpath = self._resolve(path)
+        data = self._request("GET", f"/api/files/{fsp_name}",
+                             params={"subpath": subpath}).json()
+        return [FileInfo(**entry) for entry in data.get("files", [])]
+
+    def stat(self, path: str) -> FileInfo:
+        """Get metadata for a single file or directory."""
+        fsp_name, subpath = self._resolve(path)
+        data = self._request("GET", f"/api/files/{fsp_name}",
+                             params={"subpath": subpath}).json()
+        return FileInfo(**data["info"])
+
+    def mkdir(self, path: str) -> None:
+        """Create a directory. The parent directory must already exist."""
+        fsp_name, subpath = self._resolve(path)
+        self._request("POST", f"/api/files/{fsp_name}",
+                      params={"subpath": subpath}, json={"type": "directory"})
+
+    def rename(self, src: str, dst: str) -> None:
+        """Rename or move a file or directory within one file share."""
+        src_fsp, src_subpath = self._resolve(src)
+        dst_fsp, dst_subpath = self._resolve(dst)
+        if src_fsp != dst_fsp:
+            # The underlying PATCH /api/files cannot move across shares, so
+            # fail here with a useful message rather than on a 400.
+            raise FileglancerError(
+                f"Cannot move between file shares: {src!r} is on {src_fsp!r} "
+                f"but {dst!r} is on {dst_fsp!r}. Both must be on the same "
+                f"file share.")
+        self._request("PATCH", f"/api/files/{src_fsp}",
+                      params={"subpath": src_subpath},
+                      json={"path": dst_subpath})
+
+    def delete(self, path: str) -> None:
+        """Delete a file or an empty directory."""
+        fsp_name, subpath = self._resolve(path)
+        self._request("DELETE", f"/api/files/{fsp_name}",
+                      params={"subpath": subpath})
+
+    def read(self, path: str) -> bytes:
+        """Read a file's contents."""
+        fsp_name, subpath = self._resolve(path)
+        return self._request("GET", f"/api/content/{fsp_name}",
+                             params={"subpath": subpath}).content
+
+    def write(self, path: str, data: bytes) -> int:
+        """Write bytes to a file, creating or replacing it.
+
+        The parent directory must already exist. Returns the number of bytes
+        written.
+        """
+        fsp_name, subpath = self._resolve(path)
+        response = self._request("PUT", f"/api/content/{fsp_name}",
+                                 params={"subpath": subpath}, content=data)
+        return response.json()["bytes_written"]
