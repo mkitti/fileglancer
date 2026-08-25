@@ -8,6 +8,7 @@ import ApiTokenCard from '@/components/ui/ApiTokens/ApiTokenCard';
 import CreateTokenDialog from '@/components/ui/ApiTokens/CreateTokenDialog';
 import NewTokenDialog from '@/components/ui/ApiTokens/NewTokenDialog';
 import RevokeTokenDialog from '@/components/ui/ApiTokens/RevokeTokenDialog';
+import FgExternalLink from '@/components/designSystem/atoms/FgExternalLink';
 import { Spinner } from '@/components/ui/widgets/Loaders';
 import {
   useApiTokensQuery,
@@ -57,9 +58,11 @@ export default function ApiTokens() {
 
       <Typography className="mb-6 text-foreground">
         API tokens let scripts and notebooks use Fileglancer through the{' '}
-        <code>fileglancer</code> Python package. A token acts on your behalf,
-        limited to the scopes you grant it. The token is shown only once, when
-        you create it.
+        <FgExternalLink href="https://pypi.org/project/fileglancer">
+          authoring guide
+        </FgExternalLink>
+        Python package. A token acts on your behalf, limited to the scopes you
+        grant it. The token is shown only once, when you create it.
       </Typography>
 
       {isLoading ? (
