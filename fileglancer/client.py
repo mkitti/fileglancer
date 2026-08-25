@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import httpx
 
 from fileglancer.filestore import FileInfo
-from fileglancer.model import FileSharePath
+from fileglancer.model import FileSharePath, NeuroglancerShortLink, ProxiedPath
 
 # Neuroglancer base URL used when the caller does not supply one. The server
 # has no configured default and POST /api/neuroglancer/nglinks requires
@@ -219,3 +219,79 @@ class Fileglancer:
         response = self._request("PUT", f"/api/content/{fsp_name}",
                                  params={"subpath": subpath}, content=data)
         return response.json()["bytes_written"]
+
+    # --- Data links ---
+
+    def _absolutize(self, link: ProxiedPath) -> ProxiedPath:
+        """Rewrite a ProxiedPath's FSP-relative path to an absolute one.
+
+        The REST API defines ProxiedPath.path as relative to the file share.
+        This client presents absolute paths throughout, so the value is
+        replaced here. fsp_name is left in place for reference.
+        """
+        return link.model_copy(
+            update={"path": self.abspath(link.fsp_name, link.path)})
+
+    def create_data_link(self, path: str,
+                         url_prefix: Optional[str] = None) -> ProxiedPath:
+        """Create a data link that serves a folder over HTTP.
+
+        Args:
+            path: Absolute path to the folder to share.
+            url_prefix: The URL segment after the sharing key. Defaults to the
+                folder's basename.
+        """
+        fsp_name, subpath = self._resolve(path)
+        params: Dict[str, Any] = {"fsp_name": fsp_name, "path": subpath}
+        if url_prefix is not None:
+            params["url_prefix"] = url_prefix
+        data = self._request("POST", "/api/proxied-path", params=params).json()
+        return self._absolutize(ProxiedPath(**data))
+
+    def data_links(self) -> List[ProxiedPath]:
+        """List the caller's data links."""
+        data = self._request("GET", "/api/proxied-path").json()
+        return [self._absolutize(ProxiedPath(**p)) for p in data["paths"]]
+
+    def data_link(self, sharing_key: str) -> ProxiedPath:
+        """Get one data link by its sharing key."""
+        data = self._request("GET", f"/api/proxied-path/{sharing_key}").json()
+        return self._absolutize(ProxiedPath(**data))
+
+    def delete_data_link(self, sharing_key: str) -> None:
+        """Delete a data link."""
+        self._request("DELETE", f"/api/proxied-path/{sharing_key}")
+
+    # --- Neuroglancer links ---
+
+    def create_ng_link(self, state: Dict[str, Any],
+                       url_base: str = NEUROGLANCER_URL,
+                       title: Optional[str] = None,
+                       short_name: Optional[str] = None) -> str:
+        """Store a Neuroglancer state and return a shortened viewer URL.
+
+        Args:
+            state: A Neuroglancer state as a plain dict. This is exactly what
+                neuroglancer.ViewerState.to_json() returns, so no dependency
+                on the neuroglancer package is needed.
+            url_base: The Neuroglancer instance the link should open in.
+            title: Optional title shown in the browser tab.
+            short_name: Optional human-friendly suffix for the link.
+        """
+        payload: Dict[str, Any] = {"state": state, "url_base": url_base}
+        if title is not None:
+            payload["title"] = title
+        if short_name is not None:
+            payload["short_name"] = short_name
+        data = self._request("POST", "/api/neuroglancer/nglinks",
+                             json=payload).json()
+        return data["neuroglancer_url"]
+
+    def ng_links(self) -> List[NeuroglancerShortLink]:
+        """List the caller's stored Neuroglancer links."""
+        data = self._request("GET", "/api/neuroglancer/nglinks").json()
+        return [NeuroglancerShortLink(**link) for link in data["links"]]
+
+    def delete_ng_link(self, short_key: str) -> None:
+        """Delete a stored Neuroglancer link."""
+        self._request("DELETE", f"/api/neuroglancer/nglinks/{short_key}")
