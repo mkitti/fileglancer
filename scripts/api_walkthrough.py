@@ -147,8 +147,8 @@ def preflight():
     except FileglancerError as error:
         sys.exit(f"{RED}The current directory is not inside a Fileglancer file "
                  f"share, so the client cannot address it.{RESET}\n{error}\n\n"
-                 f"Re-run this from a directory under one of those mount "
-                 f"points, or start the server with -f {cwd}")
+                 f"Re-run this from a directory under one of the server's "
+                 f"mounted shares, or start the server with -f {cwd}")
 
     print(f"{BOLD}Fileglancer Python client walkthrough{RESET}")
     print(f"  server        {url}")
@@ -194,7 +194,7 @@ def main():
         r.step("Ask about a path in no file share (expected to raise)",
                "fg._resolve('/definitely/not/a/share')",
                lambda: _expect_error(fg._resolve, "/definitely/not/a/share"),
-               verify="the error should list the available mount points")
+               verify="names the path; deliberately does not list every share")
 
         # --- Files ---
         r.step("Describe the current directory",

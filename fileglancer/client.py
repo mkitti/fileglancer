@@ -134,19 +134,19 @@ class Fileglancer:
                 best_fsp, best_prefix = fsp, candidate
 
         if best_fsp is None:
-            shares = self.file_share_paths()
-            if not shares:
-                # Distinguished from a genuine mismatch because the mismatch
-                # message would otherwise read "Available mount points:" with
-                # nothing after it, which sends people looking at their path
-                # when the server simply has nothing mounted.
+            if not self.file_share_paths():
+                # Distinguished from a genuine mismatch, which otherwise sends
+                # people looking at their own path when the server simply has
+                # nothing mounted.
                 raise FileglancerError(
                     f"Cannot resolve {path!r}: this Fileglancer server has no "
                     f"file shares configured. Set file_share_mounts in the "
                     f"server's config.yaml, or start it with -f <path>.")
-            mounts = ", ".join(sorted(f.mount_path for f in shares))
+            # Deliberately does not enumerate the shares: a real deployment has
+            # hundreds, which buries the message it is attached to.
             raise FileglancerError(
-                f"No file share matches {path!r}. Available mount points: {mounts}")
+                f"No file share matches {path!r}. "
+                f"Call file_share_paths() to see the available shares.")
 
         return best_fsp.name, normalized[len(best_prefix):].strip("/")
 

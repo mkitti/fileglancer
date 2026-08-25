@@ -112,17 +112,23 @@ def test_error_when_the_server_has_no_shares_says_so(fg):
     message = str(excinfo.value)
     assert "no file shares configured" in message
     assert "file_share_mounts" in message
-    assert "Available mount points" not in message
 
 
-def test_unmatched_path_error_lists_available_mounts(fg):
+def test_unmatched_path_error_names_the_path_but_not_every_share(fg):
+    """The message must not enumerate the shares.
+
+    A real deployment has hundreds of them, and dumping the list buries the
+    one line the caller actually needs to read.
+    """
     with pytest.raises(FileglancerError) as excinfo:
         fg._resolve("/not/a/share/at/all")
 
     message = str(excinfo.value)
     assert "/not/a/share/at/all" in message
-    assert "/nearline" in message
-    assert "/home/alice" in message
+    assert "file_share_paths()" in message
+    # The fixture's own mount paths must not appear.
+    assert "/nearline" not in message
+    assert "/home/alice" not in message
 
 
 def test_abspath_round_trips_resolve(fg):
