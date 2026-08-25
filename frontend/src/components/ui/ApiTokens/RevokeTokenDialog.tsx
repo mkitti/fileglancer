@@ -8,6 +8,8 @@ type RevokeTokenDialogProps = {
   readonly open: boolean;
   readonly tokenName: string;
   readonly isPending: boolean;
+  /** Message from a failed revoke, so a retry is not blind. */
+  readonly error: string | null;
   readonly onClose: () => void;
   readonly onConfirm: () => void;
 };
@@ -16,6 +18,7 @@ export default function RevokeTokenDialog({
   open,
   tokenName,
   isPending,
+  error,
   onClose,
   onConfirm
 }: RevokeTokenDialogProps) {
@@ -29,6 +32,12 @@ export default function RevokeTokenDialog({
         or notebook using this token will stop working immediately. This cannot
         be undone.
       </Typography>
+      {error ? (
+        <Typography className="text-error text-sm mb-4">
+          Could not revoke this token: {error}
+        </Typography>
+      ) : null}
+
       <div className="flex justify-end gap-2">
         <FgButton disabled={isPending} onClick={onClose} variant="ghost">
           Keep token

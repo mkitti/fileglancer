@@ -313,6 +313,76 @@ describe('ApiTokens page', () => {
     ]);
   });
 
+  it('shows why a revoke failed instead of failing silently', async () => {
+    setTokens([existingToken]);
+    const failure = new Error('Token not found');
+    mockUseDeleteApiTokenMutation.mockReturnValue({
+      mutate: mockDeleteMutate,
+      isPending: false,
+      error: failure,
+      reset: vi.fn()
+    });
+    const user = userEvent.setup();
+
+    render(<ApiTokens />);
+    const card = screen.getByTestId('api-token-list');
+    await user.click(within(card).getByRole('button', { name: 'Revoke' }));
+
+    expect(
+      screen.getByText(/could not revoke this token/i)
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Token not found/)).toBeInTheDocument();
+    // The dialog stays open and the token is still listed, so nothing implies
+    // the revoke worked.
+    expect(
+      screen.getByRole('button', { name: 'Revoke Token' })
+    ).toBeInTheDocument();
+    expect(within(card).getByText('laptop notebook')).toBeInTheDocument();
+  });
+
+  it('clears a previous revoke failure when the dialog is closed', async () => {
+    setTokens([existingToken]);
+    const reset = vi.fn();
+    mockUseDeleteApiTokenMutation.mockReturnValue({
+      mutate: mockDeleteMutate,
+      isPending: false,
+      error: new Error('Token not found'),
+      reset
+    });
+    const user = userEvent.setup();
+
+    render(<ApiTokens />);
+    const card = screen.getByTestId('api-token-list');
+    await user.click(within(card).getByRole('button', { name: 'Revoke' }));
+    await user.click(screen.getByRole('button', { name: 'Keep token' }));
+
+    // Without this the stale error would greet the user on the next token.
+    expect(reset).toHaveBeenCalled();
+  });
+
+  it('ignores a close while a revoke is in flight', async () => {
+    setTokens([existingToken]);
+    const reset = vi.fn();
+    mockUseDeleteApiTokenMutation.mockReturnValue({
+      mutate: mockDeleteMutate,
+      isPending: true,
+      error: null,
+      reset
+    });
+    const user = userEvent.setup();
+
+    render(<ApiTokens />);
+    const card = screen.getByTestId('api-token-list');
+    await user.click(within(card).getByRole('button', { name: 'Revoke' }));
+    // Buttons are disabled while pending, so drive the dismiss path directly.
+    await user.keyboard('{Escape}');
+
+    expect(reset).not.toHaveBeenCalled();
+    // Still open. Matched by heading rather than by the confirm button, whose
+    // accessible name is "Revoking..." while the request is in flight.
+    expect(screen.getByText('Revoke API Token')).toBeInTheDocument();
+  });
+
   it('disables Create when the name is whitespace-only', async () => {
     setTokens([]);
     const user = userEvent.setup();

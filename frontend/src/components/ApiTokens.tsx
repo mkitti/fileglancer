@@ -34,6 +34,18 @@ export default function ApiTokens() {
     });
   };
 
+  const handleCloseRevoke = () => {
+    if (deleteToken.isPending) {
+      // A revoke is already on the wire; closing here would leave the user
+      // with no indication of how it turned out.
+      return;
+    }
+    // Reset the mutation, or a failure from this token would greet the user
+    // when they open the dialog for a different one.
+    deleteToken.reset();
+    setPendingRevoke(null);
+  };
+
   const tokens = data ?? [];
   const hasTokens = tokens.length > 0;
 
@@ -127,8 +139,9 @@ export default function ApiTokens() {
       <NewTokenDialog onClose={() => setNewToken(null)} result={newToken} />
 
       <RevokeTokenDialog
+        error={deleteToken.error?.message ?? null}
         isPending={deleteToken.isPending}
-        onClose={() => setPendingRevoke(null)}
+        onClose={handleCloseRevoke}
         onConfirm={handleConfirmRevoke}
         open={pendingRevoke !== null}
         tokenName={pendingRevoke?.name ?? ''}
