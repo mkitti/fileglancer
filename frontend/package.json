@@ -21,6 +21,7 @@
         "src/**/*.{ts,tsx}"
     ],
     "scripts": {
+        "prepare": "npx lefthook install",
         "dev": "vite",
         "build": "vite build",
         "build:prod": "vite build --mode production",
