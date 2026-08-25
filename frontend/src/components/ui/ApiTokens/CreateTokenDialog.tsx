@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { Typography } from '@material-tailwind/react';
 import { HiOutlineExclamationTriangle } from 'react-icons/hi2';
@@ -16,7 +16,7 @@ import {
   SCOPE_WARNINGS,
   useCreateApiTokenMutation
 } from '@/queries/apiTokenQueries';
-import type { CreateTokenResult } from '@/queries/apiTokenQueries';
+import type { ApiScope, CreateTokenResult } from '@/queries/apiTokenQueries';
 
 const EXPIRY_OPTIONS = [
   { days: 30, label: '30 days' },
@@ -36,7 +36,7 @@ export default function CreateTokenDialog({
   onTokenCreated
 }: CreateTokenDialogProps) {
   const [name, setName] = useState('');
-  const [scopes, setScopes] = useState<string[]>(['files:read']);
+  const [scopes, setScopes] = useState<ApiScope[]>(['files:read']);
   const [expiryDays, setExpiryDays] = useState(30);
   const createToken = useCreateApiTokenMutation();
 
@@ -49,12 +49,32 @@ export default function CreateTokenDialog({
     return warning && scopes.includes(scope) ? [{ scope, warning }] : [];
   });
 
-  const toggleScope = (scope: string) => {
-    setScopes(current =>
-      current.includes(scope)
-        ? current.filter(s => s !== scope)
-        : [...current, scope]
+  /** The `:read` scope a `:write` scope implies, or null for a read scope. */
+  const impliedRead = (scope: ApiScope): ApiScope | null =>
+    scope.endsWith(':write')
+      ? (scope.replace(':write', ':read') as ApiScope)
+      : null;
+
+  /**
+   * A `:read` box is locked on while its `:write` counterpart is selected. The
+   * server grants read implicitly to any write scope, so letting the user
+   * uncheck it would show a state the server would not honour.
+   */
+  const isImpliedByWrite = (scope: ApiScope) =>
+    API_SCOPES.some(
+      other => scopes.includes(other) && impliedRead(other) === scope
     );
+
+  const toggleScope = (scope: ApiScope) => {
+    setScopes(current => {
+      if (current.includes(scope)) {
+        return current.filter(s => s !== scope);
+      }
+      const read = impliedRead(scope);
+      return read && !current.includes(read)
+        ? [...current, scope, read]
+        : [...current, scope];
+    });
   };
 
   const handleClose = () => {
@@ -85,7 +105,7 @@ export default function CreateTokenDialog({
   };
 
   return (
-    <FgDialog className="max-w-md" onClose={handleClose} open={showDialog}>
+    <FgDialog className="max-w-4xl" onClose={handleClose} open={showDialog}>
       <Typography className="text-foreground font-semibold text-lg mb-4">
         New API Token
       </Typography>
@@ -103,21 +123,32 @@ export default function CreateTokenDialog({
         <legend className="text-foreground text-sm font-semibold mb-1">
           Scopes
         </legend>
-        <div className="space-y-1">
-          {API_SCOPES.map(scope => (
-            <FgCheckbox
-              checked={scopes.includes(scope)}
-              key={scope}
-              // The description goes in the label rather than a sibling span so
-              // it is genuinely associated with the input for screen readers.
-              label={`${scope} — ${SCOPE_DESCRIPTIONS[scope]}`}
-              onChange={() => toggleScope(scope)}
-            />
-          ))}
+        {/* One grid for every row, not a grid per row: a CSS grid column is as
+            wide as its widest cell across all rows, which is what lines the
+            descriptions up without hard-coding a width. */}
+        <div className="grid grid-cols-[max-content_1fr] items-start gap-x-4 gap-y-2">
+          {API_SCOPES.map(scope => {
+            const locked = isImpliedByWrite(scope);
+            const descriptionId = `scope-${scope}-description`;
+            return (
+              <Fragment key={scope}>
+                <FgCheckbox
+                  aria-describedby={descriptionId}
+                  checked={locked || scopes.includes(scope)}
+                  disabled={locked}
+                  label={scope}
+                  onChange={() => toggleScope(scope)}
+                />
+                <Typography
+                  className="text-secondary text-sm"
+                  id={descriptionId}
+                >
+                  {SCOPE_DESCRIPTIONS[scope]}
+                </Typography>
+              </Fragment>
+            );
+          })}
         </div>
-        <Typography className="text-secondary text-xs mt-1">
-          A <code>:write</code> scope also grants <code>:read</code>.
-        </Typography>
 
         {selectedWarnings.length > 0 ? (
           <div className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 mt-3">

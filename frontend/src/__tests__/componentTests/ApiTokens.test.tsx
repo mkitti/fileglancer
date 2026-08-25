@@ -113,14 +113,69 @@ describe('ApiTokens page', () => {
     await user.click(screen.getByRole('button', { name: /new token/i }));
 
     expect(
-      screen.getByLabelText(/^files:read — List directories and read file/)
+      screen.getByText('List directories and read file contents')
     ).toBeInTheDocument();
     // jobs:read reaches more than the name implies: full job detail and logs.
     expect(
-      screen.getByLabelText(
-        /^jobs:read .*parameters, environment, and log files/
-      )
+      screen.getByText(/parameters, environment, and log files/)
     ).toBeInTheDocument();
+    // The description is associated with its checkbox, not merely adjacent.
+    expect(screen.getByLabelText('files:read')).toHaveAttribute(
+      'aria-describedby',
+      'scope-files:read-description'
+    );
+  });
+
+  it('checks and locks the matching read scope when a write scope is selected', async () => {
+    setTokens([]);
+    const user = userEvent.setup();
+
+    render(<ApiTokens />);
+    await user.click(screen.getByRole('button', { name: /new token/i }));
+    // Clear the default files:read so it cannot mask the implication.
+    await user.click(screen.getByLabelText('files:read'));
+    expect(screen.getByLabelText('files:read')).not.toBeChecked();
+
+    await user.click(screen.getByLabelText('jobs:write'));
+
+    expect(screen.getByLabelText('jobs:read')).toBeChecked();
+    expect(screen.getByLabelText('jobs:read')).toBeDisabled();
+    // Unrelated read scopes are untouched.
+    expect(screen.getByLabelText('files:read')).not.toBeChecked();
+  });
+
+  it('releases the read scope when its write scope is deselected', async () => {
+    setTokens([]);
+    const user = userEvent.setup();
+
+    render(<ApiTokens />);
+    await user.click(screen.getByRole('button', { name: /new token/i }));
+    await user.click(screen.getByLabelText('links:write'));
+    expect(screen.getByLabelText('links:read')).toBeDisabled();
+
+    await user.click(screen.getByLabelText('links:write'));
+
+    // Still granted, but the user can uncheck it again.
+    expect(screen.getByLabelText('links:read')).toBeChecked();
+    expect(screen.getByLabelText('links:read')).toBeEnabled();
+  });
+
+  it('submits the implied read scope alongside the write scope', async () => {
+    setTokens([]);
+    mockCreateMutateAsync.mockResolvedValue({
+      token: { ...existingToken, scopes: ['files:read', 'files:write'] },
+      secret: 'fgt_tok_123_supersecret'
+    });
+    const user = userEvent.setup();
+
+    render(<ApiTokens />);
+    await user.click(screen.getByRole('button', { name: /new token/i }));
+    await user.type(screen.getByLabelText('Name'), 'writer');
+    await user.click(screen.getByLabelText('files:write'));
+    await user.click(screen.getByRole('button', { name: /^create$/i }));
+
+    const sent = mockCreateMutateAsync.mock.calls[0][0];
+    expect([...sent.scopes].sort()).toEqual(['files:read', 'files:write']);
   });
 
   it('shows no theft warning when only read scopes are selected', async () => {
@@ -129,7 +184,7 @@ describe('ApiTokens page', () => {
 
     render(<ApiTokens />);
     await user.click(screen.getByRole('button', { name: /new token/i }));
-    await user.click(screen.getByLabelText(/^links:read/));
+    await user.click(screen.getByLabelText('links:read'));
 
     expect(screen.queryByText(/treat this token like a password/i)).toBeNull();
   });
@@ -140,7 +195,7 @@ describe('ApiTokens page', () => {
 
     render(<ApiTokens />);
     await user.click(screen.getByRole('button', { name: /new token/i }));
-    await user.click(screen.getByLabelText(/^files:write/));
+    await user.click(screen.getByLabelText('files:write'));
 
     expect(
       screen.getByText(/treat this token like a password/i)
@@ -157,7 +212,7 @@ describe('ApiTokens page', () => {
 
     render(<ApiTokens />);
     await user.click(screen.getByRole('button', { name: /new token/i }));
-    await user.click(screen.getByLabelText(/^jobs:write/));
+    await user.click(screen.getByLabelText('jobs:write'));
 
     expect(
       screen.getByText(
@@ -175,8 +230,8 @@ describe('ApiTokens page', () => {
 
     render(<ApiTokens />);
     await user.click(screen.getByRole('button', { name: /new token/i }));
-    await user.click(screen.getByLabelText(/^files:write/));
-    await user.click(screen.getByLabelText(/^jobs:write/));
+    await user.click(screen.getByLabelText('files:write'));
+    await user.click(screen.getByLabelText('jobs:write'));
 
     expect(
       screen.getByText(/files:write lets them create/)
@@ -207,7 +262,7 @@ describe('ApiTokens page', () => {
     await user.click(screen.getByRole('button', { name: /new token/i }));
     await user.type(screen.getByLabelText('Name'), 'valid name');
     // Uncheck the default files:read scope, leaving none selected.
-    await user.click(screen.getByLabelText(/^files:read/));
+    await user.click(screen.getByLabelText('files:read'));
 
     expect(screen.getByRole('button', { name: /^create$/i })).toBeDisabled();
   });
