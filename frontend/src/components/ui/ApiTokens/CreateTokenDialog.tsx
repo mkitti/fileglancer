@@ -103,7 +103,9 @@ export default function CreateTokenDialog({
           ))}
         </div>
         <Typography className="text-secondary text-xs mt-1">
-          A <code>:write</code> scope also grants <code>:read</code>.
+          A <code>:write</code> scope also grants <code>:read</code>.{' '}
+          <code>jobs:write</code> runs code on your behalf, so it has the same
+          access to your files as you do.
         </Typography>
       </fieldset>
 

@@ -267,6 +267,20 @@ def _convert_ticket(db_ticket: db.TicketDB) -> Ticket:
     )
 
 
+def _ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:
+    """Re-attach UTC timezone to naive datetimes from the DB.
+
+    SQLAlchemy's DateTime column strips tzinfo, so datetimes come back
+    naive even though they were stored as UTC. Re-attaching ensures
+    Pydantic serializes with '+00:00' so JS parses them correctly.
+    """
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt
+
+
 def _convert_api_token(row: db.ApiTokenDB) -> ApiTokenInfo:
     """Convert an ApiTokenDB row to the public ApiTokenInfo model.
 
@@ -277,9 +291,9 @@ def _convert_api_token(row: db.ApiTokenDB) -> ApiTokenInfo:
         token_id=row.token_id,
         name=row.name,
         scopes=row.scopes.split(),
-        created_at=row.created_at,
-        expires_at=row.expires_at,
-        last_used_at=row.last_used_at,
+        created_at=_ensure_utc(row.created_at),
+        expires_at=_ensure_utc(row.expires_at),
+        last_used_at=_ensure_utc(row.last_used_at),
     )
 
 
@@ -2638,19 +2652,6 @@ def create_app(settings):
             raise
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
-
-    def _ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:
-        """Re-attach UTC timezone to naive datetimes from the DB.
-
-        SQLAlchemy's DateTime column strips tzinfo, so datetimes come back
-        naive even though they were stored as UTC. Re-attaching ensures
-        Pydantic serializes with '+00:00' so JS parses them correctly.
-        """
-        if dt is None:
-            return None
-        if dt.tzinfo is None:
-            return dt.replace(tzinfo=UTC)
-        return dt
 
     def _convert_job(db_job: db.JobDB, service_url: str = None, files: dict = None,
                      phase: str = None) -> Job:

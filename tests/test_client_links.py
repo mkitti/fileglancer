@@ -5,7 +5,11 @@ import pytest
 from fastapi.testclient import TestClient
 
 from fileglancer.client import NEUROGLANCER_URL, Fileglancer, FileglancerError
-from fileglancer.database import create_api_token, get_file_share_paths
+from fileglancer.database import (
+    ProxiedPathDB,
+    create_api_token,
+    get_file_share_paths,
+)
 
 from test_api_token_auth import token_app  # noqa: F401
 
@@ -63,6 +67,29 @@ def test_list_data_links_reports_absolute_paths(fg, shared_dir):
     links = fg.data_links()
 
     assert [link.path for link in links] == [shared_dir]
+
+
+def test_data_links_lists_the_rest_when_one_link_has_a_stale_share(fg, shared_dir, token_app):
+    """A link whose file share has since disappeared from the table (e.g.
+    the external process that maintains it removed the entry) must not make
+    the rest of the listing raise.
+
+    Bypasses create_proxied_path/create_data_link (which validate the share
+    exists) to plant a row directly, simulating a share that was valid when
+    the link was made but has since been removed from file_share_paths.
+    """
+    _, db_session = token_app
+    real = fg.create_data_link(shared_dir)
+    db_session.add(ProxiedPathDB(
+        username="alice", sharing_key="stale", sharing_name="stale",
+        fsp_name="ghost-share", path="some/relative/path"))
+    db_session.commit()
+
+    links = fg.data_links()
+
+    assert {link.fsp_name for link in links} == {real.fsp_name, "ghost-share"}
+    stale_link = next(link for link in links if link.fsp_name == "ghost-share")
+    assert stale_link.path == "some/relative/path"
 
 
 def test_get_data_link_by_sharing_key(fg, shared_dir):

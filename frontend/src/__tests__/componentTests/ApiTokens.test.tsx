@@ -24,12 +24,16 @@ vi.mock('@/queries/apiTokenQueries', async () => {
   };
 });
 
+// Naive (no offset) on purpose, unlike the other fixtures in this file: a
+// SQLAlchemy DateTime column serializes without a timezone unless something
+// re-attaches one. This exercises formatDateOnly's Z-append fallback so a
+// regression here (e.g. a missed _ensure_utc call) is actually caught.
 const existingToken: ApiTokenInfo = {
   token_id: 'tok_123',
   name: 'laptop notebook',
   scopes: ['files:read', 'files:write'],
-  created_at: '2026-01-01T00:00:00Z',
-  expires_at: '2027-01-01T00:00:00Z',
+  created_at: '2026-01-01T00:00:00',
+  expires_at: '2027-01-01T00:00:00',
   last_used_at: null
 };
 

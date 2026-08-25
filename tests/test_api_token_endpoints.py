@@ -100,3 +100,18 @@ def test_create_strips_surrounding_whitespace_from_name(test_client):
 
     assert response.status_code == 201
     assert response.json()["token"]["name"] == "laptop"
+
+
+def test_serialized_timestamps_carry_a_timezone(test_client):
+    """expires_at (and friends) must not be naive, or JS parses them as local
+    time and gets the "Expired" badge wrong outside UTC."""
+    response = test_client.post("/api/tokens", json={
+        "name": "laptop", "scopes": ["files:read"], "expires_in_days": 30,
+    })
+
+    token = response.json()["token"]
+    for field in ("created_at", "expires_at"):
+        value = token[field]
+        assert value.endswith("Z") or value[-6] in "+-", (
+            f"{field}={value!r} has no timezone offset"
+        )

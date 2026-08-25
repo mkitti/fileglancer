@@ -2,14 +2,8 @@ import { Card, Typography } from '@material-tailwind/react';
 import { HiOutlineTrash } from 'react-icons/hi';
 
 import FgButton from '@/components/designSystem/atoms/FgButton';
+import { formatDateOnly } from '@/utils';
 import type { ApiTokenInfo } from '@/queries/apiTokenQueries';
-
-function formatDate(value: string | null): string {
-  if (!value) {
-    return 'Never';
-  }
-  return new Date(value).toLocaleDateString();
-}
 
 export default function ApiTokenCard({
   token,
@@ -38,9 +32,9 @@ export default function ApiTokenCard({
             {token.scopes.join(', ')}
           </Typography>
           <Typography className="text-secondary text-sm">
-            Created {formatDate(token.created_at)} &middot; Expires{' '}
-            {formatDate(token.expires_at)} &middot; Last used{' '}
-            {formatDate(token.last_used_at)}
+            Created {formatDateOnly(token.created_at)} &middot; Expires{' '}
+            {formatDateOnly(token.expires_at)} &middot; Last used{' '}
+            {token.last_used_at ? formatDateOnly(token.last_used_at) : 'Never'}
           </Typography>
         </div>
         <FgButton

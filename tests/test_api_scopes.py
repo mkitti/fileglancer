@@ -37,13 +37,12 @@ def test_api_scopes_are_exactly_the_six_documented_names():
     ("/api/jobs", "GET", "jobs:read"),
     ("/api/jobs", "POST", "jobs:write"),
     ("/api/jobs/12/cancel", "POST", "jobs:write"),
-    ("/api/cluster-defaults", "GET", "jobs:read"),
 ])
 def test_required_scope_maps_path_and_method(path, method, expected):
     assert required_scope(path, method) == expected
 
 
-@pytest.mark.parametrize("path", ["/api/profile", "/api/auth/status"])
+@pytest.mark.parametrize("path", ["/api/profile"])
 def test_paths_readable_by_any_valid_token(path):
     assert required_scope(path, "GET") == ANY_SCOPE
 

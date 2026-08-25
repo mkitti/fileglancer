@@ -228,9 +228,18 @@ class Fileglancer:
         The REST API defines ProxiedPath.path as relative to the file share.
         This client presents absolute paths throughout, so the value is
         replaced here. fsp_name is left in place for reference.
+
+        The file-share table is maintained by an external process, so a
+        share can legitimately disappear out from under an existing link.
+        When that happens, return the link with its path left FSP-relative
+        rather than raising - one stale link shouldn't make the rest of
+        data_links() unusable.
         """
-        return link.model_copy(
-            update={"path": self.abspath(link.fsp_name, link.path)})
+        try:
+            abs_path = self.abspath(link.fsp_name, link.path)
+        except FileglancerError:
+            return link
+        return link.model_copy(update={"path": abs_path})
 
     def create_data_link(self, path: str,
                          url_prefix: Optional[str] = None) -> ProxiedPath:

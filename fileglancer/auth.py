@@ -245,11 +245,10 @@ _SCOPE_PREFIXES = (
     ("/api/proxied-path", "links"),
     ("/api/neuroglancer", "links"),
     ("/api/jobs", "jobs"),
-    ("/api/cluster-defaults", "jobs"),
 )
 
 # Readable by any valid token regardless of scope: identity and liveness.
-_ANY_SCOPE_PATHS = ("/api/profile", "/api/auth/status")
+_ANY_SCOPE_PATHS = ("/api/profile",)
 
 _READ_METHODS = ("GET", "HEAD")
 

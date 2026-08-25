@@ -1,8 +1,9 @@
 """Tests for client construction and absolute-path resolution.
 
-Resolution mirrors resolvePathToFsp in frontend/src/utils/pathHandling.ts.
-The FSP fixture below is the shared fixture set both resolvers are checked
-against; keep it in sync with the TypeScript test.
+resolvePathToFsp in frontend/src/utils/pathHandling.ts is the reference
+implementation this mirrors. It has its own separate test suite
+(frontend/src/__tests__/unitTests/pathHandling.test.ts); the fixtures below
+are not shared with it.
 """
 import httpx
 import pytest
