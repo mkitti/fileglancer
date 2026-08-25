@@ -7,18 +7,32 @@ import FgIcon from '@/components/designSystem/atoms/FgIcon';
 import ApiTokenCard from '@/components/ui/ApiTokens/ApiTokenCard';
 import CreateTokenDialog from '@/components/ui/ApiTokens/CreateTokenDialog';
 import NewTokenDialog from '@/components/ui/ApiTokens/NewTokenDialog';
+import RevokeTokenDialog from '@/components/ui/ApiTokens/RevokeTokenDialog';
 import { Spinner } from '@/components/ui/widgets/Loaders';
 import {
   useApiTokensQuery,
   useDeleteApiTokenMutation
 } from '@/queries/apiTokenQueries';
-import type { CreateTokenResult } from '@/queries/apiTokenQueries';
+import type {
+  ApiTokenInfo,
+  CreateTokenResult
+} from '@/queries/apiTokenQueries';
 
 export default function ApiTokens() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newToken, setNewToken] = useState<CreateTokenResult | null>(null);
+  const [pendingRevoke, setPendingRevoke] = useState<ApiTokenInfo | null>(null);
   const { data, isLoading, error, refetch } = useApiTokensQuery();
   const deleteToken = useDeleteApiTokenMutation();
+
+  const handleConfirmRevoke = () => {
+    if (!pendingRevoke) {
+      return;
+    }
+    deleteToken.mutate(pendingRevoke.token_id, {
+      onSuccess: () => setPendingRevoke(null)
+    });
+  };
 
   const tokens = data ?? [];
   const hasTokens = tokens.length > 0;
@@ -90,9 +104,13 @@ export default function ApiTokens() {
           <div className="space-y-4" data-testid="api-token-list">
             {tokens.map(token => (
               <ApiTokenCard
-                isRevoking={deleteToken.isPending}
+                isRevoking={
+                  deleteToken.isPending
+                    ? deleteToken.variables === token.token_id
+                    : false
+                }
                 key={token.token_id}
-                onRevoke={id => deleteToken.mutate(id)}
+                onRevoke={setPendingRevoke}
                 token={token}
               />
             ))}
@@ -107,6 +125,14 @@ export default function ApiTokens() {
       />
 
       <NewTokenDialog onClose={() => setNewToken(null)} result={newToken} />
+
+      <RevokeTokenDialog
+        isPending={deleteToken.isPending}
+        onClose={() => setPendingRevoke(null)}
+        onConfirm={handleConfirmRevoke}
+        open={pendingRevoke !== null}
+        tokenName={pendingRevoke?.name ?? ''}
+      />
     </>
   );
 }

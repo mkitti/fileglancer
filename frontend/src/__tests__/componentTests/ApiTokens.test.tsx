@@ -50,7 +50,8 @@ beforeEach(() => {
   mockUseCreateApiTokenMutation.mockReturnValue({
     mutateAsync: mockCreateMutateAsync,
     isPending: false,
-    error: null
+    error: null,
+    reset: vi.fn()
   });
   mockUseDeleteApiTokenMutation.mockReturnValue({
     mutate: mockDeleteMutate,
@@ -77,15 +78,76 @@ describe('ApiTokens page', () => {
     expect(screen.getByText('files:read, files:write')).toBeInTheDocument();
   });
 
-  it('calls the delete mutation with the token id when Revoke is clicked', async () => {
+  it('asks for confirmation before revoking, then calls the delete mutation with the token id', async () => {
     setTokens([existingToken]);
     const user = userEvent.setup();
 
     render(<ApiTokens />);
 
-    await user.click(screen.getByRole('button', { name: /revoke/i }));
+    await user.click(screen.getByRole('button', { name: 'Revoke' }));
 
-    expect(mockDeleteMutate).toHaveBeenCalledWith('tok_123');
+    // Revoking is destructive and irreversible - it must not happen on the
+    // first click.
+    expect(mockDeleteMutate).not.toHaveBeenCalled();
+    expect(screen.getByText(/revoke api token/i)).toBeInTheDocument();
+    // The confirmation copy names the token (in addition to the card above).
+    expect(screen.getAllByText('laptop notebook')).toHaveLength(2);
+
+    await user.click(screen.getByRole('button', { name: 'Revoke Token' }));
+
+    expect(mockDeleteMutate).toHaveBeenCalledTimes(1);
+    expect(mockDeleteMutate.mock.calls[0][0]).toBe('tok_123');
+  });
+
+  it('disables Create when the name is whitespace-only', async () => {
+    setTokens([]);
+    const user = userEvent.setup();
+
+    render(<ApiTokens />);
+
+    await user.click(screen.getByRole('button', { name: /new token/i }));
+    await user.type(screen.getByLabelText('Name'), '   ');
+
+    expect(screen.getByRole('button', { name: /^create$/i })).toBeDisabled();
+  });
+
+  it('disables Create when no scopes are selected', async () => {
+    setTokens([]);
+    const user = userEvent.setup();
+
+    render(<ApiTokens />);
+
+    await user.click(screen.getByRole('button', { name: /new token/i }));
+    await user.type(screen.getByLabelText('Name'), 'valid name');
+    // Uncheck the default files:read scope, leaving none selected.
+    await user.click(screen.getByLabelText('files:read'));
+
+    expect(screen.getByRole('button', { name: /^create$/i })).toBeDisabled();
+  });
+
+  it('keeps the dialog open and shows the error on a failed create, without opening the secret dialog', async () => {
+    setTokens([existingToken]);
+    const failure = new Error('token limit reached');
+    mockCreateMutateAsync.mockRejectedValue(failure);
+    mockUseCreateApiTokenMutation.mockReturnValue({
+      mutateAsync: mockCreateMutateAsync,
+      isPending: false,
+      error: failure,
+      reset: vi.fn()
+    });
+    const user = userEvent.setup();
+
+    render(<ApiTokens />);
+
+    await user.click(screen.getByRole('button', { name: /new token/i }));
+    await user.type(screen.getByLabelText('Name'), 'new token');
+    await user.click(screen.getByRole('button', { name: /^create$/i }));
+
+    expect(await screen.findByText('token limit reached')).toBeInTheDocument();
+    // The create dialog is still open - its Name field is still present.
+    expect(screen.getByLabelText('Name')).toBeInTheDocument();
+    // The one-time secret dialog never appeared.
+    expect(screen.queryByText(/token created/i)).not.toBeInTheDocument();
   });
 
   it('shows the secret exactly once after creating a token, and the listing never renders it', async () => {

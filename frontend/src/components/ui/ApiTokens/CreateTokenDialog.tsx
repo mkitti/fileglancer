@@ -47,10 +47,16 @@ export default function CreateTokenDialog({
   };
 
   const handleClose = () => {
-    setShowDialog(false);
+    if (createToken.isPending) {
+      // A create is already on the wire; letting the dialog close here would
+      // still pop the one-time secret dialog when the response lands.
+      return;
+    }
     setName('');
     setScopes(['files:read']);
     setExpiryDays(30);
+    createToken.reset();
+    setShowDialog(false);
   };
 
   const handleSubmit = async () => {
@@ -129,7 +135,11 @@ export default function CreateTokenDialog({
         >
           Create
         </FgButton>
-        <FgButton onClick={handleClose} variant="ghost">
+        <FgButton
+          disabled={createToken.isPending}
+          onClick={handleClose}
+          variant="ghost"
+        >
           Cancel
         </FgButton>
       </div>

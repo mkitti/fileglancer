@@ -17,7 +17,7 @@ export default function ApiTokenCard({
   isRevoking
 }: {
   readonly token: ApiTokenInfo;
-  readonly onRevoke: (tokenId: string) => void;
+  readonly onRevoke: (token: ApiTokenInfo) => void;
   readonly isRevoking: boolean;
 }) {
   const isExpired = new Date(token.expires_at) < new Date();
@@ -46,7 +46,7 @@ export default function ApiTokenCard({
         <FgButton
           disabled={isRevoking}
           icon={HiOutlineTrash}
-          onClick={() => onRevoke(token.token_id)}
+          onClick={() => onRevoke(token)}
           size="sm"
         >
           Revoke
