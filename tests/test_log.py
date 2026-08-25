@@ -2,7 +2,7 @@
 
 import asyncio
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 from loguru import logger
 
@@ -86,3 +86,48 @@ def test_control_characters_never_reach_the_log():
     assert "\x1b" not in logged, repr(logged)
     # The encoded form is what gets logged, so both stay inert.
     assert "%0A" in logged and "%1B" in logged, repr(logged)
+
+
+def test_token_requests_log_the_username_and_token_id():
+    """A token request must be traceable to a user and a specific token.
+
+    Before this, the middleware resolved identity from the session cookie only,
+    so every programmatic request logged '-' -- an admin investigating a
+    misbehaving script had nothing to go on. The token id is the public half
+    and is what the GUI shows, so it points at the exact token to revoke.
+    """
+    app = FastAPI()
+    app.add_middleware(AccessLogMiddleware, settings=Settings())
+
+    @app.get("/api/files/{name}")
+    async def files(name: str, request: Request):
+        # Stands in for auth.get_user_from_token, which sets these once a
+        # bearer token resolves.
+        request.state.fg_username = "alice"
+        request.state.fg_token_id = "a1b2c3d4e5f6"
+        return {"ok": True}
+
+    lines = []
+    sink_id = logger.add(lambda msg: lines.append(msg), format="{message}")
+    try:
+        with TestClient(app) as client:
+            client.get("/api/files/share")
+    finally:
+        logger.remove(sink_id)
+
+    assert len(lines) == 1, lines
+    assert "[alice fgt:a1b2c3d4e5f6]" in lines[0], lines[0]
+    assert "[-]" not in lines[0], lines[0]
+
+
+def test_unauthenticated_requests_still_log_a_dash():
+    """No identity to attribute, so the field stays '-'."""
+    app, lines, sink_id = _app_and_lines()
+    try:
+        with TestClient(app) as client:
+            client.get("/api/content/share/file.txt")
+    finally:
+        logger.remove(sink_id)
+
+    assert len(lines) == 1, lines
+    assert "[-]" in lines[0], lines[0]

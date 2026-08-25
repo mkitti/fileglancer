@@ -367,4 +367,13 @@ def get_user_from_token(request: Request, settings: Settings, raw_token: str) ->
     with db.get_db_session(settings.db_url) as session:
         db.touch_api_token(session, token_id)
 
+    # Left for AccessLogMiddleware, which otherwise logs token requests as '-'
+    # because it resolves identity from the session cookie only. request.state
+    # is backed by scope["state"], so a value set here is visible to the
+    # middleware after it awaits call_next. The token id is the public half and
+    # is what the GUI shows, so an admin tracing activity can point a user at
+    # the exact token to revoke.
+    request.state.fg_username = username
+    request.state.fg_token_id = token_id
+
     return username

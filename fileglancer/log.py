@@ -80,6 +80,19 @@ class AccessLogMiddleware(BaseHTTPMiddleware):
         # Process the request
         response = await call_next(request)
 
+        # Token-authenticated requests have no session cookie, so the lookup
+        # above found nothing and username is still '-'. get_user_from_token
+        # leaves the resolved identity on request.state, which is readable now
+        # that the endpoint has run. The cookie lookup above is deliberately
+        # left in place rather than replaced by this: logout deletes the
+        # session during the request, so resolving it only after call_next
+        # would log '-' for the request that did the logging out.
+        token_username = getattr(request.state, "fg_username", None)
+        if token_username:
+            token_id = getattr(request.state, "fg_token_id", None)
+            username = (f"{token_username} fgt:{token_id}" if token_id
+                        else token_username)
+
         # Calculate request duration
         duration_ms = (time.time() - start_time) * 1000
 
@@ -100,6 +113,7 @@ class AccessLogMiddleware(BaseHTTPMiddleware):
 
         # Format log message in a standard access log format
         # Example: 192.168.1.100:54321 [username] "GET /api/files HTTP/1.1" 200 - 45.23ms
+        # API token requests carry the token id: [username fgt:a1b2c3d4e5f6]
         log_message = (
             f"{client_host}:{client_port} [{username}] "
             f'"{request.method} {_log_safe(path)}'

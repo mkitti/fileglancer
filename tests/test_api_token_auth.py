@@ -309,3 +309,29 @@ def test_every_authenticated_route_is_classified(token_app):
         "them to _SCOPE_PREFIXES in auth.py or to SESSION_ONLY_PREFIXES here: "
         f"{sorted(unclassified)}"
     )
+
+
+def test_access_log_names_the_user_and_token(token_app):
+    """End to end through the real bearer path, not a simulated request.state.
+
+    Complements test_log.py, which stubs the state directly: this confirms
+    get_user_from_token actually populates it on a genuine token request.
+    """
+    from loguru import logger
+
+    app, db_session = token_app
+    row, plaintext = create_api_token(db_session, "alice", "tracing",
+                                      ["files:read"])
+
+    lines = []
+    sink_id = logger.add(lambda msg: lines.append(msg), format="{message}")
+    try:
+        client = TestClient(app)
+        client.get("/api/files/tempdir",
+                   headers={"Authorization": f"Bearer {plaintext}"})
+    finally:
+        logger.remove(sink_id)
+
+    access_lines = [line for line in lines if "HTTP/1.1" in line]
+    assert access_lines, lines
+    assert f"[alice fgt:{row.token_id}]" in access_lines[-1], access_lines[-1]
