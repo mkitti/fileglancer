@@ -85,14 +85,13 @@ export default function ApiTokens() {
       {!isLoading && !error && !hasTokens ? (
         <Card className="mb-6 p-8 text-center dark:border-surface-light">
           <FgIcon
-            className="mx-auto h-12 w-12 mb-4"
-            color="secondary"
+            className="mx-auto h-12 w-12 mb-4 text-foreground/40"
             icon={HiOutlineKey}
           />
           <Typography className="text-foreground font-semibold mb-2">
             No API tokens
           </Typography>
-          <Typography className="text-secondary mb-4">
+          <Typography className="text-foreground/60 mb-4">
             Create a token to use Fileglancer from Python.
           </Typography>
           <FgButton

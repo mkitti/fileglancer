@@ -155,7 +155,7 @@ export default function CreateTokenDialog({
                   onChange={() => toggleScope(scope)}
                 />
                 <Typography
-                  className="text-secondary text-sm"
+                  className="text-foreground/60 text-sm"
                   id={descriptionId}
                 >
                   {SCOPE_DESCRIPTIONS[scope]}
@@ -166,7 +166,7 @@ export default function CreateTokenDialog({
         </div>
 
         {withheldCount > 0 ? (
-          <Typography className="text-secondary text-xs mt-2">
+          <Typography className="text-foreground/60 text-xs mt-2">
             Some scopes are not enabled on this server. Contact your Fileglancer
             administrator if you need one that is not listed.
           </Typography>

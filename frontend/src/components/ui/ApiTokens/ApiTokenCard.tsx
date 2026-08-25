@@ -28,10 +28,10 @@ export default function ApiTokenCard({
               </span>
             ) : null}
           </Typography>
-          <Typography className="text-secondary text-sm">
+          <Typography className="text-foreground/60 text-sm">
             {token.scopes.join(', ')}
           </Typography>
-          <Typography className="text-secondary text-sm">
+          <Typography className="text-foreground/60 text-sm">
             Created {formatDateOnly(token.created_at)} &middot; Expires{' '}
             {formatDateOnly(token.expires_at)} &middot; Last used{' '}
             {token.last_used_at ? formatDateOnly(token.last_used_at) : 'Never'}
