@@ -23,6 +23,37 @@ export const API_SCOPES = [
 export type ApiScope = (typeof API_SCOPES)[number];
 
 /**
+ * What each scope allows, shown next to its checkbox when creating a token.
+ *
+ * Kept verbatim in sync with the scope table on the Python API docs page.
+ * Typed as a total Record so adding a scope to API_SCOPES without describing
+ * it here is a compile error rather than a blank row in the UI.
+ */
+export const SCOPE_DESCRIPTIONS: Record<ApiScope, string> = {
+  'files:read': 'List directories and read file contents',
+  'files:write': 'Create, rename, delete, and write files',
+  'links:read': 'List data links and Neuroglancer links',
+  'links:write': 'Create and delete data links and Neuroglancer links',
+  'jobs:read':
+    "List jobs and read each job's full details, parameters, environment, and log files",
+  'jobs:write': 'Submit and cancel jobs'
+};
+
+/**
+ * Scopes whose consequences are worse than their name suggests, and the plain
+ * English explanation shown when one of them is selected.
+ *
+ * Only these two are listed: the read scopes and the link scopes cannot be
+ * used to modify a user's files or run code as them.
+ */
+export const SCOPE_WARNINGS: Partial<Record<ApiScope, string>> = {
+  'files:write':
+    'files:write lets them create, change, and delete any file you can reach, including data you never meant to share.',
+  'jobs:write':
+    'jobs:write lets them run any code on the cluster as you. That includes reading and changing all of your files, even if you did not grant the file scopes.'
+};
+
+/**
  * An API token, without its secret.
  */
 export type ApiTokenInfo = {

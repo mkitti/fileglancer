@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { Typography } from '@material-tailwind/react';
+import { HiOutlineExclamationTriangle } from 'react-icons/hi2';
 
 import FgButton from '@/components/designSystem/atoms/FgButton';
+import FgIcon from '@/components/designSystem/atoms/FgIcon';
 import FgCheckbox from '@/components/designSystem/atoms/formElements/FgCheckbox';
 import FgInput from '@/components/designSystem/atoms/formElements/FgInput';
 import FgSelect from '@/components/designSystem/atoms/formElements/FgSelect';
@@ -10,6 +12,8 @@ import FgFormField from '@/components/designSystem/molecules/FgFormField';
 import FgDialog from '@/components/ui/Dialogs/FgDialog';
 import {
   API_SCOPES,
+  SCOPE_DESCRIPTIONS,
+  SCOPE_WARNINGS,
   useCreateApiTokenMutation
 } from '@/queries/apiTokenQueries';
 import type { CreateTokenResult } from '@/queries/apiTokenQueries';
@@ -37,6 +41,13 @@ export default function CreateTokenDialog({
   const createToken = useCreateApiTokenMutation();
 
   const canSubmit = name.trim().length > 0 && scopes.length > 0;
+
+  // Warnings for whichever dangerous scopes are currently selected, iterated in
+  // API_SCOPES order so the list stays stable as boxes are ticked.
+  const selectedWarnings = API_SCOPES.flatMap(scope => {
+    const warning = SCOPE_WARNINGS[scope];
+    return warning && scopes.includes(scope) ? [{ scope, warning }] : [];
+  });
 
   const toggleScope = (scope: string) => {
     setScopes(current =>
@@ -97,16 +108,44 @@ export default function CreateTokenDialog({
             <FgCheckbox
               checked={scopes.includes(scope)}
               key={scope}
-              label={scope}
+              // The description goes in the label rather than a sibling span so
+              // it is genuinely associated with the input for screen readers.
+              label={`${scope} — ${SCOPE_DESCRIPTIONS[scope]}`}
               onChange={() => toggleScope(scope)}
             />
           ))}
         </div>
         <Typography className="text-secondary text-xs mt-1">
-          A <code>:write</code> scope also grants <code>:read</code>.{' '}
-          <code>jobs:write</code> runs code on your behalf, so it has the same
-          access to your files as you do.
+          A <code>:write</code> scope also grants <code>:read</code>.
         </Typography>
+
+        {selectedWarnings.length > 0 ? (
+          <div className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 mt-3">
+            <FgIcon
+              className="text-warning shrink-0 mt-0.5"
+              icon={HiOutlineExclamationTriangle}
+              size="sm"
+            />
+            <div className="space-y-2">
+              <Typography className="text-foreground text-sm">
+                Treat this token like a password. Anyone who obtains it can act
+                as you — Fileglancer cannot tell your own scripts apart from
+                someone using a stolen token.
+              </Typography>
+              <ul className="list-disc list-outside pl-4 space-y-1">
+                {selectedWarnings.map(({ scope, warning }) => (
+                  <li className="text-foreground text-sm" key={scope}>
+                    {warning}
+                  </li>
+                ))}
+              </ul>
+              <Typography className="text-foreground text-sm">
+                Store it somewhere only you can read, and revoke it here if you
+                think it has leaked.
+              </Typography>
+            </div>
+          </div>
+        ) : null}
       </fieldset>
 
       <FgFormField htmlFor="token-expiry" label="Expires in">

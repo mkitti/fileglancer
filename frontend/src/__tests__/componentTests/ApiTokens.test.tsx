@@ -18,6 +18,8 @@ vi.mock('@/queries/apiTokenQueries', async () => {
   >('@/queries/apiTokenQueries');
   return {
     API_SCOPES: actual.API_SCOPES,
+    SCOPE_DESCRIPTIONS: actual.SCOPE_DESCRIPTIONS,
+    SCOPE_WARNINGS: actual.SCOPE_WARNINGS,
     useApiTokensQuery: () => mockUseApiTokensQuery(),
     useCreateApiTokenMutation: () => mockUseCreateApiTokenMutation(),
     useDeleteApiTokenMutation: () => mockUseDeleteApiTokenMutation()
@@ -103,6 +105,87 @@ describe('ApiTokens page', () => {
     expect(mockDeleteMutate.mock.calls[0][0]).toBe('tok_123');
   });
 
+  it('shows what each scope allows next to its checkbox', async () => {
+    setTokens([]);
+    const user = userEvent.setup();
+
+    render(<ApiTokens />);
+    await user.click(screen.getByRole('button', { name: /new token/i }));
+
+    expect(
+      screen.getByLabelText(/^files:read — List directories and read file/)
+    ).toBeInTheDocument();
+    // jobs:read reaches more than the name implies: full job detail and logs.
+    expect(
+      screen.getByLabelText(
+        /^jobs:read .*parameters, environment, and log files/
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('shows no theft warning when only read scopes are selected', async () => {
+    setTokens([]);
+    const user = userEvent.setup();
+
+    render(<ApiTokens />);
+    await user.click(screen.getByRole('button', { name: /new token/i }));
+    await user.click(screen.getByLabelText(/^links:read/));
+
+    expect(screen.queryByText(/treat this token like a password/i)).toBeNull();
+  });
+
+  it('warns about file access when files:write is selected', async () => {
+    setTokens([]);
+    const user = userEvent.setup();
+
+    render(<ApiTokens />);
+    await user.click(screen.getByRole('button', { name: /new token/i }));
+    await user.click(screen.getByLabelText(/^files:write/));
+
+    expect(
+      screen.getByText(/treat this token like a password/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/files:write lets them create, change, and delete/)
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/jobs:write lets them run any code/)).toBeNull();
+  });
+
+  it('warns that jobs:write can run code as you, regardless of file scopes', async () => {
+    setTokens([]);
+    const user = userEvent.setup();
+
+    render(<ApiTokens />);
+    await user.click(screen.getByRole('button', { name: /new token/i }));
+    await user.click(screen.getByLabelText(/^jobs:write/));
+
+    expect(
+      screen.getByText(
+        /jobs:write lets them run any code on the cluster as you/
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/even if you did not grant the file scopes/)
+    ).toBeInTheDocument();
+  });
+
+  it('lists both warnings when files:write and jobs:write are both selected', async () => {
+    setTokens([]);
+    const user = userEvent.setup();
+
+    render(<ApiTokens />);
+    await user.click(screen.getByRole('button', { name: /new token/i }));
+    await user.click(screen.getByLabelText(/^files:write/));
+    await user.click(screen.getByLabelText(/^jobs:write/));
+
+    expect(
+      screen.getByText(/files:write lets them create/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/jobs:write lets them run any code/)
+    ).toBeInTheDocument();
+  });
+
   it('disables Create when the name is whitespace-only', async () => {
     setTokens([]);
     const user = userEvent.setup();
@@ -124,7 +207,7 @@ describe('ApiTokens page', () => {
     await user.click(screen.getByRole('button', { name: /new token/i }));
     await user.type(screen.getByLabelText('Name'), 'valid name');
     // Uncheck the default files:read scope, leaving none selected.
-    await user.click(screen.getByLabelText('files:read'));
+    await user.click(screen.getByLabelText(/^files:read/));
 
     expect(screen.getByRole('button', { name: /^create$/i })).toBeDisabled();
   });
