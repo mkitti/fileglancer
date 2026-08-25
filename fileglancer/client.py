@@ -7,7 +7,7 @@ operates on absolute filesystem paths rather than Fileglancer's internal
     from fileglancer import Fileglancer
 
     fg = Fileglancer()  # reads FILEGLANCER_URL and FILEGLANCER_TOKEN
-    link = fg.create_data_link("/nearline/alice/sample.zarr")
+    link = fg.create_data_link("/data/alice/sample.zarr")
 """
 import os
 from typing import Any, Dict, List, Optional, Tuple
