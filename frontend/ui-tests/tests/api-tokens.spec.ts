@@ -50,6 +50,9 @@ test.describe('API tokens', () => {
       page.locator('strong').filter({ hasText: tokenName })
     ).toBeVisible();
 
+    // The first click must open the dialog WITHOUT revoking anything.
+    await expect(tokenCard.getByText(tokenName)).toBeVisible();
+
     await page.getByRole('button', { name: 'Revoke Token' }).click();
 
     // Wait for the confirmation dialog to fully close before checking the
