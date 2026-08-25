@@ -14,7 +14,8 @@ import {
   API_SCOPES,
   SCOPE_DESCRIPTIONS,
   SCOPE_WARNINGS,
-  useCreateApiTokenMutation
+  useCreateApiTokenMutation,
+  useEnabledScopesQuery
 } from '@/queries/apiTokenQueries';
 import type { ApiScope, CreateTokenResult } from '@/queries/apiTokenQueries';
 
@@ -39,12 +40,26 @@ export default function CreateTokenDialog({
   const [scopes, setScopes] = useState<ApiScope[]>(['files:read']);
   const [expiryDays, setExpiryDays] = useState(30);
   const createToken = useCreateApiTokenMutation();
+  const enabledScopes = useEnabledScopesQuery();
 
-  const canSubmit = name.trim().length > 0 && scopes.length > 0;
+  // Only offer what the server supports. files:write and jobs:write are
+  // withheld unless an admin enables them, so the checkbox list is a subset
+  // of API_SCOPES on most servers.
+  const available = API_SCOPES.filter(scope =>
+    (enabledScopes.data ?? []).includes(scope)
+  );
+  const withheldCount = API_SCOPES.length - available.length;
+
+  // Constrain the selection to what is actually on offer, so a default or a
+  // stale selection can never be submitted for a scope the server would
+  // reject.
+  const effectiveScopes = scopes.filter(scope => available.includes(scope));
+
+  const canSubmit = name.trim().length > 0 && effectiveScopes.length > 0;
 
   // Warnings for whichever dangerous scopes are currently selected, iterated in
   // API_SCOPES order so the list stays stable as boxes are ticked.
-  const selectedWarnings = API_SCOPES.flatMap(scope => {
+  const selectedWarnings = available.flatMap(scope => {
     const warning = SCOPE_WARNINGS[scope];
     return warning && scopes.includes(scope) ? [{ scope, warning }] : [];
   });
@@ -94,7 +109,7 @@ export default function CreateTokenDialog({
     try {
       const result = await createToken.mutateAsync({
         name: name.trim(),
-        scopes,
+        scopes: effectiveScopes,
         expires_in_days: expiryDays
       });
       handleClose();
@@ -127,7 +142,7 @@ export default function CreateTokenDialog({
             wide as its widest cell across all rows, which is what lines the
             descriptions up without hard-coding a width. */}
         <div className="grid grid-cols-[max-content_1fr] items-start gap-x-4 gap-y-2">
-          {API_SCOPES.map(scope => {
+          {available.map(scope => {
             const locked = isImpliedByWrite(scope);
             const descriptionId = `scope-${scope}-description`;
             return (
@@ -149,6 +164,13 @@ export default function CreateTokenDialog({
             );
           })}
         </div>
+
+        {withheldCount > 0 ? (
+          <Typography className="text-secondary text-xs mt-2">
+            Some scopes are not enabled on this server. Contact your Fileglancer
+            administrator if you need one that is not listed.
+          </Typography>
+        ) : null}
 
         {selectedWarnings.length > 0 ? (
           <div className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 mt-3">

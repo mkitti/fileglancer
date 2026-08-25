@@ -128,6 +128,22 @@ class Settings(BaseSettings):
     # the programmatic API. Empty (default) means only same-origin calls work.
     api_allowed_origins: List[str] = []
 
+    # Which API token scopes this server supports. A scope left out of this list
+    # cannot be granted to a new token, and is ignored on tokens that already
+    # hold it -- so removing one here genuinely removes the capability rather
+    # than only affecting future tokens.
+    #
+    # files:write and jobs:write are deliberately absent by default. Both amount
+    # to full access to the user's files (jobs:write runs arbitrary code as the
+    # user), so an admin should opt into them per server rather than inherit
+    # them.
+    api_token_scopes: List[str] = [
+        'files:read',
+        'links:read',
+        'links:write',
+        'jobs:read',
+    ]
+
     # CLI mode - enables auto-login endpoint for standalone CLI usage
     cli_mode: bool = False
 
@@ -170,6 +186,26 @@ class Settings(BaseSettings):
     def validate_external_proxy_url(cls, v):
         if v is None or (isinstance(v, str) and v.strip() == ''):
             raise ValueError("Add external_proxy_url to your config.yaml or FGC_EXTERNAL_PROXY_URL to your .env file")
+        return v
+
+    @field_validator('api_token_scopes')
+    @classmethod
+    def validate_api_token_scopes(cls, v: List[str]) -> List[str]:
+        """Reject unknown scope names at startup.
+
+        A typo would otherwise silently narrow what users can mint, which is
+        the kind of misconfiguration nobody notices until someone cannot create
+        the token they need.
+        """
+        # Imported here rather than at module scope: auth imports settings, so
+        # a top-level import would be circular.
+        from fileglancer.auth import API_SCOPES
+
+        unknown = sorted(set(v) - API_SCOPES)
+        if unknown:
+            raise ValueError(
+                f"Unknown api_token_scopes: {', '.join(unknown)}. "
+                f"Valid scopes: {', '.join(sorted(API_SCOPES))}")
         return v
 
     @field_validator('max_directory_count')

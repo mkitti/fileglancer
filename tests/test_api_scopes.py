@@ -83,3 +83,39 @@ def test_token_has_scope(granted, required, expected):
 @pytest.mark.parametrize("granted", ["", "files:read", "jobs:write"])
 def test_any_scope_is_satisfied_by_any_token(granted):
     assert token_has_scope(granted, ANY_SCOPE) is True
+
+
+# --- Server-configurable scope set -----------------------------------------
+
+def test_dangerous_scopes_are_absent_from_the_default_config():
+    """files:write and jobs:write must be opt-in per server.
+
+    Both amount to full access to the user's files, so inheriting them by
+    default would defeat the point of having a scope model at all.
+    """
+    from fileglancer.settings import Settings
+
+    default = Settings(external_proxy_url="http://localhost/files").api_token_scopes
+
+    assert "files:write" not in default
+    assert "jobs:write" not in default
+    assert set(default) == {"files:read", "links:read", "links:write", "jobs:read"}
+
+
+def test_unknown_scope_in_config_is_rejected_at_startup():
+    from pydantic import ValidationError
+    from fileglancer.settings import Settings
+
+    with pytest.raises(ValidationError, match="Unknown api_token_scopes"):
+        Settings(external_proxy_url="http://localhost/files",
+                 api_token_scopes=["files:read", "files:delete"])
+
+
+def test_every_scope_is_configurable():
+    """Any subset of the six must be a valid configuration."""
+    from fileglancer.settings import Settings
+
+    settings = Settings(external_proxy_url="http://localhost/files",
+                        api_token_scopes=sorted(API_SCOPES))
+
+    assert set(settings.api_token_scopes) == API_SCOPES

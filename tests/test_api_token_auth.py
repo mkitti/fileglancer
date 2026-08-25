@@ -22,6 +22,7 @@ from fileglancer.database import (
     dispose_engine,
     sessionmaker,
 )
+from fileglancer.auth import API_SCOPES
 from fileglancer.server import create_app
 from fileglancer.settings import Settings
 
@@ -41,7 +42,11 @@ def token_app():
     ))
     db_session.commit()
 
-    settings = Settings(db_url=db_url, file_share_mounts=[], cli_mode=True)
+    # Enables every scope: these tests exercise the scope model itself, not the
+    # server's shipped default (which withholds files:write and jobs:write).
+    # test_disabled_scopes.py covers the restricted configuration.
+    settings = Settings(db_url=db_url, file_share_mounts=[], cli_mode=True,
+                        api_token_scopes=sorted(API_SCOPES))
     # get_current_user resolves settings via get_settings() at request time.
     # server.py binds that name at import, so patch it there too (not just in
     # the settings/database modules) — otherwise the real endpoint would look

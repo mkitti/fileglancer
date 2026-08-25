@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 
 import ApiTokens from '@/components/ApiTokens';
+import { API_SCOPES as actualApiScopes } from '@/queries/apiTokenQueries';
 import type {
   ApiTokenInfo,
   CreateTokenResult
@@ -11,6 +12,7 @@ import type {
 const mockUseApiTokensQuery = vi.fn();
 const mockUseCreateApiTokenMutation = vi.fn();
 const mockUseDeleteApiTokenMutation = vi.fn();
+const mockUseEnabledScopesQuery = vi.fn();
 
 vi.mock('@/queries/apiTokenQueries', async () => {
   const actual = await vi.importActual<
@@ -22,7 +24,8 @@ vi.mock('@/queries/apiTokenQueries', async () => {
     SCOPE_WARNINGS: actual.SCOPE_WARNINGS,
     useApiTokensQuery: () => mockUseApiTokensQuery(),
     useCreateApiTokenMutation: () => mockUseCreateApiTokenMutation(),
-    useDeleteApiTokenMutation: () => mockUseDeleteApiTokenMutation()
+    useDeleteApiTokenMutation: () => mockUseDeleteApiTokenMutation(),
+    useEnabledScopesQuery: () => mockUseEnabledScopesQuery()
   };
 });
 
@@ -51,8 +54,19 @@ function setTokens(tokens: ApiTokenInfo[]) {
   });
 }
 
+function setEnabledScopes(scopes: string[]) {
+  mockUseEnabledScopesQuery.mockReturnValue({
+    data: scopes,
+    isLoading: false,
+    error: null
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
+  // Most tests exercise the scope UI itself, so default to a permissive
+  // server; the withheld-scope tests narrow it explicitly.
+  setEnabledScopes([...actualApiScopes]);
   mockUseCreateApiTokenMutation.mockReturnValue({
     mutateAsync: mockCreateMutateAsync,
     isPending: false,
@@ -239,6 +253,64 @@ describe('ApiTokens page', () => {
     expect(
       screen.getByText(/jobs:write lets them run any code/)
     ).toBeInTheDocument();
+  });
+
+  it('offers only the scopes the server supports', async () => {
+    setTokens([]);
+    setEnabledScopes(['files:read', 'links:read']);
+    const user = userEvent.setup();
+
+    render(<ApiTokens />);
+    await user.click(screen.getByRole('button', { name: /new token/i }));
+
+    expect(screen.getByLabelText('files:read')).toBeInTheDocument();
+    expect(screen.getByLabelText('links:read')).toBeInTheDocument();
+    // Withheld by the server, so there is no way to ask for it.
+    expect(screen.queryByLabelText('files:write')).toBeNull();
+    expect(screen.queryByLabelText('jobs:write')).toBeNull();
+  });
+
+  it('points at the administrator when scopes are withheld', async () => {
+    setTokens([]);
+    setEnabledScopes(['files:read']);
+    const user = userEvent.setup();
+
+    render(<ApiTokens />);
+    await user.click(screen.getByRole('button', { name: /new token/i }));
+
+    expect(screen.getByText(/not enabled on this server/i)).toBeInTheDocument();
+    expect(screen.getByText(/administrator/i)).toBeInTheDocument();
+  });
+
+  it('says nothing about withheld scopes when all six are enabled', async () => {
+    setTokens([]);
+    const user = userEvent.setup();
+
+    render(<ApiTokens />);
+    await user.click(screen.getByRole('button', { name: /new token/i }));
+
+    expect(screen.queryByText(/not enabled on this server/i)).toBeNull();
+  });
+
+  it('never submits a scope the server withholds', async () => {
+    setTokens([]);
+    // files:read is selected by default, but the server has withdrawn it.
+    setEnabledScopes(['links:read']);
+    const user = userEvent.setup();
+
+    render(<ApiTokens />);
+    await user.click(screen.getByRole('button', { name: /new token/i }));
+    await user.type(screen.getByLabelText('Name'), 'reader');
+
+    // The stale default alone must not satisfy the form.
+    expect(screen.getByRole('button', { name: /^create$/i })).toBeDisabled();
+
+    await user.click(screen.getByLabelText('links:read'));
+    await user.click(screen.getByRole('button', { name: /^create$/i }));
+
+    expect(mockCreateMutateAsync.mock.calls[0][0].scopes).toEqual([
+      'links:read'
+    ]);
   });
 
   it('disables Create when the name is whitespace-only', async () => {

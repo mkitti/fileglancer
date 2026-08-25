@@ -1480,6 +1480,17 @@ def create_app(settings):
     # API token management. These endpoints are session-only: they are absent
     # from the scope table in auth.py, so deny-by-default means a token can
     # never be used to mint or revoke another token.
+    @app.get("/api/tokens/scopes", response_model=dict,
+             description="List the API token scopes this server supports")
+    async def list_enabled_token_scopes(username: str = Depends(get_current_user)):
+        """Tell the UI which scope checkboxes to offer.
+
+        Session-only like the other /api/tokens routes, since only the token
+        creation dialog needs it.
+        """
+        return {"scopes": sorted(settings.api_token_scopes)}
+
+
     @app.get("/api/tokens", response_model=ApiTokenListResponse,
              description="List the current user's API tokens")
     async def list_api_tokens(username: str = Depends(get_current_user)):
@@ -1503,6 +1514,18 @@ def create_app(settings):
                 status_code=400,
                 detail=f"Unknown scopes: {', '.join(unknown)}. "
                        f"Valid scopes: {', '.join(sorted(auth.API_SCOPES))}")
+
+        # A real scope this server does not support. Distinguished from an
+        # unknown scope because the remedy is different: the user cannot fix
+        # this themselves.
+        disabled = sorted(set(payload.scopes) - set(settings.api_token_scopes))
+        if disabled:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Not enabled on this server: {', '.join(disabled)}. "
+                       f"Contact your Fileglancer administrator if you need "
+                       f"them. Enabled scopes: "
+                       f"{', '.join(sorted(settings.api_token_scopes))}")
 
         with db.get_db_session(settings.db_url) as session:
             row, secret = db.create_api_token(

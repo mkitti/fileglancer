@@ -346,6 +346,19 @@ def get_user_from_token(request: Request, settings: Settings, raw_token: str) ->
         raise HTTPException(
             status_code=403,
             detail=f"{request.url.path} is not accessible with an API token")
+
+    # Scopes the server no longer supports are dropped from the token, so
+    # disabling one in api_token_scopes takes effect on tokens that already hold
+    # it rather than only on new ones. Reported separately from a plain missing
+    # scope: the user cannot fix a server-side decision by minting a new token.
+    enabled = set(settings.api_token_scopes)
+    if required and required not in enabled:
+        raise HTTPException(
+            status_code=403,
+            detail=f"The {required} scope is not enabled on this server. "
+                   f"Contact your Fileglancer administrator if you need it.")
+    granted = " ".join(scope for scope in granted.split() if scope in enabled)
+
     if not token_has_scope(granted, required):
         raise HTTPException(
             status_code=403,

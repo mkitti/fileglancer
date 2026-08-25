@@ -139,6 +139,24 @@ session_cookie_secure: true
 #   - https://ai-cryoet.int.janelia.org
 #   - https://nextflow.int.janelia.org:8444
 
+# Which API token scopes this server supports. A scope left out cannot be
+# granted to a new token, and is ignored on tokens that already hold it -- so
+# removing one here revokes the capability from existing tokens rather than
+# only affecting new ones.
+#
+# files:write and jobs:write are absent from the default shown below because
+# both amount to full access to the user's files: jobs:write runs arbitrary
+# code as the user, so it reaches every file regardless of the files:* scopes
+# granted. Enable them per server, deliberately.
+#
+# api_token_scopes:
+#   - files:read
+#   - files:write
+#   - links:read
+#   - links:write
+#   - jobs:read
+#   - jobs:write
+
 #
 # Maximum size in bytes accepted by a PUT /api/content upload. Guards the
 # streaming write path against an unbounded upload filling the disk. Set to 0

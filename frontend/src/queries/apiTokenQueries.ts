@@ -87,8 +87,42 @@ export type CreateTokenParams = {
 // Query key factory for API tokens
 export const apiTokenQueryKeys = {
   all: ['apiTokens'] as const,
-  list: () => ['apiTokens', 'list'] as const
+  list: () => ['apiTokens', 'list'] as const,
+  scopes: () => ['apiTokens', 'scopes'] as const
 };
+
+/**
+ * The scopes this server supports, which may be a subset of API_SCOPES.
+ *
+ * `files:write` and `jobs:write` are withheld by default because both amount
+ * to full access to the user's files; an admin opts into them per server.
+ */
+const fetchEnabledScopes = async (signal?: AbortSignal): Promise<string[]> => {
+  const response = await sendFetchRequest(
+    '/api/tokens/scopes',
+    'GET',
+    undefined,
+    { signal }
+  );
+
+  const body = await getResponseJsonOrError(response);
+
+  if (!response.ok) {
+    throwResponseNotOkError(response, body);
+  }
+
+  return (body as { scopes: string[] }).scopes ?? [];
+};
+
+/**
+ * Query hook for the scopes this server supports.
+ */
+export function useEnabledScopesQuery(): UseQueryResult<string[], Error> {
+  return useQuery<string[], Error>({
+    queryKey: apiTokenQueryKeys.scopes(),
+    queryFn: ({ signal }) => fetchEnabledScopes(signal)
+  });
+}
 
 /**
  * Fetches all API tokens for the current user from the backend
