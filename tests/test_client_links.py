@@ -4,6 +4,7 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 
+from conftest import same_path
 from fileglancer.client import NEUROGLANCER_URL, Fileglancer, FileglancerError
 from fileglancer.database import (
     ProxiedPathDB,
@@ -47,7 +48,7 @@ def test_create_data_link_from_an_absolute_path(fg, shared_dir):
 def test_created_data_link_reports_an_absolute_path(fg, shared_dir):
     link = fg.create_data_link(shared_dir)
 
-    assert link.path == shared_dir
+    assert same_path(link.path, shared_dir)
 
 
 def test_create_data_link_accepts_a_url_prefix(fg, shared_dir):
@@ -66,7 +67,8 @@ def test_list_data_links_reports_absolute_paths(fg, shared_dir):
 
     links = fg.data_links()
 
-    assert [link.path for link in links] == [shared_dir]
+    assert len(links) == 1
+    assert same_path(links[0].path, shared_dir)
 
 
 def test_data_links_lists_the_rest_when_one_link_has_a_stale_share(fg, shared_dir, token_app):
@@ -98,7 +100,7 @@ def test_get_data_link_by_sharing_key(fg, shared_dir):
     fetched = fg.data_link(created.sharing_key)
 
     assert fetched.sharing_key == created.sharing_key
-    assert fetched.path == shared_dir
+    assert same_path(fetched.path, shared_dir)
 
 
 def test_delete_data_link(fg, shared_dir):

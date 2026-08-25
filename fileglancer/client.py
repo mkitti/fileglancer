@@ -151,10 +151,16 @@ class Fileglancer:
         return best_fsp.name, normalized[len(best_prefix):].strip("/")
 
     def abspath(self, fsp_name: str, path: str = "") -> str:
-        """Build an absolute path from a file share name and relative path."""
+        """Build an absolute path from a file share name and relative path.
+
+        Separators are normalized to '/', matching what `_resolve` accepts and
+        returns. Without this a Windows mount path would be joined to a
+        '/'-separated relative path and come back mixed, e.g.
+        'C:\\shares\\data/sub/file.txt'.
+        """
         for fsp in self.file_share_paths():
             if fsp.name == fsp_name:
-                root = fsp.mount_path.rstrip("/")
+                root = fsp.mount_path.replace("\\", "/").rstrip("/")
                 return f"{root}/{path}" if path else root
         raise FileglancerError(f"Unknown file share: {fsp_name}")
 

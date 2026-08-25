@@ -8,6 +8,7 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 
+from conftest import same_path
 from fileglancer.client import Fileglancer, FileglancerError
 from fileglancer.database import create_api_token
 
@@ -54,7 +55,7 @@ def test_ls_returns_absolute_paths(fg, share_root):
 
     entry = next(f for f in fg.ls(share_root) if f.name == "adir")
 
-    assert entry.absolute_path == os.path.join(share_root, "adir")
+    assert same_path(entry.absolute_path, os.path.join(share_root, "adir"))
 
 
 def test_stat_describes_the_path_itself(fg, share_root):

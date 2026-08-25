@@ -51,3 +51,22 @@ def pytest_sessionstart(session):
     """
     os.environ['FGC_EXTERNAL_PROXY_URL'] = 'http://localhost/files'
     os.environ['FGC_USE_ACCESS_FLAGS'] = 'false'
+
+def same_path(a: str, b: str) -> bool:
+    """Compare two paths that should point at the same place.
+
+    Windows reaches one directory by several spellings: backslash or forward
+    slash separators, 8.3 short names (``RUNNER~1``) alongside long ones
+    (``runneradmin``), and case-insensitively. The Fileglancer client
+    deliberately normalizes separators to ``/``, so a literal comparison
+    against ``os.path.join`` output fails on Windows with neither side being
+    wrong.
+
+    normcase lowercases and switches to the native separator on Windows and is
+    a no-op on POSIX; realpath collapses 8.3 names and symlinks. Applied to
+    both sides, so the comparison stays symmetric.
+    """
+    def norm(path: str) -> str:
+        return os.path.normcase(os.path.realpath(path)).replace("\\", "/")
+
+    return norm(a) == norm(b)

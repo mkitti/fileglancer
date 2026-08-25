@@ -141,6 +141,26 @@ def test_abspath_of_the_share_root(fg):
     assert fg.abspath("nearline") == "/nearline"
 
 
+def test_abspath_normalizes_windows_separators(fg):
+    """abspath must not emit mixed separators.
+
+    _resolve normalizes backslashes to '/' on the way in, so abspath has to do
+    the same on the way out or a Windows mount path joined to a '/'-separated
+    relative path comes back as 'C:/shares/data\\sub/file.txt'. Caught by
+    Windows CI, where mount_path really does contain backslashes.
+    """
+    fg._fsp_cache = [
+        FileSharePath(name="winshare", zone="z", mount_path="C:\\shares\\data")
+    ]
+
+    result = fg.abspath("winshare", "sub/file.txt")
+
+    assert result == "C:/shares/data/sub/file.txt"
+    assert "\\" not in result
+    # And the round trip still holds.
+    assert fg._resolve(result) == ("winshare", "sub/file.txt")
+
+
 def test_abspath_rejects_an_unknown_share(fg):
     with pytest.raises(FileglancerError, match="Unknown file share"):
         fg.abspath("nosuchshare", "x")
