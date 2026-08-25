@@ -389,6 +389,53 @@ describe('resolvePathToFsp', () => {
     expect(result!.fsp.name).toBe('fsp_nulls');
     expect(result!.subpath).toBe('sub');
   });
+
+  test('does not match a share whose path is a string prefix of another', () => {
+    const fspPublic = {
+      zone: 'Zone1',
+      name: 'fsp_public',
+      mount_path: '/misc/public',
+      linux_path: '/misc/public'
+    } as FileSharePath;
+    const fspArchive = {
+      zone: 'Zone1',
+      name: 'fsp_public_archive',
+      mount_path: '/misc/public-archive',
+      linux_path: '/misc/public-archive'
+    } as FileSharePath;
+    const data: Record<string, unknown> = {
+      fsp_fsp_public: fspPublic,
+      fsp_fsp_public_archive: fspArchive
+    };
+
+    const result = resolvePathToFsp('/misc/public-archive/x', data);
+
+    expect(result).not.toBeNull();
+    expect(result!.fsp.name).toBe('fsp_public_archive');
+    expect(result!.subpath).toBe('x');
+  });
+
+  test('longest matching prefix wins', () => {
+    const fspOuter = {
+      zone: 'Zone1',
+      name: 'fsp_outer',
+      mount_path: '/data'
+    } as FileSharePath;
+    const fspInner = {
+      zone: 'Zone1',
+      name: 'fsp_inner',
+      mount_path: '/data/projects'
+    } as FileSharePath;
+    const data: Record<string, unknown> = {
+      fsp_fsp_outer: fspOuter,
+      fsp_fsp_inner: fspInner
+    };
+
+    const result = resolvePathToFsp('/data/projects/thing', data);
+
+    expect(result!.fsp.name).toBe('fsp_inner');
+    expect(result!.subpath).toBe('thing');
+  });
 });
 
 describe('getPreferredPathForDisplay', () => {
