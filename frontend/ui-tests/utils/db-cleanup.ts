@@ -19,7 +19,7 @@ export function cleanDatabase(testTempDir: string): void {
 
   try {
     db = new Database(dbPath, { fileMustExist: true });
-    const tables = ['proxied_paths', 'tickets', 'user_preferences'];
+    const tables = ['proxied_paths', 'tickets', 'user_preferences', 'api_tokens'];
 
     for (const table of tables) {
       try {
