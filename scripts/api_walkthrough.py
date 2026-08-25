@@ -120,6 +120,23 @@ def preflight():
     cwd = os.getcwd()
 
     try:
+        shares = fg.file_share_paths()
+    except httpx.HTTPError as error:
+        sys.exit(f"{RED}Could not reach {url}.{RESET}\n{type(error).__name__}: "
+                 f"{error}\n\nIs the server running, and is the scheme right? "
+                 f"A server started with --ssl-keyfile needs https://")
+
+    if not shares:
+        sys.exit(f"{RED}This server has no file shares configured, so the "
+                 f"client cannot address any path.{RESET}\n\n"
+                 f"Set file_share_mounts in the server's config.yaml:\n"
+                 f"    file_share_mounts:\n      - \"~/\"\n\n"
+                 f"then restart it. Or run a throwaway server over this "
+                 f"directory:\n"
+                 f"    pixi run python -m fileglancer.cli start --no-browser "
+                 f"-f {cwd}")
+
+    try:
         fsp_name, relative = fg._resolve(cwd)
     except httpx.HTTPError as error:
         # The client wraps error *responses* in FileglancerError but lets

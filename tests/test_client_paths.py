@@ -97,6 +97,24 @@ def test_partial_segment_does_not_match(fg):
         fg._resolve("/nearlinex/data")
 
 
+def test_error_when_the_server_has_no_shares_says_so(fg):
+    """An empty share list is a server configuration problem, not a bad path.
+
+    Reported for real: the mismatch message rendered as "Available mount
+    points:" with nothing after it, which reads as though the path were at
+    fault when nothing is mounted at all.
+    """
+    fg._fsp_cache = []
+
+    with pytest.raises(FileglancerError) as excinfo:
+        fg._resolve("/anything/at/all")
+
+    message = str(excinfo.value)
+    assert "no file shares configured" in message
+    assert "file_share_mounts" in message
+    assert "Available mount points" not in message
+
+
 def test_unmatched_path_error_lists_available_mounts(fg):
     with pytest.raises(FileglancerError) as excinfo:
         fg._resolve("/not/a/share/at/all")
