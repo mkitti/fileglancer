@@ -308,16 +308,23 @@ class Fileglancer:
         """Get a single job by id."""
         return Job(**self._request("GET", f"/api/jobs/{job_id}").json())
 
-    def submit_job(self, app_url: str, entry_point_id: str, **kwargs) -> Job:
+    def submit_job(self, app_url: str, entry_point_id: str,
+                   parameters: Optional[Dict[str, Any]] = None,
+                   **kwargs) -> Job:
         """Submit a job.
 
         Args:
             app_url: The app's repository URL.
             entry_point_id: Which entry point of the app to run.
+            parameters: Values for the entry point's parameters. Required by
+                the API, so it defaults to an empty dict rather than being
+                left out — an app whose entry point takes no parameters is
+                submitted with no arguments.
             **kwargs: Any other field accepted by the /api/jobs endpoint, such
-                as parameters, resources, name, env, or container.
+                as resources, name, env, or container.
         """
-        payload = {"app_url": app_url, "entry_point_id": entry_point_id, **kwargs}
+        payload = {"app_url": app_url, "entry_point_id": entry_point_id,
+                   "parameters": parameters or {}, **kwargs}
         return Job(**self._request("POST", "/api/jobs", json=payload).json())
 
     def cancel_job(self, job_id: int) -> None:

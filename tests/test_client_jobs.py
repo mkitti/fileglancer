@@ -3,6 +3,9 @@
 Job submission needs a real app manifest and scheduler, so these tests cover
 the request shaping and scope enforcement rather than an end-to-end launch.
 """
+import json
+
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
@@ -39,13 +42,38 @@ def test_unknown_job_id_raises(fg):
 
 
 def test_submit_job_sends_app_url_and_entry_point(fg):
-    # No such app is registered, so this fails at the server. What matters is
-    # that the request was well-formed enough to reach that check.
+    # parameters is required by the API and now defaults to {}, so this
+    # request is well-formed and reaches the server's app-lookup, which
+    # fails because no such app is registered.
     with pytest.raises(FileglancerError) as excinfo:
         fg.submit_job(app_url="https://github.com/example/none",
                       entry_point_id="main")
 
     assert excinfo.value.status_code in (400, 500)
+
+
+def test_submit_job_payload_includes_parameters_and_passthrough(fg):
+    """The old version of this test passed even with broken payload shaping,
+    because the request was rejected before its content was inspected."""
+    sent = {}
+
+    def handler(request):
+        sent.update(json.loads(request.content))
+        return httpx.Response(400, json={"error": "no such app"})
+
+    fg._client = httpx.Client(base_url="http://testserver",
+                              transport=httpx.MockTransport(handler))
+
+    with pytest.raises(FileglancerError):
+        fg.submit_job(app_url="https://github.com/example/none",
+                      entry_point_id="main", name="my job")
+
+    assert sent == {
+        "app_url": "https://github.com/example/none",
+        "entry_point_id": "main",
+        "parameters": {},
+        "name": "my job",
+    }
 
 
 def test_a_read_only_jobs_token_cannot_submit(token_app):
