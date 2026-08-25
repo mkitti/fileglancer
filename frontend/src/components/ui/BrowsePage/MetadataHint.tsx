@@ -12,6 +12,14 @@ type MetadataHintVariant =
   | { case: 'zarr-v2-no-multiscales' }
   | { case: 'zarr-v3-no-multiscales' }
   | { case: 'zarr-query-error'; errorMessage?: string }
+  // Zarr - metadata is valid, but the layout will make viewing awkward
+  | { case: 'zarr-single-level'; size: string }
+  | {
+      case: 'zarr-large-chunks';
+      size: string;
+      compressed: boolean;
+      sharded: boolean;
+    }
   // N5 - query never fired
   | { case: 'n5-has-s0-no-attrs' }
   | { case: 'n5-has-attrs-no-s0' }
@@ -71,6 +79,18 @@ function getHintConfig(variant: MetadataHintVariant): HintConfig {
         description: variant.errorMessage
           ? `Could not read Zarr metadata. ${variant.errorMessage}`
           : 'Could not read Zarr metadata.'
+      };
+    case 'zarr-single-level':
+      return {
+        kind: 'warning',
+        title: 'Only one resolution level',
+        description: `This dataset declares multiscales but only supplies a single level, for ${variant.size} of data. Without multiple levels, viewers read the full-resolution data at every zoom level, making viewing slow. Generating a multiscale pyramid fixes this.`
+      };
+    case 'zarr-large-chunks':
+      return {
+        kind: 'warning',
+        title: 'Chunks may be too large for efficient viewing',
+        description: `This dataset uses ${variant.size} ${variant.sharded ? 'inner chunks' : 'chunks'} ${variant.compressed ? '(before compression)' : '(without compression)'}. Very large chunks make viewing slow, because a viewer must fetch a whole chunk to show any part of it. A stored chunk size of 1-32 MB works best.`
       };
     case 'n5-has-s0-no-attrs':
       logger.info(

@@ -6,13 +6,14 @@ import zarrLogo from '@/assets/zarr.jpg';
 import ZarrMetadataTable from '@/components/ui/BrowsePage/ZarrMetadataTable';
 import DataLinkDialog from '@/components/ui/Dialogs/DataLink';
 import DataToolLinks from './DataToolLinks';
+import MetadataHint from './MetadataHint';
 import type {
   OpenWithToolUrls,
   ZarrMetadata,
   PendingToolKey
 } from '@/hooks/useZarrMetadata';
 import useDataToolLinks from '@/hooks/useDataToolLinks';
-import { Metadata } from '@/omezarr-helper';
+import { Metadata, getDatasetWarnings } from '@/omezarr-helper';
 
 type ZarrPreviewProps = {
   readonly fspName: string;
@@ -41,6 +42,12 @@ export default function ZarrPreview({
   const [showDataLinkDialog, setShowDataLinkDialog] = useState<boolean>(false);
   const [pendingToolKey, setPendingToolKey] = useState<PendingToolKey>(null);
 
+  const metadata = zarrMetadataQuery.data?.metadata;
+  const warnings =
+    metadata && 'arr' in metadata
+      ? getDatasetWarnings(metadata as Metadata)
+      : [];
+
   const {
     handleToolClick,
     handleDialogConfirm,
@@ -55,6 +62,13 @@ export default function ZarrPreview({
 
   return (
     <div className="min-w-full p-4 shadow-sm rounded-md bg-primary-light/30">
+      {warnings.length > 0 ? (
+        <div className="flex flex-col gap-2 mb-4">
+          {warnings.map(warning => (
+            <MetadataHint key={warning.case} variant={warning} />
+          ))}
+        </div>
+      ) : null}
       <div className="flex gap-12 w-full h-fit">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2 max-h-full">
