@@ -3,7 +3,8 @@ import {
   HiOutlineLogout,
   HiOutlineUserCircle,
   HiOutlineBell,
-  HiOutlineKey
+  HiOutlineKey,
+  HiOutlineCode
 } from 'react-icons/hi';
 import { HiOutlineAdjustmentsHorizontal } from 'react-icons/hi2';
 import { Link } from 'react-router';
@@ -79,6 +80,14 @@ export default function ProfileMenu() {
                 SSH Keys
               </Menu.Item>
             ) : null}
+            <Menu.Item
+              as={Link}
+              className="text-foreground hover:!text-foreground focus:!text-foreground hover:bg-hover-gradient hover:dark:bg-hover-gradient-dark focus:bg-hover-gradient focus:dark:bg-hover-gradient-dark"
+              to="/api-tokens"
+            >
+              <FgIcon className="mr-2" icon={HiOutlineCode} />
+              API Tokens
+            </Menu.Item>
             <Menu.Item
               className="text-error hover:bg-error/10 hover:!text-error focus:bg-error/10 focus:!text-error"
               onClick={handleLogout}
