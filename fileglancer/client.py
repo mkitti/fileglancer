@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import httpx
 
 from fileglancer.filestore import FileInfo
-from fileglancer.model import FileSharePath, NeuroglancerShortLink, ProxiedPath
+from fileglancer.model import FileSharePath, Job, NeuroglancerShortLink, ProxiedPath
 
 # Neuroglancer base URL used when the caller does not supply one. The server
 # has no configured default and POST /api/neuroglancer/nglinks requires
@@ -295,3 +295,31 @@ class Fileglancer:
     def delete_ng_link(self, short_key: str) -> None:
         """Delete a stored Neuroglancer link."""
         self._request("DELETE", f"/api/neuroglancer/nglinks/{short_key}")
+
+    # --- Jobs ---
+
+    def jobs(self, status: Optional[str] = None) -> List[Job]:
+        """List the caller's jobs, optionally filtered by status."""
+        params = {"status": status} if status else None
+        data = self._request("GET", "/api/jobs", params=params).json()
+        return [Job(**job) for job in data["jobs"]]
+
+    def job(self, job_id: int) -> Job:
+        """Get a single job by id."""
+        return Job(**self._request("GET", f"/api/jobs/{job_id}").json())
+
+    def submit_job(self, app_url: str, entry_point_id: str, **kwargs) -> Job:
+        """Submit a job.
+
+        Args:
+            app_url: The app's repository URL.
+            entry_point_id: Which entry point of the app to run.
+            **kwargs: Any other field accepted by the /api/jobs endpoint, such
+                as parameters, resources, name, env, or container.
+        """
+        payload = {"app_url": app_url, "entry_point_id": entry_point_id, **kwargs}
+        return Job(**self._request("POST", "/api/jobs", json=payload).json())
+
+    def cancel_job(self, job_id: int) -> None:
+        """Cancel a running or pending job."""
+        self._request("POST", f"/api/jobs/{job_id}/cancel")
