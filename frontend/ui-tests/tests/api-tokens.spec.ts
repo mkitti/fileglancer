@@ -39,12 +39,16 @@ test.describe('API tokens', () => {
     const tokenCard = page
       .locator('[data-testid="api-token-list"] > *')
       .filter({ hasText: tokenName });
-    await tokenCard.getByRole('button', { name: 'Revoke', exact: true }).click();
+    await tokenCard
+      .getByRole('button', { name: 'Revoke', exact: true })
+      .click();
 
     await expect(
       page.getByRole('heading', { name: 'Revoke API Token' })
     ).toBeVisible();
-    await expect(page.locator('strong').filter({ hasText: tokenName })).toBeVisible();
+    await expect(
+      page.locator('strong').filter({ hasText: tokenName })
+    ).toBeVisible();
 
     await page.getByRole('button', { name: 'Revoke Token' }).click();
 
