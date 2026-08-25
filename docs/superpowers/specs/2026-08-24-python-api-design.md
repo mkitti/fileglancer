@@ -300,3 +300,33 @@ Frontend:
 - `frontend/src/components/ui/ApiTokens/` — new; list card and create dialog.
 - `frontend/src/queries/` — token queries.
 - `frontend/src/components/ui/Table/TableCard.tsx` — add the new row type to `DataType`.
+
+---
+
+## Amendments
+
+The sections above are the design as approved on 2026-08-24 and are left unchanged. This section records where the shipped implementation deliberately diverges from them, so the document can be read without being misled.
+
+The header still reads "Status: approved, not yet implemented", which was true when written. As of 2026-08-25 the feature is implemented on branch `python-api-tokens` and reviewed; the header is left alone rather than edited, and this note stands in for it.
+
+### 2026-08-25 — the no-match error no longer lists the mount points
+
+Two places above specify that a path matching no file share raises an error naming the available mount points: "No match raises `FileglancerError` with a message listing the available mount points. This error message is load-bearing — it is the difference between a usable library and an infuriating one," and, under testing, "No-match error text names the available mount points."
+
+That reasoning was sound but the conclusion did not survive contact with a real deployment, which mounts hundreds of shares. Enumerating them buried the one line the caller needed to read. The message now names the offending path and points at `file_share_paths()` for discovery, which is a fixed length regardless of how many shares exist:
+
+```
+No file share matches '/definitely/not/a/share'. Call file_share_paths() to see the available shares.
+```
+
+The spec's underlying intent — that this error be the difference between a usable library and an infuriating one — is what motivated the change rather than what was abandoned.
+
+A separate message covers the case where the server has no shares configured at all, which the spec did not anticipate. There the empty list is a server configuration problem, so the error names `file_share_mounts` instead of discussing the caller's path. Both cases have regression tests in `tests/test_client_paths.py`.
+
+### 2026-08-25 — other divergences found during implementation
+
+- **The cross-language resolver fixture was dropped.** Testing above asks for "a shared fixture set asserting the Python and TypeScript resolvers agree." `resolvePathToFsp` already had its own suite covering the same behaviours, including the prefix-boundary case, so a shared fixture harness would have added machinery whose only job was detecting drift between two independently-tested implementations. Each suite covers longest-prefix and the boundary case separately; verified by reading both.
+- **`/api/auth/status` and `/api/cluster-defaults` are not in the scope table.** The spec lists them, but neither route depends on `get_current_user`, so `required_scope` is never consulted for either and the rows could not execute. They were removed as dead configuration.
+- **`TableCard`'s `DataType` union was left alone.** The Files-touched list above includes it, but the API Tokens page uses a card list rather than a table, so no new row type was needed.
+- **Token timestamps carry an explicit UTC offset.** Not specified above, but required in practice: `Column(DateTime)` is naive, and a suffix-less ISO string is parsed as local time by JavaScript, which made the "Expired" badge wrong by the viewer's UTC offset.
+- **`jobs:write` is documented as full-account access.** The scope model above implies containment it does not have: `JobSubmitRequest` accepts free-form `pre_run`/`post_run` shell that runs as the user, so a `jobs:write` token reaches every file regardless of the `files:*` scopes granted. The create dialog and the user docs now say so.
