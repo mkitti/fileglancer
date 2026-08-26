@@ -6,7 +6,7 @@ operates on absolute filesystem paths rather than Fileglancer's internal
 
     from fileglancer import Fileglancer
 
-    fg = Fileglancer()  # reads FILEGLANCER_URL and FILEGLANCER_TOKEN
+    fg = Fileglancer()  # reads the FILEGLANCER_URL and FILEGLANCER_TOKEN env vars
     link = fg.create_data_link("/data/alice/sample.zarr")
 """
 import os
@@ -35,9 +35,10 @@ class Fileglancer:
     """A client for the Fileglancer HTTP API.
 
     Args:
-        url: Fileglancer server URL. Defaults to $FILEGLANCER_URL.
-        token: An API token created in the web UI. Defaults to
-            $FILEGLANCER_TOKEN.
+        url: Fileglancer server URL. Defaults to the FILEGLANCER_URL
+            environment variable.
+        token: An API token created in the web UI. Defaults to the
+            FILEGLANCER_TOKEN environment variable.
         timeout: Per-request timeout in seconds.
     """
 
