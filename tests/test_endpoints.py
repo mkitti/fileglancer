@@ -1919,3 +1919,123 @@ def test_viewers_config_file_missing(temp_dir):
         dispose_engine(db_url)
         fileglancer.settings.get_settings = original_get_settings
         fileglancer.database.get_settings = original_get_settings
+
+
+# --- S3 bucket-root listing of data links -----------------------------------
+
+def _make_data_link(test_client, temp_dir):
+    """Create a data link over a small tree, returning (sharing_key, url_prefix)."""
+    os.makedirs(os.path.join(temp_dir, "test_proxied_path", "sub"), exist_ok=True)
+    with open(os.path.join(temp_dir, "test_proxied_path", "a.txt"), "w") as f:
+        f.write("hello link")
+    response = test_client.post("/api/proxied-path?fsp_name=tempdir&path=test_proxied_path")
+    assert response.status_code == 200
+    data = response.json()
+    return data["sharing_key"], data["url_prefix"]
+
+
+def _listing(test_client, url):
+    from x2s3.utils import parse_xml
+    response = test_client.get(url)
+    assert response.status_code == 200, response.text
+    root = parse_xml(response.text)
+    assert root.tag == "ListBucketResult"
+    return root
+
+
+def _keys(root):
+    return ([c.find('Key').text for c in root.findall('Contents')],
+            [cp.find('Prefix').text for cp in root.findall('CommonPrefixes')])
+
+
+def test_bucket_root_lists_data_link(test_client, temp_dir):
+    """Browsing a data link means listing the /files bucket under its key prefix.
+
+    That is how Neuroglancer lists a directory over plain https: it reads the
+    first path segment of the share URL as the bucket and the rest as a prefix.
+    """
+    sharing_key, url_prefix = _make_data_link(test_client, temp_dir)
+    prefix = f"{sharing_key}/{url_prefix}/"
+
+    root = _listing(test_client, f"/files/?list-type=2&prefix={prefix}&delimiter=/&encoding-type=url")
+    assert root.find('Name').text == "files"
+    assert root.find('Prefix').text == prefix
+    keys, common_prefixes = _keys(root)
+    assert keys == [f"{prefix}a.txt"]
+    assert common_prefixes == [f"{prefix}sub/"]
+
+    # The keys are relative to the bucket, so they resolve as share URLs
+    response = test_client.get(f"/files/{keys[0]}")
+    assert response.status_code == 200
+    assert response.text == "hello link"
+
+
+def test_bucket_root_lists_link_name_as_folder(test_client, temp_dir):
+    """The link name is not on disk, but it browses like a folder."""
+    sharing_key, url_prefix = _make_data_link(test_client, temp_dir)
+
+    # As with a real folder, a prefix is truncated at the next delimiter
+    cases = [(f"{sharing_key}", f"{sharing_key}/"),
+             (f"{sharing_key}/", f"{sharing_key}/{url_prefix}/"),
+             (f"{sharing_key}/{url_prefix[:3]}", f"{sharing_key}/{url_prefix}/")]
+    for prefix, expected in cases:
+        root = _listing(test_client, f"/files/?list-type=2&prefix={prefix}&delimiter=/")
+        keys, common_prefixes = _keys(root)
+        assert keys == []
+        assert common_prefixes == [expected]
+
+
+def test_bucket_root_does_not_enumerate_sharing_keys(test_client, temp_dir):
+    """Sharing keys are secret: the bucket root never gives one away.
+
+    A missing, partial or unknown key all produce the same empty listing, so
+    the endpoint can't be probed for valid keys.
+    """
+    sharing_key, _ = _make_data_link(test_client, temp_dir)
+
+    for prefix in ["", sharing_key[:6], "zzzzzzzzzzzz", "zzzzzzzzzzzz/data/"]:
+        root = _listing(test_client, f"/files/?list-type=2&prefix={prefix}&delimiter=/")
+        keys, common_prefixes = _keys(root)
+        assert keys == [], f"leaked contents for prefix {prefix!r}"
+        assert common_prefixes == [], f"leaked a sharing key for prefix {prefix!r}"
+        assert root.find('KeyCount').text == '0'
+        assert root.find('IsTruncated').text == 'false'
+
+    # Listing has to stay a valid, successful S3 response even when empty:
+    # Neuroglancer caches "this server can't list" per origin on an error,
+    # which would turn off browsing for the valid links too.
+    assert test_client.get("/files/?list-type=2").status_code == 200
+    # Without a trailing slash the request still reaches the bucket root
+    assert test_client.get("/files?list-type=2").status_code == 200
+
+
+def test_bucket_root_is_not_an_object(test_client):
+    """The bucket root is only a listing endpoint, never the SPA or a file."""
+    from x2s3.utils import parse_xml
+    response = test_client.get("/files/")
+    assert response.status_code == 404
+    assert parse_xml(response.text).find('Code').text == 'NoSuchKey'
+    assert test_client.get("/files/?list-type=1").status_code == 400
+
+
+def test_sharing_key_as_bucket_agrees_with_bucket_root(test_client, temp_dir):
+    """A client can also treat the sharing key itself as the bucket.
+
+    Neuroglancer races both readings of a share URL and keeps whichever
+    answers first, so the two must resolve to the same files.
+    """
+    sharing_key, url_prefix = _make_data_link(test_client, temp_dir)
+
+    root = _listing(test_client, f"/files/{sharing_key}/?list-type=2&prefix={url_prefix}/&delimiter=/")
+    assert root.find('Name').text == sharing_key
+    keys, common_prefixes = _keys(root)
+    assert keys == [f"{url_prefix}/a.txt"]
+    assert common_prefixes == [f"{url_prefix}/sub/"]
+
+    bucket_root = _listing(
+        test_client, f"/files/?list-type=2&prefix={sharing_key}/{url_prefix}/&delimiter=/")
+    root_keys, root_common = _keys(bucket_root)
+    # Both readings name the same URLs: the sharing key is the bucket in one
+    # and the first key segment in the other.
+    assert [f"/files/{sharing_key}/{k}" for k in keys] == [f"/files/{k}" for k in root_keys]
+    assert [f"/files/{sharing_key}/{p}" for p in common_prefixes] == [f"/files/{p}" for p in root_common]

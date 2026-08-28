@@ -887,6 +887,8 @@ def _action_s3_list_objects(request: dict, ctx: WorkerContext) -> dict:
         proxy_kwargs={"target_name": target_name},
         path=mount_path,
         buffer_size=buffer_size,
+        # Key segments the client sees that have no counterpart on disk
+        virtual_prefix=request.get("virtual_prefix"),
     )
 
     # list_objects_v2 is async def but does only sync I/O

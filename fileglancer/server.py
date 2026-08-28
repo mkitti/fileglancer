@@ -48,7 +48,7 @@ from fileglancer.worker_pool import (
 from fileglancer.user_worker import serialize_job_for_worker
 from fileglancer import sshkeys
 
-from x2s3.utils import get_read_access_acl, get_nosuchbucket_response, get_error_response, generate_request_id
+from x2s3.utils import get_read_access_acl, get_nosuchbucket_response, get_error_response, generate_request_id, get_list_xml
 from x2s3.client_file import FileProxyClient
 from x2s3.client import ObjectHandle
 
@@ -216,6 +216,11 @@ def _convert_proxied_path(db_path: db.ProxiedPathDB, external_proxy_url: Optiona
         updated_at=db_path.updated_at,
         url=url
     )
+
+
+# The /files space is served as a single S3 bucket named for its first path
+# segment, which is how a path-style S3 client reads the share URL.
+FILES_BUCKET_NAME = "files"
 
 
 # Regex: allow unreserved URI chars (RFC 3986), plus / for path separators and common safe chars
@@ -424,6 +429,60 @@ def create_app(settings):
             result.pop("_fd_mode", None)
             return result
 
+    def _resolve_sharing_key(sharing_key: str, key: str) -> dict | Response:
+        """Resolve a sharing key to the shared link's mount path, owner and name.
+
+        `key` is only used to build the S3 error responses.
+        """
+        with db.get_db_session(settings.db_url) as session:
+
+            proxied_path = db.get_proxied_path_by_sharing_key(session, sharing_key)
+            if not proxied_path:
+                return get_nosuchbucket_response(key)
+
+            # Treat legacy "." (FSP-root sentinel) as empty so old records that
+            # were created before _normalize_proxied_path still resolve.
+            stored_path = "" if proxied_path.path == "." else proxied_path.path
+            stored_prefix = "" if proxied_path.url_prefix == "." else proxied_path.url_prefix
+
+            fsp = db.get_file_share_path(session, proxied_path.fsp_name)
+            if not fsp:
+                return get_error_response(400, "InvalidArgument", f"File share path {proxied_path.fsp_name} not found", key)
+            expanded_mount_path = os.path.expanduser(fsp.mount_path)
+            # For FSP-root links (empty path) use the mount path directly to
+            # avoid a stray trailing slash in mount_path.
+            mount_path = f"{expanded_mount_path}/{stored_path}" if stored_path else expanded_mount_path
+            return {
+                "mount_path": mount_path,
+                "username": proxied_path.username,
+                "url_prefix": stored_prefix,
+                "default_name": os.path.basename(stored_path) or fsp.name,
+            }
+
+
+    def _link_virtual_prefix(link: dict, requested_prefix: str, base: str = "") -> str:
+        """The key prefix a client sees in front of a shared link's own files.
+
+        Those leading key segments have no counterpart on disk, so x2s3 is
+        told about them as a virtual prefix. `base` is whatever precedes the
+        link name in the bucket's key space: the sharing key at the /files
+        bucket root, nothing when the sharing key is itself the bucket.
+
+        A stored url_prefix may be percent-encoded, while a client that took
+        the name out of the share URL (as Neuroglancer does, which decodes the
+        path) asks for it decoded, so match whichever form was requested.
+        """
+        # ponytail: a name that genuinely needs percent-encoding (a space, say)
+        # comes back out of the listing as '+', which won't resolve as a URL --
+        # such links read fine but don't browse. The fix is to store url_prefix
+        # decoded, not to paper over it here.
+        stored = link["url_prefix"]
+        decoded = unquote(stored)
+        rest = requested_prefix[len(base):] if requested_prefix.startswith(base) else ""
+        name = decoded if decoded != stored and rest.startswith(decoded) else stored
+        return f"{base}{name}/" if name else base
+
+
     def _resolve_proxy_info(sharing_key: str, captured_path: str) -> Tuple[dict | Response, str]:
         """Resolve a sharing key to proxy info (mount_path, target_name, username, subpath).
 
@@ -440,36 +499,24 @@ def create_app(settings):
                 return captured[len(prefix) + 1:]
             return None
 
-        with db.get_db_session(settings.db_url) as session:
+        link = _resolve_sharing_key(sharing_key, captured_path)
+        if isinstance(link, Response):
+            return link, ""
 
-            proxied_path = db.get_proxied_path_by_sharing_key(session, sharing_key)
-            if not proxied_path:
-                return get_nosuchbucket_response(captured_path), ""
+        stored_prefix = link["url_prefix"]
+        subpath = try_strip_prefix(captured_path, stored_prefix)
+        if subpath is None:
+            subpath = try_strip_prefix(captured_path, unquote(stored_prefix))
+        if subpath is None:
+            return get_error_response(404, "NoSuchKey", f"Path mismatch for sharing key {sharing_key}", captured_path), ""
 
-            # Treat legacy "." (FSP-root sentinel) as empty so old records that
-            # were created before _normalize_proxied_path still resolve.
-            stored_path = "" if proxied_path.path == "." else proxied_path.path
-            stored_prefix = "" if proxied_path.url_prefix == "." else proxied_path.url_prefix
-
-            subpath = try_strip_prefix(captured_path, stored_prefix)
-            if subpath is None:
-                subpath = try_strip_prefix(captured_path, unquote(stored_prefix))
-            if subpath is None:
-                return get_error_response(404, "NoSuchKey", f"Path mismatch for sharing key {sharing_key}", captured_path), ""
-
-            fsp = db.get_file_share_path(session, proxied_path.fsp_name)
-            if not fsp:
-                return get_error_response(400, "InvalidArgument", f"File share path {proxied_path.fsp_name} not found", captured_path), ""
-            expanded_mount_path = os.path.expanduser(fsp.mount_path)
-            # For FSP-root links (empty path) use the mount path directly to
-            # avoid a stray trailing slash in mount_path.
-            mount_path = f"{expanded_mount_path}/{stored_path}" if stored_path else expanded_mount_path
-            target_name = captured_path.rsplit('/', 1)[-1] if captured_path else (os.path.basename(stored_path) or fsp.name)
-            return {
-                "mount_path": mount_path,
-                "target_name": target_name,
-                "username": proxied_path.username,
-            }, subpath
+        target_name = captured_path.rsplit('/', 1)[-1] if captured_path else link["default_name"]
+        return {
+            "mount_path": link["mount_path"],
+            "target_name": target_name,
+            "username": link["username"],
+            "url_prefix": stored_prefix,
+        }, subpath
 
 
     @asynccontextmanager
@@ -1341,6 +1388,70 @@ def create_app(settings):
         return NeuroglancerShortLinkResponse(links=links)
 
 
+    async def _list_objects(link: dict, bucket_name: str, virtual_prefix: str,
+                            continuation_token, delimiter, encoding_type,
+                            fetch_owner, max_keys, prefix, start_after) -> Response:
+        """Run an S3 ListObjectsV2 against one shared link."""
+        result = await _worker_exec(link["username"], "s3_list_objects",
+                                    mount_path=link["mount_path"],
+                                    target_name=bucket_name,
+                                    virtual_prefix=virtual_prefix,
+                                    continuation_token=continuation_token,
+                                    delimiter=delimiter,
+                                    encoding_type=encoding_type,
+                                    fetch_owner=fetch_owner,
+                                    max_keys=max_keys,
+                                    prefix=prefix,
+                                    start_after=start_after)
+        return Response(content=result["body"], media_type=result.get("media_type", "application/xml"),
+                        status_code=result.get("status_code", 200))
+
+
+    @app.get("/files/")
+    async def bucket_dispatcher(list_type: Optional[int] = Query(None, alias="list-type"),
+                                continuation_token: Optional[str] = Query(None, alias="continuation-token"),
+                                delimiter: Optional[str] = Query(None, alias="delimiter"),
+                                encoding_type: Optional[str] = Query(None, alias="encoding-type"),
+                                fetch_owner: Optional[bool] = Query(None, alias="fetch-owner"),
+                                max_keys: Optional[int] = Query(1000, alias="max-keys"),
+                                prefix: Optional[str] = Query(None, alias="prefix"),
+                                start_after: Optional[str] = Query(None, alias="start-after")):
+        """S3 bucket root for data links.
+
+        The whole /files space is one S3 bucket, so a key looks like
+        `{sharing_key}/{link name}/{path}`, and a client that wants to browse a
+        link asks the bucket root for everything under that prefix. That is how
+        Neuroglancer lists a directory: it takes the first path segment of the
+        share URL as the bucket and the rest as the prefix.
+
+        Sharing keys are secret, so this never enumerates them. Without a
+        prefix that names one exactly, the answer is an empty listing --
+        identical for a missing, partial or unknown key, so the endpoint can't
+        be probed for valid keys. Empty rather than an error is deliberate:
+        Neuroglancer remembers per-server whether S3 listing works at all, and
+        an error here would turn off browsing for the valid links too.
+        """
+        if not list_type:
+            return get_error_response(404, "NoSuchKey", "The bucket root is not an object", "")
+        if list_type != 2:
+            return get_error_response(400, "InvalidArgument", f"Invalid list type {list_type}", "")
+
+        prefix = prefix or ''
+        sharing_key = prefix.split('/', 1)[0]
+        link = _resolve_sharing_key(sharing_key, prefix) if sharing_key else None
+        if not isinstance(link, dict):
+            xml = get_list_xml([], [], Name=FILES_BUCKET_NAME, Prefix=prefix, Delimiter=delimiter,
+                               MaxKeys=max_keys, EncodingType=encoding_type, KeyCount=0,
+                               IsTruncated='false', ContinuationToken=continuation_token,
+                               StartAfter=start_after)
+            return Response(content=xml, media_type="application/xml")
+
+        return await _list_objects(link, FILES_BUCKET_NAME,
+                                   _link_virtual_prefix(link, prefix, f"{sharing_key}/"),
+                                   continuation_token, delimiter, encoding_type,
+                                   fetch_owner, max_keys, prefix, start_after)
+
+
     @app.get("/files/{sharing_key}/{path:path}")
     async def target_dispatcher(request: Request,
                                 sharing_key: str,
@@ -1357,27 +1468,26 @@ def create_app(settings):
         if 'acl' in request.query_params:
             return get_read_access_acl()
 
-        info, subpath = _resolve_proxy_info(sharing_key, path)
-        if isinstance(info, Response):
-            return info
-
         if list_type:
-            if list_type == 2:
-                result = await _worker_exec(info["username"], "s3_list_objects",
-                                            mount_path=info["mount_path"],
-                                            target_name=info["target_name"],
-                                            continuation_token=continuation_token,
-                                            delimiter=delimiter,
-                                            encoding_type=encoding_type,
-                                            fetch_owner=fetch_owner,
-                                            max_keys=max_keys,
-                                            prefix=prefix,
-                                            start_after=start_after)
-                return Response(content=result["body"], media_type=result.get("media_type", "application/xml"),
-                                status_code=result.get("status_code", 200))
-            else:
+            # Reached when the sharing key is the bucket, i.e. a client pointed
+            # at /files as its endpoint. A bucket has no path of its own, so
+            # what was captured is ignored and the listing is driven by the
+            # prefix. Keys still carry the link name, so they resolve as URLs
+            # under the share URL.
+            link = _resolve_sharing_key(sharing_key, path)
+            if isinstance(link, Response):
+                return link
+            if list_type != 2:
                 return get_error_response(400, "InvalidArgument", f"Invalid list type {list_type}", path)
+            return await _list_objects(link, sharing_key,
+                                       _link_virtual_prefix(link, prefix or ''),
+                                       continuation_token, delimiter, encoding_type,
+                                       fetch_owner, max_keys, prefix, start_after)
         else:
+            info, subpath = _resolve_proxy_info(sharing_key, path)
+            if isinstance(info, Response):
+                return info
+
             range_header = request.headers.get("range")
 
             result = await _worker_exec(
