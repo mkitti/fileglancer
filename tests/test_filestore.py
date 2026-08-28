@@ -1,6 +1,5 @@
 import os
 import stat
-import sys
 import pytest
 import tempfile
 import shutil
@@ -164,21 +163,18 @@ def test_create_empty_file(filestore, test_dir):
     assert os.path.exists(os.path.join(test_dir, "newfile.txt"))
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="Windows chmod does not support full Unix permission bits")
 def test_change_file_permissions(filestore, test_dir):
     filestore.change_file_permissions("test.txt", "-rw-r--r--")
     fullpath = os.path.join(test_dir, "test.txt")
     assert stat.S_IMODE(os.stat(fullpath).st_mode) == 0o644
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="Windows chmod does not support full Unix permission bits")
 def test_change_file_permissions_with_execute(filestore, test_dir):
     filestore.change_file_permissions("test.txt", "-rwxr-xr-x")
     fullpath = os.path.join(test_dir, "test.txt")
     assert stat.S_IMODE(os.stat(fullpath).st_mode) == 0o755
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="Windows chmod does not support full Unix permission bits")
 def test_change_dir_permissions_with_sticky_bit(filestore, test_dir):
     subdir = os.path.join(test_dir, "sticky_dir")
     os.makedirs(subdir, exist_ok=True)
@@ -186,7 +182,6 @@ def test_change_dir_permissions_with_sticky_bit(filestore, test_dir):
     assert stat.S_IMODE(os.stat(subdir).st_mode) == 0o1777
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="Windows chmod does not support full Unix permission bits")
 def test_change_dir_permissions_sticky_without_execute(filestore, test_dir):
     subdir = os.path.join(test_dir, "sticky_dir2")
     os.makedirs(subdir, exist_ok=True)

@@ -3,12 +3,8 @@ import os
 import re
 import shlex
 import sys
-try:
-    import pwd
-    import grp
-except ImportError:
-    pwd = None  # type: ignore[assignment]
-    grp = None  # type: ignore[assignment]
+import pwd
+import grp
 import json
 import secrets
 from datetime import datetime, timedelta, timezone, UTC
