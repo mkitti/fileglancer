@@ -42,7 +42,8 @@ from fileglancer.settings import get_settings
 from fileglancer.issues import create_jira_ticket, get_jira_ticket_details, delete_jira_ticket
 from fileglancer.utils import format_timestamp, guess_content_type, parse_range_header, make_etag, parse_http_date_to_epoch
 from fileglancer.filestore import Filestore, RootCheckError
-from fileglancer.log import AccessLogMiddleware, disable_uvicorn_access_log
+from fileglancer.log import AccessLogMiddleware
+from fileglancer.logconf import configure_logging, disable_uvicorn_access_log
 from fileglancer.worker_pool import (
     WorkerPool, WorkerError, WorkerDead, prepare_worker_request)
 from fileglancer.user_worker import serialize_job_for_worker
@@ -518,9 +519,8 @@ def create_app(settings):
     @asynccontextmanager
     async def lifespan(app: FastAPI):
 
-        # Configure logging based on the log level in the settings
-        logger.remove()
-        logger.add(sys.stderr, level=settings.log_level)
+        # Configure logging based on the log level/format in the settings
+        configure_logging(settings.log_level, settings.log_format)
 
         # use_access_flags requires root + non-CLI mode. Workers themselves
         # are used in any server mode (CLI mode runs in-process).

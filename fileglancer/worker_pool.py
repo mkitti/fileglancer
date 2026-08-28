@@ -144,7 +144,8 @@ _WORKER_ENV_ALLOW_PREFIXES = (
 
 
 def _build_worker_env(base_env: dict, home_dir: str, log_level: str,
-                      child_fd: int, passthrough: Optional[list] = None) -> dict:
+                      child_fd: int, passthrough: Optional[list] = None,
+                      log_format: str = "text") -> dict:
     """Build the environment for a worker subprocess (allowlist).
 
     Keeps only allowlisted variables (see the module constants) plus any
@@ -171,6 +172,7 @@ def _build_worker_env(base_env: dict, home_dir: str, log_level: str,
     env = {k: v for k, v in base_env.items() if _allowed(k)}
     env["HOME"] = home_dir
     env["FGC_LOG_LEVEL"] = log_level
+    env["FGC_LOG_FORMAT"] = log_format
     env["FGC_WORKER_FD"] = str(child_fd)
     return env
 
@@ -463,6 +465,7 @@ class WorkerPool:
         env = _build_worker_env(
             os.environ, home_dir, self.settings.log_level, child_sock.fileno(),
             passthrough=self.settings.apps.worker_env_passthrough,
+            log_format=self.settings.log_format,
         )
 
         logger.info(
