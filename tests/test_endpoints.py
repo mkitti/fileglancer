@@ -2039,3 +2039,34 @@ def test_sharing_key_as_bucket_agrees_with_bucket_root(test_client, temp_dir):
     # and the first key segment in the other.
     assert [f"/files/{sharing_key}/{k}" for k in keys] == [f"/files/{k}" for k in root_keys]
     assert [f"/files/{sharing_key}/{p}" for p in common_prefixes] == [f"/files/{p}" for p in root_common]
+
+
+def test_bucket_root_lists_names_with_spaces(test_client, temp_dir):
+    """Names that need encoding have to survive the listing.
+
+    A client reads a key out of the listing and asks for it back, so a space
+    has to come back as %20 (which decodes to a space) rather than '+' (which
+    does not).
+    """
+    os.makedirs(os.path.join(temp_dir, "my data", "sub dir"), exist_ok=True)
+    with open(os.path.join(temp_dir, "my data", "my file.txt"), "w") as f:
+        f.write("spaced")
+    response = test_client.post("/api/proxied-path", params={"fsp_name": "tempdir", "path": "my data"})
+    assert response.status_code == 200
+    data = response.json()
+    sharing_key, url_prefix = data["sharing_key"], data["url_prefix"]
+    assert url_prefix == "my%20data", "link names are stored percent-encoded"
+
+    # The link name reaches the server either as stored or decoded, depending
+    # on how far the client unwound the share URL, and both have to list
+    for name in [url_prefix, "my data"]:
+        root = _listing(test_client, "/files/?list-type=2&delimiter=/&encoding-type=url"
+                                     f"&prefix={quote(f'{sharing_key}/{name}/')}")
+        keys, common_prefixes = _keys(root)
+        assert len(keys) == 1 and keys[0].endswith("/my%20file.txt"), keys
+        assert len(common_prefixes) == 1 and common_prefixes[0].endswith("/sub%20dir/"), common_prefixes
+
+        # Whatever the listing reported, asking for it back reaches the file
+        response = test_client.get(f"/files/{keys[0]}")
+        assert response.status_code == 200
+        assert response.text == "spaced"

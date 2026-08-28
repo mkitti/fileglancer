@@ -472,10 +472,6 @@ def create_app(settings):
         the name out of the share URL (as Neuroglancer does, which decodes the
         path) asks for it decoded, so match whichever form was requested.
         """
-        # ponytail: a name that genuinely needs percent-encoding (a space, say)
-        # comes back out of the listing as '+', which won't resolve as a URL --
-        # such links read fine but don't browse. The fix is to store url_prefix
-        # decoded, not to paper over it here.
         stored = link["url_prefix"]
         decoded = unquote(stored)
         rest = requested_prefix[len(base):] if requested_prefix.startswith(base) else ""
