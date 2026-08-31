@@ -123,6 +123,34 @@ def test_upstream_rejects_hosts_aimed_at_the_web_tier(url):
     assert upstream_from_service_url(url) is None
 
 
+def test_upstream_accepts_a_dns_name():
+    assert upstream_from_service_url(
+        "http://node01.nodes.example.org:41235/lab") == "node01.nodes.example.org:41235"
+
+
+@pytest.mark.parametrize("host", [
+    "10.0.0.1",        # RFC 1918 — where many clusters actually live
+    "172.16.0.1",
+    "192.168.1.1",
+    "100.64.0.1",      # carrier-grade NAT
+    "198.18.0.1",      # benchmarking
+    "203.0.113.4",     # public
+])
+def test_upstream_accepts_node_ip_addresses(host):
+    """Some clusters publish a node's address rather than its hostname. An
+    address on a routable interface is already reachable directly by any cluster
+    user, so proxying to it grants no new privilege — only hosts reachable
+    *solely* from the Fileglancer host are refused."""
+    assert upstream_from_service_url(f"http://{host}:41235/lab") == f"{host}:41235"
+
+
+def test_upstream_zone_does_not_reject_an_ip_literal():
+    """A literal has no zone to match, so applying one would break clusters that
+    publish addresses. Literals stay bounded by the local-host checks instead."""
+    assert upstream_from_service_url(
+        "http://10.0.0.1:41235/", allowed_suffix="nodes.example.org") == "10.0.0.1:41235"
+
+
 def test_upstream_suffix_allowlist_accepts_matching_host():
     assert upstream_from_service_url(
         "http://node01.nodes.example.org:41235/lab",

@@ -63,6 +63,15 @@ def job_id_from_host(host: Optional[str], proxy_domain: str) -> Optional[int]:
     return int(match.group(1))
 
 
+def _is_ip_literal(host: str) -> bool:
+    """Whether an upstream host is an IP address rather than a DNS name."""
+    try:
+        ipaddress.ip_address(host.strip().rstrip('.'))
+        return True
+    except ValueError:
+        return False
+
+
 def _host_matches_suffix(host: str, allowed_suffix: str) -> bool:
     """Whether an upstream host sits inside the configured allowed zone.
 
@@ -73,7 +82,14 @@ def _host_matches_suffix(host: str, allowed_suffix: str) -> bool:
     therefore means the same thing, and the zone's own name is allowed to be
     the upstream. A trailing root dot on either side is insignificant in DNS
     and is ignored here too.
+
+    An IP literal is exempt rather than refused: it has no DNS zone to compare
+    against, and some clusters publish a node's address instead of its name, so
+    applying a zone here would silently break them. Literals are bounded by
+    _is_safe_upstream_host instead.
     """
+    if _is_ip_literal(host):
+        return True
     zone = allowed_suffix.lower().strip().rstrip('.').lstrip('.')
     if not zone:
         return True
@@ -82,25 +98,39 @@ def _host_matches_suffix(host: str, allowed_suffix: str) -> bool:
 
 
 def _is_safe_upstream_host(host: str) -> bool:
-    """Reject upstream hosts that would aim the proxy at the web host itself.
+    """Reject upstreams that would aim the proxy at the Fileglancer host itself.
 
     The upstream comes from a file the user's own job wrote, and the reverse
-    proxy dials it from the Fileglancer host — not from the compute node. So a
-    loopback or link-local target would reach services that no cluster user can
-    reach directly, which is a privilege the proxy must not hand out. Checks are
-    textual and address-literal only: resolving a name here would mean a
-    blocking DNS lookup on every proxied request.
+    proxy dials it from the Fileglancer host rather than from the compute node.
+    The privilege that must not be handed out is therefore narrow and specific:
+    reaching a service that is *only* reachable from that host.
+
+    In practice that means loopback and the unspecified address, which catch
+    anything bound to localhost — the app server itself listens on
+    127.0.0.1:8989 — plus link-local, which covers cloud instance-metadata
+    endpoints. Multicast and reserved ranges are refused as well; they are not a
+    threat, they are simply never a service.
+
+    Private and public addresses are deliberately allowed. Some clusters publish
+    a node's IP rather than its hostname, and an address bound to a routable
+    interface is already reachable directly by any cluster user, so proxying to
+    it grants nothing new. Blocking RFC 1918 would break real deployments to
+    prevent nothing.
+
+    Checks are textual and literal-only. Resolving a name here would mean a
+    blocking DNS lookup on every proxied request; confining names to one zone is
+    the job of service_proxy_upstream_suffix.
     """
-    name = host.lower().rstrip('.')
+    name = host.lower().strip().rstrip('.')
     if name in _LOCAL_NAMES or name.endswith('.localhost'):
         return False
     try:
         addr = ipaddress.ip_address(name)
     except ValueError:
-        return True  # A name, not a literal. Bounded by the suffix check below.
+        return True  # A DNS name; bounded by the zone check when one is set.
     return not (
-        addr.is_loopback or addr.is_link_local
-        or addr.is_unspecified or addr.is_multicast or addr.is_reserved
+        addr.is_loopback or addr.is_unspecified or addr.is_link_local
+        or addr.is_multicast or addr.is_reserved
     )
 
 
@@ -112,10 +142,10 @@ def upstream_from_service_url(service_url: Optional[str],
     port. The netloc regex is a header-injection gate — it constrains the
     authority's shape only, since the result is interpolated into the reverse
     proxy's ``proxy_pass`` target. The destination itself (where the proxy
-    actually dials) is bounded separately: loopback, link-local and other
-    dangerous literals are always rejected, and ``allowed_suffix``, when set,
-    confines the host to a given suffix. This matters because the source string
-    is a file written by the user's own job.
+    actually dials) is bounded separately: hosts that reach the Fileglancer host
+    itself are rejected, and ``allowed_suffix``, when set, confines hostnames to
+    one DNS zone. This matters because the source string is a file written by
+    the user's own job.
     """
     if not service_url:
         return None

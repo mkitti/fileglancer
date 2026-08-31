@@ -62,7 +62,9 @@ class AppsSettings(BaseModel):
     # published upstream hostname must sit inside this DNS zone, e.g.
     # "nodes.example.org" to allow only cluster nodes. Matching is on whole DNS
     # labels, so a leading dot is optional and "evil-nodes.example.org" does not
-    # satisfy a zone of "nodes.example.org". Strongly recommended wherever
+    # satisfy a zone of "nodes.example.org". Applies to hostnames only: a service
+    # that publishes the node's IP address is still accepted, since some clusters
+    # do that and a literal has no zone to match. Recommended wherever
     # service_proxy_domain is set: the upstream comes from a file the user's job
     # wrote, so without a zone the proxy will dial any host the Fileglancer host
     # can reach. Empty disables the check.
