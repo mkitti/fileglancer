@@ -63,6 +63,24 @@ def job_id_from_host(host: Optional[str], proxy_domain: str) -> Optional[int]:
     return int(match.group(1))
 
 
+def _host_matches_suffix(host: str, allowed_suffix: str) -> bool:
+    """Whether an upstream host sits inside the configured allowed zone.
+
+    Matching is on whole DNS labels, not raw text: a plain ``endswith`` would
+    let ``evil-nodes.example.org`` satisfy a suffix of ``nodes.example.org``,
+    which turns the allowlist into a prefix-guessing game the moment an
+    operator omits the leading dot. Writing the suffix with or without that dot
+    therefore means the same thing, and the zone's own name is allowed to be
+    the upstream. A trailing root dot on either side is insignificant in DNS
+    and is ignored here too.
+    """
+    zone = allowed_suffix.lower().strip().rstrip('.').lstrip('.')
+    if not zone:
+        return True
+    name = host.lower().rstrip('.')
+    return name == zone or name.endswith('.' + zone)
+
+
 def _is_safe_upstream_host(host: str) -> bool:
     """Reject upstream hosts that would aim the proxy at the web host itself.
 
@@ -114,6 +132,6 @@ def upstream_from_service_url(service_url: Optional[str],
     host = match.group(1)
     if not _is_safe_upstream_host(host):
         return None
-    if allowed_suffix and not host.lower().endswith(allowed_suffix.lower()):
+    if allowed_suffix and not _host_matches_suffix(host, allowed_suffix):
         return None
     return netloc

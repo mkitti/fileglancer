@@ -138,3 +138,34 @@ def test_upstream_suffix_allowlist_is_case_insensitive():
     assert upstream_from_service_url(
         "http://NODE01.Nodes.Example.Org:41235/",
         allowed_suffix=".nodes.example.org") == "NODE01.Nodes.Example.Org:41235"
+
+
+@pytest.mark.parametrize("suffix", [".nodes.example.org", "nodes.example.org"])
+def test_upstream_suffix_matches_on_label_boundaries(suffix):
+    """A plain endswith would let a sibling zone impersonate the allowed one, so
+    an operator who omits the leading dot must not silently get a weaker check.
+    Both spellings mean the same zone."""
+    assert upstream_from_service_url(
+        "http://node01.nodes.example.org:41235/", allowed_suffix=suffix) == \
+        "node01.nodes.example.org:41235"
+    assert upstream_from_service_url(
+        "http://evil-nodes.example.org:41235/", allowed_suffix=suffix) is None
+
+
+def test_upstream_suffix_allows_the_zone_itself():
+    assert upstream_from_service_url(
+        "http://nodes.example.org:41235/",
+        allowed_suffix=".nodes.example.org") == "nodes.example.org:41235"
+
+
+def test_upstream_suffix_ignores_a_trailing_root_dot():
+    """A trailing dot is insignificant in DNS, so it must not fail the check."""
+    assert upstream_from_service_url(
+        "http://node01.nodes.example.org.:41235/",
+        allowed_suffix=".nodes.example.org") == "node01.nodes.example.org.:41235"
+
+
+def test_upstream_suffix_still_rejects_an_unrelated_zone():
+    assert upstream_from_service_url(
+        "http://node01.other.example.org:41235/",
+        allowed_suffix="nodes.example.org") is None

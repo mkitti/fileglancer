@@ -59,11 +59,13 @@ class AppsSettings(BaseModel):
     # http://host:port URL unchanged.
     service_proxy_domain: str = ""
     # Restricts which hosts the service proxy will dial. When set, a service's
-    # published upstream hostname must end with this suffix, e.g.
-    # ".nodes.example.org" to allow only cluster nodes. Strongly recommended
-    # wherever service_proxy_domain is set: the upstream comes from a file the
-    # user's job wrote, so without a suffix the proxy will dial any host the
-    # Fileglancer host can reach. Empty disables the check.
+    # published upstream hostname must sit inside this DNS zone, e.g.
+    # "nodes.example.org" to allow only cluster nodes. Matching is on whole DNS
+    # labels, so a leading dot is optional and "evil-nodes.example.org" does not
+    # satisfy a zone of "nodes.example.org". Strongly recommended wherever
+    # service_proxy_domain is set: the upstream comes from a file the user's job
+    # wrote, so without a zone the proxy will dial any host the Fileglancer host
+    # can reach. Empty disables the check.
     service_proxy_upstream_suffix: str = ""
 
 

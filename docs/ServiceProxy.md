@@ -102,7 +102,7 @@ If an app rejects the proxied origin, fix it in that app's manifest (most server
 
 ## Residual risks
 
-- Set `apps.service_proxy_upstream_suffix`. Without it the proxy will dial any host the Fileglancer host can reach, because the upstream comes from a file the user's job wrote. Loopback, link-local, multicast and reserved addresses are always refused, but a suffix is what actually confines the proxy to cluster nodes.
+- Set `apps.service_proxy_upstream_suffix` to the DNS zone your compute nodes live in, e.g. `nodes.example.org`. Without it the proxy will dial any host the Fileglancer host can reach, because the upstream comes from a file the user's job wrote. Loopback, link-local, multicast and reserved addresses are always refused, but this zone is what actually confines the proxy to cluster nodes. Matching is on whole DNS labels, so a leading dot is optional and a sibling zone like `evil-nodes.example.org` does not qualify.
 - Per-job subdomains make a running service much cheaper to *find* — `https://job-<small number>.<zone>/` instead of port-scanning compute nodes — and the proxy vhost is reachable from wherever the Fileglancer HTTPS host is. The service's own token is still the only credential, but weigh this before exposing the vhost on a wide network.
 - The resolve endpoint is called once per proxied HTTP request and each call produces an access-log line, so a single page load of an app like JupyterLab generates dozens. Expect the volume if you ship access logs to a log aggregator.
 - A service that manages its own URL (`auto_url` unset) should write its URL file exactly once. The cached upstream is refreshed only while someone has the job's detail page open, so a URL that changes mid-run can go stale.
