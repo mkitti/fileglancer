@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Publish each running app service at a per-job HTTPS subdomain (`https://job-123.apps.example.org/...`) that nginx proxies to the service's `host:port` on a compute node.
+**Goal:** Publish each running app service at a per-job HTTPS subdomain (`https://job-123.services.example.org/...`) that nginx proxies to the service's `host:port` on a compute node.
 
 **Architecture:** nginx terminates TLS for a wildcard zone and asks Fileglancer, via `auth_request`, which upstream a given hostname maps to. Fileglancer's contribution is one unauthenticated resolve endpoint plus a cached `service_url` column, so no proxied bytes pass through Python. The whole feature is gated on a setting that is empty by default; unset, behavior is unchanged.
 
@@ -65,7 +65,7 @@ from fileglancer.database import (
 )
 
 OWNER = "alice"
-PROXY_DOMAIN = "apps.example.org"
+PROXY_DOMAIN = "services.example.org"
 
 
 @pytest.fixture
@@ -388,7 +388,7 @@ from fileglancer.apps.serviceproxy import (
     upstream_from_service_url,
 )
 
-DOMAIN = "apps.example.org"
+DOMAIN = "services.example.org"
 
 
 # --- build_proxied_service_url ---
@@ -397,19 +397,19 @@ def test_build_swaps_scheme_and_host_keeping_path_and_query():
     """The query string carries $FG_SERVICE_TOKEN, so it must survive intact."""
     assert build_proxied_service_url(
         "http://node01:41235/lab?token=abc", 123, DOMAIN
-    ) == "https://job-123.apps.example.org/lab?token=abc"
+    ) == "https://job-123.services.example.org/lab?token=abc"
 
 
 def test_build_preserves_fragment():
     assert build_proxied_service_url(
         "http://node01:41235/vnc.html?autoconnect=true#top", 7, DOMAIN
-    ) == "https://job-7.apps.example.org/vnc.html?autoconnect=true#top"
+    ) == "https://job-7.services.example.org/vnc.html?autoconnect=true#top"
 
 
 def test_build_preserves_bare_root_url():
     assert build_proxied_service_url(
         "http://node01:41235", 7, DOMAIN
-    ) == "https://job-7.apps.example.org"
+    ) == "https://job-7.services.example.org"
 
 
 def test_build_returns_none_without_a_proxy_domain():
@@ -425,7 +425,7 @@ def test_build_returns_none_for_empty_service_url():
 # --- job_id_from_host ---
 
 def test_job_id_from_host_extracts_id():
-    assert job_id_from_host("job-123.apps.example.org", DOMAIN) == 123
+    assert job_id_from_host("job-123.services.example.org", DOMAIN) == 123
 
 
 def test_job_id_from_host_strips_port_and_case():
@@ -433,12 +433,12 @@ def test_job_id_from_host_strips_port_and_case():
 
 
 @pytest.mark.parametrize("host", [
-    "apps.example.org",              # no job label
-    "job-.apps.example.org",         # no digits
-    "job-abc.apps.example.org",      # not numeric
+    "services.example.org",              # no job label
+    "job-.services.example.org",         # no digits
+    "job-abc.services.example.org",      # not numeric
     "job-123.evil.example.org",      # wrong zone
-    "job-123.apps.example.org.evil", # suffix attack
-    "x.job-123.apps.example.org",    # extra label
+    "job-123.services.example.org.evil", # suffix attack
+    "x.job-123.services.example.org",    # extra label
     "",
 ])
 def test_job_id_from_host_rejects_bad_hosts(host):
@@ -447,7 +447,7 @@ def test_job_id_from_host_rejects_bad_hosts(host):
 
 def test_job_id_from_host_rejects_everything_without_a_domain():
     """Guards against an empty domain turning the pattern into a wildcard."""
-    assert job_id_from_host("job-123.apps.example.org", "") is None
+    assert job_id_from_host("job-123.services.example.org", "") is None
 
 
 # --- upstream_from_service_url ---
@@ -537,8 +537,8 @@ def job_id_from_host(host: Optional[str], proxy_domain: str) -> Optional[int]:
     """Extract the job id from a proxy hostname, or None if it isn't one.
 
     Matches the whole hostname, so neither a longer suffix
-    (``job-1.apps.example.org.evil``) nor an extra label
-    (``x.job-1.apps.example.org``) is accepted.
+    (``job-1.services.example.org.evil``) nor an extra label
+    (``x.job-1.services.example.org``) is accepted.
     """
     if not host or not proxy_domain:
         return None
@@ -693,7 +693,7 @@ def test_resolve_rejects_unknown_job(app_factory):
 @pytest.mark.parametrize("host", [
     "fileglancer.example.org",
     "job-1.evil.example.org",
-    "job-abc.apps.example.org",
+    "job-abc.services.example.org",
 ])
 def test_resolve_rejects_bad_hosts(app_factory, host):
     app, db_url = app_factory(PROXY_DOMAIN)
@@ -735,7 +735,7 @@ In `fileglancer/settings.py`, in `class AppsSettings`, after `unknown_timeout_ho
 
 ```python
     # Wildcard DNS zone serving per-job HTTPS subdomains for running services,
-    # e.g. "apps.example.org" to publish https://job-<id>.apps.example.org/.
+    # e.g. "services.example.org" to publish https://job-<id>.services.example.org/.
     # Requires a matching wildcard certificate and a reverse proxy configured to
     # resolve upstreams via GET /api/apps/resolve; see
     # docs/superpowers/specs/2026-08-28-app-service-https-proxy-design.md.
@@ -802,7 +802,7 @@ Expected: all PASS.
 The whole `apps:` block in `docs/config.yaml.template` is commented out and uses a trailing-comment column. Append to it, directly after the `unknown_timeout_hours` entry that currently ends at line 195:
 
 ```
-#   service_proxy_domain: apps.example.org
+#   service_proxy_domain: services.example.org
 #                               # Wildcard DNS zone serving per-job HTTPS
 #                               # subdomains for running services. When set, a
 #                               # service is published at
@@ -972,15 +972,23 @@ Design rationale: `docs/superpowers/specs/2026-08-28-app-service-https-proxy-des
 
 ## What you need
 
-- A wildcard DNS record for the zone, e.g. `*.apps.example.org`, pointing at the Fileglancer host.
-- A wildcard TLS certificate for that zone. Note that a wildcard certificate matches exactly one label: a certificate for `*.example.org` does **not** cover `job-1.apps.example.org`. The certificate must name the zone you actually use.
-- A reverse proxy with `http_auth_request_module` compiled in (`nginx -V | grep auth_request`).
+- **A wildcard DNS record for the zone**, e.g. `*.services.example.org`, pointing at the Fileglancer host. No zone delegation is required — a wildcard may sit at any level (RFC 4592), so one record in the parent zone is enough:
+
+  ```
+  *.services   IN  A   <fileglancer host IP>
+  ```
+
+  A wildcard never matches its own parent, so this does not make `services.example.org` itself resolve. Add a plain `services IN A` record if you want the bare alias to work; the proxy does not need it.
+
+- **A wildcard TLS certificate for that zone.** A wildcard matches exactly one label, so a certificate for `*.example.org` does **not** cover `job-1.services.example.org` — it must name the zone you actually use. If the host already serves a `*.example.org` certificate, the two coexist fine: two `server` blocks on port 443, each with its own `ssl_certificate`, selected by SNI. Leave `default_server` on the primary block.
+
+- **A reverse proxy with `http_auth_request_module`** compiled in (`nginx -V | grep auth_request`).
 
 ## Fileglancer configuration
 
 ```yaml
 apps:
-  service_proxy_domain: "apps.example.org"
+  service_proxy_domain: "services.example.org"
 ```
 
 Leave it empty to disable; the direct `http://<node>:<port>` URL is then published unchanged.
@@ -994,10 +1002,10 @@ Add a server block for the wildcard zone. This assumes a `map $http_upgrade $con
 ```nginx
 server {
   listen 443 ssl http2;
-  server_name ~^job-\d+\.apps\.example\.org$;
+  server_name ~^job-\d+\.services\.example\.org$;
 
-  ssl_certificate     /etc/nginx/certs/apps-wildcard.crt;
-  ssl_certificate_key /etc/nginx/certs/apps-wildcard.key;
+  ssl_certificate     /etc/nginx/certs/services-wildcard.crt;
+  ssl_certificate_key /etc/nginx/certs/services-wildcard.key;
 
   location = /_fg_resolve {
     internal;

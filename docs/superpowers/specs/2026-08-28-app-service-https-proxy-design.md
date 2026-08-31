@@ -18,7 +18,7 @@ Reachability is explicitly *not* a problem being solved: users can already reach
 Address each running service at a per-job subdomain of a wildcard DNS zone, terminated by the existing nginx reverse proxy:
 
 ```
-https://job-123.apps.int.janelia.org/lab?token=abc
+https://job-123.services.int.janelia.org/lab?token=abc
   → h11u02.int.janelia.org:41235/lab?token=abc
 ```
 
@@ -46,18 +46,30 @@ Both are viable. nginx wins on the facts of this deployment:
 
 Fileglancer's entire contribution is one small endpoint that answers "what is the upstream for this hostname?".
 
-### Certificate constraint
+### DNS and certificate constraints
 
-A wildcard certificate matches exactly one label, in the leftmost position only (RFC 6125), and browsers enforce this strictly. The existing `*.int.janelia.org` certificate therefore covers `foo.int.janelia.org` but **not** `job-123.apps.int.janelia.org`.
+A wildcard certificate matches exactly one label, in the leftmost position only (RFC 6125), and browsers enforce this strictly. The existing `*.int.janelia.org` certificate therefore covers `foo.int.janelia.org` but **not** `job-123.services.int.janelia.org`.
 
 Two shapes are possible, each needing one thing from operations:
 
 | Hostname shape | Certificate | DNS |
 | --- | --- | --- |
 | `fgapp-123.int.janelia.org` | existing wildcard works | needs a wildcard A record at the `int.janelia.org` apex, which would swallow every mistyped internal hostname — not viable |
-| `job-123.apps.int.janelia.org` | needs a new `*.apps.int.janelia.org` certificate | one wildcard record in a delegated sub-zone — scoped and harmless |
+| `job-123.services.int.janelia.org` | needs a new `*.services.int.janelia.org` certificate | one wildcard record, scoped to that name |
 
-The sub-zone is the viable shape, and the certificate request is the same process already completed once for a different name.
+The second shape is the viable one, and the certificate request is the same process already completed once for a different name.
+
+The DNS side needs no zone delegation. A wildcard may sit at any level (RFC 4592), so one record in the existing `int.janelia.org` zone is sufficient:
+
+```
+*.services   IN  A   <fileglancer host IP>
+```
+
+Note that a wildcard never matches its own parent, so `services.int.janelia.org` itself is not covered by that record. Add a plain `services IN A` record if the bare alias should resolve; nothing in this design requires it, and the existing `*.int.janelia.org` certificate already covers that name.
+
+Two certificates coexist on one nginx without difficulty: two `server` blocks on port 443, each with its own `ssl_certificate`, selected by SNI. The names cannot collide — `job-123.services.int.janelia.org` is two labels deep and so cannot match `*.int.janelia.org`. `default_server` stays on the primary block.
+
+One thing to confirm before relying on this: a nested wildcard (`*.services.int.janelia.org` issued alongside an existing `*.int.janelia.org`) is routine for public CAs, but some internal PKI policies restrict wildcard depth.
 
 ### Shipping dark
 
@@ -124,7 +136,7 @@ New setting on `AppsSettings` in `fileglancer/settings.py`:
 
 ```python
 # Wildcard DNS zone serving per-job HTTPS subdomains for running services, e.g.
-# "apps.example.org" to publish https://job-<id>.apps.example.org/. Requires a
+# "services.example.org" to publish https://job-<id>.services.example.org/. Requires a
 # matching wildcard certificate and a reverse proxy configured to resolve
 # upstreams via /api/apps/resolve. Empty (the default) publishes the service's
 # own http://host:port URL unchanged.
@@ -136,7 +148,7 @@ Settable as `apps.service_proxy_domain` in `config.yaml` or `FGC_APPS__SERVICE_P
 When set, `get_job` swaps scheme and netloc while preserving path, query and fragment verbatim — the query string is what carries the token:
 
 ```
-http://h11u02:41235/lab?token=abc  →  https://job-123.apps.int.janelia.org/lab?token=abc
+http://h11u02:41235/lab?token=abc  →  https://job-123.services.int.janelia.org/lab?token=abc
 ```
 
 The stored value stays raw, since it is the upstream the proxy needs. Only the value returned to the client is rewritten.
@@ -152,10 +164,10 @@ Lives in the separate deployment repository, alongside the existing `nginx.conf`
 ```nginx
 server {
   listen 443 ssl http2;
-  server_name ~^job-(?<jobid>\d+)\.apps\.int\.janelia\.org$;
+  server_name ~^job-(?<jobid>\d+)\.services\.int\.janelia\.org$;
 
-  ssl_certificate     /etc/nginx/certs/apps-wildcard.crt;
-  ssl_certificate_key /etc/nginx/certs/apps-wildcard.key;
+  ssl_certificate     /etc/nginx/certs/services-wildcard.crt;
+  ssl_certificate_key /etc/nginx/certs/services-wildcard.key;
 
   location = /_fg_resolve {
     internal;
