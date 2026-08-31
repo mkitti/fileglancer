@@ -51,6 +51,13 @@ class AppsSettings(BaseModel):
     # it. This is Fileglancer poll policy, not py-cluster-api config, so it
     # lives here rather than under `cluster`. Set to 0 to disable the cutoff.
     unknown_timeout_hours: float = 24.0
+    # Wildcard DNS zone serving per-job HTTPS subdomains for running services,
+    # e.g. "services.example.org" to publish
+    # https://job-<id>.services.example.org/. Requires a matching wildcard
+    # certificate and a reverse proxy configured to resolve upstreams via
+    # GET /api/apps/resolve. Empty (the default) publishes the service's own
+    # http://host:port URL unchanged.
+    service_proxy_domain: str = ""
 
 
 class Settings(BaseSettings):

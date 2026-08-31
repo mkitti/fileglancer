@@ -2704,6 +2704,10 @@ def create_app(settings):
                         job=serialize_job_for_worker(db_job))
                     service_url = svc_result.get("service_url")
                     phase = svc_result.get("phase")
+                    if service_url:
+                        # Cache it so /api/apps/resolve can map a proxy hostname
+                        # to an upstream without a worker RPC per request.
+                        db.set_job_service_url(session, job_id, service_url)
                 except Exception:
                     pass
             return _convert_job(db_job, service_url=service_url, files=files, phase=phase)
