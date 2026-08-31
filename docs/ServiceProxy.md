@@ -79,8 +79,9 @@ Also add this to the **main** server block, so the resolve endpoint is not reach
   location = /api/apps/resolve { return 404; }
 ```
 
-Three details are load-bearing:
+Four details are load-bearing:
 
+- **`internal;`** on the `/_fg_resolve` location makes it reachable only from nginx's own `auth_request` subrequest, never from a client. Together with the `return 404` in the main server block, it is what keeps the unauthenticated resolve endpoint off the network. Do not remove either.
 - **`proxy_set_header Host $host`** passes the app subdomain through unchanged, so the app sees `Host` and `Origin` as the same value. This is what makes JupyterLab's WebSocket origin check pass without per-app configuration.
 - **`resolver`** is mandatory. Without it nginx refuses to start when `proxy_pass` targets a variable.
 - **`proxy_buffering off`** and the long `proxy_read_timeout` suit long-lived WebSocket and streaming sessions, such as the remote desktop app.
@@ -98,3 +99,10 @@ Once DNS and the certificate are in place, launch each service app and confirm i
 - TensorBoard — plots load.
 
 If an app rejects the proxied origin, fix it in that app's manifest (most servers have an allowed-origin or base-URL option); do not weaken the proxy configuration.
+
+## Residual risks
+
+- Set `apps.service_proxy_upstream_suffix`. Without it the proxy will dial any host the Fileglancer host can reach, because the upstream comes from a file the user's job wrote. Loopback, link-local, multicast and reserved addresses are always refused, but a suffix is what actually confines the proxy to cluster nodes.
+- Per-job subdomains make a running service much cheaper to *find* — `https://job-<small number>.<zone>/` instead of port-scanning compute nodes — and the proxy vhost is reachable from wherever the Fileglancer HTTPS host is. The service's own token is still the only credential, but weigh this before exposing the vhost on a wide network.
+- The resolve endpoint is called once per proxied HTTP request and each call produces an access-log line, so a single page load of an app like JupyterLab generates dozens. Expect the volume if you ship access logs to a log aggregator.
+- A service that manages its own URL (`auto_url` unset) should write its URL file exactly once. The cached upstream is refreshed only while someone has the job's detail page open, so a URL that changes mid-run can go stale.

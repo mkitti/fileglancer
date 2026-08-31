@@ -73,7 +73,7 @@ One thing to confirm before relying on this: a nested wildcard (`*.services.int.
 
 ### Shipping dark
 
-The feature is gated on a single setting that is empty by default. With it unset, behavior is unchanged byte for byte: the raw `http://host:port` URL is published exactly as it is today. This lets the code merge and be tested before DNS and the certificate exist, and lights up when they land.
+The feature is gated on a single setting that is empty by default. With it unset, the published URL is unchanged byte for byte: the raw `http://host:port` URL is published exactly as it is today. Database traffic is not quite as inert, though — the cache write happens whenever a service job publishes a URL, regardless of the setting, so a `RUNNING` service job's detail fetch now also caches `service_url` to the row. The frontend polls the job detail endpoint every 5 seconds while a job is active, so this adds one write per poll. This lets the code merge and be tested before DNS and the certificate exist, and lights up when they land.
 
 ## Design
 
@@ -124,7 +124,7 @@ Three points carry weight:
 
 **The `RUNNING` check is a security control, not a nicety.** Compute-node ports are recycled. Without it, a stale subdomain from a finished job would proxy to whatever service now occupies that port on that node — potentially another user's.
 
-**The netloc regex is the SSRF and header-injection gate.** nginx performs `proxy_pass http://$upstream` using this header's value. Nothing that fails the pattern is ever echoed. The value originates from a file the user's own job wrote, so it is untrusted input.
+**The netloc regex is the header-injection gate.** nginx performs `proxy_pass http://$upstream` using this header's value, so nothing that fails the pattern is ever echoed. It constrains the authority's *shape* only — hostname and in-range port — not where it points. The value originates from a file the user's own job wrote, so it is untrusted input; the destination is bounded separately by rejecting loopback, link-local and other dangerous address literals, and by the optional `service_proxy_upstream_suffix` allowlist that confines the upstream to a known suffix such as the cluster's node zone.
 
 **The endpoint is deliberately unauthenticated.** nginx marks its location `internal`, and the main server block returns `404` for the path so it is not reachable from outside. Even if it were reached, it discloses only a `host:port` that the job detail page already displays to the job's owner.
 
