@@ -2712,6 +2712,41 @@ def create_app(settings):
                     pass
             return _convert_job(db_job, service_url=service_url, files=files, phase=phase)
 
+    @app.get("/api/apps/resolve", include_in_schema=False)
+    async def resolve_service_upstream(request: Request):
+        """Map a service proxy hostname to its upstream, for the reverse proxy.
+
+        Called once per proxied request via nginx's auth_request, so it must stay
+        a single indexed read. Deliberately unauthenticated: the session cookie
+        is scoped to the Fileglancer hostname and is never sent to an app
+        subdomain, so there is no user to check. It discloses only a host:port
+        that the job's detail page already shows, and the reverse proxy marks its
+        location `internal` so it is not reachable from outside.
+
+        Returns 204 with X-Fg-Upstream on success and 403 for everything else, so
+        auth_request denies the request.
+        """
+        # ponytail: one indexed read per proxied request. If this ever shows up
+        # in profiling, wrap it in a short TTL cache keyed by job id.
+        proxy_domain = settings.apps.service_proxy_domain
+        job_id = apps_module.job_id_from_host(
+            request.headers.get('host'), proxy_domain)
+        if job_id is None:
+            raise HTTPException(status_code=403, detail="Not a service proxy host")
+
+        with db.get_db_session(settings.db_url) as session:
+            db_job = db.get_job_by_id(session, job_id)
+            if (db_job is None
+                    or getattr(db_job, 'entry_point_type', 'job') != 'service'
+                    or db_job.status != 'RUNNING'):
+                raise HTTPException(status_code=403, detail="No running service for this host")
+            upstream = apps_module.upstream_from_service_url(db_job.service_url)
+
+        if upstream is None:
+            raise HTTPException(status_code=403, detail="No usable upstream for this host")
+
+        return Response(status_code=204, headers={"X-Fg-Upstream": upstream})
+
     @app.patch("/api/jobs/{job_id}", response_model=Job,
                description="Rename a job")
     async def rename_job(job_id: int,

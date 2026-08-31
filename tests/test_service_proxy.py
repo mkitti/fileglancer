@@ -159,3 +159,94 @@ def test_get_job_caches_service_url(app_factory, monkeypatch):
         assert get_job_by_id(session, job_id).service_url == "http://node01:41235/lab?token=abc"
     finally:
         session.close()
+
+
+# --- /api/apps/resolve ---
+
+def _resolve(app, host):
+    return TestClient(app).get("/api/apps/resolve", headers={"Host": host})
+
+
+def _seed_running_service_with_url(db_url, url="http://node01:41235/lab?token=abc"):
+    job_id = _seed_service_job(db_url)
+    session = get_db_session(db_url)
+    try:
+        set_job_service_url(session, job_id, url)
+    finally:
+        session.close()
+    return job_id
+
+
+def test_resolve_returns_upstream(app_factory):
+    app, db_url = app_factory(PROXY_DOMAIN)
+    job_id = _seed_running_service_with_url(db_url)
+    resp = _resolve(app, f"job-{job_id}.{PROXY_DOMAIN}")
+    assert resp.status_code == 204
+    assert resp.headers["x-fg-upstream"] == "node01:41235"
+
+
+def test_resolve_rejects_finished_job(app_factory):
+    """Compute-node ports get recycled. A stale subdomain must not be proxied to
+    whatever service now holds that port on that node."""
+    app, db_url = app_factory(PROXY_DOMAIN)
+    job_id = _seed_running_service_with_url(db_url)
+    session = get_db_session(db_url)
+    try:
+        get_job_by_id(session, job_id).status = "DONE"
+        session.commit()
+    finally:
+        session.close()
+    resp = _resolve(app, f"job-{job_id}.{PROXY_DOMAIN}")
+    assert resp.status_code == 403
+    assert "x-fg-upstream" not in resp.headers
+
+
+def test_resolve_rejects_non_service_job(app_factory):
+    app, db_url = app_factory(PROXY_DOMAIN)
+    job_id = _seed_service_job(db_url, entry_point_type="job")
+    session = get_db_session(db_url)
+    try:
+        set_job_service_url(session, job_id, "http://node01:41235/")
+    finally:
+        session.close()
+    assert _resolve(app, f"job-{job_id}.{PROXY_DOMAIN}").status_code == 403
+
+
+def test_resolve_rejects_job_without_cached_url(app_factory):
+    app, db_url = app_factory(PROXY_DOMAIN)
+    job_id = _seed_service_job(db_url)
+    assert _resolve(app, f"job-{job_id}.{PROXY_DOMAIN}").status_code == 403
+
+
+def test_resolve_rejects_unknown_job(app_factory):
+    app, db_url = app_factory(PROXY_DOMAIN)
+    assert _resolve(app, f"job-999999.{PROXY_DOMAIN}").status_code == 403
+
+
+@pytest.mark.parametrize("host", [
+    "fileglancer.example.org",
+    "job-1.evil.example.org",
+    "job-abc.services.example.org",
+])
+def test_resolve_rejects_bad_hosts(app_factory, host):
+    app, db_url = app_factory(PROXY_DOMAIN)
+    _seed_running_service_with_url(db_url)
+    assert _resolve(app, host).status_code == 403
+
+
+def test_resolve_disabled_when_no_proxy_domain(app_factory):
+    """With the feature off, the endpoint refuses everything."""
+    app, db_url = app_factory("")
+    job_id = _seed_running_service_with_url(db_url)
+    assert _resolve(app, f"job-{job_id}.{PROXY_DOMAIN}").status_code == 403
+
+
+def test_resolve_rejects_malformed_cached_url(app_factory):
+    """SSRF regression test: the cached value comes from a file the user's own
+    job wrote, and the result is interpolated into the proxy's proxy_pass."""
+    app, db_url = app_factory(PROXY_DOMAIN)
+    job_id = _seed_running_service_with_url(
+        db_url, url="http://evil.example.org:80\r\nX-Injected: 1/")
+    resp = _resolve(app, f"job-{job_id}.{PROXY_DOMAIN}")
+    assert resp.status_code == 403
+    assert "x-fg-upstream" not in resp.headers

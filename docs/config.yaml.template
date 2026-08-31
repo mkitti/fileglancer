@@ -193,6 +193,15 @@ session_cookie_secure: true
 #   unknown_timeout_hours: 24    # Give up polling a job stuck in UNKNOWN after
 #                               # this many hours and mark it FAILED (the
 #                               # scheduler can no longer report it). 0 disables.
+#   service_proxy_domain: services.example.org
+#                               # Wildcard DNS zone serving per-job HTTPS
+#                               # subdomains for running services. When set, a
+#                               # service is published at
+#                               # https://job-<id>.<zone>/ instead of its own
+#                               # http://<node>:<port>/ URL. Needs a wildcard
+#                               # certificate for the zone and a reverse proxy
+#                               # resolving upstreams via /api/apps/resolve;
+#                               # see docs/ServiceProxy.md. Empty = direct URL.
 
 # Cluster configuration
 # Mirrors py-cluster-api ClusterConfig - all fields are optional
