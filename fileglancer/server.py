@@ -2732,20 +2732,35 @@ def create_app(settings):
 
         Returns 204 with X-Fg-Upstream on success and 403 for everything else, so
         auth_request denies the request.
+
+        Successful resolutions are cached for a few seconds, which is also the
+        window in which a job that has just stopped can still be proxied. See
+        the cache notes in fileglancer/apps/serviceproxy.py for why that window
+        is deliberately short.
         """
-        # ponytail: one indexed read per proxied request. If this ever shows up
-        # in profiling, wrap it in a short TTL cache keyed by job id.
         proxy_domain = settings.apps.service_proxy_domain
         job_id = apps_module.job_id_from_host(
             request.headers.get('host'), proxy_domain)
         if job_id is None:
+            apps_module.record_resolve("refused_bad_host")
             raise HTTPException(status_code=403, detail="Not a service proxy host")
+
+        # A page load is dozens of these, so serve repeats from the short-lived
+        # cache and keep the database out of the hot path. Only hits are cached;
+        # a service that has not published its URL yet must be able to start
+        # resolving the moment it does.
+        upstream = apps_module.cached_upstream(job_id)
+        if upstream is not None:
+            apps_module.record_resolve("hit")
+            return Response(status_code=204,
+                            headers={"X-Fg-Upstream": upstream})
 
         with db.get_db_session(settings.db_url) as session:
             db_job = db.get_job_by_id(session, job_id)
             if (db_job is None
                     or getattr(db_job, 'entry_point_type', 'job') != 'service'
                     or db_job.status != 'RUNNING'):
+                apps_module.record_resolve("refused_not_running")
                 raise HTTPException(status_code=403, detail="No running service for this host")
             upstream = apps_module.upstream_from_service_url(
                 db_job.service_url,
@@ -2753,8 +2768,11 @@ def create_app(settings):
                 allowed_networks=tuple(settings.apps.service_proxy_upstream_networks))
 
         if upstream is None:
+            apps_module.record_resolve("refused_no_upstream")
             raise HTTPException(status_code=403, detail="No usable upstream for this host")
 
+        apps_module.cache_upstream(job_id, upstream)
+        apps_module.record_resolve("miss")
         return Response(status_code=204, headers={"X-Fg-Upstream": upstream})
 
     @app.patch("/api/jobs/{job_id}", response_model=Job,

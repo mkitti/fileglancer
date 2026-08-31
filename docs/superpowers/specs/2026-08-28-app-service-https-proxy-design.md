@@ -233,7 +233,7 @@ nginx cannot be tested here. Verify it by hand once DNS and the certificate exis
 
 **Per-app WebSocket origin validation.** Passing `Host $host` should satisfy JupyterLab and marimo, whose checks compare `Origin` against `Host`. openvscode-server and the noVNC desktop cannot be proven until there is real DNS to test against. Verification is cheap once the zone exists and impossible before it. If an app does reject the proxied origin, the fallback is per-app configuration in that app's manifest, not a change to this design.
 
-**One indexed database read per proxied request.** A page load is dozens of requests, each triggering a primary-key lookup. This is ordinary web-application load and should not be a problem, but it is worth a `ponytail:` comment at the resolve endpoint naming a short TTL cache as the upgrade path if it ever shows up in profiling.
+**One indexed database read per proxied request, cached.** A page load is dozens of resolves, so successful resolutions are held in a bounded TTL cache (10 seconds, 1024 entries) and the endpoint is excluded from the per-request access log, reporting aggregate totals once a minute instead. Refusals are not cached, so a starting service resolves as soon as it publishes. The TTL is the window in which a stopped job can still be proxied, which is why it is seconds rather than minutes. Each uvicorn worker holds its own cache, so expect up to one miss per worker per TTL.
 
 **Configuration split across two repositories.** The setting lives in `fileglancer`, the nginx block in the deployment repository. They must be changed together. Both sides should carry a comment pointing at the other.
 

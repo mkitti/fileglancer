@@ -5,7 +5,7 @@ import json
 import logging
 
 import pytest
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.testclient import TestClient
 from loguru import logger
 
@@ -219,3 +219,33 @@ def test_text_mode_is_the_default_and_stays_human_readable(capsys):
 
     assert '"GET /api/content/share/file.txt HTTP/1.1" 200 - ' in lines[0]
     assert "{" not in lines[0], lines[0]
+
+
+def test_the_resolve_endpoint_is_not_logged_per_request():
+    """The service proxy calls it once per proxied HTTP request, so one app page
+    load would bury the log in identical 204 lines and skew the duration
+    percentiles for endpoints that carry real work. It reports totals instead."""
+    app = FastAPI()
+    app.add_middleware(AccessLogMiddleware, settings=Settings())
+
+    @app.get("/api/apps/resolve")
+    async def resolve():
+        return Response(status_code=204)
+
+    @app.get("/api/content/{rest:path}")
+    async def content(rest: str):
+        return {"ok": True}
+
+    lines = []
+    sink_id = logger.add(lambda msg: lines.append(msg), format="{message}")
+    try:
+        with TestClient(app) as client:
+            for _ in range(5):
+                client.get("/api/apps/resolve")
+            client.get("/api/content/share/file.zarr")
+    finally:
+        logger.remove(sink_id)
+
+    assert len(lines) == 1, lines
+    assert "file.zarr" in lines[0], lines[0]
+    assert "resolve" not in lines[0], lines[0]

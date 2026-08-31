@@ -8,6 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 from urllib.parse import urlsplit
 
+from fileglancer import apps
 from fileglancer.settings import Settings, AppsSettings
 from fileglancer.server import create_app, get_current_user
 from fileglancer.database import (
@@ -328,3 +329,70 @@ def test_publish_then_resolve_roundtrip(app_factory, monkeypatch):
     resp = _resolve(app, urlsplit(published).netloc)
     assert resp.status_code == 204
     assert resp.headers["x-fg-upstream"] == "node01:41235"
+
+
+# --- resolution cache and counters ---
+
+def test_resolve_serves_repeats_from_the_cache(app_factory):
+    """A page load is dozens of resolves, so repeats must not each hit the DB.
+
+    Proven by making the DB answer change underneath: the row is moved to DONE,
+    which would refuse a fresh lookup, and the cached upstream is still served.
+    That is also an honest statement of the cache's cost — the TTL is the window
+    in which a stopped job can still be proxied, which is why it is short."""
+    app, db_url = app_factory(PROXY_DOMAIN)
+    job_id = _seed_running_service_with_url(db_url)
+    host = f"job-{job_id}.{PROXY_DOMAIN}"
+
+    assert _resolve(app, host).status_code == 204
+    session = get_db_session(db_url)
+    try:
+        get_job_by_id(session, job_id).status = "DONE"
+        session.commit()
+    finally:
+        session.close()
+
+    second = _resolve(app, host)
+    assert second.status_code == 204
+    assert second.headers["x-fg-upstream"] == "node01:41235"
+    assert apps.resolve_counts() == {"miss": 1, "hit": 1}
+
+
+def test_resolve_does_not_cache_refusals(app_factory):
+    """A service that has not published its URL yet must start resolving the
+    moment it does, so a miss cannot be remembered."""
+    app, db_url = app_factory(PROXY_DOMAIN)
+    job_id = _seed_service_job(db_url)
+    host = f"job-{job_id}.{PROXY_DOMAIN}"
+
+    assert _resolve(app, host).status_code == 403
+    session = get_db_session(db_url)
+    try:
+        set_job_service_url(session, job_id, "http://node01:41235/lab")
+    finally:
+        session.close()
+
+    assert _resolve(app, host).status_code == 204
+
+
+def test_resolve_counts_refusals_by_reason(app_factory):
+    """The counters replace per-request access logging, so they have to say
+    which way a refusal went."""
+    app, db_url = app_factory(PROXY_DOMAIN)
+    job_id = _seed_service_job(db_url)
+
+    _resolve(app, "not-a-proxy-host.example.org")
+    _resolve(app, f"job-{job_id}.{PROXY_DOMAIN}")
+
+    assert apps.resolve_counts() == {
+        "refused_bad_host": 1, "refused_no_upstream": 1}
+
+
+def test_resolve_cache_is_bounded(app_factory):
+    """An unbounded cache keyed by job id would grow with every service ever
+    launched; the TTL cache has a hard entry ceiling."""
+    from fileglancer.apps import serviceproxy
+    assert serviceproxy._resolve_cache.maxsize == \
+        serviceproxy._RESOLVE_CACHE_MAX_ENTRIES
+    assert serviceproxy._resolve_cache.ttl == \
+        serviceproxy._RESOLVE_CACHE_TTL_SECONDS

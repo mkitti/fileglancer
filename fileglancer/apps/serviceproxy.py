@@ -9,9 +9,14 @@ between the two forms, kept pure so they can be tested without a database.
 
 import ipaddress
 import re
+import time
+from collections import Counter
 from functools import lru_cache
 from typing import Iterable, Optional
 from urllib.parse import urlsplit, urlunsplit
+
+from cachetools import TTLCache
+from loguru import logger
 
 # An upstream nginx can hand to proxy_pass: hostname and explicit port, nothing
 # else. Deliberately strict — the value is interpolated into a proxy_pass
@@ -207,3 +212,78 @@ def upstream_from_service_url(service_url: Optional[str],
     if not _host_in_networks(host, allowed_networks):
         return None
     return netloc
+
+
+# --- Resolution cache and counters ---
+#
+# The reverse proxy calls the resolve endpoint once per proxied HTTP request, so
+# one JupyterLab page load is dozens of calls and a long WebSocket session keeps
+# adding them. Without a cache each of those is a database round trip, and each
+# one would also emit an access-log line carrying no information.
+#
+# Only successful resolutions are cached. A miss for a service that has not
+# published its URL yet must stay a miss, or clicking "Open Service" the moment a
+# service comes up would fail for the whole TTL.
+#
+# The TTL is deliberately short. It is the window during which a job that has
+# stopped can still be proxied, and the RUNNING check it bypasses exists because
+# compute-node ports get recycled. A page load's burst is sub-second, so a few
+# seconds captures nearly all of the benefit while keeping that window small.
+# Under `uvicorn --workers N` each worker keeps its own cache, so expect up to N
+# misses per TTL rather than one; that is still bounded and small.
+_RESOLVE_CACHE_TTL_SECONDS = 10
+_RESOLVE_CACHE_MAX_ENTRIES = 1024
+_RESOLVE_LOG_INTERVAL_SECONDS = 60
+
+_resolve_cache = TTLCache(maxsize=_RESOLVE_CACHE_MAX_ENTRIES,
+                          ttl=_RESOLVE_CACHE_TTL_SECONDS)
+_resolve_counts = Counter()
+_resolve_last_logged = 0.0
+
+
+def cached_upstream(job_id: int) -> Optional[str]:
+    """Return a recently resolved upstream for a job, or None to consult the DB."""
+    return _resolve_cache.get(job_id)
+
+
+def cache_upstream(job_id: int, upstream: str) -> None:
+    """Remember a successful resolution for the cache's short TTL."""
+    _resolve_cache[job_id] = upstream
+
+
+def record_resolve(outcome: str) -> None:
+    """Count one resolve outcome, and periodically log the running totals.
+
+    Counting replaces per-request access logging for this endpoint: an aggregate
+    every minute says the same thing as hundreds of individual lines, and says it
+    in a form an operator can actually read. Outcomes are coarse on purpose —
+    'hit', 'miss', and a refusal reason — so the line stays useful without
+    naming any specific job.
+    """
+    global _resolve_last_logged
+    _resolve_counts[outcome] += 1
+    now = time.monotonic()
+    if _resolve_last_logged == 0.0:
+        # First call: start the clock rather than logging a one-request summary.
+        _resolve_last_logged = now
+        return
+    if now - _resolve_last_logged < _RESOLVE_LOG_INTERVAL_SECONDS:
+        return
+    _resolve_last_logged = now
+    totals = ' '.join(f'{name}={count}'
+                      for name, count in sorted(_resolve_counts.items()))
+    logger.info(f"service proxy resolve totals: {totals} "
+                f"cached={len(_resolve_cache)}")
+
+
+def reset_resolve_metrics() -> None:
+    """Clear the cache and counters. For tests, and for nothing else."""
+    global _resolve_last_logged
+    _resolve_cache.clear()
+    _resolve_counts.clear()
+    _resolve_last_logged = 0.0
+
+
+def resolve_counts() -> dict:
+    """Snapshot of the outcome counters, for tests and diagnostics."""
+    return dict(_resolve_counts)

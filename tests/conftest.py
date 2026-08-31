@@ -31,6 +31,19 @@ requires_ssh_keygen = pytest.mark.skipif(
 
 
 @pytest.fixture(autouse=True)
+def _clear_service_proxy_cache():
+    """Drop the service-proxy resolution cache between tests.
+
+    It is keyed by job id only — the proxy resolves before any user is known —
+    so two tests that reuse an id would otherwise read each other's upstream.
+    """
+    from fileglancer.apps import serviceproxy
+    serviceproxy.reset_resolve_metrics()
+    yield
+    serviceproxy.reset_resolve_metrics()
+
+
+@pytest.fixture(autouse=True)
 def _clear_fsp_caches():
     """Drop the file-share-path caches between tests.
 
