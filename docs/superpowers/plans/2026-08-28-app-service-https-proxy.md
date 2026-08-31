@@ -429,7 +429,7 @@ def test_job_id_from_host_extracts_id():
 
 
 def test_job_id_from_host_strips_port_and_case():
-    assert job_id_from_host("JOB-123.Apps.Example.Org:443", DOMAIN) == 123
+    assert job_id_from_host("JOB-123.Services.Example.Org:443", DOMAIN) == 123
 
 
 @pytest.mark.parametrize("host", [
