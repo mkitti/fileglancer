@@ -6,6 +6,7 @@ import tempfile
 
 import pytest
 from fastapi.testclient import TestClient
+from urllib.parse import urlsplit
 
 from fileglancer.settings import Settings, AppsSettings
 from fileglancer.server import create_app, get_current_user
@@ -34,7 +35,7 @@ def temp_dir():
 def settings_factory(temp_dir):
     """Build Settings against a fresh sqlite database, with the proxy domain
     configurable so the same fixtures cover both the on and off cases."""
-    def _build(proxy_domain=""):
+    def _build(proxy_domain="", upstream_suffix=""):
         db_path = os.path.join(temp_dir, "test.db")
         db_url = f"sqlite:///{db_path}"
         engine = create_engine(db_url)
@@ -43,7 +44,8 @@ def settings_factory(temp_dir):
             db_url=db_url,
             file_share_mounts=[],
             cli_mode=True,
-            apps=AppsSettings(service_proxy_domain=proxy_domain),
+            apps=AppsSettings(service_proxy_domain=proxy_domain,
+                              service_proxy_upstream_suffix=upstream_suffix),
         ), db_url
     return _build
 
@@ -55,8 +57,8 @@ def app_factory(settings_factory):
     argument."""
     built = []
 
-    def _build(proxy_domain=""):
-        settings, db_url = settings_factory(proxy_domain)
+    def _build(proxy_domain="", upstream_suffix=""):
+        settings, db_url = settings_factory(proxy_domain, upstream_suffix)
         import fileglancer.settings
         import fileglancer.database
         original = fileglancer.settings.get_settings
@@ -302,3 +304,27 @@ def test_resolve_rejects_malformed_cached_url(app_factory):
     resp = _resolve(app, f"job-{job_id}.{PROXY_DOMAIN}")
     assert resp.status_code == 403
     assert "x-fg-upstream" not in resp.headers
+
+
+def test_resolve_rejects_upstream_outside_suffix(app_factory):
+    """Proves apps.service_proxy_upstream_suffix reaches the endpoint, not just
+    the helper."""
+    app, db_url = app_factory(PROXY_DOMAIN, upstream_suffix=".nodes.example.org")
+    job_id = _seed_running_service_with_url(db_url, url="http://127.0.0.1:8989/")
+    resp = _resolve(app, f"job-{job_id}.{PROXY_DOMAIN}")
+    assert resp.status_code == 403
+    assert "x-fg-upstream" not in resp.headers
+
+
+def test_publish_then_resolve_roundtrip(app_factory, monkeypatch):
+    """Closes the loop the other tests each cover only half of: the hostname the
+    API publishes must be the one the resolve endpoint maps back to the raw
+    compute-node upstream."""
+    app, db_url = app_factory(PROXY_DOMAIN)
+    job_id = _seed_service_job(db_url)
+    published = _get_job_with_worker_url(
+        app, job_id, "http://node01:41235/lab?token=abc", monkeypatch).json()["service_url"]
+    assert published == f"https://job-{job_id}.{PROXY_DOMAIN}/lab?token=abc"
+    resp = _resolve(app, urlsplit(published).netloc)
+    assert resp.status_code == 204
+    assert resp.headers["x-fg-upstream"] == "node01:41235"

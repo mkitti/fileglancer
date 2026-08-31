@@ -49,7 +49,7 @@ def test_job_id_from_host_extracts_id():
 
 
 def test_job_id_from_host_strips_port_and_case():
-    assert job_id_from_host("JOB-123.services.example.org:443", DOMAIN) == 123
+    assert job_id_from_host("JOB-123.Services.Example.Org:443", DOMAIN) == 123
 
 
 @pytest.mark.parametrize("host", [
@@ -68,6 +68,12 @@ def test_job_id_from_host_rejects_bad_hosts(host):
 def test_job_id_from_host_rejects_everything_without_a_domain():
     """Guards against an empty domain turning the pattern into a wildcard."""
     assert job_id_from_host("job-123.services.example.org", "") is None
+
+
+def test_job_id_from_host_rejects_absurd_job_id():
+    """An unbounded digit run used to reach int()'s 4300-digit limit and raise,
+    turning a bogus hostname into a 500 with a traceback instead of a refusal."""
+    assert job_id_from_host(f"job-{'9' * 5000}.{DOMAIN}", DOMAIN) is None
 
 
 # --- upstream_from_service_url ---
@@ -93,6 +99,42 @@ def test_upstream_accepts_fqdn():
     "",
 ])
 def test_upstream_rejects_unproxyable_urls(url):
-    """This is the SSRF and header-injection gate: nginx interpolates the result
-    straight into proxy_pass, so anything unexpected must yield None."""
+    """This is the header-injection gate: nginx interpolates the result straight
+    into proxy_pass, so anything unexpected must yield None. It constrains the
+    authority's shape only — see the loopback/link-local and allowlist tests
+    below for what bounds the destination."""
     assert upstream_from_service_url(url) is None
+
+
+@pytest.mark.parametrize("url", [
+    "http://127.0.0.1:8989/",
+    "http://127.1.2.3:8989/",
+    "http://localhost:8989/",
+    "http://LOCALHOST:8989/",
+    "http://foo.localhost:8989/",
+    "http://169.254.169.254:80/",
+    "http://0.0.0.0:8080/",
+    "http://224.0.0.1:8080/",
+])
+def test_upstream_rejects_hosts_aimed_at_the_web_tier(url):
+    """The upstream comes from a file the user's job wrote and is dialed by the
+    reverse proxy from the Fileglancer host, so a loopback or link-local target
+    would reach services no cluster user can reach directly."""
+    assert upstream_from_service_url(url) is None
+
+
+def test_upstream_suffix_allowlist_accepts_matching_host():
+    assert upstream_from_service_url(
+        "http://node01.nodes.example.org:41235/lab",
+        allowed_suffix=".nodes.example.org") == "node01.nodes.example.org:41235"
+
+
+def test_upstream_suffix_allowlist_rejects_other_hosts():
+    assert upstream_from_service_url(
+        "http://evil.example.org:41235/", allowed_suffix=".nodes.example.org") is None
+
+
+def test_upstream_suffix_allowlist_is_case_insensitive():
+    assert upstream_from_service_url(
+        "http://NODE01.Nodes.Example.Org:41235/",
+        allowed_suffix=".nodes.example.org") == "NODE01.Nodes.Example.Org:41235"

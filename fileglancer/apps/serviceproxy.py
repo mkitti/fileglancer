@@ -7,6 +7,7 @@ upstream the hostname maps to. These functions are the whole translation layer
 between the two forms, kept pure so they can be tested without a database.
 """
 
+import ipaddress
 import re
 from typing import Optional
 from urllib.parse import urlsplit, urlunsplit
@@ -16,6 +17,10 @@ from urllib.parse import urlsplit, urlunsplit
 # directive, so userinfo, whitespace, CR/LF and bracketed IPv6 literals are all
 # rejected rather than escaped.
 _UPSTREAM_RE = re.compile(r'^([A-Za-z0-9.-]+):(\d{1,5})$')
+
+# Hostnames that always name the local machine, so an upstream naming one would
+# aim the proxy at the web host itself rather than at a compute node.
+_LOCAL_NAMES = frozenset({'localhost'})
 
 
 def build_proxied_service_url(service_url: Optional[str], job_id: int,
@@ -52,19 +57,47 @@ def job_id_from_host(host: Optional[str], proxy_domain: str) -> Optional[int]:
     # $host in nginx normally omits the port, but a client can send one.
     hostname = host.split(':', 1)[0].strip().lower()
     match = re.fullmatch(
-        r'job-(\d+)\.' + re.escape(proxy_domain.lower()), hostname)
+        r'job-(\d{1,9})\.' + re.escape(proxy_domain.lower()), hostname)
     if match is None:
         return None
     return int(match.group(1))
 
 
-def upstream_from_service_url(service_url: Optional[str]) -> Optional[str]:
+def _is_safe_upstream_host(host: str) -> bool:
+    """Reject upstream hosts that would aim the proxy at the web host itself.
+
+    The upstream comes from a file the user's own job wrote, and the reverse
+    proxy dials it from the Fileglancer host — not from the compute node. So a
+    loopback or link-local target would reach services that no cluster user can
+    reach directly, which is a privilege the proxy must not hand out. Checks are
+    textual and address-literal only: resolving a name here would mean a
+    blocking DNS lookup on every proxied request.
+    """
+    name = host.lower().rstrip('.')
+    if name in _LOCAL_NAMES or name.endswith('.localhost'):
+        return False
+    try:
+        addr = ipaddress.ip_address(name)
+    except ValueError:
+        return True  # A name, not a literal. Bounded by the suffix check below.
+    return not (
+        addr.is_loopback or addr.is_link_local
+        or addr.is_unspecified or addr.is_multicast or addr.is_reserved
+    )
+
+
+def upstream_from_service_url(service_url: Optional[str],
+                              allowed_suffix: str = "") -> Optional[str]:
     """Extract a ``host:port`` upstream from a published service URL.
 
     Returns None unless the authority is exactly a hostname and an in-range
-    port. This is a security boundary, not a convenience: the result is
-    interpolated into the reverse proxy's ``proxy_pass`` target, and the source
-    string is a file written by the user's own job.
+    port. The netloc regex is a header-injection gate — it constrains the
+    authority's shape only, since the result is interpolated into the reverse
+    proxy's ``proxy_pass`` target. The destination itself (where the proxy
+    actually dials) is bounded separately: loopback, link-local and other
+    dangerous literals are always rejected, and ``allowed_suffix``, when set,
+    confines the host to a given suffix. This matters because the source string
+    is a file written by the user's own job.
     """
     if not service_url:
         return None
@@ -77,5 +110,10 @@ def upstream_from_service_url(service_url: Optional[str]) -> Optional[str]:
         return None
     port = int(match.group(2))
     if not 1 <= port <= 65535:
+        return None
+    host = match.group(1)
+    if not _is_safe_upstream_host(host):
+        return None
+    if allowed_suffix and not host.lower().endswith(allowed_suffix.lower()):
         return None
     return netloc

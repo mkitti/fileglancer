@@ -2709,7 +2709,9 @@ def create_app(settings):
                         # to an upstream without a worker RPC per request.
                         db.set_job_service_url(session, job_id, service_url)
                 except Exception:
-                    pass
+                    logger.debug(
+                        f"Could not resolve or cache the service URL for job {job_id}",
+                        exc_info=True)
             # The cached value stays raw — it is the proxy's upstream. Only what
             # goes back to the browser is rewritten.
             proxied = apps_module.build_proxied_service_url(
@@ -2745,7 +2747,9 @@ def create_app(settings):
                     or getattr(db_job, 'entry_point_type', 'job') != 'service'
                     or db_job.status != 'RUNNING'):
                 raise HTTPException(status_code=403, detail="No running service for this host")
-            upstream = apps_module.upstream_from_service_url(db_job.service_url)
+            upstream = apps_module.upstream_from_service_url(
+                db_job.service_url,
+                allowed_suffix=settings.apps.service_proxy_upstream_suffix)
 
         if upstream is None:
             raise HTTPException(status_code=403, detail="No usable upstream for this host")
