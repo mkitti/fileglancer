@@ -202,6 +202,15 @@ session_cookie_secure: true
 #                               # certificate for the zone and a reverse proxy
 #                               # resolving upstreams via /api/apps/resolve;
 #                               # see docs/ServiceProxy.md. Empty = direct URL.
+#   service_proxy_upstream_suffix: nodes.example.org
+#                               # DNS zone the proxy is allowed to dial, i.e.
+#                               # where your compute nodes live. A service
+#                               # publishes its own upstream, so this confines
+#                               # where that can point. Matched on whole DNS
+#                               # labels, so a leading dot is optional and
+#                               # evil-nodes.example.org does not qualify.
+#                               # Hostnames only: a node that publishes its IP
+#                               # is still accepted. Empty = no restriction.
 
 # Cluster configuration
 # Mirrors py-cluster-api ClusterConfig - all fields are optional
