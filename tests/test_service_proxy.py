@@ -241,6 +241,58 @@ def test_resolve_disabled_when_no_proxy_domain(app_factory):
     assert _resolve(app, f"job-{job_id}.{PROXY_DOMAIN}").status_code == 403
 
 
+# --- proxied URL publication ---
+
+def _get_job_with_worker_url(app, job_id, url, monkeypatch):
+    """Drive get_job's service-url resolution without touching _worker_exec,
+    which is a closure local of create_app (not a module attribute) and can't
+    be monkeypatched from outside. In CLI mode (used by these fixtures)
+    _worker_exec dispatches in-process to the get_service_url action, which
+    calls fileglancer.apps.jobfiles.get_service_url/get_service_phase — patch
+    those instead, matching test_get_job_caches_service_url above."""
+    import fileglancer.apps.jobfiles as jobfiles
+    monkeypatch.setattr(jobfiles, "get_service_url", lambda db_job: url)
+    monkeypatch.setattr(jobfiles, "get_service_phase", lambda db_job: "running")
+    app.dependency_overrides[get_current_user] = lambda: OWNER
+    try:
+        return TestClient(app).get(f"/api/jobs/{job_id}")
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_job_detail_publishes_proxied_url(app_factory, monkeypatch):
+    app, db_url = app_factory(PROXY_DOMAIN)
+    job_id = _seed_service_job(db_url)
+    resp = _get_job_with_worker_url(
+        app, job_id, "http://node01:41235/lab?token=abc", monkeypatch)
+    assert resp.status_code == 200
+    assert resp.json()["service_url"] == \
+        f"https://job-{job_id}.{PROXY_DOMAIN}/lab?token=abc"
+
+
+def test_job_detail_publishes_raw_url_when_proxy_disabled(app_factory, monkeypatch):
+    """The off switch: unchanged behavior, byte for byte."""
+    app, db_url = app_factory("")
+    job_id = _seed_service_job(db_url)
+    resp = _get_job_with_worker_url(
+        app, job_id, "http://node01:41235/lab?token=abc", monkeypatch)
+    assert resp.json()["service_url"] == "http://node01:41235/lab?token=abc"
+
+
+def test_job_detail_caches_the_raw_url_not_the_proxied_one(app_factory, monkeypatch):
+    """The cached value is the upstream, so it must stay in its raw form."""
+    app, db_url = app_factory(PROXY_DOMAIN)
+    job_id = _seed_service_job(db_url)
+    _get_job_with_worker_url(
+        app, job_id, "http://node01:41235/lab?token=abc", monkeypatch)
+    session = get_db_session(db_url)
+    try:
+        assert get_job_by_id(session, job_id).service_url == \
+            "http://node01:41235/lab?token=abc"
+    finally:
+        session.close()
+
+
 def test_resolve_rejects_malformed_cached_url(app_factory):
     """SSRF regression test: the cached value comes from a file the user's own
     job wrote, and the result is interpolated into the proxy's proxy_pass."""

@@ -2710,7 +2710,12 @@ def create_app(settings):
                         db.set_job_service_url(session, job_id, service_url)
                 except Exception:
                     pass
-            return _convert_job(db_job, service_url=service_url, files=files, phase=phase)
+            # The cached value stays raw — it is the proxy's upstream. Only what
+            # goes back to the browser is rewritten.
+            proxied = apps_module.build_proxied_service_url(
+                service_url, job_id, settings.apps.service_proxy_domain)
+            return _convert_job(db_job, service_url=proxied or service_url,
+                                files=files, phase=phase)
 
     @app.get("/api/apps/resolve", include_in_schema=False)
     async def resolve_service_upstream(request: Request):
