@@ -35,11 +35,20 @@ def temp_dir():
 @pytest.fixture
 def settings_factory(temp_dir):
     """Build Settings against a fresh sqlite database, with the proxy domain
-    configurable so the same fixtures cover both the on and off cases."""
+    configurable so the same fixtures cover both the on and off cases.
+
+    Engines are tracked and disposed on teardown. Windows keeps a lock on an
+    open sqlite file, so leaving one open makes the temp_dir fixture's rmtree
+    fail with WinError 32. Teardown runs in reverse dependency order, which puts
+    this disposal before that rmtree.
+    """
+    engines = []
+
     def _build(proxy_domain="", upstream_zone=""):
         db_path = os.path.join(temp_dir, "test.db")
         db_url = f"sqlite:///{db_path}"
         engine = create_engine(db_url)
+        engines.append(engine)
         Base.metadata.create_all(engine)
         return Settings(
             db_url=db_url,
@@ -48,7 +57,11 @@ def settings_factory(temp_dir):
             apps=AppsSettings(service_proxy_domain=proxy_domain,
                               service_proxy_upstream_zone=upstream_zone),
         ), db_url
-    return _build
+
+    yield _build
+
+    for engine in engines:
+        engine.dispose()
 
 
 @pytest.fixture
