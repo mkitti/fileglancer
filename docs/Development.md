@@ -278,3 +278,4 @@ pixi run test-ui -- -g "the test description"
 ## Other documentation
 
 - [How to release a new version](Release.md)
+- [HTTPS proxy for app services](ServiceProxy.md)

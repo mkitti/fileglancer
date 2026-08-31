@@ -268,3 +268,4 @@ Pre-push hooks run Prettier and ESLint checks via Lefthook. These run automatica
 - [Development Guide](docs/Development.md)
 - [DevContainer Guide](docs/DevContainer.md)
 - [Release Process](docs/Release.md)
+- [Service Proxy Guide](docs/ServiceProxy.md)
