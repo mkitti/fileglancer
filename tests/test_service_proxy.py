@@ -35,7 +35,7 @@ def temp_dir():
 def settings_factory(temp_dir):
     """Build Settings against a fresh sqlite database, with the proxy domain
     configurable so the same fixtures cover both the on and off cases."""
-    def _build(proxy_domain="", upstream_suffix=""):
+    def _build(proxy_domain="", upstream_zone=""):
         db_path = os.path.join(temp_dir, "test.db")
         db_url = f"sqlite:///{db_path}"
         engine = create_engine(db_url)
@@ -45,7 +45,7 @@ def settings_factory(temp_dir):
             file_share_mounts=[],
             cli_mode=True,
             apps=AppsSettings(service_proxy_domain=proxy_domain,
-                              service_proxy_upstream_suffix=upstream_suffix),
+                              service_proxy_upstream_zone=upstream_zone),
         ), db_url
     return _build
 
@@ -57,8 +57,8 @@ def app_factory(settings_factory):
     argument."""
     built = []
 
-    def _build(proxy_domain="", upstream_suffix=""):
-        settings, db_url = settings_factory(proxy_domain, upstream_suffix)
+    def _build(proxy_domain="", upstream_zone=""):
+        settings, db_url = settings_factory(proxy_domain, upstream_zone)
         import fileglancer.settings
         import fileglancer.database
         original = fileglancer.settings.get_settings
@@ -307,9 +307,9 @@ def test_resolve_rejects_malformed_cached_url(app_factory):
 
 
 def test_resolve_rejects_upstream_outside_suffix(app_factory):
-    """Proves apps.service_proxy_upstream_suffix reaches the endpoint, not just
+    """Proves apps.service_proxy_upstream_zone reaches the endpoint, not just
     the helper."""
-    app, db_url = app_factory(PROXY_DOMAIN, upstream_suffix=".nodes.example.org")
+    app, db_url = app_factory(PROXY_DOMAIN, upstream_zone=".nodes.example.org")
     job_id = _seed_running_service_with_url(db_url, url="http://127.0.0.1:8989/")
     resp = _resolve(app, f"job-{job_id}.{PROXY_DOMAIN}")
     assert resp.status_code == 403

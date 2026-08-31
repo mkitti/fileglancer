@@ -148,52 +148,108 @@ def test_upstream_zone_does_not_reject_an_ip_literal():
     """A literal has no zone to match, so applying one would break clusters that
     publish addresses. Literals stay bounded by the local-host checks instead."""
     assert upstream_from_service_url(
-        "http://10.0.0.1:41235/", allowed_suffix="nodes.example.org") == "10.0.0.1:41235"
+        "http://10.0.0.1:41235/", allowed_zone="nodes.example.org") == "10.0.0.1:41235"
 
 
-def test_upstream_suffix_allowlist_accepts_matching_host():
+def test_upstream_zone_allowlist_accepts_matching_host():
     assert upstream_from_service_url(
         "http://node01.nodes.example.org:41235/lab",
-        allowed_suffix=".nodes.example.org") == "node01.nodes.example.org:41235"
+        allowed_zone=".nodes.example.org") == "node01.nodes.example.org:41235"
 
 
-def test_upstream_suffix_allowlist_rejects_other_hosts():
+def test_upstream_zone_allowlist_rejects_other_hosts():
     assert upstream_from_service_url(
-        "http://evil.example.org:41235/", allowed_suffix=".nodes.example.org") is None
+        "http://evil.example.org:41235/", allowed_zone=".nodes.example.org") is None
 
 
-def test_upstream_suffix_allowlist_is_case_insensitive():
+def test_upstream_zone_allowlist_is_case_insensitive():
     assert upstream_from_service_url(
         "http://NODE01.Nodes.Example.Org:41235/",
-        allowed_suffix=".nodes.example.org") == "NODE01.Nodes.Example.Org:41235"
+        allowed_zone=".nodes.example.org") == "NODE01.Nodes.Example.Org:41235"
 
 
-@pytest.mark.parametrize("suffix", [".nodes.example.org", "nodes.example.org"])
-def test_upstream_suffix_matches_on_label_boundaries(suffix):
+@pytest.mark.parametrize("zone", [".nodes.example.org", "nodes.example.org"])
+def test_upstream_zone_matches_on_label_boundaries(zone):
     """A plain endswith would let a sibling zone impersonate the allowed one, so
     an operator who omits the leading dot must not silently get a weaker check.
     Both spellings mean the same zone."""
     assert upstream_from_service_url(
-        "http://node01.nodes.example.org:41235/", allowed_suffix=suffix) == \
+        "http://node01.nodes.example.org:41235/", allowed_zone=zone) == \
         "node01.nodes.example.org:41235"
     assert upstream_from_service_url(
-        "http://evil-nodes.example.org:41235/", allowed_suffix=suffix) is None
+        "http://evil-nodes.example.org:41235/", allowed_zone=zone) is None
 
 
-def test_upstream_suffix_allows_the_zone_itself():
+def test_upstream_zone_allows_the_zone_itself():
     assert upstream_from_service_url(
         "http://nodes.example.org:41235/",
-        allowed_suffix=".nodes.example.org") == "nodes.example.org:41235"
+        allowed_zone=".nodes.example.org") == "nodes.example.org:41235"
 
 
-def test_upstream_suffix_ignores_a_trailing_root_dot():
+def test_upstream_zone_ignores_a_trailing_root_dot():
     """A trailing dot is insignificant in DNS, so it must not fail the check."""
     assert upstream_from_service_url(
         "http://node01.nodes.example.org.:41235/",
-        allowed_suffix=".nodes.example.org") == "node01.nodes.example.org.:41235"
+        allowed_zone=".nodes.example.org") == "node01.nodes.example.org.:41235"
 
 
-def test_upstream_suffix_still_rejects_an_unrelated_zone():
+def test_upstream_zone_still_rejects_an_unrelated_zone():
     assert upstream_from_service_url(
         "http://node01.other.example.org:41235/",
-        allowed_suffix="nodes.example.org") is None
+        allowed_zone="nodes.example.org") is None
+
+
+# --- allowed_networks: the companion allowlist for address upstreams ---
+
+NODE_NET = ("10.20.0.0/16",)
+
+
+def test_networks_accept_an_address_inside_them():
+    assert upstream_from_service_url(
+        "http://10.20.3.4:41235/lab", allowed_networks=NODE_NET) == "10.20.3.4:41235"
+
+
+def test_networks_reject_an_address_outside_them():
+    assert upstream_from_service_url(
+        "http://10.99.3.4:41235/lab", allowed_networks=NODE_NET) is None
+
+
+def test_networks_exempt_hostnames():
+    """A name has no address to compare without a DNS lookup, which this path
+    must never do, so names are governed by the zone check instead."""
+    assert upstream_from_service_url(
+        "http://node01.nodes.example.org:41235/", allowed_networks=NODE_NET) == \
+        "node01.nodes.example.org:41235"
+
+
+def test_networks_empty_allows_any_address():
+    assert upstream_from_service_url(
+        "http://203.0.113.4:41235/", allowed_networks=()) == "203.0.113.4:41235"
+
+
+def test_ipv6_upstreams_are_unreachable_regardless_of_networks():
+    """An IPv6 upstream can never appear: the authority pattern forbids colons in
+    the host, so neither bare nor bracketed literals survive the shape check.
+    Configuring an IPv6 network therefore has nothing to match — asserted here so
+    the limitation is recorded rather than rediscovered."""
+    assert upstream_from_service_url("http://2001:db8::5:41235/") is None
+    assert upstream_from_service_url("http://[2001:db8::5]:41235/") is None
+    assert upstream_from_service_url(
+        "http://2001:db8::5:41235/", allowed_networks=("2001:db8::/32",)) is None
+
+
+def test_networks_do_not_raise_across_address_families():
+    """Comparing an IPv4 address against an IPv6 network raises, so the check
+    must pair each address with networks of its own family."""
+    assert upstream_from_service_url(
+        "http://10.20.3.4:41235/", allowed_networks=("2001:db8::/32",)) is None
+    assert upstream_from_service_url(
+        "http://10.20.3.4:41235/",
+        allowed_networks=("2001:db8::/32", "10.20.0.0/16")) == "10.20.3.4:41235"
+
+
+def test_networks_still_refuse_loopback_inside_an_allowed_range():
+    """The always-refused set is not an allowlist opt-out: naming 127.0.0.0/8
+    must not make the app server's own loopback dialable."""
+    assert upstream_from_service_url(
+        "http://127.0.0.1:8989/", allowed_networks=("127.0.0.0/8",)) is None

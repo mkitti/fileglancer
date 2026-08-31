@@ -202,7 +202,7 @@ session_cookie_secure: true
 #                               # certificate for the zone and a reverse proxy
 #                               # resolving upstreams via /api/apps/resolve;
 #                               # see docs/ServiceProxy.md. Empty = direct URL.
-#   service_proxy_upstream_suffix: nodes.example.org
+#   service_proxy_upstream_zone: nodes.example.org
 #                               # DNS zone the proxy is allowed to dial, i.e.
 #                               # where your compute nodes live. A service
 #                               # publishes its own upstream, so this confines
@@ -211,6 +211,14 @@ session_cookie_secure: true
 #                               # evil-nodes.example.org does not qualify.
 #                               # Hostnames only: a node that publishes its IP
 #                               # is still accepted. Empty = no restriction.
+#   service_proxy_upstream_networks:
+#     - 10.20.0.0/16            # CIDR networks the proxy is allowed to dial.
+#                               # The companion to the zone above: that confines
+#                               # upstreams published as hostnames, this confines
+#                               # upstreams published as IP addresses, since a
+#                               # bare address has no zone to match. Empty = no
+#                               # restriction. Loopback, link-local and the other
+#                               # host-local ranges are refused either way.
 
 # Cluster configuration
 # Mirrors py-cluster-api ClusterConfig - all fields are optional

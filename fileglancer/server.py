@@ -2749,7 +2749,8 @@ def create_app(settings):
                 raise HTTPException(status_code=403, detail="No running service for this host")
             upstream = apps_module.upstream_from_service_url(
                 db_job.service_url,
-                allowed_suffix=settings.apps.service_proxy_upstream_suffix)
+                allowed_zone=settings.apps.service_proxy_upstream_zone,
+                allowed_networks=tuple(settings.apps.service_proxy_upstream_networks))
 
         if upstream is None:
             raise HTTPException(status_code=403, detail="No usable upstream for this host")

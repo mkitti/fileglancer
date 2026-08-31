@@ -9,7 +9,8 @@ between the two forms, kept pure so they can be tested without a database.
 
 import ipaddress
 import re
-from typing import Optional
+from functools import lru_cache
+from typing import Iterable, Optional
 from urllib.parse import urlsplit, urlunsplit
 
 # An upstream nginx can hand to proxy_pass: hostname and explicit port, nothing
@@ -72,7 +73,7 @@ def _is_ip_literal(host: str) -> bool:
         return False
 
 
-def _host_matches_suffix(host: str, allowed_suffix: str) -> bool:
+def _host_matches_zone(host: str, allowed_zone: str) -> bool:
     """Whether an upstream host sits inside the configured allowed zone.
 
     Matching is on whole DNS labels, not raw text: a plain ``endswith`` would
@@ -90,11 +91,46 @@ def _host_matches_suffix(host: str, allowed_suffix: str) -> bool:
     """
     if _is_ip_literal(host):
         return True
-    zone = allowed_suffix.lower().strip().rstrip('.').lstrip('.')
+    zone = allowed_zone.lower().strip().rstrip('.').lstrip('.')
     if not zone:
         return True
     name = host.lower().rstrip('.')
     return name == zone or name.endswith('.' + zone)
+
+
+@lru_cache(maxsize=8)
+def _parse_networks(networks: tuple) -> tuple:
+    """Parse CIDR strings once per distinct configuration, not per request.
+
+    Entries are validated at startup, so anything unparseable here is dropped
+    rather than raised: this runs on every proxied request, and a config error
+    should have already stopped the server.
+    """
+    parsed = []
+    for entry in networks:
+        try:
+            parsed.append(ipaddress.ip_network(entry.strip(), strict=False))
+        except ValueError:
+            continue
+    return tuple(parsed)
+
+
+def _host_in_networks(host: str, networks: Iterable[str]) -> bool:
+    """Whether an upstream address falls inside one of the allowed networks.
+
+    A hostname is exempt: there is no address to compare without a DNS lookup,
+    which this path must not do. Names are governed by the zone check instead,
+    so the two settings divide the space between them rather than overlapping.
+    """
+    allowed = _parse_networks(tuple(networks))
+    if not allowed:
+        return True
+    try:
+        addr = ipaddress.ip_address(host.strip().rstrip('.'))
+    except ValueError:
+        return True
+    # Comparing across families raises, so pair each address with its own.
+    return any(addr in net for net in allowed if net.version == addr.version)
 
 
 def _is_safe_upstream_host(host: str) -> bool:
@@ -119,7 +155,7 @@ def _is_safe_upstream_host(host: str) -> bool:
 
     Checks are textual and literal-only. Resolving a name here would mean a
     blocking DNS lookup on every proxied request; confining names to one zone is
-    the job of service_proxy_upstream_suffix.
+    the job of service_proxy_upstream_zone.
     """
     name = host.lower().strip().rstrip('.')
     if name in _LOCAL_NAMES or name.endswith('.localhost'):
@@ -135,7 +171,8 @@ def _is_safe_upstream_host(host: str) -> bool:
 
 
 def upstream_from_service_url(service_url: Optional[str],
-                              allowed_suffix: str = "") -> Optional[str]:
+                              allowed_zone: str = "",
+                              allowed_networks: Iterable[str] = ()) -> Optional[str]:
     """Extract a ``host:port`` upstream from a published service URL.
 
     Returns None unless the authority is exactly a hostname and an in-range
@@ -143,9 +180,12 @@ def upstream_from_service_url(service_url: Optional[str],
     authority's shape only, since the result is interpolated into the reverse
     proxy's ``proxy_pass`` target. The destination itself (where the proxy
     actually dials) is bounded separately: hosts that reach the Fileglancer host
-    itself are rejected, and ``allowed_suffix``, when set, confines hostnames to
-    one DNS zone. This matters because the source string is a file written by
-    the user's own job.
+    itself are rejected; ``allowed_zone``, when set, confines upstreams
+    published as hostnames to one DNS zone; and ``allowed_networks``, when
+    set, confines upstreams published as addresses to those CIDRs. The two
+    allowlists divide the space rather than overlapping, since a bare address
+    has no zone and a name has no address without a DNS lookup. All of this
+    matters because the source string is a file written by the user's own job.
     """
     if not service_url:
         return None
@@ -162,6 +202,8 @@ def upstream_from_service_url(service_url: Optional[str],
     host = match.group(1)
     if not _is_safe_upstream_host(host):
         return None
-    if allowed_suffix and not _host_matches_suffix(host, allowed_suffix):
+    if allowed_zone and not _host_matches_zone(host, allowed_zone):
+        return None
+    if not _host_in_networks(host, allowed_networks):
         return None
     return netloc

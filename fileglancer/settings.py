@@ -1,5 +1,6 @@
 from typing import List, Optional
 from functools import cache
+import ipaddress
 import sys
 
 from pydantic import BaseModel, HttpUrl, ValidationError, field_validator, model_validator
@@ -68,7 +69,38 @@ class AppsSettings(BaseModel):
     # service_proxy_domain is set: the upstream comes from a file the user's job
     # wrote, so without a zone the proxy will dial any host the Fileglancer host
     # can reach. Empty disables the check.
-    service_proxy_upstream_suffix: str = ""
+    service_proxy_upstream_zone: str = ""
+    # Restricts which IP addresses the service proxy will dial, as a list of
+    # CIDR networks, e.g. ["10.20.0.0/16"] to allow only the cluster's node
+    # subnet. The companion to service_proxy_upstream_zone: that one confines
+    # upstreams published as hostnames, this one confines upstreams published as
+    # addresses, since a bare address has no DNS zone to match. IPv6 entries
+    # parse but cannot match anything today: the upstream authority pattern
+    # forbids colons in the host, so no IPv6 literal ever reaches this check.
+    # Empty disables the check, in which case any
+    # address is allowed except those that reach the Fileglancer host itself
+    # (loopback, unspecified, link-local, multicast and reserved are always
+    # refused regardless of this setting).
+    service_proxy_upstream_networks: List[str] = []
+
+    @field_validator('service_proxy_upstream_networks')
+    @classmethod
+    def validate_service_proxy_upstream_networks(cls, v: List[str]) -> List[str]:
+        """Reject unparseable CIDR entries at startup.
+
+        A typo here fails closed — every address upstream stops resolving — so
+        it is far better to refuse to start than to let the proxy look
+        configured while silently rejecting every service.
+        """
+        for entry in v:
+            try:
+                ipaddress.ip_network(entry.strip(), strict=False)
+            except ValueError as exc:
+                raise ValueError(
+                    f"apps.service_proxy_upstream_networks contains an invalid "
+                    f"network {entry!r}: {exc}"
+                ) from exc
+        return v
 
 
 class Settings(BaseSettings):
