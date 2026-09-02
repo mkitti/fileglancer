@@ -146,8 +146,7 @@ def test_abspath_normalizes_windows_separators(fg):
 
     _resolve normalizes backslashes to '/' on the way in, so abspath has to do
     the same on the way out or a Windows mount path joined to a '/'-separated
-    relative path comes back as 'C:/shares/data\\sub/file.txt'. Caught by
-    Windows CI, where mount_path really does contain backslashes.
+    relative path comes back as 'C:/shares/data\\sub/file.txt'.
     """
     fg._fsp_cache = [
         FileSharePath(name="winshare", zone="z", mount_path="C:\\shares\\data")

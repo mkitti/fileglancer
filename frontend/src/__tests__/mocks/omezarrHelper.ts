@@ -48,5 +48,6 @@ export const omezarrHelperMock = {
   generateNeuroglancerStateForOmeZarr: vi.fn(() => 'mock-state-ome-zarr'),
   determineLayerType: vi.fn(async () => 'image'),
   translateUnitToNeuroglancer: vi.fn((unit: string) => unit),
-  getResolvedScales: vi.fn(() => [1.0, 0.5, 0.5])
+  getResolvedScales: vi.fn(() => [1.0, 0.5, 0.5]),
+  getDatasetWarnings: vi.fn(() => [])
 };

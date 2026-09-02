@@ -1,6 +1,8 @@
 import { default as log } from '@/logger';
+import { formatFileSize } from '@/utils';
 import * as zarr from 'zarrita';
 import * as omezarr from 'ome-zarr.js';
+import { classifyCodec } from '@bioimagetools/capability-manifest';
 import type {
   OmeZarrMetadata,
   MultiscaleMetadata,
@@ -21,6 +23,154 @@ export type Metadata = OmeZarrMetadata & {
   scales: number[][] | undefined;
   zarrVersion: 2 | 3;
 };
+
+/**
+ * Something about the dataset's layout that will make it awkward to view.
+ * Purely advisory - nothing is withheld on account of these.
+ */
+export type DatasetWarning =
+  | { case: 'zarr-single-level'; size: string }
+  | {
+      case: 'zarr-large-chunks';
+      size: string;
+      compressed: boolean;
+      sharded: boolean;
+    };
+
+/**
+ * Chunks above this are large enough to slow viewing down: a viewer has to
+ * fetch a whole chunk to show any part of it. Applies when the array is stored
+ * without compression, so the size we compute is the size that transfers.
+ *
+ * Published guidance puts the useful range well below this - the image.sc
+ * discussion of OME-Zarr chunk sizes lands on 1-10 MB [1], AWS gives 8-16 MB as
+ * typical for S3 byte-range reads [2], and webknossos recommends 32^3 to 128^3
+ * voxel inner chunks [3]. 32 MB is the top of what anyone recommends, so a chunk
+ * past it is outside the range rather than merely on the large side of it.
+ *
+ * [1] https://forum.image.sc/t/should-compression-play-a-role-in-selecting-chunk-sizes-for-ome-zarr-v0-4-datasets/117877
+ * [2] https://d1.awsstatic.com/whitepapers/AmazonS3BestPractices.pdf
+ * [3] https://docs.webknossos.org/webknossos/data/zarr.html
+ */
+export const MAX_CHUNK_BYTES = 32 * 1024 ** 2;
+/**
+ * The same limit for compressed arrays, where all we can compute is the logical
+ * (uncompressed) extent and the real transfer is some unknowable fraction of it.
+ * Doubled, so a chunk has to be outside the recommended range even at a
+ * conservative 2x ratio before we say anything.
+ */
+export const MAX_LOGICAL_CHUNK_BYTES = 64 * 1024 ** 2;
+/**
+ * Below this, a single-level image is small enough that the missing pyramid
+ * costs nothing worth mentioning.
+ */
+export const MAX_SINGLE_LEVEL_BYTES = 1024 ** 3;
+
+/**
+ * Whether the array's chunks are compressed on disk.
+ *
+ * A codec pipeline can nest: a sharded v3 array lists only `sharding_indexed`
+ * at the top level and carries the real compressor in its configuration, so the
+ * pipeline has to be walked rather than scanned. Anything `classifyCodec` does
+ * not recognize counts as compression, and metadata we never fetched counts as
+ * compression too - both keep us on the permissive threshold, where the cost of
+ * being wrong is a missed warning instead of a false one.
+ */
+function hasCompressionCodec(codecs: NonNullable<Metadata['codecs']>): boolean {
+  return codecs.some(codec => {
+    const nested = codec.configuration?.codecs;
+    if (Array.isArray(nested) && hasCompressionCodec(nested)) {
+      return true;
+    }
+    return classifyCodec(codec.name) !== 'structural';
+  });
+}
+
+/**
+ * Whether the array is sharded. Worth knowing because zarrita resolves the
+ * sharding codec when it opens the array - `arr.chunks` is then the inner chunk
+ * shape, the unit a viewer actually fetches, and not the shard around it. The
+ * warning says so, since "chunk" alone is ambiguous once sharding is in play.
+ */
+function isSharded(metadata: Metadata): boolean {
+  return (
+    metadata.codecs?.some(codec => codec.name === 'sharding_indexed') ?? false
+  );
+}
+
+function isStoredCompressed(metadata: Metadata): boolean {
+  if (metadata.codecs) {
+    return hasCompressionCodec(metadata.codecs);
+  }
+  if (metadata.compressor !== undefined) {
+    return metadata.compressor !== null;
+  }
+  return true;
+}
+
+/**
+ * Bytes per element for a zarrita dtype. Only numeric dtypes are sized; bool,
+ * string and object dtypes fall back to 1, which under-estimates rather than
+ * over-warns (they don't occur in imaging data).
+ */
+function getBytesPerElement(dtype: string): number {
+  const bits = Number(/^(?:u?int|float)(\d+)$/.exec(dtype)?.[1]);
+  return Number.isFinite(bits) ? bits / 8 : 1;
+}
+
+function product(dims: number[]): number {
+  return dims.reduce((total, dim) => total * dim, 1);
+}
+
+/**
+ * Flag layout choices that make a dataset awkward to view.
+ *
+ * A multiscales group with a single dataset provides no downsampled data, so
+ * every zoom level reads full-resolution chunks - the root cause of the incident
+ * that prompted these checks.
+ *
+ * Chunks far above the recommended range slow viewing down, because a viewer has
+ * to fetch a whole chunk to show any part of it. Sizes are computed from the
+ * shape, so they are logical: exact for an uncompressed array and an upper bound
+ * for a compressed one, which is why the limit depends on whether a compressor
+ * is in play.
+ */
+export function getDatasetWarnings(metadata: Metadata): DatasetWarning[] {
+  const { arr } = metadata;
+  if (!arr) {
+    return [];
+  }
+
+  const bytesPerElement = getBytesPerElement(arr.dtype);
+  const warnings: DatasetWarning[] = [];
+
+  // Declaring multiscales with one dataset is declaring a pyramid and supplying
+  // none. Keyed on the dataset count rather than the number of shapes, because
+  // a plain zarr array also has exactly one shape and is not making any such
+  // claim - `arr` is level 0, so its shape is the full resolution.
+  const levels = metadata.multiscales?.[0]?.datasets?.length;
+  const fullResBytes = product(arr.shape) * bytesPerElement;
+  if (levels === 1 && fullResBytes > MAX_SINGLE_LEVEL_BYTES) {
+    warnings.push({
+      case: 'zarr-single-level',
+      size: formatFileSize(fullResBytes)
+    });
+  }
+
+  const compressed = isStoredCompressed(metadata);
+  const chunkBytes = product(arr.chunks) * bytesPerElement;
+  const chunkLimit = compressed ? MAX_LOGICAL_CHUNK_BYTES : MAX_CHUNK_BYTES;
+  if (chunkBytes > chunkLimit) {
+    warnings.push({
+      case: 'zarr-large-chunks',
+      size: formatFileSize(chunkBytes),
+      compressed,
+      sharded: isSharded(metadata)
+    });
+  }
+
+  return warnings;
+}
 
 type OmeZarrChannel = {
   name: string;

@@ -1,4 +1,3 @@
-#leaned up CLI auto-login session
 """
 Command-line interface for Fileglancer
 """

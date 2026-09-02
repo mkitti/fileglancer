@@ -196,7 +196,10 @@ async function fetchZarrMetadata({
           scales: undefined,
           omero: undefined,
           labels: undefined,
-          zarrVersion: effectiveVersion
+          zarrVersion: effectiveVersion,
+          // This zarr.json is the array metadata, so the codec pipeline is
+          // already in hand - no second fetch needed.
+          codecs: (attrs as ZarrV3ArrayMetadata).codecs
         },
         omeZarrUrl: null,
         availableZarrVersions,
@@ -367,6 +370,21 @@ async function fetchZarrMetadata({
       log.info('Getting Zarr array for', imageUrl, 'with Zarr version', 2);
       const arr = await getZarrArray(imageUrl, 2);
       const shapes = [arr.shape];
+
+      // Read the compressor so chunk-size warnings know whether the logical
+      // size is also the stored size. Left undefined on failure, which callers
+      // treat as compressed.
+      let compressor: ZarrV2ArrayMetadata['compressor'];
+      try {
+        const arrayMeta = (await fetchFileAsJson(
+          fspName,
+          zarrayFile.path
+        )) as ZarrV2ArrayMetadata;
+        compressor = arrayMeta.compressor;
+      } catch (error) {
+        log.trace('Could not fetch .zarray for compressor:', error);
+      }
+
       return {
         metadata: {
           arr,
@@ -375,7 +393,8 @@ async function fetchZarrMetadata({
           scales: undefined,
           omero: undefined,
           labels: undefined,
-          zarrVersion: 2
+          zarrVersion: 2,
+          compressor
         },
         omeZarrUrl: null,
         availableZarrVersions,

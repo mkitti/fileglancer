@@ -27,10 +27,7 @@ import array
 import asyncio
 import json
 import os
-try:
-    import pwd
-except ImportError:
-    pwd = None  # type: ignore[assignment]
+import pwd
 import socket
 import struct
 import subprocess
