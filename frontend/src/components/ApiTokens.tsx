@@ -59,10 +59,10 @@ export default function ApiTokens() {
       <Typography className="mb-6 text-foreground">
         API tokens let scripts and notebooks use Fileglancer through the{' '}
         <FgExternalLink href="https://pypi.org/project/fileglancer">
-          authoring guide
+          Python package
         </FgExternalLink>
-        Python package. A token acts on your behalf, limited to the scopes you
-        grant it. The token is shown only once, when you create it.
+        . A token acts on your behalf, limited to the scopes you grant it.
+        The token is shown only once, when you create it.
       </Typography>
 
       {isLoading ? (
