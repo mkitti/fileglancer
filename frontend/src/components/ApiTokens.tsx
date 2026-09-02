@@ -61,8 +61,8 @@ export default function ApiTokens() {
         <FgExternalLink href="https://pypi.org/project/fileglancer">
           Python package
         </FgExternalLink>
-        . A token acts on your behalf, limited to the scopes you grant it.
-        The token is shown only once, when you create it.
+        . A token acts on your behalf, limited to the scopes you grant it. The
+        token is shown only once, when you create it.
       </Typography>
 
       {isLoading ? (
