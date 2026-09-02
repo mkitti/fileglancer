@@ -3,12 +3,8 @@ import os
 import re
 import shlex
 import sys
-try:
-    import pwd
-    import grp
-except ImportError:
-    pwd = None  # type: ignore[assignment]
-    grp = None  # type: ignore[assignment]
+import pwd
+import grp
 import json
 import secrets
 from datetime import datetime, timedelta, timezone, UTC
@@ -42,13 +38,14 @@ from fileglancer.settings import get_settings
 from fileglancer.issues import create_jira_ticket, get_jira_ticket_details, delete_jira_ticket
 from fileglancer.utils import format_timestamp, guess_content_type, parse_range_header, make_etag, parse_http_date_to_epoch
 from fileglancer.filestore import Filestore, RootCheckError
-from fileglancer.log import AccessLogMiddleware, disable_uvicorn_access_log
+from fileglancer.log import AccessLogMiddleware
+from fileglancer.logconf import configure_logging, disable_uvicorn_access_log
 from fileglancer.worker_pool import (
     WorkerPool, WorkerError, WorkerDead, prepare_worker_request)
 from fileglancer.user_worker import serialize_job_for_worker
 from fileglancer import sshkeys
 
-from x2s3.utils import get_read_access_acl, get_nosuchbucket_response, get_error_response, generate_request_id
+from x2s3.utils import get_read_access_acl, get_nosuchbucket_response, get_error_response, generate_request_id, get_list_xml
 from x2s3.client_file import FileProxyClient
 from x2s3.client import ObjectHandle
 
@@ -174,15 +171,17 @@ def get_current_user(request: Request):
     """
     FastAPI dependency to get the current authenticated user
 
-    If OKTA auth is enabled, validates session from cookie
-    If OKTA auth is disabled, falls back to $USER environment variable
+    Resolves either an Authorization: Bearer API token or a session cookie.
 
-    Also enforces the cross-origin allowlist: a request carrying an Origin
-    header that is neither same-origin nor listed in api_allowed_origins is
-    rejected with 403 before the session is even consulted.
+    The cross-origin allowlist is enforced for cookie auth only. Origin
+    enforcement exists because the session cookie is ambient — a browser
+    attaches it to same-site requests whether or not the page meant to make
+    them. A bearer token is never ambient, so there is no CSRF surface to
+    defend, and programmatic clients send no Origin header at all.
     """
     settings = get_settings()
-    auth.enforce_request_origin(request, settings)
+    if auth.parse_bearer_token(request) is None:
+        auth.enforce_request_origin(request, settings)
     return auth.get_current_user(request, settings)
 
 
@@ -214,6 +213,11 @@ def _convert_proxied_path(db_path: db.ProxiedPathDB, external_proxy_url: Optiona
         updated_at=db_path.updated_at,
         url=url
     )
+
+
+# The /files space is served as a single S3 bucket named for its first path
+# segment, which is how a path-style S3 client reads the share URL.
+FILES_BUCKET_NAME = "files"
 
 
 # Regex: allow unreserved URI chars (RFC 3986), plus / for path separators and common safe chars
@@ -262,6 +266,36 @@ def _convert_ticket(db_ticket: db.TicketDB) -> Ticket:
         key=db_ticket.ticket_key,
         created=db_ticket.created_at,
         updated=db_ticket.updated_at
+    )
+
+
+def _ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:
+    """Re-attach UTC timezone to naive datetimes from the DB.
+
+    SQLAlchemy's DateTime column strips tzinfo, so datetimes come back
+    naive even though they were stored as UTC. Re-attaching ensures
+    Pydantic serializes with '+00:00' so JS parses them correctly.
+    """
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt
+
+
+def _convert_api_token(row: db.ApiTokenDB) -> ApiTokenInfo:
+    """Convert an ApiTokenDB row to the public ApiTokenInfo model.
+
+    Deliberately does not carry token_hash: this model is what the listing
+    endpoint returns.
+    """
+    return ApiTokenInfo(
+        token_id=row.token_id,
+        name=row.name,
+        scopes=row.scopes.split(),
+        created_at=_ensure_utc(row.created_at),
+        expires_at=_ensure_utc(row.expires_at),
+        last_used_at=_ensure_utc(row.last_used_at),
     )
 
 
@@ -392,6 +426,56 @@ def create_app(settings):
             result.pop("_fd_mode", None)
             return result
 
+    def _resolve_sharing_key(sharing_key: str, key: str) -> dict | Response:
+        """Resolve a sharing key to the shared link's mount path, owner and name.
+
+        `key` is only used to build the S3 error responses.
+        """
+        with db.get_db_session(settings.db_url) as session:
+
+            proxied_path = db.get_proxied_path_by_sharing_key(session, sharing_key)
+            if not proxied_path:
+                return get_nosuchbucket_response(key)
+
+            # Treat legacy "." (FSP-root sentinel) as empty so old records that
+            # were created before _normalize_proxied_path still resolve.
+            stored_path = "" if proxied_path.path == "." else proxied_path.path
+            stored_prefix = "" if proxied_path.url_prefix == "." else proxied_path.url_prefix
+
+            fsp = db.get_file_share_path(session, proxied_path.fsp_name)
+            if not fsp:
+                return get_error_response(400, "InvalidArgument", f"File share path {proxied_path.fsp_name} not found", key)
+            expanded_mount_path = os.path.expanduser(fsp.mount_path)
+            # For FSP-root links (empty path) use the mount path directly to
+            # avoid a stray trailing slash in mount_path.
+            mount_path = f"{expanded_mount_path}/{stored_path}" if stored_path else expanded_mount_path
+            return {
+                "mount_path": mount_path,
+                "username": proxied_path.username,
+                "url_prefix": stored_prefix,
+                "default_name": os.path.basename(stored_path) or fsp.name,
+            }
+
+
+    def _link_virtual_prefix(link: dict, requested_prefix: str, base: str = "") -> str:
+        """The key prefix a client sees in front of a shared link's own files.
+
+        Those leading key segments have no counterpart on disk, so x2s3 is
+        told about them as a virtual prefix. `base` is whatever precedes the
+        link name in the bucket's key space: the sharing key at the /files
+        bucket root, nothing when the sharing key is itself the bucket.
+
+        A stored url_prefix may be percent-encoded, while a client that took
+        the name out of the share URL (as Neuroglancer does, which decodes the
+        path) asks for it decoded, so match whichever form was requested.
+        """
+        stored = link["url_prefix"]
+        decoded = unquote(stored)
+        rest = requested_prefix[len(base):] if requested_prefix.startswith(base) else ""
+        name = decoded if decoded != stored and rest.startswith(decoded) else stored
+        return f"{base}{name}/" if name else base
+
+
     def _resolve_proxy_info(sharing_key: str, captured_path: str) -> Tuple[dict | Response, str]:
         """Resolve a sharing key to proxy info (mount_path, target_name, username, subpath).
 
@@ -408,44 +492,31 @@ def create_app(settings):
                 return captured[len(prefix) + 1:]
             return None
 
-        with db.get_db_session(settings.db_url) as session:
+        link = _resolve_sharing_key(sharing_key, captured_path)
+        if isinstance(link, Response):
+            return link, ""
 
-            proxied_path = db.get_proxied_path_by_sharing_key(session, sharing_key)
-            if not proxied_path:
-                return get_nosuchbucket_response(captured_path), ""
+        stored_prefix = link["url_prefix"]
+        subpath = try_strip_prefix(captured_path, stored_prefix)
+        if subpath is None:
+            subpath = try_strip_prefix(captured_path, unquote(stored_prefix))
+        if subpath is None:
+            return get_error_response(404, "NoSuchKey", f"Path mismatch for sharing key {sharing_key}", captured_path), ""
 
-            # Treat legacy "." (FSP-root sentinel) as empty so old records that
-            # were created before _normalize_proxied_path still resolve.
-            stored_path = "" if proxied_path.path == "." else proxied_path.path
-            stored_prefix = "" if proxied_path.url_prefix == "." else proxied_path.url_prefix
-
-            subpath = try_strip_prefix(captured_path, stored_prefix)
-            if subpath is None:
-                subpath = try_strip_prefix(captured_path, unquote(stored_prefix))
-            if subpath is None:
-                return get_error_response(404, "NoSuchKey", f"Path mismatch for sharing key {sharing_key}", captured_path), ""
-
-            fsp = db.get_file_share_path(session, proxied_path.fsp_name)
-            if not fsp:
-                return get_error_response(400, "InvalidArgument", f"File share path {proxied_path.fsp_name} not found", captured_path), ""
-            expanded_mount_path = os.path.expanduser(fsp.mount_path)
-            # For FSP-root links (empty path) use the mount path directly to
-            # avoid a stray trailing slash in mount_path.
-            mount_path = f"{expanded_mount_path}/{stored_path}" if stored_path else expanded_mount_path
-            target_name = captured_path.rsplit('/', 1)[-1] if captured_path else (os.path.basename(stored_path) or fsp.name)
-            return {
-                "mount_path": mount_path,
-                "target_name": target_name,
-                "username": proxied_path.username,
-            }, subpath
+        target_name = captured_path.rsplit('/', 1)[-1] if captured_path else link["default_name"]
+        return {
+            "mount_path": link["mount_path"],
+            "target_name": target_name,
+            "username": link["username"],
+            "url_prefix": stored_prefix,
+        }, subpath
 
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
 
-        # Configure logging based on the log level in the settings
-        logger.remove()
-        logger.add(sys.stderr, level=settings.log_level)
+        # Configure logging based on the log level/format in the settings
+        configure_logging(settings.log_level, settings.log_format)
 
         # use_access_flags requires root + non-CLI mode. Workers themselves
         # are used in any server mode (CLI mode runs in-process).
@@ -1309,6 +1380,70 @@ def create_app(settings):
         return NeuroglancerShortLinkResponse(links=links)
 
 
+    async def _list_objects(link: dict, bucket_name: str, virtual_prefix: str,
+                            continuation_token, delimiter, encoding_type,
+                            fetch_owner, max_keys, prefix, start_after) -> Response:
+        """Run an S3 ListObjectsV2 against one shared link."""
+        result = await _worker_exec(link["username"], "s3_list_objects",
+                                    mount_path=link["mount_path"],
+                                    target_name=bucket_name,
+                                    virtual_prefix=virtual_prefix,
+                                    continuation_token=continuation_token,
+                                    delimiter=delimiter,
+                                    encoding_type=encoding_type,
+                                    fetch_owner=fetch_owner,
+                                    max_keys=max_keys,
+                                    prefix=prefix,
+                                    start_after=start_after)
+        return Response(content=result["body"], media_type=result.get("media_type", "application/xml"),
+                        status_code=result.get("status_code", 200))
+
+
+    @app.get("/files/")
+    async def bucket_dispatcher(list_type: Optional[int] = Query(None, alias="list-type"),
+                                continuation_token: Optional[str] = Query(None, alias="continuation-token"),
+                                delimiter: Optional[str] = Query(None, alias="delimiter"),
+                                encoding_type: Optional[str] = Query(None, alias="encoding-type"),
+                                fetch_owner: Optional[bool] = Query(None, alias="fetch-owner"),
+                                max_keys: Optional[int] = Query(1000, alias="max-keys"),
+                                prefix: Optional[str] = Query(None, alias="prefix"),
+                                start_after: Optional[str] = Query(None, alias="start-after")):
+        """S3 bucket root for data links.
+
+        The whole /files space is one S3 bucket, so a key looks like
+        `{sharing_key}/{link name}/{path}`, and a client that wants to browse a
+        link asks the bucket root for everything under that prefix. That is how
+        Neuroglancer lists a directory: it takes the first path segment of the
+        share URL as the bucket and the rest as the prefix.
+
+        Sharing keys are secret, so this never enumerates them. Without a
+        prefix that names one exactly, the answer is an empty listing --
+        identical for a missing, partial or unknown key, so the endpoint can't
+        be probed for valid keys. Empty rather than an error is deliberate:
+        Neuroglancer remembers per-server whether S3 listing works at all, and
+        an error here would turn off browsing for the valid links too.
+        """
+        if not list_type:
+            return get_error_response(404, "NoSuchKey", "The bucket root is not an object", "")
+        if list_type != 2:
+            return get_error_response(400, "InvalidArgument", f"Invalid list type {list_type}", "")
+
+        prefix = prefix or ''
+        sharing_key = prefix.split('/', 1)[0]
+        link = _resolve_sharing_key(sharing_key, prefix) if sharing_key else None
+        if not isinstance(link, dict):
+            xml = get_list_xml([], [], Name=FILES_BUCKET_NAME, Prefix=prefix, Delimiter=delimiter,
+                               MaxKeys=max_keys, EncodingType=encoding_type, KeyCount=0,
+                               IsTruncated='false', ContinuationToken=continuation_token,
+                               StartAfter=start_after)
+            return Response(content=xml, media_type="application/xml")
+
+        return await _list_objects(link, FILES_BUCKET_NAME,
+                                   _link_virtual_prefix(link, prefix, f"{sharing_key}/"),
+                                   continuation_token, delimiter, encoding_type,
+                                   fetch_owner, max_keys, prefix, start_after)
+
+
     @app.get("/files/{sharing_key}/{path:path}")
     async def target_dispatcher(request: Request,
                                 sharing_key: str,
@@ -1325,27 +1460,26 @@ def create_app(settings):
         if 'acl' in request.query_params:
             return get_read_access_acl()
 
-        info, subpath = _resolve_proxy_info(sharing_key, path)
-        if isinstance(info, Response):
-            return info
-
         if list_type:
-            if list_type == 2:
-                result = await _worker_exec(info["username"], "s3_list_objects",
-                                            mount_path=info["mount_path"],
-                                            target_name=info["target_name"],
-                                            continuation_token=continuation_token,
-                                            delimiter=delimiter,
-                                            encoding_type=encoding_type,
-                                            fetch_owner=fetch_owner,
-                                            max_keys=max_keys,
-                                            prefix=prefix,
-                                            start_after=start_after)
-                return Response(content=result["body"], media_type=result.get("media_type", "application/xml"),
-                                status_code=result.get("status_code", 200))
-            else:
+            # Reached when the sharing key is the bucket, i.e. a client pointed
+            # at /files as its endpoint. A bucket has no path of its own, so
+            # what was captured is ignored and the listing is driven by the
+            # prefix. Keys still carry the link name, so they resolve as URLs
+            # under the share URL.
+            link = _resolve_sharing_key(sharing_key, path)
+            if isinstance(link, Response):
+                return link
+            if list_type != 2:
                 return get_error_response(400, "InvalidArgument", f"Invalid list type {list_type}", path)
+            return await _list_objects(link, sharing_key,
+                                       _link_virtual_prefix(link, prefix or ''),
+                                       continuation_token, delimiter, encoding_type,
+                                       fetch_owner, max_keys, prefix, start_after)
         else:
+            info, subpath = _resolve_proxy_info(sharing_key, path)
+            if isinstance(info, Response):
+                return info
+
             range_header = request.headers.get("range")
 
             result = await _worker_exec(
@@ -1444,6 +1578,75 @@ def create_app(settings):
             media_type="application/x-pem-file",
             headers=headers,
         )
+
+    # API token management. These endpoints are session-only: they are absent
+    # from the scope table in auth.py, so deny-by-default means a token can
+    # never be used to mint or revoke another token.
+    @app.get("/api/tokens/scopes", response_model=dict,
+             description="List the API token scopes this server supports")
+    async def list_enabled_token_scopes(username: str = Depends(get_current_user)):
+        """Tell the UI which scope checkboxes to offer.
+
+        Session-only like the other /api/tokens routes, since only the token
+        creation dialog needs it.
+        """
+        return {"scopes": sorted(settings.api_token_scopes)}
+
+
+    @app.get("/api/tokens", response_model=ApiTokenListResponse,
+             description="List the current user's API tokens")
+    async def list_api_tokens(username: str = Depends(get_current_user)):
+        with db.get_db_session(settings.db_url) as session:
+            rows = db.list_api_tokens(session, username)
+            return ApiTokenListResponse(
+                tokens=[_convert_api_token(row) for row in rows])
+
+
+    @app.post("/api/tokens", response_model=ApiTokenCreateResponse,
+              status_code=201,
+              description="Create an API token; the secret is returned once")
+    async def create_api_token(payload: ApiTokenCreateRequest,
+                               username: str = Depends(get_current_user)):
+        if not payload.scopes:
+            raise HTTPException(status_code=400,
+                                detail="At least one scope is required")
+        unknown = sorted(set(payload.scopes) - auth.API_SCOPES)
+        if unknown:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown scopes: {', '.join(unknown)}. "
+                       f"Valid scopes: {', '.join(sorted(auth.API_SCOPES))}")
+
+        # A real scope this server does not support. Distinguished from an
+        # unknown scope because the remedy is different: the user cannot fix
+        # this themselves.
+        disabled = sorted(set(payload.scopes) - set(settings.api_token_scopes))
+        if disabled:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Not enabled on this server: {', '.join(disabled)}. "
+                       f"Contact your Fileglancer administrator if you need "
+                       f"them. Enabled scopes: "
+                       f"{', '.join(sorted(settings.api_token_scopes))}")
+
+        with db.get_db_session(settings.db_url) as session:
+            row, secret = db.create_api_token(
+                session, username, payload.name, payload.scopes,
+                expires_in_days=payload.expires_in_days)
+            logger.info(f"Created API token {row.token_id} for {username} "
+                        f"with scopes {row.scopes}")
+            return ApiTokenCreateResponse(token=_convert_api_token(row),
+                                          secret=secret)
+
+
+    @app.delete("/api/tokens/{token_id}", description="Revoke an API token")
+    async def delete_api_token(token_id: str = Path(..., description="The token's public id"),
+                               username: str = Depends(get_current_user)):
+        with db.get_db_session(settings.db_url) as session:
+            if db.delete_api_token(session, username, token_id) == 0:
+                raise HTTPException(status_code=404, detail="Token not found")
+        logger.info(f"Revoked API token {token_id} for {username}")
+        return {"message": f"Token {token_id} revoked"}
 
     # File content endpoint
     @app.head("/api/content/{path_name:path}")
@@ -2574,19 +2777,6 @@ def create_app(settings):
             raise
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
-
-    def _ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:
-        """Re-attach UTC timezone to naive datetimes from the DB.
-
-        SQLAlchemy's DateTime column strips tzinfo, so datetimes come back
-        naive even though they were stored as UTC. Re-attaching ensures
-        Pydantic serializes with '+00:00' so JS parses them correctly.
-        """
-        if dt is None:
-            return None
-        if dt.tzinfo is None:
-            return dt.replace(tzinfo=UTC)
-        return dt
 
     def _convert_job(db_job: db.JobDB, service_url: str = None, files: dict = None,
                      phase: str = None) -> Job:

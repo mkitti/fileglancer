@@ -32,19 +32,6 @@ from fileglancer.apps import (
     expand_user_path,
 )
 
-# The `pwd` module is POSIX-only; on Windows `command_mod.pwd` is None, so tests
-# that patch pwd.getpwnam/getpwuid to exercise per-user home resolution cannot run.
-requires_pwd = pytest.mark.skipif(
-    sys.platform == "win32", reason="pwd module is not available on Windows"
-)
-
-# The generated script snippets are POSIX bash and only ever run on Linux
-# compute nodes; on Windows CI runners `bash` resolves to the WSL stub, which
-# can't execute them.
-requires_bash = pytest.mark.skipif(
-    sys.platform == "win32", reason="requires a working bash; snippets only run on Linux compute nodes"
-)
-
 
 # --- Model tests ---
 
@@ -155,10 +142,6 @@ def _run_check(reqs, extra_path=None, prefix=""):
     return proc.returncode, proc.stderr.strip()
 
 
-@pytest.mark.skipif(
-    sys.platform == "win32",
-    reason="requirement-check snippet is POSIX bash; it only runs on Linux compute nodes",
-)
 class TestBuildRequirementsCheck:
     def test_empty_returns_empty_string(self):
         assert build_requirements_check([]) == ""
@@ -914,7 +897,6 @@ class TestServicePortHelper:
         assert "export FG_HOSTNAME=" in _SERVICE_PORT_HELPER
         assert "export FG_SERVICE_TOKEN=" in _SERVICE_PORT_HELPER
 
-    @requires_bash
     def test_helper_mints_a_urlsafe_token(self):
         import re
         script = _SERVICE_PORT_HELPER + '\necho "$FG_SERVICE_TOKEN"'
@@ -924,7 +906,6 @@ class TestServicePortHelper:
         # Non-empty and URL-safe (hex), so no encoding is needed in the URL.
         assert re.fullmatch(r"[0-9a-f]{16,}", token), token
 
-    @requires_bash
     def test_helper_is_valid_bash(self):
         # The generated snippet must at least parse as bash.
         result = subprocess.run(
@@ -933,7 +914,6 @@ class TestServicePortHelper:
         )
         assert result.returncode == 0, result.stderr
 
-    @requires_bash
     def test_helper_picks_a_free_port_at_runtime(self):
         # Run the helper and confirm FG_SERVICE_PORT is a plausible TCP port.
         script = _SERVICE_PORT_HELPER + '\necho "$FG_SERVICE_PORT"'
@@ -944,7 +924,6 @@ class TestServicePortHelper:
         port = int(result.stdout.strip().splitlines()[-1])
         assert 1 <= port <= 65535
 
-    @requires_bash
     def test_helper_robust_under_set_euo_pipefail(self):
         # A deployment may prepend `set -euo pipefail` via script_prologue; the
         # helper must still allocate a port and not abort the job.
@@ -1014,7 +993,6 @@ class TestServiceUrlSuffix:
 class TestServiceUrlPublisher:
     """The backgrounded readiness probe that publishes SERVICE_URL_PATH."""
 
-    @requires_bash
     def test_publisher_is_valid_bash(self):
         snippet = _build_service_url_publisher("/?access_token=${FG_SERVICE_TOKEN}")
         result = subprocess.run(["bash", "-n", "-c", snippet],
@@ -1022,7 +1000,6 @@ class TestServiceUrlPublisher:
         assert result.returncode == 0, result.stderr
         assert "SERVICE_URL_PATH" in snippet and "3600" in snippet
 
-    @requires_bash
     def test_publishes_tokenized_url_only_once_port_is_up(self, tmp_path):
         import socket
         # Bind a real port so the probe's TCP connect succeeds.
@@ -1048,7 +1025,6 @@ class TestServiceUrlPublisher:
         finally:
             srv.close()
 
-    @requires_bash
     def test_does_not_publish_when_port_never_opens(self, tmp_path):
         import socket
         # Grab a free port number, then close it so nothing is listening.
@@ -1268,7 +1244,6 @@ class TestBuildCommandTildeExpansion:
         cmd = build_command(entry_point, {"output_dir": "/data/output"})
         assert "/data/output" in cmd
 
-    @requires_pwd
     def test_tilde_expanded_to_target_user_home(self, entry_point, monkeypatch):
         """With a username, ~ resolves to that user's home, not the server's."""
         import fileglancer.apps.command as command_mod
@@ -1524,10 +1499,6 @@ class TestExpandUserPath:
     def test_absolute_unchanged(self):
         assert expand_user_path("/data/output") == "/data/output"
 
-    def test_backslashes_normalized(self):
-        assert expand_user_path("/data\\sub") == "/data/sub"
-
-    @requires_pwd
     def test_tilde_uses_username_home(self, monkeypatch):
         import fileglancer.apps.command as command_mod
         monkeypatch.setattr(command_mod.pwd, "getpwnam",
@@ -1535,7 +1506,6 @@ class TestExpandUserPath:
         assert expand_user_path("~/x", username="bob") == "/home/bob/x"
         assert expand_user_path("~", username="bob") == "/home/bob"
 
-    @requires_pwd
     def test_unknown_username_falls_back_to_euid(self, monkeypatch):
         import fileglancer.apps.command as command_mod
         monkeypatch.setattr(command_mod.pwd, "getpwnam",
@@ -2640,10 +2610,6 @@ class TestManifestSourceFilename:
         assert manifest.source_filename == "pyproject.toml"
 
 
-@pytest.mark.skipif(
-    sys.platform == "win32",
-    reason="the poll loop uses fcntl file locking; the server only runs on POSIX",
-)
 class TestPollLoopStopRace:
     """The poll loop must not orphan a job submitted while it is stopping.
 

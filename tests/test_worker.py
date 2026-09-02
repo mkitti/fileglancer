@@ -11,16 +11,10 @@ import json
 import os
 import socket
 import struct
-import sys
 import tempfile
 import time
 
 import pytest
-
-pytestmark = pytest.mark.skipif(
-    sys.platform == "win32",
-    reason="Worker subsystem uses fork/setuid/SCM_RIGHTS (Unix-only)",
-)
 
 from conftest import requires_symlinks
 from fileglancer.user_worker import (
@@ -95,6 +89,7 @@ class TestBuildWorkerEnv:
         for key in list(env):
             assert not key.upper().startswith("FGC_") or key in (
                 "FGC_LOG_LEVEL",
+                "FGC_LOG_FORMAT",
                 "FGC_WORKER_FD",
             ), f"secret leaked: {key}"
         # The specific secrets are gone regardless of case.
@@ -143,6 +138,7 @@ class TestBuildWorkerEnv:
         # Operational vars the worker needs are set explicitly.
         assert env["HOME"] == "/home/alice"
         assert env["FGC_LOG_LEVEL"] == "DEBUG"
+        assert env["FGC_LOG_FORMAT"] == "text"
         assert env["FGC_WORKER_FD"] == "9"
 
     def test_passthrough_allows_site_specific_names_and_prefixes(self):

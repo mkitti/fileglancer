@@ -4,8 +4,12 @@ Custom access log middleware for FastAPI/Uvicorn
 This middleware logs HTTP access information including authenticated username.
 It replaces Uvicorn's default access logger to provide more detailed logging
 with application-level authentication context.
+
+Each request is logged as one human-readable line, with the same facts also
+attached as Elastic Common Schema fields, which the JSON log format in
+``fileglancer.logconf`` emits for Kibana.
 """
-import logging
+import secrets
 import time
 from typing import Callable
 
@@ -15,6 +19,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
 from fileglancer import auth
+from fileglancer.logconf import SERVICE_NAME
 from fileglancer.settings import Settings
 
 
@@ -27,24 +32,6 @@ def _log_safe(value: str) -> str:
     unchanged.
     """
     return value.encode("unicode_escape").decode("ascii")
-
-
-def disable_uvicorn_access_log():
-    """Silence Uvicorn's own access logger, which AccessLogMiddleware replaces.
-
-    Left enabled, every request is logged twice: once here with the username and
-    duration, once by Uvicorn without them. Uvicorn's ``--no-access-log`` does
-    the same thing from the outside, but it has to be remembered on every launch
-    command, and it was missing from several. Doing it where the middleware is
-    installed covers any way the app is started.
-
-    Matches what Uvicorn's own ``access_log=False`` does. Safe to call more than
-    once, and safe at import time: Uvicorn configures logging before it imports
-    the app, including in each --reload/--workers subprocess.
-    """
-    access_logger = logging.getLogger("uvicorn.access")
-    access_logger.handlers = []
-    access_logger.propagate = False
 
 
 class AccessLogMiddleware(BaseHTTPMiddleware):
@@ -65,7 +52,7 @@ class AccessLogMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Process request and log access information"""
-        start_time = time.time()
+        start_time = time.perf_counter()
 
         # Extract username from session (if authenticated)
         username = "-"
@@ -77,11 +64,35 @@ class AccessLogMiddleware(BaseHTTPMiddleware):
             # Silently handle any authentication errors - user is just not authenticated
             pass
 
-        # Process the request
-        response = await call_next(request)
+        # Bind an id for this request as ECS trace.id, so every line logged
+        # while serving it can be grouped with its access log line in Kibana.
+        # It also goes back to the client as a response header, so a bug report
+        # quoting it is enough to find the request.
+        request_id = secrets.token_hex(8)
+        with logger.contextualize(**{"trace.id": request_id}):
+            response = await call_next(request)
+        response.headers["x-request-id"] = request_id
+
+        # Token-authenticated requests have no session cookie, so the lookup
+        # above found nothing and username is still '-'. get_user_from_token
+        # leaves the resolved identity on request.state, which is readable now
+        # that the endpoint has run. The cookie lookup above is deliberately
+        # left in place rather than replaced by this: logout deletes the
+        # session during the request, so resolving it only after call_next
+        # would log '-' for the request that did the logging out.
+        token_username = getattr(request.state, "fg_username", None)
+        if token_username:
+            token_id = getattr(request.state, "fg_token_id", None)
+            username = (f"{token_username} fgt:{token_id}" if token_id
+                        else token_username)
 
         # Calculate request duration
-        duration_ms = (time.time() - start_time) * 1000
+        # ponytail: BaseHTTPMiddleware returns once the response starts, so for
+        # streamed downloads this is time-to-first-byte, not transfer time.
+        # Rewrite as pure ASGI (see x2s3's AccessLogMiddleware) if download
+        # latency ever needs charting.
+        duration_s = time.perf_counter() - start_time
+        duration_ms = duration_s * 1000
 
         # Extract client information
         client_host = request.client.host if request.client else "unknown"
@@ -100,6 +111,7 @@ class AccessLogMiddleware(BaseHTTPMiddleware):
 
         # Format log message in a standard access log format
         # Example: 192.168.1.100:54321 [username] "GET /api/files HTTP/1.1" 200 - 45.23ms
+        # API token requests carry the token id: [username fgt:a1b2c3d4e5f6]
         log_message = (
             f"{client_host}:{client_port} [{username}] "
             f'"{request.method} {_log_safe(path)}'
@@ -114,12 +126,48 @@ class AccessLogMiddleware(BaseHTTPMiddleware):
             f"{response.status_code} - {duration_ms:.2f}ms"
         )
 
+        # The same facts as the message above, keyed by ECS field name. Text
+        # mode ignores them; JSON mode merges them into the logged object,
+        # where event.duration is what p95/p99 aggregations run on.
+        fields = {
+            "event.dataset": f"{SERVICE_NAME}.access",
+            # ECS measures event.duration in nanoseconds.
+            "event.duration": int(duration_s * 1_000_000_000),
+            "trace.id": request_id,
+            "http.request.method": request.method,
+            "http.response.status_code": response.status_code,
+            "http.version": http_version,
+            "url.path": _log_safe(path),
+            "client.ip": client_host,
+            "client.port": client_port,
+        }
+        if request.url.query:
+            fields["url.query"] = _log_safe(request.url.query)
+        if username != "-":
+            fields["user.name"] = token_username or username
+            if token_username and token_id:
+                fields["labels.token_id"] = token_id
+        # The handler function name, so latency can be grouped by endpoint.
+        # Raw paths are unbounded cardinality and useless to aggregate over.
+        endpoint = request.scope.get("endpoint")
+        if endpoint is not None:
+            fields["labels.endpoint"] = getattr(endpoint, "__name__", str(endpoint))
+        content_length = response.headers.get("content-length")
+        if content_length is not None:
+            fields["http.response.body.bytes"] = int(content_length)
+        for header, field in (("user-agent", "user_agent.original"),
+                              ("host", "url.domain")):
+            value = request.headers.get(header)
+            if value:
+                fields[field] = _log_safe(value)
+
         # Log at INFO level for successful requests, WARNING for client errors, ERROR for server errors
+        log = logger.bind(**fields)
         if 200 <= response.status_code < 400:
-            logger.info(log_message)
+            log.info(log_message)
         elif 400 <= response.status_code < 500:
-            logger.warning(log_message)
+            log.warning(log_message)
         else:
-            logger.error(log_message)
+            log.error(log_message)
 
         return response

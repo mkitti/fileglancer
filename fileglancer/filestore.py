@@ -6,12 +6,8 @@ rooted at a specific directory.
 import itertools
 import os
 import stat
-try:
-    import pwd
-    import grp
-except ImportError:
-    pwd = None  # type: ignore[assignment]
-    grp = None  # type: ignore[assignment]
+import pwd
+import grp
 import shutil
 
 from pydantic import BaseModel

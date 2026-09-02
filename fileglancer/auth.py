@@ -3,6 +3,7 @@ Authentication module for OKTA OAuth/OIDC integration
 """
 import os
 import hashlib
+import hmac
 from datetime import datetime, timedelta, UTC
 from typing import Optional
 from urllib.parse import urlsplit
@@ -163,9 +164,17 @@ def get_current_user(request: Request, settings: Settings) -> str:
     """
     Get the current authenticated user
 
-    Always validates session from cookie (for both OKTA and simple auth)
+    Resolves an Authorization: Bearer API token when one is present, and
+    otherwise validates the session cookie (for both OKTA and simple auth).
+    Because every authenticated route depends on this one function, adding
+    token auth here covers the whole API without touching any route.
+
     Raises HTTPException(401) if authentication fails
     """
+    raw_token = parse_bearer_token(request)
+    if raw_token:
+        return get_user_from_token(request, settings, raw_token)
+
     user_session = get_session_from_cookie(request, settings)
 
     if not user_session:
@@ -209,3 +218,162 @@ def delete_session_cookie(response: Response, settings: Settings):
         secure=settings.session_cookie_secure,
         samesite='lax'
     )
+
+
+# --- API token scopes ---
+
+API_SCOPES = frozenset({
+    "files:read", "files:write",
+    "links:read", "links:write",
+    "jobs:read", "jobs:write",
+})
+
+# Sentinel meaning "any valid token may call this", as distinct from None,
+# which means "no token may call this at all".
+ANY_SCOPE = ""
+
+# Maps a request path prefix to the resource whose scope guards it. Order does
+# not matter; prefixes are mutually exclusive.
+#
+# Deliberately absent: /api/file-share-paths, /api/external-buckets and
+# /api/version have no get_current_user dependency and are already
+# unauthenticated, so this table is never consulted for them. That is what
+# lets the Python client resolve paths regardless of a token's scopes.
+_SCOPE_PREFIXES = (
+    ("/api/files", "files"),
+    ("/api/content", "files"),
+    ("/api/proxied-path", "links"),
+    ("/api/neuroglancer", "links"),
+    ("/api/jobs", "jobs"),
+)
+
+# Readable by any valid token regardless of scope: identity and liveness.
+_ANY_SCOPE_PATHS = ("/api/profile",)
+
+_READ_METHODS = ("GET", "HEAD")
+
+
+def _path_matches(path: str, prefix: str) -> bool:
+    """True when path is the prefix itself or a child of it.
+
+    The explicit '/' check is what stops '/api/filesystem-admin' from being
+    treated as a child of '/api/files'.
+    """
+    return path == prefix or path.startswith(prefix + "/")
+
+
+def required_scope(path: str, method: str) -> Optional[str]:
+    """Return the scope an API token needs to call path with method.
+
+    Returns ANY_SCOPE when any valid token suffices, and None when the path is
+    not reachable with a token at all. None is the default: a path that is not
+    listed here is session-only, which is what keeps /api/ssh-keys,
+    /api/tokens, /api/apps, /api/catalog, /api/preference and /api/ticket out
+    of reach without naming any of them.
+    """
+    if any(_path_matches(path, p) for p in _ANY_SCOPE_PATHS):
+        return ANY_SCOPE
+
+    for prefix, resource in _SCOPE_PREFIXES:
+        if _path_matches(path, prefix):
+            action = "read" if method.upper() in _READ_METHODS else "write"
+            return f"{resource}:{action}"
+
+    return None
+
+
+def token_has_scope(granted: str, required: str) -> bool:
+    """Check a token's space-separated scope string against a requirement."""
+    if required == ANY_SCOPE:
+        return True
+
+    held = set(granted.split())
+    if required in held:
+        return True
+
+    # ':write' implies ':read' for the same resource.
+    resource, _, action = required.partition(":")
+    return action == "read" and f"{resource}:write" in held
+
+
+def parse_bearer_token(request: Request) -> Optional[str]:
+    """Extract a Fileglancer API token from the Authorization header.
+
+    Returns None when the header is absent, is not a Bearer credential, or
+    carries a Bearer value that is not one of our tokens. In all three cases
+    the caller falls through to cookie auth rather than failing, so an
+    unrelated Bearer header does not break a cookie-authenticated request.
+    """
+    header = request.headers.get('authorization', '')
+    scheme, _, value = header.partition(' ')
+    value = value.strip()
+    if scheme.lower() != 'bearer' or not value.startswith(db.API_TOKEN_PREFIX + '_'):
+        return None
+    return value
+
+
+def get_user_from_token(request: Request, settings: Settings, raw_token: str) -> str:
+    """Resolve an API token to a username, enforcing expiry and scope.
+
+    Raises HTTPException(401) for an invalid or expired token and
+    HTTPException(403) when the token lacks the scope the request needs.
+    """
+    parts = raw_token.split('_', 2)
+    if len(parts) != 3 or not parts[1] or not parts[2]:
+        raise HTTPException(status_code=401, detail="Malformed API token")
+    _, token_id, secret = parts
+
+    with db.get_db_session(settings.db_url) as session:
+        row = db.get_api_token_by_id(session, token_id)
+        # Hash the presented secret regardless, then compare in constant time.
+        presented = db.hash_token_secret(secret)
+        if row is None or not hmac.compare_digest(presented, row.token_hash):
+            logger.info(f"Rejected API token with id {token_id}")
+            raise HTTPException(status_code=401, detail="Invalid API token")
+
+        # SQLAlchemy strips tzinfo on read; add it back before comparing.
+        expires_at = row.expires_at.replace(tzinfo=UTC)
+        if expires_at < datetime.now(UTC):
+            raise HTTPException(
+                status_code=401,
+                detail=f"API token expired on {expires_at.date().isoformat()}")
+
+        username = row.username
+        granted = row.scopes
+
+    required = required_scope(request.url.path, request.method)
+    if required is None:
+        raise HTTPException(
+            status_code=403,
+            detail=f"{request.url.path} is not accessible with an API token")
+
+    # Scopes the server no longer supports are dropped from the token, so
+    # disabling one in api_token_scopes takes effect on tokens that already hold
+    # it rather than only on new ones. Reported separately from a plain missing
+    # scope: the user cannot fix a server-side decision by minting a new token.
+    enabled = set(settings.api_token_scopes)
+    if required and required not in enabled:
+        raise HTTPException(
+            status_code=403,
+            detail=f"The {required} scope is not enabled on this server. "
+                   f"Contact your Fileglancer administrator if you need it.")
+    granted = " ".join(scope for scope in granted.split() if scope in enabled)
+
+    if not token_has_scope(granted, required):
+        raise HTTPException(
+            status_code=403,
+            detail=f"API token is missing the required scope: {required}")
+
+    with db.get_db_session(settings.db_url) as session:
+        db.touch_api_token(session, token_id)
+
+    # Left for AccessLogMiddleware, which otherwise logs token requests as '-'
+    # because it resolves identity from the session cookie only. request.state
+    # is backed by scope["state"], so a value set here is visible to the
+    # middleware after it awaits call_next. The token id is the public half and
+    # is what the GUI shows, so an admin tracing activity can point a user at
+    # the exact token to revoke.
+    request.state.fg_username = username
+    request.state.fg_token_id = token_id
+
+    return username

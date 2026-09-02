@@ -4,10 +4,7 @@ import os
 import re
 import shlex
 
-try:
-    import pwd
-except ImportError:
-    pwd = None  # type: ignore[assignment]
+import pwd
 
 from fileglancer import database as db
 from fileglancer.model import (
@@ -199,7 +196,6 @@ def build_requirements_check(requirements: list[str]) -> str:
 
 # Characters that are dangerous in shell commands
 _SHELL_METACHAR_PATTERN = re.compile(r'[;&|`$(){}!<>\n\r]')
-_WINDOWS_DRIVE_PATTERN = re.compile(r'^[a-zA-Z]:/')
 
 # Cloud storage URI schemes that are passed through as opaque strings rather
 # than treated as local filesystem paths.
@@ -209,37 +205,34 @@ _URI_PREFIXES = ("s3://", "gs://", "https://")
 def expand_user_path(path_value: str, username: str | None = None) -> str:
     """Normalize a file/directory parameter value.
 
-    Replaces backslashes with '/', passes cloud-storage URIs through unchanged,
-    and expands a leading '~' / '~/' to the target user's home directory.
+    Passes cloud-storage URIs through unchanged and expands a leading
+    '~' / '~/' to the target user's home directory.
 
     The home is resolved from *username* via pwd.getpwnam so this works from
     the root server process, where os.geteuid() would wrongly resolve to
     /root. Falls back to the effective uid's home, then os.path.expanduser,
     when username is None (CLI / tests) or the lookup fails.
     """
-    normalized = path_value.replace("\\", "/")
+    if path_value.startswith(_URI_PREFIXES):
+        return path_value
 
-    if normalized.startswith(_URI_PREFIXES):
-        return normalized
-
-    if normalized == "~" or normalized.startswith("~/"):
+    if path_value == "~" or path_value.startswith("~/"):
         home = None
-        if username and pwd is not None:
+        if username:
             try:
                 home = pwd.getpwnam(username).pw_dir
             except KeyError:
                 home = None
-        if home is None and pwd is not None:
+        if home is None:
             try:
                 home = pwd.getpwuid(os.geteuid()).pw_dir
-            except (AttributeError, KeyError):
+            except KeyError:
                 home = None
         if home is None:
             home = os.path.expanduser("~")
-        home = home.replace("\\", "/")
-        return home + normalized[1:]
+        return home + path_value[1:]
 
-    return normalized
+    return path_value
 
 
 def validate_path_for_shell(path_value: str) -> str | None:
@@ -249,20 +242,17 @@ def validate_path_for_shell(path_value: str) -> str | None:
     start with '/', '~', or './'.
     Returns an error message string if invalid, or None if valid.
     """
-    normalized = path_value.replace("\\", "/")
-
     # Cloud storage URIs are passed through as opaque strings
-    if normalized.startswith(_URI_PREFIXES):
+    if path_value.startswith(_URI_PREFIXES):
         return None
 
-    if _SHELL_METACHAR_PATTERN.search(normalized):
+    if _SHELL_METACHAR_PATTERN.search(path_value):
         return "Path contains invalid characters"
 
-    if ".." in normalized:
+    if ".." in path_value:
         return "Path must not contain '..'"
 
-    if not (normalized.startswith("/") or normalized.startswith("~") or normalized.startswith("./")
-            or _WINDOWS_DRIVE_PATTERN.match(normalized)):
+    if not path_value.startswith(("/", "~", "./")):
         return "Must be an absolute or relative path (starting with /, ~, or ./)"
 
     return None
@@ -296,14 +286,12 @@ def validate_path_in_filestore(path_value: str, fsps: list, check_access: bool =
     if error:
         return error
 
-    normalized = path_value.replace("\\", "/")
-
     # Relative paths and cloud storage URIs are not local filesystem paths;
     # skip filestore validation.
-    if normalized.startswith("./") or normalized.startswith(_URI_PREFIXES):
+    if path_value.startswith("./") or path_value.startswith(_URI_PREFIXES):
         return None
 
-    expanded = os.path.expanduser(normalized)
+    expanded = os.path.expanduser(path_value)
 
     # Resolve to a file share path (euid-independent containment check)
     from fileglancer.database import find_fsp_in_paths

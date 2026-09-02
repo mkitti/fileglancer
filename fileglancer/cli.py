@@ -1,4 +1,3 @@
-#leaned up CLI auto-login session
 """
 Command-line interface for Fileglancer
 """
@@ -159,8 +158,9 @@ def start(host, port, reload, workers, ssl_keyfile, ssl_certfile,
     from fileglancer.settings import get_settings, reload_settings
     settings = get_settings()
     log_level = settings.log_level
-    logger.remove()
-    logger.add(lambda msg: click.echo(msg, nl=False), level=log_level, colorize=True)
+    from fileglancer.logconf import configure_logging
+    configure_logging(log_level, settings.log_format,
+                      text_sink=lambda msg: click.echo(msg, nl=False), colorize=True)
 
     # Set up default database location if not already configured
     if 'FGC_DB_URL' not in os.environ:

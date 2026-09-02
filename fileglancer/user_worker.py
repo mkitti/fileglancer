@@ -29,10 +29,7 @@ import functools
 import json
 import logging
 import os
-try:
-    import pwd
-except ImportError:
-    pwd = None  # type: ignore[assignment]
+import pwd
 import socket
 import struct
 import sys
@@ -40,6 +37,8 @@ from pathlib import Path
 from typing import Any, Optional
 
 from loguru import logger
+
+from fileglancer.logconf import InterceptHandler, configure_logging
 
 
 # Length-prefix format: 4-byte big-endian unsigned int
@@ -887,6 +886,8 @@ def _action_s3_list_objects(request: dict, ctx: WorkerContext) -> dict:
         proxy_kwargs={"target_name": target_name},
         path=mount_path,
         buffer_size=buffer_size,
+        # Key segments the client sees that have no counterpart on disk
+        virtual_prefix=request.get("virtual_prefix"),
     )
 
     # list_objects_v2 is async def but does only sync I/O
@@ -1277,31 +1278,19 @@ def main():
     # Set up orphan prevention
     _set_pdeathsig()
 
-    # Configure logging
+    # Configure logging. In text mode this goes to stderr, which the parent
+    # forwards into its own log tagged with the worker's username. In JSON
+    # mode it goes to the inherited stdout instead, so each record reaches the
+    # shipper as the complete JSON object the worker wrote, rather than being
+    # buried inside the parent's message string.
     log_level = os.environ.get("FGC_LOG_LEVEL", "INFO").upper()
+    log_format = os.environ.get("FGC_LOG_FORMAT", "text")
+    configure_logging(log_level, log_format)
 
-    # Use loguru for worker logging, output to stderr
-    logger.remove()
-    logger.add(sys.stderr, level=log_level)
-
-    # Route stdlib logging (used by cluster_api) into loguru so a 
+    # Route stdlib logging (used by cluster_api) into loguru so a
     # single configuration controls levels and formatting, and
     # loguru-only levels like TRACE/SUCCESS work without translation.
-    class _InterceptHandler(logging.Handler):
-        def emit(self, record: logging.LogRecord) -> None:
-            try:
-                level = logger.level(record.levelname).name
-            except ValueError:
-                level = record.levelno
-            frame, depth = logging.currentframe(), 2
-            while frame and frame.f_code.co_filename == logging.__file__:
-                frame = frame.f_back
-                depth += 1
-            logger.opt(depth=depth, exception=record.exc_info).log(
-                level, record.getMessage()
-            )
-
-    logging.basicConfig(handlers=[_InterceptHandler()], level=0, force=True)
+    logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
 
     # Get the socket fd from environment
     fd = int(os.environ["FGC_WORKER_FD"])

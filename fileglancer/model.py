@@ -318,6 +318,72 @@ class NeuroglancerShortLinkResponse(BaseModel):
     )
 
 
+# --- API token models ---
+
+class ApiTokenInfo(BaseModel):
+    """An API token, without its secret"""
+    token_id: str = Field(
+        description="Public identifier for the token, used to revoke it"
+    )
+    name: str = Field(
+        description="User-supplied label for the token"
+    )
+    scopes: List[str] = Field(
+        description="Scopes granted to this token"
+    )
+    created_at: datetime = Field(
+        description="When this token was created"
+    )
+    expires_at: datetime = Field(
+        description="When this token stops working"
+    )
+    last_used_at: Optional[datetime] = Field(
+        description="When this token was last used, accurate to five minutes",
+        default=None
+    )
+
+
+class ApiTokenListResponse(BaseModel):
+    tokens: List[ApiTokenInfo] = Field(
+        description="The caller's API tokens, newest first"
+    )
+
+
+class ApiTokenCreateRequest(BaseModel):
+    """Request payload for creating an API token"""
+    name: str = Field(
+        description="A label to identify this token later",
+        min_length=1, max_length=100
+    )
+    scopes: List[str] = Field(
+        description="Scopes to grant, e.g. ['files:read', 'links:write']"
+    )
+    expires_in_days: int = Field(
+        description="How long the token stays valid",
+        default=30, ge=1, le=365
+    )
+
+    @field_validator('name')
+    @classmethod
+    def _strip_name(cls, value: str) -> str:
+        """Strip before validating, so a whitespace-only name is rejected
+        rather than silently stored as an empty string."""
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("name must not be blank")
+        return stripped
+
+
+class ApiTokenCreateResponse(BaseModel):
+    """Response for a newly created API token"""
+    token: ApiTokenInfo = Field(
+        description="The token metadata"
+    )
+    secret: str = Field(
+        description="The full token string. Returned once and never recoverable."
+    )
+
+
 # --- App Manifest Models ---
 
 # Conservative CLI-flag shape: one or two leading dashes, then an alphanumeric

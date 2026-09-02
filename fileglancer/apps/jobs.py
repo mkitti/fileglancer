@@ -1,10 +1,7 @@
 """Cluster job lifecycle: background status polling, submission, and cancellation."""
 
 import asyncio
-try:
-    import fcntl
-except ImportError:
-    fcntl = None  # type: ignore[assignment]
+import fcntl
 import os
 import re
 import shlex
@@ -34,7 +31,6 @@ from fileglancer.apps.command import (
     merge_requirements,
     _ENV_VAR_NAME_PATTERN,
     _URI_PREFIXES,
-    _WINDOWS_DRIVE_PATTERN,
 )
 from fileglancer.apps.jobfiles import _build_work_dir
 from fileglancer.giturls import canonical_github_url, same_github_repo
@@ -619,18 +615,11 @@ def _container_bind_paths(entry_point, parameters: dict,
     for param, raw_value in collect_path_parameters(
             entry_point, parameters, env_parameters):
         expanded = expand_user_path(str(raw_value), username)
-        # Windows drive paths count as absolute so a dev/test server on Windows
-        # composes the same script; path validation accepts them the same way.
-        is_absolute = (expanded.startswith("/")
-                       or _WINDOWS_DRIVE_PATTERN.match(expanded))
-        if expanded.startswith(_URI_PREFIXES) or not is_absolute:
+        if expanded.startswith(_URI_PREFIXES) or not expanded.startswith("/"):
             continue
         if param.type == "directory":
             bind_paths.append(expanded)
         else:
-            # PurePosixPath: the bind flag lands in a bash script, and the value
-            # is already '/'-normalized, so the parent must stay POSIX-style
-            # even when the server process runs on Windows (dev/test).
             bind_paths.append(str(PurePosixPath(expanded).parent))
     if entry_point.bind_paths:
         bind_paths.extend(entry_point.bind_paths)

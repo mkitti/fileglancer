@@ -37,8 +37,11 @@ const FgCheckbox = forwardRef<HTMLInputElement, FgCheckboxProps>(
 
     const disabledClasses = 'disabled:cursor-not-allowed disabled:opacity-50';
 
+    // shrink-0 matters: h-4 w-4 alone is a flex basis, not a floor, so a flex
+    // parent shrinks the box to make room for a long label. In a list of
+    // mixed-length labels that renders the boxes at visibly different sizes.
     const inputClassName =
-      `h-4 w-4 dark:brightness-90 dark:checked:brightness-100 ${colorClasses} ${FORM_CONTROL_FOCUS_CLASSES} ${disabledClasses} ${className}`.trim();
+      `h-4 w-4 shrink-0 dark:brightness-90 dark:checked:brightness-100 ${colorClasses} ${FORM_CONTROL_FOCUS_CLASSES} ${disabledClasses} ${className}`.trim();
 
     return (
       <div className="flex items-center gap-2">

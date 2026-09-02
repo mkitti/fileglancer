@@ -6,10 +6,7 @@ that are stored in the user's authorized_keys file.
 
 import gc
 import os
-try:
-    import pwd
-except ImportError:
-    pwd = None  # type: ignore[assignment]
+import pwd
 import shutil
 import subprocess
 import tempfile

@@ -1,6 +1,5 @@
 """Job working-directory path construction and job file access."""
 
-import ntpath
 import os
 import posixpath
 import re
@@ -103,30 +102,6 @@ def delete_job_work_dir(db_job: db.JobDB) -> bool:
         return False
 
 
-def _stored_work_dir_path(db_job: db.JobDB) -> str:
-    """Return the job's work_dir as a stored path string.
-
-    Job records often contain POSIX cluster paths even when the API process is
-    inspected or tested on Windows.  Keep stored paths as strings for metadata
-    responses so pathlib does not rewrite separators to the local OS style.
-    """
-    if db_job.work_dir:
-        return str(db_job.work_dir)
-    return str(_build_work_dir(db_job.id, db_job.app_name, db_job.entry_point_id))
-
-
-def _join_stored_path(directory: str, filename: str) -> str:
-    """Join a filename to a stored job path without OS-specific normalization."""
-    if "\\" in directory and "/" not in directory:
-        return ntpath.join(directory, filename)
-    return posixpath.join(directory, filename)
-
-
-def _stored_path_basename(file_path: str) -> str:
-    """Return the final path component for either POSIX or Windows separators."""
-    return file_path.rstrip("/\\").replace("\\", "/").rsplit("/", 1)[-1]
-
-
 def _make_file_info(file_path: str, exists: bool,
                     work_fsp_name: Optional[str],
                     work_subpath: Optional[str]) -> dict:
@@ -139,7 +114,7 @@ def _make_file_info(file_path: str, exists: bool,
     subpath = None
     if exists and work_fsp_name:
         fsp_name = work_fsp_name
-        filename = _stored_path_basename(file_path)
+        filename = posixpath.basename(file_path)
         subpath = f"{work_subpath}/{filename}" if work_subpath else filename
     return {
         "path": file_path,
@@ -228,7 +203,7 @@ def get_job_file_paths(db_job: db.JobDB) -> dict[str, dict]:
     rather than stat'd: the script exists once submitted (script_path is set),
     and the log files exist once the job has started.
     """
-    work_dir = _stored_work_dir_path(db_job)
+    work_dir = str(_resolve_work_dir(db_job))
     work_fsp_name = getattr(db_job, 'work_dir_fsp_name', None)
     work_subpath = getattr(db_job, 'work_dir_subpath', None)
 
@@ -236,12 +211,12 @@ def get_job_file_paths(db_job: db.JobDB) -> dict[str, dict]:
     script_path = getattr(db_job, 'script_path', None)
     script_exists = bool(script_path)
     if not script_path:
-        script_path = _join_stored_path(work_dir, "script.sh")
+        script_path = posixpath.join(work_dir, "script.sh")
 
     # Log files are written by the job once it begins running.
     logs_exist = db_job.started_at is not None
-    stdout_path = _join_stored_path(work_dir, "stdout.log")
-    stderr_path = _join_stored_path(work_dir, "stderr.log")
+    stdout_path = posixpath.join(work_dir, "stdout.log")
+    stderr_path = posixpath.join(work_dir, "stderr.log")
 
     files = {
         # The work dir itself: its browse-link base is the stored fsp/subpath,
@@ -260,7 +235,7 @@ def get_job_file_paths(db_job: db.JobDB) -> dict[str, dict]:
 
     # Include service_url file info for running service-type jobs.
     if getattr(db_job, 'entry_point_type', 'job') == 'service':
-        service_url_path = _join_stored_path(work_dir, "service_url")
+        service_url_path = posixpath.join(work_dir, "service_url")
         files["service_url"] = _make_file_info(
             service_url_path, db_job.status == 'RUNNING', work_fsp_name, work_subpath)
 

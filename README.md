@@ -50,6 +50,7 @@ Fileglancer has a React front-end and a FastAPI backend. Uvicorn is used to mana
 
 - [User guide](https://janeliascicomp.github.io/fileglancer-docs/)
 - [Developer guide](docs/Development.md)
+- [Structured logging](docs/StructuredLogging.md)
 
 ## Related repositories
 

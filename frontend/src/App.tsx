@@ -25,6 +25,7 @@ import Links from '@/components/Links';
 import NGLinks from '@/components/NGLinks';
 import Notifications from '@/components/Notifications';
 import SSHKeys from '@/components/SSHKeys';
+import ApiTokens from '@/components/ApiTokens';
 import ErrorFallback from '@/components/ErrorFallback';
 import { NGLinkProvider } from '@/contexts/NGLinkContext';
 
@@ -160,6 +161,14 @@ const AppComponent = () => {
                 path="ssh-keys"
               />
             ) : null}
+            <Route
+              element={
+                <RequireAuth>
+                  <ApiTokens />
+                </RequireAuth>
+              }
+              path="api-tokens"
+            />
           </Route>
           <Route
             element={
