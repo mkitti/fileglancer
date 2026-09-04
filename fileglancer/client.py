@@ -44,11 +44,15 @@ class Fileglancer:
 
     def __init__(self, url: Optional[str] = None, token: Optional[str] = None,
                  timeout: float = 60.0):
-        url = url or os.environ.get("FILEGLANCER_URL")
-        token = token or os.environ.get("FILEGLANCER_TOKEN")
+        url = (url or os.environ.get("FILEGLANCER_URL") or "").strip()
+        token = (token or os.environ.get("FILEGLANCER_TOKEN") or "").strip()
         if not url:
             raise FileglancerError(
                 "No Fileglancer server URL. Pass url= or set FILEGLANCER_URL.")
+        if not url.startswith(("http://", "https://")):
+            raise FileglancerError(
+                f"Invalid Fileglancer server URL {url!r}: must start with "
+                "http:// or https://.")
         if not token:
             raise FileglancerError(
                 "No API token. Pass token= or set FILEGLANCER_TOKEN. Create a "
