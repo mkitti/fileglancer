@@ -3,7 +3,7 @@
 Running app services (`type: service`) bind a port on a compute node and publish `http://<node>:<port>/...`. Set `apps.service_proxy_domain` to republish them over HTTPS at a per-job subdomain instead:
 
 ```
-https://job-12-k7m2q9xr.services.example.org/lab?token=8f2c...
+https://job-12-k7m2qhxr.services.example.org/lab?token=8f2c...
 ```
 
 The `job-<id>-<mac>` label is signed with `session_secret_key`. Job ids are a small global sequence, so an unsigned `job-12` label would let anyone who can reach the proxy sweep `job-1`..`job-500` and find — and, for any service that does not enforce its own token, reach — every running service on the instance. The MAC is 8 base32 characters (40 bits); guessing it is online-only against a reverse proxy that answers 403, so a sweep of that space takes decades at 10k requests/second.
@@ -79,6 +79,17 @@ server {
     proxy_buffering    off;
     proxy_read_timeout 3600s;
   }
+
+  # A refused resolution means the service is gone, not that the user did
+  # something wrong, so serve Fileglancer's explanation instead of nginx's
+  # stock 403 page. The `=` makes the response carry the page's own 503.
+  error_page 403 = /_fg_unavailable;
+
+  location = /_fg_unavailable {
+    internal;
+    proxy_pass       http://127.0.0.1:8989/api/apps/service-unavailable;
+    proxy_set_header Host $host;
+  }
 }
 ```
 
@@ -88,12 +99,14 @@ Also add this to the **main** server block, so the resolve endpoint is not reach
   location = /api/apps/resolve { return 404; }
 ```
 
-Four details are load-bearing:
+Six details are load-bearing:
 
 - **`internal;`** on the `/_fg_resolve` location makes it reachable only from nginx's own `auth_request` subrequest, never from a client. Together with the `return 404` in the main server block, it is what keeps the unauthenticated resolve endpoint off the network. Do not remove either.
 - **`proxy_set_header Host $host`** passes the app subdomain through unchanged, so the app sees `Host` and `Origin` as the same value. This is what makes JupyterLab's WebSocket origin check pass without per-app configuration.
 - **`resolver`** is mandatory. Without it nginx refuses to start when `proxy_pass` targets a variable.
 - **`proxy_buffering off`** and the long `proxy_read_timeout` suit long-lived WebSocket and streaming sessions, such as the remote desktop app.
+- **`proxy_intercept_errors` must stay off** (its default) for the `error_page 403` above to mean what it says. The 403 it catches is the one nginx generates when `auth_request` is denied; turning interception on would also catch a 403 from the app itself — a JupyterLab token rejection, say — and replace it with the "503 Service Unavailable" page.
+- **`/_fg_unavailable` is a prefix location, not a named one**, because nginx refuses a `proxy_pass` with a URI part inside a named location (`proxy_pass cannot have URI part in location given by regular expression, or inside named location`). `internal;` is what keeps it out of the URL space the app sees, so a request for that path gets a 404 rather than the error page.
 
 The existing HTTP-to-HTTPS redirect block is typically `default_server` with `server_name _`, in which case it already covers the new subdomains.
 

@@ -266,6 +266,18 @@ def test_resolve_disabled_when_no_proxy_domain(app_factory):
     assert _resolve(app, _host(job_id)).status_code == 403
 
 
+def test_service_unavailable_page_is_servable_without_auth(app_factory):
+    """The reverse proxy renders this in place of its 403, on a subdomain the
+    session cookie is never sent to, so it must need no user and no assets."""
+    app, _ = app_factory(PROXY_DOMAIN)
+    resp = TestClient(app).get("/api/apps/service-unavailable")
+    assert resp.status_code == 503
+    assert resp.headers["content-type"].startswith("text/html")
+    assert "503 Service Unavailable" in resp.text
+    # Self-contained: the proxy would refuse a subresource fetched from here.
+    assert "src=" not in resp.text and "<link" not in resp.text
+
+
 # --- proxied URL publication ---
 
 def _get_job_with_worker_url(app, job_id, url, monkeypatch):

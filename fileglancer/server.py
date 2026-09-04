@@ -23,7 +23,7 @@ from pydantic import HttpUrl, ValidationError
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request, Query, Path, Body, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse, Response, JSONResponse, PlainTextResponse, StreamingResponse, FileResponse
+from fastapi.responses import RedirectResponse, Response, JSONResponse, PlainTextResponse, StreamingResponse, FileResponse, HTMLResponse
 from fastapi.exceptions import RequestValidationError, StarletteHTTPException
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
@@ -359,6 +359,54 @@ def _validate_short_name(short_name: str) -> None:
     """Validate short_name: only letters, numbers, hyphens, and underscores allowed."""
     if not all(ch.isalnum() or ch in ("-", "_") for ch in short_name):
         raise HTTPException(status_code=400, detail="short_name can only contain letters, numbers, hyphens, and underscores")
+
+
+# Shown at the URL the user clicked when the service proxy refuses to resolve a
+# hostname, which is almost always a service whose job has since stopped. The
+# reverse proxy maps its own 403 here (see docs/ServiceProxy.md), so this ships
+# with Fileglancer rather than living in each deployment's nginx html directory.
+#
+# Self-contained on purpose: the proxy's server block routes everything through
+# auth_request, so a stylesheet or image referenced from here would be refused
+# by the same check that produced this page. No link back to Fileglancer either
+# — the app has no configured public base URL, and this page is served on a
+# subdomain that cannot be assumed to share one with it.
+_SERVICE_UNAVAILABLE_HTML = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Service not running</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center;
+         justify-content: center; background: Canvas; color: CanvasText;
+         font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 34rem; padding: 2rem; }
+  h1 { font-size: 1.5rem; margin: 0 0 1rem; }
+  p { margin: 0 0 1rem; }
+  ul { margin: 0; padding-left: 1.25rem; }
+  .muted { margin-top: 1.5rem; opacity: 0.7; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>503 Service Unavailable</h1>
+  <p>The app that was served at this address is no longer available. Services
+     are reachable only while their job is running.</p>
+  <ul>
+    <li>The job finished, was cancelled, or hit its time limit.</li>
+    <li>The job is still starting up and hasn't published its address yet —
+        wait a moment and reload.</li>
+    <li>The link is old. Each launch gets its own address, so a bookmark from a
+        previous run will not work.</li>
+  </ul>
+  <p class="muted">Open the job in Fileglancer to check its status or launch the
+     app again.</p>
+</main>
+</body>
+</html>
+"""
 
 
 def create_app(settings):
@@ -2772,6 +2820,20 @@ def create_app(settings):
         apps_module.cache_upstream(job_id, upstream)
         apps_module.record_resolve("miss")
         return Response(status_code=204, headers={"X-Fg-Upstream": upstream})
+
+    @app.get("/api/apps/service-unavailable", include_in_schema=False)
+    async def service_unavailable_page():
+        """The page a user sees when a service proxy hostname no longer resolves.
+
+        The reverse proxy renders this in place of its own 403, at the URL the
+        user clicked. 503 rather than 403 because "not running" is what actually
+        happened in every case a real user reaches: a refusal from
+        /api/apps/resolve means the job is gone, still starting, or was never
+        theirs to reach, and none of those is worth distinguishing to a browser.
+        Unauthenticated for the same reason the resolve endpoint is — the session
+        cookie is scoped to the Fileglancer hostname and is never sent here.
+        """
+        return HTMLResponse(_SERVICE_UNAVAILABLE_HTML, status_code=503)
 
     @app.patch("/api/jobs/{job_id}", response_model=Job,
                description="Rename a job")

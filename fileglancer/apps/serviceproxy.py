@@ -58,7 +58,7 @@ def _service_mac(job_id: int, secret: str) -> str:
 
 
 def service_host_label(job_id: int, secret: str) -> str:
-    """The leftmost hostname label for a job's proxy URL, e.g. ``job-12-k7m2q9xr``."""
+    """The leftmost hostname label for a job's proxy URL, e.g. ``job-12-k7m2qhxr``."""
     return f'job-{job_id}-{_service_mac(job_id, secret)}'
 
 
@@ -90,8 +90,8 @@ def job_id_from_host(host: Optional[str], proxy_domain: str,
     """Extract the job id from a proxy hostname, or None if it isn't one.
 
     Matches the whole hostname, so neither a longer suffix
-    (``job-1-k7m2q9xr.services.example.org.evil``) nor an extra label
-    (``x.job-1-k7m2q9xr.services.example.org``) is accepted, and the label's MAC
+    (``job-1-k7m2qhxr.services.example.org.evil``) nor an extra label
+    (``x.job-1-k7m2qhxr.services.example.org``) is accepted, and the label's MAC
     must verify against the id it carries.
     """
     if not host or not proxy_domain or not secret:
