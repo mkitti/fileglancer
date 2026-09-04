@@ -45,3 +45,14 @@ from fileglancer.apps.jobfiles import (  # noqa: F401
     get_service_url,
     get_service_phase,
 )
+from fileglancer.apps.serviceproxy import (  # noqa: F401
+    build_proxied_service_url,
+    cache_upstream,
+    cached_upstream,
+    job_id_from_host,
+    record_resolve,
+    reset_resolve_metrics,
+    resolve_counts,
+    service_host_label,
+    upstream_from_service_url,
+)

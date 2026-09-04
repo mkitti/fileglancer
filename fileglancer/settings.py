@@ -1,5 +1,6 @@
 from typing import List, Optional
 from functools import cache
+import ipaddress
 import sys
 
 from pydantic import BaseModel, HttpUrl, ValidationError, field_validator, model_validator
@@ -51,6 +52,55 @@ class AppsSettings(BaseModel):
     # it. This is Fileglancer poll policy, not py-cluster-api config, so it
     # lives here rather than under `cluster`. Set to 0 to disable the cutoff.
     unknown_timeout_hours: float = 24.0
+    # Wildcard DNS zone serving per-job HTTPS subdomains for running services,
+    # e.g. "services.example.org" to publish
+    # https://job-<id>.services.example.org/. Requires a matching wildcard
+    # certificate and a reverse proxy configured to resolve upstreams via
+    # GET /api/apps/resolve. Empty (the default) publishes the service's own
+    # http://host:port URL unchanged.
+    service_proxy_domain: str = ""
+    # Restricts which hosts the service proxy will dial. When set, a service's
+    # published upstream hostname must sit inside this DNS zone, e.g.
+    # "nodes.example.org" to allow only cluster nodes. Matching is on whole DNS
+    # labels, so a leading dot is optional and "evil-nodes.example.org" does not
+    # satisfy a zone of "nodes.example.org". Applies to hostnames only: a service
+    # that publishes the node's IP address is still accepted, since some clusters
+    # do that and a literal has no zone to match. Recommended wherever
+    # service_proxy_domain is set: the upstream comes from a file the user's job
+    # wrote, so without a zone the proxy will dial any host the Fileglancer host
+    # can reach. Empty disables the check.
+    service_proxy_upstream_zone: str = ""
+    # Restricts which IP addresses the service proxy will dial, as a list of
+    # CIDR networks, e.g. ["10.20.0.0/16"] to allow only the cluster's node
+    # subnet. The companion to service_proxy_upstream_zone: that one confines
+    # upstreams published as hostnames, this one confines upstreams published as
+    # addresses, since a bare address has no DNS zone to match. IPv6 entries
+    # parse but cannot match anything today: the upstream authority pattern
+    # forbids colons in the host, so no IPv6 literal ever reaches this check.
+    # Empty disables the check, in which case any
+    # address is allowed except those that reach the Fileglancer host itself
+    # (loopback, unspecified, link-local, multicast and reserved are always
+    # refused regardless of this setting).
+    service_proxy_upstream_networks: List[str] = []
+
+    @field_validator('service_proxy_upstream_networks')
+    @classmethod
+    def validate_service_proxy_upstream_networks(cls, v: List[str]) -> List[str]:
+        """Reject unparseable CIDR entries at startup.
+
+        A typo here fails closed — every address upstream stops resolving — so
+        it is far better to refuse to start than to let the proxy look
+        configured while silently rejecting every service.
+        """
+        for entry in v:
+            try:
+                ipaddress.ip_network(entry.strip(), strict=False)
+            except ValueError as exc:
+                raise ValueError(
+                    f"apps.service_proxy_upstream_networks contains an invalid "
+                    f"network {entry!r}: {exc}"
+                ) from exc
+        return v
 
 
 class Settings(BaseSettings):
@@ -235,6 +285,22 @@ class Settings(BaseSettings):
             file_secret_settings,
         )
     
+    @model_validator(mode='after')
+    def validate_service_proxy_needs_a_session_secret(self):
+        """The service proxy signs its hostnames with session_secret_key.
+
+        An unset key is generated at random per process, so under
+        `uvicorn --workers N` each worker would sign with a different key and
+        most proxied requests would be refused. Fail at startup instead, where
+        the cause is obvious.
+        """
+        if self.apps.service_proxy_domain and not self.session_secret_key:
+            raise ValueError(
+                "apps.service_proxy_domain requires session_secret_key to be "
+                "set: service proxy hostnames are signed with it, and a "
+                "per-process random key breaks resolution across workers")
+        return self
+
     @model_validator(mode='after')
     def set_jira_browse_url(self):
         if self.jira_browse_url is None:

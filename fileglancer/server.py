@@ -23,7 +23,7 @@ from pydantic import HttpUrl, ValidationError
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request, Query, Path, Body, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse, Response, JSONResponse, PlainTextResponse, StreamingResponse, FileResponse
+from fastapi.responses import RedirectResponse, Response, JSONResponse, PlainTextResponse, StreamingResponse, FileResponse, HTMLResponse
 from fastapi.exceptions import RequestValidationError, StarletteHTTPException
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
@@ -359,6 +359,54 @@ def _validate_short_name(short_name: str) -> None:
     """Validate short_name: only letters, numbers, hyphens, and underscores allowed."""
     if not all(ch.isalnum() or ch in ("-", "_") for ch in short_name):
         raise HTTPException(status_code=400, detail="short_name can only contain letters, numbers, hyphens, and underscores")
+
+
+# Shown at the URL the user clicked when the service proxy refuses to resolve a
+# hostname, which is almost always a service whose job has since stopped. The
+# reverse proxy maps its own 403 here (see docs/ServiceProxy.md), so this ships
+# with Fileglancer rather than living in each deployment's nginx html directory.
+#
+# Self-contained on purpose: the proxy's server block routes everything through
+# auth_request, so a stylesheet or image referenced from here would be refused
+# by the same check that produced this page. No link back to Fileglancer either
+# — the app has no configured public base URL, and this page is served on a
+# subdomain that cannot be assumed to share one with it.
+_SERVICE_UNAVAILABLE_HTML = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Service not running</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center;
+         justify-content: center; background: Canvas; color: CanvasText;
+         font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 34rem; padding: 2rem; }
+  h1 { font-size: 1.5rem; margin: 0 0 1rem; }
+  p { margin: 0 0 1rem; }
+  ul { margin: 0; padding-left: 1.25rem; }
+  .muted { margin-top: 1.5rem; opacity: 0.7; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>503 Service Unavailable</h1>
+  <p>The app that was served at this address is no longer available. Services
+     are reachable only while their job is running.</p>
+  <ul>
+    <li>The job finished, was cancelled, or hit its time limit.</li>
+    <li>The job is still starting up and hasn't published its address yet —
+        wait a moment and reload.</li>
+    <li>The link is old. Each launch gets its own address, so a bookmark from a
+        previous run will not work.</li>
+  </ul>
+  <p class="muted">Open the job in Fileglancer to check its status or launch the
+     app again.</p>
+</main>
+</body>
+</html>
+"""
 
 
 def create_app(settings):
@@ -2700,9 +2748,92 @@ def create_app(settings):
                         job=serialize_job_for_worker(db_job))
                     service_url = svc_result.get("service_url")
                     phase = svc_result.get("phase")
+                    if service_url:
+                        # Cache it so /api/apps/resolve can map a proxy hostname
+                        # to an upstream without a worker RPC per request.
+                        db.set_job_service_url(session, job_id, service_url)
                 except Exception:
-                    pass
-            return _convert_job(db_job, service_url=service_url, files=files, phase=phase)
+                    logger.debug(
+                        f"Could not resolve or cache the service URL for job {job_id}",
+                        exc_info=True)
+            # The cached value stays raw — it is the proxy's upstream. Only what
+            # goes back to the browser is rewritten.
+            proxied = apps_module.build_proxied_service_url(
+                service_url, job_id, settings.apps.service_proxy_domain,
+                settings.session_secret_key)
+            return _convert_job(db_job, service_url=proxied or service_url,
+                                files=files, phase=phase)
+
+    @app.get("/api/apps/resolve", include_in_schema=False)
+    async def resolve_service_upstream(request: Request):
+        """Map a service proxy hostname to its upstream, for the reverse proxy.
+
+        Called once per proxied request via nginx's auth_request, so it must stay
+        a single indexed read. Deliberately unauthenticated: the session cookie
+        is scoped to the Fileglancer hostname and is never sent to an app
+        subdomain, so there is no user to check. It discloses only a host:port
+        that the job's detail page already shows, and the reverse proxy marks its
+        location `internal` so it is not reachable from outside.
+
+        Returns 204 with X-Fg-Upstream on success and 403 for everything else, so
+        auth_request denies the request.
+
+        Successful resolutions are cached for a few seconds, which is also the
+        window in which a job that has just stopped can still be proxied. See
+        the cache notes in fileglancer/apps/serviceproxy.py for why that window
+        is deliberately short.
+        """
+        proxy_domain = settings.apps.service_proxy_domain
+        job_id = apps_module.job_id_from_host(
+            request.headers.get('host'), proxy_domain,
+            settings.session_secret_key)
+        if job_id is None:
+            apps_module.record_resolve("refused_bad_host")
+            raise HTTPException(status_code=403, detail="Not a service proxy host")
+
+        # A page load is dozens of these, so serve repeats from the short-lived
+        # cache and keep the database out of the hot path. Only hits are cached;
+        # a service that has not published its URL yet must be able to start
+        # resolving the moment it does.
+        upstream = apps_module.cached_upstream(job_id)
+        if upstream is not None:
+            apps_module.record_resolve("hit")
+            return Response(status_code=204,
+                            headers={"X-Fg-Upstream": upstream})
+
+        with db.get_db_session(settings.db_url) as session:
+            db_job = db.get_job_by_id(session, job_id)
+            if (db_job is None
+                    or getattr(db_job, 'entry_point_type', 'job') != 'service'
+                    or db_job.status != 'RUNNING'):
+                apps_module.record_resolve("refused_not_running")
+                raise HTTPException(status_code=403, detail="No running service for this host")
+            upstream = apps_module.upstream_from_service_url(
+                db_job.service_url,
+                allowed_zone=settings.apps.service_proxy_upstream_zone,
+                allowed_networks=tuple(settings.apps.service_proxy_upstream_networks))
+
+        if upstream is None:
+            apps_module.record_resolve("refused_no_upstream")
+            raise HTTPException(status_code=403, detail="No usable upstream for this host")
+
+        apps_module.cache_upstream(job_id, upstream)
+        apps_module.record_resolve("miss")
+        return Response(status_code=204, headers={"X-Fg-Upstream": upstream})
+
+    @app.get("/api/apps/service-unavailable", include_in_schema=False)
+    async def service_unavailable_page():
+        """The page a user sees when a service proxy hostname no longer resolves.
+
+        The reverse proxy renders this in place of its own 403, at the URL the
+        user clicked. 503 rather than 403 because "not running" is what actually
+        happened in every case a real user reaches: a refusal from
+        /api/apps/resolve means the job is gone, still starting, or was never
+        theirs to reach, and none of those is worth distinguishing to a browser.
+        Unauthenticated for the same reason the resolve endpoint is — the session
+        cookie is scoped to the Fileglancer hostname and is never sent here.
+        """
+        return HTMLResponse(_SERVICE_UNAVAILABLE_HTML, status_code=503)
 
     @app.patch("/api/jobs/{job_id}", response_model=Job,
                description="Rename a job")

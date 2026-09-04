@@ -866,7 +866,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/tomlkit-0.15.1-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/trove-classifiers-2026.6.1.19-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/truststore-0.10.4-pyhcf101f3_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/twine-6.2.0-pyhcf101f3_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/twine-7.0.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typer-0.27.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing-extensions-4.16.0-h69aa097_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing-inspection-0.4.2-pyhcf101f3_2.conda
@@ -1081,7 +1081,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/tomlkit-0.15.1-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/trove-classifiers-2026.6.1.19-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/truststore-0.10.4-pyhcf101f3_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/twine-6.2.0-pyhcf101f3_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/twine-7.0.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typer-0.27.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing-extensions-4.16.0-h69aa097_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing-inspection-0.4.2-pyhcf101f3_2.conda
@@ -1222,7 +1222,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/tomlkit-0.15.1-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/trove-classifiers-2026.6.1.19-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/truststore-0.10.4-pyhcf101f3_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/twine-6.2.0-pyhcf101f3_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/twine-7.0.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typer-0.27.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing-extensions-4.16.0-h69aa097_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing-inspection-0.4.2-pyhcf101f3_2.conda
@@ -1429,7 +1429,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/tomlkit-0.15.1-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/trove-classifiers-2026.6.1.19-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/truststore-0.10.4-pyhcf101f3_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/twine-6.2.0-pyhcf101f3_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/twine-7.0.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typer-0.27.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing-extensions-4.16.0-h69aa097_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing-inspection-0.4.2-pyhcf101f3_2.conda
@@ -9551,28 +9551,28 @@ packages:
   - pkg:pypi/truststore?source=hash-mapping
   size: 24279
   timestamp: 1766494826559
-- conda: https://conda.anaconda.org/conda-forge/noarch/twine-6.2.0-pyhcf101f3_0.conda
-  sha256: 0370098cab22773e33755026bf78539c2f05645fce7dcc9713d01e21950756bb
-  md5: 901a86453fa6183e914b937643619a03
+- conda: https://conda.anaconda.org/conda-forge/noarch/twine-7.0.0-pyhcf101f3_0.conda
+  sha256: 9abcd51d09a4d2da757861ad4684b02ae82ff721db6644e6fe477c5fd7e9278c
+  md5: e1d7495efcd3d0bc79bdc6cc5a34b8ba
   depends:
   - id
-  - importlib-metadata >=3.6
   - keyring >=21.2.0
-  - packaging >=24.0
+  - packaging >=26.1
   - python >=3.10
   - readme_renderer >=35.0
   - requests >=2.20
   - requests-toolbelt >=0.8.0,!=0.9.0
   - rfc3986 >=1.4.0
-  - rich >=12.0.0
+  - rich >=14.3.3
   - urllib3 >=1.26.0
   - python
   license: Apache-2.0
   license_family: APACHE
   purls:
   - pkg:pypi/twine?source=hash-mapping
-  size: 42488
-  timestamp: 1757013705407
+  run_exports: {}
+  size: 42936
+  timestamp: 1785252141368
 - conda: https://conda.anaconda.org/conda-forge/noarch/typer-0.27.0-pyhcf101f3_0.conda
   sha256: f44984374b248c45f7e3d43a2cb0bf73d1441ecea07fb73198e89f643f6c5824
   md5: aa0ef00569728be93656de5f097fc81d
@@ -13062,7 +13062,7 @@ packages:
   - uvicorn==0.38.0
   - x2s3==1.5.2
   - hatch==1.17.1 ; extra == 'release'
-  - twine==6.2.0 ; extra == 'release'
+  - twine==7.0.0 ; extra == 'release'
   - coverage==7.15.1 ; python_full_version == '3.12.*' and platform_machine == 'x86_64' and sys_platform == 'darwin' and extra == 'test'
   - coverage==7.15.2 ; (python_full_version != '3.12.*' and extra == 'test') or (platform_machine != 'x86_64' and extra == 'test') or (sys_platform != 'darwin' and extra == 'test')
   - httpx2==2.9.1 ; extra == 'test'

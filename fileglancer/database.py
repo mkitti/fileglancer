@@ -196,6 +196,11 @@ class JobDB(Base):
     # detail endpoint build browse links without realpath'ing mounts per read.
     work_dir_fsp_name = Column(String, nullable=True)
     work_dir_subpath = Column(String, nullable=True)
+    # Service URL as published by the job to its work directory, cached here so
+    # the proxy-resolve endpoint can map a hostname to an upstream with one
+    # indexed read, instead of a per-user worker RPC and an NFS stat on every
+    # proxied request. NULL until the job publishes a URL and it is first read.
+    service_url = Column(String, nullable=True)
     # Commit whose code this job executed (the code repo's SHA when the
     # manifest declares a separate repo_url, else the app repo's SHA). NULL for
     # jobs submitted before commit pinning existed.
@@ -1189,6 +1194,26 @@ def get_jobs_by_username(session: Session, username: str, status: Optional[str] 
 def get_job(session: Session, job_id: int, username: str) -> Optional[JobDB]:
     """Get a single job by ID and username"""
     return session.query(JobDB).filter_by(id=job_id, username=username).first()
+
+
+def get_job_by_id(session: Session, job_id: int) -> Optional[JobDB]:
+    """Get a job by ID without an ownership check.
+
+    The proxy-resolve endpoint runs with no authenticated user — the browser's
+    session cookie is scoped to the Fileglancer hostname and is never sent to an
+    app subdomain — so it cannot use get_job(). Callers that do have a user must
+    keep using get_job(), which filters by username.
+    """
+    return session.query(JobDB).filter_by(id=job_id).first()
+
+
+def set_job_service_url(session: Session, job_id: int, service_url: str) -> None:
+    """Cache a job's published service URL on its row."""
+    job = session.query(JobDB).filter_by(id=job_id).first()
+    if job is None or job.service_url == service_url:
+        return
+    job.service_url = service_url
+    session.commit()
 
 
 def update_job(session: Session, job_id: int, username: str,

@@ -50,8 +50,22 @@ class AccessLogMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.settings = settings
 
+    # Paths that are logged in aggregate elsewhere rather than per request. The
+    # service proxy's resolve endpoint is called once per proxied HTTP request,
+    # so a single app page load would emit dozens of identical 204 lines that
+    # carry no user, no useful path and no useful duration — and would skew the
+    # duration percentiles for the endpoints that do. It reports running totals
+    # once a minute instead; see fileglancer/apps/serviceproxy.py.
+    _AGGREGATED_PATHS = frozenset({"/api/apps/resolve"})
+
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Process request and log access information"""
+        # Checked before anything else so an aggregated path also skips the
+        # session-cookie lookup below — that is signature work per request, on a
+        # cookie a proxied app subdomain never sends in the first place.
+        if request.url.path in self._AGGREGATED_PATHS:
+            return await call_next(request)
+
         start_time = time.perf_counter()
 
         # Extract username from session (if authenticated)
